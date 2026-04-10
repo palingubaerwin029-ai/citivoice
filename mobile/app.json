@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "CitiVoice",
+    "slug": "citivoice",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0A1628"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.citivoice.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "CitiVoice needs your location to pin your concern on the map.",
+        "NSLocationAlwaysUsageDescription": "CitiVoice needs your location to pin your concern on the map."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0A1628"
+      },
+      "package": "com.citivoice.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "CitiVoice needs location to pin your concern on the map."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#1A6BFF"
+        }
+      ],
+      "expo-font"
+    ]
+  }
+}

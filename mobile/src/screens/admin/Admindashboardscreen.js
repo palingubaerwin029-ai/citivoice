@@ -1,0 +1,437 @@
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  RefreshControl,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { db } from "../../services/firebase";
+import { useAuth } from "../../context/AuthContext";
+import { COLORS, STATUS_CONFIG, CATEGORY_CONFIG } from "../../utils/theme";
+
+export default function AdminDashboardScreen({ navigation }) {
+  const { user } = useAuth();
+  const [concerns, setConcerns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    const q = query(collection(db, "concerns"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      setConcerns(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  const stats = {
+    total: concerns.length,
+    pending: concerns.filter((c) => c.status === "Pending").length,
+    inProgress: concerns.filter((c) => c.status === "In Progress").length,
+    resolved: concerns.filter((c) => c.status === "Resolved").length,
+    rejected: concerns.filter((c) => c.status === "Rejected").length,
+  };
+  const resolutionRate = stats.total
+    ? Math.round((stats.resolved / stats.total) * 100)
+    : 0;
+
+  const urgent = concerns.filter(
+    (c) => c.priority === "High" && c.status === "Pending",
+  );
+  const recent = concerns.slice(0, 6);
+
+  const categoryCount = concerns.reduce((acc, c) => {
+    acc[c.category] = (acc[c.category] || 0) + 1;
+    return acc;
+  }, {});
+  const topCategory = Object.entries(categoryCount).sort(
+    (a, b) => b[1] - a[1],
+  )[0];
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 800);
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.accent}
+          />
+        }
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>Admin Panel 🛡️</Text>
+            <Text style={styles.adminName}>{user?.name}</Text>
+          </View>
+          <View style={styles.liveDot}>
+            <View style={styles.liveIndicator} />
+            <Text style={styles.liveText}>Live</Text>
+          </View>
+        </View>
+
+        {/* KPI Cards */}
+        <View style={styles.kpiGrid}>
+          {[
+            {
+              label: "Total",
+              value: stats.total,
+              icon: "📋",
+              color: COLORS.primary,
+            },
+            {
+              label: "Pending",
+              value: stats.pending,
+              icon: "⏳",
+              color: COLORS.statusPending,
+            },
+            {
+              label: "Active",
+              value: stats.inProgress,
+              icon: "🔄",
+              color: COLORS.primaryLight,
+            },
+            {
+              label: "Resolved",
+              value: stats.resolved,
+              icon: "✅",
+              color: COLORS.accent,
+            },
+          ].map((k, i) => (
+            <View key={i} style={[styles.kpiCard, { borderTopColor: k.color }]}>
+              <Text style={styles.kpiIcon}>{k.icon}</Text>
+              <Text style={[styles.kpiNum, { color: k.color }]}>{k.value}</Text>
+              <Text style={styles.kpiLabel}>{k.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Resolution Rate Bar */}
+        <View style={styles.rateCard}>
+          <View style={styles.rateHeader}>
+            <Text style={styles.rateTitle}>🎯 Resolution Rate</Text>
+            <Text
+              style={[
+                styles.ratePercent,
+                {
+                  color:
+                    resolutionRate > 60 ? COLORS.accent : COLORS.statusPending,
+                },
+              ]}
+            >
+              {resolutionRate}%
+            </Text>
+          </View>
+          <View style={styles.rateBarBg}>
+            <View
+              style={[styles.rateBarFill, { width: `${resolutionRate}%` }]}
+            />
+          </View>
+          <Text style={styles.rateSub}>
+            {stats.resolved} resolved of {stats.total} total
+          </Text>
+        </View>
+
+        {/* Top Category */}
+        {topCategory && (
+          <View style={styles.topCatCard}>
+            <View
+              style={[
+                styles.topCatIcon,
+                {
+                  backgroundColor:
+                    CATEGORY_CONFIG[topCategory[0]]?.bg || COLORS.bgCard,
+                },
+              ]}
+            >
+              <Ionicons
+                name={CATEGORY_CONFIG[topCategory[0]]?.icon || "alert-circle"}
+                size={22}
+                color={CATEGORY_CONFIG[topCategory[0]]?.color || COLORS.primary}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.topCatLabel}>Most Reported Category</Text>
+              <Text style={styles.topCatName}>{topCategory[0]}</Text>
+            </View>
+            <Text style={styles.topCatCount}>{topCategory[1]}</Text>
+          </View>
+        )}
+
+        {/* Urgent Section */}
+        {urgent.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text
+                style={[styles.sectionTitle, { color: COLORS.statusRejected }]}
+              >
+                🚨 Urgent — Needs Action
+              </Text>
+              <Text style={styles.sectionCount}>{urgent.length}</Text>
+            </View>
+            {urgent.slice(0, 3).map((c) => (
+              <TouchableOpacity
+                key={c.id}
+                style={styles.urgentRow}
+                onPress={() =>
+                  navigation.navigate("AdminConcernDetail", { concernId: c.id })
+                }
+              >
+                <View style={styles.urgentLeft}>
+                  <View style={styles.urgentDot} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.urgentTitle} numberOfLines={1}>
+                      {c.title}
+                    </Text>
+                    <Text style={styles.urgentMeta}>
+                      {c.userName} · {c.userBarangay}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={COLORS.textMuted}
+                />
+              </TouchableOpacity>
+            ))}
+            {urgent.length > 3 && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate("AdminConcerns")}
+              >
+                <Text style={styles.seeAll}>
+                  See all {urgent.length} urgent →
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Recent Concerns */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>🕐 Recent Concerns</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("AdminConcerns")}
+            >
+              <Text style={styles.seeAll}>See all →</Text>
+            </TouchableOpacity>
+          </View>
+          {recent.map((c) => {
+            const cfg = STATUS_CONFIG[c.status] || STATUS_CONFIG["Pending"];
+            const catCfg =
+              CATEGORY_CONFIG[c.category] || CATEGORY_CONFIG["Other"];
+            return (
+              <TouchableOpacity
+                key={c.id}
+                style={styles.concernRow}
+                onPress={() =>
+                  navigation.navigate("AdminConcernDetail", { concernId: c.id })
+                }
+              >
+                <View style={[styles.catDot, { backgroundColor: catCfg.bg }]}>
+                  <Ionicons name={catCfg.icon} size={16} color={catCfg.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.concernTitle} numberOfLines={1}>
+                    {c.title}
+                  </Text>
+                  <Text style={styles.concernMeta}>
+                    {c.userName} · {c.userBarangay}
+                  </Text>
+                </View>
+                <View style={[styles.statusPill, { backgroundColor: cfg.bg }]}>
+                  <Text style={[styles.statusPillText, { color: cfg.color }]}>
+                    {c.status}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.bgDark },
+  scroll: { padding: 20, paddingBottom: 40 },
+
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 20,
+  },
+  greeting: { color: COLORS.textSecondary, fontSize: 14, fontWeight: "600" },
+  adminName: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontWeight: "800",
+    marginTop: 2,
+  },
+  liveDot: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: COLORS.accent + "22",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: COLORS.accent + "44",
+  },
+  liveIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.accent,
+  },
+  liveText: { color: COLORS.accent, fontSize: 12, fontWeight: "700" },
+
+  kpiGrid: { flexDirection: "row", gap: 10, marginBottom: 14 },
+  kpiCard: {
+    flex: 1,
+    backgroundColor: COLORS.bgCard,
+    borderRadius: 14,
+    padding: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderTopWidth: 3,
+  },
+  kpiIcon: { fontSize: 18, marginBottom: 4 },
+  kpiNum: { fontSize: 22, fontWeight: "900" },
+  kpiLabel: { color: COLORS.textMuted, fontSize: 10, marginTop: 2 },
+
+  rateCard: {
+    backgroundColor: COLORS.bgCard,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 14,
+  },
+  rateHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  rateTitle: { color: COLORS.textPrimary, fontSize: 14, fontWeight: "700" },
+  ratePercent: { fontSize: 20, fontWeight: "900" },
+  rateBarBg: {
+    height: 8,
+    backgroundColor: COLORS.bgCardAlt,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  rateBarFill: { height: 8, backgroundColor: COLORS.accent, borderRadius: 4 },
+  rateSub: { color: COLORS.textMuted, fontSize: 11 },
+
+  topCatCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: COLORS.bgCard,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 20,
+  },
+  topCatIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topCatLabel: { color: COLORS.textMuted, fontSize: 11 },
+  topCatName: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: "700",
+    marginTop: 2,
+  },
+  topCatCount: { color: COLORS.primary, fontSize: 24, fontWeight: "900" },
+
+  section: { marginBottom: 20 },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sectionTitle: { color: COLORS.textPrimary, fontSize: 16, fontWeight: "700" },
+  sectionCount: {
+    backgroundColor: COLORS.statusRejected + "22",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  seeAll: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 8,
+    textAlign: "right",
+  },
+
+  urgentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.statusRejected + "11",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.statusRejected + "33",
+    marginBottom: 8,
+  },
+  urgentLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  urgentDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.statusRejected,
+  },
+  urgentTitle: { color: COLORS.textPrimary, fontSize: 14, fontWeight: "600" },
+  urgentMeta: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+
+  concernRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: COLORS.bgCard,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 8,
+  },
+  catDot: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  concernTitle: { color: COLORS.textPrimary, fontSize: 13, fontWeight: "600" },
+  concernMeta: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+  statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 },
+  statusPillText: { fontSize: 10, fontWeight: "700" },
+});

@@ -1,0 +1,147 @@
+.page { padding: 32px; max-width: 1400px; margin: 0 auto; }
+
+.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+.pageTitle { color: var(--text-primary); font-size: 26px; font-weight: 800; margin: 0; }
+.pageSubtitle { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
+
+.dateFilters { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.dateBtn {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-card-alt);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.dateBtnActive {
+  background-color: rgba(26,107,255,0.2);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ── KPI Grid ── */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.kpiCard {
+  background-color: var(--bg-card);
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-top-width: 3px;
+  transition: transform 0.15s;
+}
+
+.kpiCard:hover { transform: translateY(-2px); }
+
+.kpiTop { display: flex; justify-content: space-between; align-items: flex-start; }
+.kpiIcon { font-size: 22px; }
+.kpiNum { font-size: 28px; font-weight: 800; line-height: 1; }
+.kpiLabel { color: var(--text-secondary); font-size: 12px; margin-top: 3px; }
+.kpiSub { color: var(--text-muted); font-size: 11px; margin-top: 8px; }
+
+/* ── Charts ── */
+.chartsRow { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+
+.chartCard {
+  background-color: var(--bg-card);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  min-width: 0;
+}
+
+.chartTitle { color: var(--text-primary); font-size: 15px; font-weight: 700; margin: 0 0 16px; }
+.noData { color: var(--text-muted); text-align: center; padding: 40px; font-size: 13px; }
+
+/* ── Legend ── */
+.legendGrid { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.legendItem { display: flex; align-items: center; gap: 8px; }
+.legendDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.legendText { color: var(--text-secondary); font-size: 12px; }
+
+/* ── Priority breakdown ── */
+.prioritySection { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+
+.priorityRow { display: flex; align-items: center; gap: 10px; }
+
+.priorityName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 68px;
+  color: #ccd6f6;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.priorityBarWrap { flex: 1; display: flex; align-items: center; gap: 8px; }
+
+.priorityTrack {
+  flex: 1;
+  height: 6px;
+  background-color: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.priorityFill { height: 6px; border-radius: 3px; transition: width 0.8s ease; min-width: 4px; }
+
+.priorityCount { font-size: 12px; font-weight: 700; min-width: 28px; text-align: right; }
+
+.priorityTotal { color: var(--text-muted); font-size: 11px; margin-top: 4px; text-align: right; }
+
+/* ── Barangay bars ── */
+.barWrap { margin-bottom: 12px; }
+.barLabel { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.barName { color: var(--text-primary); font-size: 13px; }
+.barCount { color: var(--primary); font-size: 13px; font-weight: 700; }
+.barTrack { height: 6px; background-color: var(--border); border-radius: 3px; }
+.barFill { height: 6px; border-radius: 3px; transition: width 0.8s ease; }
+
+/* ── Top concerns ── */
+.topRow { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); text-decoration: none; }
+.rankBadge { width: 24px; height: 24px; border-radius: 6px; background-color: var(--bg-card-alt); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.topTitle { color: var(--text-primary); font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topMeta { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+.upvoteCount { display: flex; align-items: center; gap: 4px; margin-left: 12px; flex-shrink: 0; font-size: 13px; }
+
+/* ── Resolution card ── */
+.resolutionCard {
+  background-color: var(--bg-card);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 32px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.resolutionLeft { flex: 1; min-width: 250px; }
+.resolutionTitle { color: var(--text-primary); font-size: 18px; font-weight: 700; margin: 0 0 6px; }
+.resolutionSub { color: var(--text-secondary); font-size: 13px; }
+
+.statusSummary { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 14px; }
+.summaryItem { display: flex; align-items: center; gap: 6px; }
+.summaryDot { width: 8px; height: 8px; border-radius: 50%; }
+.summaryLabel { color: var(--text-secondary); font-size: 13px; }
+.summaryValue { font-weight: 700; font-size: 13px; }
+
+.resolutionRight { text-align: center; min-width: 180px; }
+.bigRate { font-size: 64px; font-weight: 900; color: var(--accent); line-height: 1; }
+.bigRateLabel { color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
+.bigBar { height: 8px; background-color: var(--border); border-radius: 4px; margin-top: 12px; }
+.bigFill { height: 8px; background-color: var(--accent); border-radius: 4px; transition: width 1s ease; }
