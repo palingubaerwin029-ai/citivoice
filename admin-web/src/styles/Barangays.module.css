@@ -1,0 +1,29 @@
+.page { padding: 32px; max-width: 1000px; margin: 0 auto; }
+.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.title { color: #fff; font-size: 26px; font-weight: 800; margin: 0; }
+.subtitle { color: #8899BB; font-size: 14px; margin-top: 4px; }
+.addBtn { background-color: #1A6BFF; color: #fff; border: none; border-radius: 12px; padding: 12px 20px; cursor: pointer; font-size: 14px; font-weight: 700; box-shadow: 0 4px 12px rgba(26,107,255,0.35); }
+.layout { display: flex; gap: 20px; align-items: flex-start; }
+.listCol { flex: 1; }
+.loading { color: #8899BB; padding: 40px; text-align: center; }
+.empty { padding: 80px; text-align: center; background-color: #112240; border-radius: 16px; border: 1px solid #1E3355; }
+.card { background-color: #112240; border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #1E3355; border-left-width: 4px; border-left-color: #1A6BFF; }
+.cardTop { display: flex; align-items: center; gap: 12px; }
+.cardTitle { color: #fff; font-size: 15px; font-weight: 700; }
+.cardMeta { margin-top: 4px; }
+.metaText { color: #8899BB; font-size: 12px; }
+.cardActions { display: flex; gap: 6px; flex-shrink: 0; }
+.editBtn { background-color: #1A6BFF22; border: 1px solid #1A6BFF44; color: #1A6BFF; border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 12px; font-weight: 700; }
+.deleteBtn { background-color: #FF444422; border: 1px solid #FF444444; color: #FF4444; border-radius: 8px; padding: 5px 8px; cursor: pointer; font-size: 14px; }
+.formPanel { width: 340px; background-color: #112240; border-radius: 16px; border: 1px solid #1E3355; overflow: hidden; flex-shrink: 0; }
+.formHeader { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #1E3355; }
+.formTitle { color: #fff; font-size: 16px; font-weight: 800; margin: 0; }
+.formClose { background: none; border: 1px solid #1E3355; color: #8899BB; border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+.form { padding: 20px; display: flex; flex-direction: column; gap: 4px; }
+.label { color: #8899BB; font-size: 12px; font-weight: 700; margin-bottom: 6px; margin-top: 8px; }
+.input { background-color: #162B4D; border: 1px solid #1E3355; border-radius: 10px; color: #fff; padding: 10px 12px; font-size: 14px; font-family: inherit; line-height: 1.5; outline: none; width: 100%; box-sizing: border-box; flex-shrink: 0; }
+.saveBtn { background-color: #1A6BFF; color: #fff; border: none; border-radius: 12px; padding: 13px; cursor: pointer; font-size: 14px; font-weight: 700; margin-top: 16px; box-shadow: 0 4px 12px rgba(26,107,255,0.35); }
+.dialogOverlay { position: fixed; inset: 0; background-color: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.dialog { background-color: #112240; border-radius: 20px; padding: 32px; border: 1px solid #1E3355; text-align: center; max-width: 360px; }
+.dialogCancel { flex: 1; padding: 12px; background-color: #162B4D; border: 1px solid #1E3355; color: #8899BB; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.dialogDelete { flex: 1; padding: 12px; background-color: #FF444422; border: 1px solid #FF4444; color: #FF4444; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 700; }

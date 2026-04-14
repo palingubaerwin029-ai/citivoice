@@ -11,6 +11,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import styles from "../styles/Barangays.module.css";
 
 const EMPTY_BARANGAY = { name: "" };
 
@@ -86,17 +87,17 @@ export default function Barangays() {
   };
 
   return (
-    <div style={S.page}>
+    <div className={styles.page}>
       {/* ── Header ── */}
-      <div style={S.header}>
+      <div className={styles.header}>
         <div>
-          <h1 style={S.title}>🏙️ Barangays</h1>
-          <p style={S.subtitle}>
+          <h1 className={styles.title}>🏙️ Barangays</h1>
+          <p className={styles.subtitle}>
             Manage registered barangays for user selection
           </p>
         </div>
         <button
-          style={S.addBtn}
+          className={styles.addBtn}
           onClick={() => {
             setShowForm(true);
             setEditItem(null);
@@ -107,36 +108,36 @@ export default function Barangays() {
         </button>
       </div>
 
-      <div style={S.layout}>
+      <div className={styles.layout}>
         {/* ── List ── */}
-        <div style={S.listCol}>
-          {loading && <div style={S.loading}>Loading...</div>}
+        <div className={styles.listCol}>
+          {loading && <div className={styles.loading}>Loading...</div>}
 
           {!loading &&
             (barangays.length === 0 ? (
-              <div style={S.empty}>
+              <div className={styles.empty}>
                 <div style={{ fontSize: 48 }}>🏙️</div>
                 <p style={{ color: "#8899BB" }}>No barangays found</p>
               </div>
             ) : (
               barangays.map((b) => (
-                <div key={b.id} style={S.card}>
-                  <div style={S.cardTop}>
+                <div key={b.id} className={styles.card}>
+                  <div className={styles.cardTop}>
                     <span style={{ fontSize: 24 }}>📍</span>
                     <div style={{ flex: 1 }}>
-                      <div style={S.cardTitle}>{b.name}</div>
-                      <div style={S.cardMeta}>
-                        <span style={S.metaText}>
+                      <div className={styles.cardTitle}>{b.name}</div>
+                      <div className={styles.cardMeta}>
+                        <span className={styles.metaText}>
                           Added {b.createdAt?.toDate?.()?.toLocaleDateString() || "Recently"}
                         </span>
                       </div>
                     </div>
-                    <div style={S.cardActions}>
-                      <button style={S.editBtn} onClick={() => openEdit(b)}>
+                    <div className={styles.cardActions}>
+                      <button className={styles.editBtn} onClick={() => openEdit(b)}>
                         ✏️ Edit
                       </button>
                       <button
-                        style={S.deleteBtn}
+                        className={styles.deleteBtn}
                         onClick={() =>
                           setDeleteConfirm({
                             id: b.id,
@@ -155,13 +156,13 @@ export default function Barangays() {
 
         {/* ── Form Panel ── */}
         {showForm && (
-          <div style={S.formPanel}>
-            <div style={S.formHeader}>
-              <h3 style={S.formTitle}>
+          <div className={styles.formPanel}>
+            <div className={styles.formHeader}>
+              <h3 className={styles.formTitle}>
                 {editItem ? "✏️ Edit" : "➕ New"} Barangay
               </h3>
               <button
-                style={S.formClose}
+                className={styles.formClose}
                 onClick={() => {
                   setShowForm(false);
                   setEditItem(null);
@@ -171,10 +172,10 @@ export default function Barangays() {
               </button>
             </div>
 
-            <div style={S.form}>
-              <label style={S.label}>Barangay Name *</label>
+            <div className={styles.form}>
+              <label className={styles.label}>Barangay Name *</label>
               <input
-                style={S.input}
+                className={styles.input}
                 value={form.name}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, name: e.target.value }))
@@ -183,7 +184,7 @@ export default function Barangays() {
               />
 
               <button
-                style={{ ...S.saveBtn, opacity: saving ? 0.6 : 1 }}
+                className={styles.saveBtn} style={{ opacity: saving ? 0.6 : 1 }}
                 onClick={saveBarangay}
                 disabled={saving}
               >
@@ -200,8 +201,8 @@ export default function Barangays() {
 
       {/* ── Delete Confirm Dialog ── */}
       {deleteConfirm && (
-        <div style={S.dialogOverlay}>
-          <div style={S.dialog}>
+        <div className={styles.dialogOverlay}>
+          <div className={styles.dialog}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🗑️</div>
             <h3 style={{ color: "#fff", margin: "0 0 8px" }}>Delete this?</h3>
             <p style={{ color: "#8899BB", fontSize: 14, marginBottom: 24 }}>
@@ -209,13 +210,13 @@ export default function Barangays() {
             </p>
             <div style={{ display: "flex", gap: 10 }}>
               <button
-                style={S.dialogCancel}
+                className={styles.dialogCancel}
                 onClick={() => setDeleteConfirm(null)}
               >
                 Cancel
               </button>
               <button
-                style={S.dialogDelete}
+                className={styles.dialogDelete}
                 onClick={() => handleDelete(deleteConfirm.id)}
               >
                 Delete
@@ -228,184 +229,3 @@ export default function Barangays() {
   );
 }
 
-const S = {
-  page: { padding: 32, maxWidth: 1000, margin: "0 auto" },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 24,
-  },
-  title: { color: "#fff", fontSize: 26, fontWeight: 800, margin: 0 },
-  subtitle: { color: "#8899BB", fontSize: 14, marginTop: 4 },
-  addBtn: {
-    backgroundColor: "#1A6BFF",
-    color: "#fff",
-    border: "none",
-    borderRadius: 12,
-    padding: "12px 20px",
-    cursor: "pointer",
-    fontSize: 14,
-    fontWeight: 700,
-    boxShadow: "0 4px 12px rgba(26,107,255,0.35)",
-  },
-
-  layout: { display: "flex", gap: 20, alignItems: "flex-start" },
-  listCol: { flex: 1 },
-  loading: { color: "#8899BB", padding: 40, textAlign: "center" },
-  empty: {
-    padding: 80,
-    textAlign: "center",
-    backgroundColor: "#112240",
-    borderRadius: 16,
-    border: "1px solid #1E3355",
-  },
-
-  card: {
-    backgroundColor: "#112240",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    border: "1px solid #1E3355",
-    borderLeftWidth: 4,
-    borderLeftColor: "#1A6BFF",
-  },
-  cardTop: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
-  cardTitle: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: 700,
-  },
-  cardMeta: {
-    marginTop: 4,
-  },
-  metaText: { color: "#8899BB", fontSize: 12 },
-  cardActions: { display: "flex", gap: 6, flexShrink: 0 },
-  editBtn: {
-    backgroundColor: "#1A6BFF22",
-    border: "1px solid #1A6BFF44",
-    color: "#1A6BFF",
-    borderRadius: 8,
-    padding: "5px 10px",
-    cursor: "pointer",
-    fontSize: 12,
-    fontWeight: 700,
-  },
-  deleteBtn: {
-    backgroundColor: "#FF444422",
-    border: "1px solid #FF444444",
-    color: "#FF4444",
-    borderRadius: 8,
-    padding: "5px 8px",
-    cursor: "pointer",
-    fontSize: 14,
-  },
-
-  formPanel: {
-    width: 340,
-    backgroundColor: "#112240",
-    borderRadius: 16,
-    border: "1px solid #1E3355",
-    overflow: "hidden",
-    flexShrink: 0,
-  },
-  formHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "16px 20px",
-    borderBottom: "1px solid #1E3355",
-  },
-  formTitle: { color: "#fff", fontSize: 16, fontWeight: 800, margin: 0 },
-  formClose: {
-    background: "none",
-    border: "1px solid #1E3355",
-    color: "#8899BB",
-    borderRadius: 8,
-    padding: "4px 10px",
-    cursor: "pointer",
-  },
-  form: {
-    padding: 20,
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-  },
-  label: {
-    color: "#8899BB",
-    fontSize: 12,
-    fontWeight: 700,
-    marginBottom: 6,
-    marginTop: 8,
-  },
-  input: {
-    backgroundColor: "#162B4D",
-    border: "1px solid #1E3355",
-    borderRadius: 10,
-    color: "#fff",
-    padding: "10px 12px",
-    fontSize: 14,
-    fontFamily: "inherit",
-    lineHeight: 1.5,
-    outline: "none",
-    width: "100%",
-    boxSizing: "border-box",
-    flexShrink: 0,
-  },
-  saveBtn: {
-    backgroundColor: "#1A6BFF",
-    color: "#fff",
-    border: "none",
-    borderRadius: 12,
-    padding: "13px",
-    cursor: "pointer",
-    fontSize: 14,
-    fontWeight: 700,
-    marginTop: 16,
-    boxShadow: "0 4px 12px rgba(26,107,255,0.35)",
-  },
-
-  dialogOverlay: {
-    position: "fixed",
-    inset: 0,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 100,
-  },
-  dialog: {
-    backgroundColor: "#112240",
-    borderRadius: 20,
-    padding: 32,
-    border: "1px solid #1E3355",
-    textAlign: "center",
-    maxWidth: 360,
-  },
-  dialogCancel: {
-    flex: 1,
-    padding: 12,
-    backgroundColor: "#162B4D",
-    border: "1px solid #1E3355",
-    color: "#8899BB",
-    borderRadius: 10,
-    cursor: "pointer",
-    fontSize: 14,
-    fontWeight: 600,
-  },
-  dialogDelete: {
-    flex: 1,
-    padding: 12,
-    backgroundColor: "#FF444422",
-    border: "1px solid #FF4444",
-    color: "#FF4444",
-    borderRadius: 10,
-    cursor: "pointer",
-    fontSize: 14,
-    fontWeight: 700,
-  },
-};
