@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
+import { IoMailOutline, IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from "react-icons/io5";
 import s from "../styles/Login.module.css";
 
 export default function Login({ onLogin }) {
@@ -59,7 +60,7 @@ export default function Login({ onLogin }) {
             <div className={s.field}>
               <label className={s.label}>Email Address</label>
               <div className={s.inputWrap}>
-                <span className={s.icon}>✉</span>
+                <IoMailOutline className={s.reactIcon} />
                 <input
                   className={s.input}
                   type="email"
@@ -75,7 +76,7 @@ export default function Login({ onLogin }) {
             <div className={s.field}>
               <label className={s.label}>Password</label>
               <div className={s.inputWrap}>
-                <span className={s.icon}>🔑</span>
+                <IoLockClosedOutline className={s.reactIcon} />
                 <input
                   className={s.input}
                   type={showPw ? "text" : "password"}
@@ -90,7 +91,7 @@ export default function Login({ onLogin }) {
                   className={s.eyeBtn}
                   onClick={() => setShowPw((p) => !p)}
                 >
-                  {showPw ? "🙈" : "👁"}
+                  {showPw ? <IoEyeOffOutline /> : <IoEyeOutline />}
                 </button>
               </div>
             </div>

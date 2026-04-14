@@ -2,20 +2,31 @@ import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
+import { 
+  IoGridOutline, 
+  IoChatbubbleEllipsesOutline, 
+  IoMegaphoneOutline, 
+  IoShieldCheckmarkOutline, 
+  IoPeopleOutline, 
+  IoBusinessOutline, 
+  IoMapOutline, 
+  IoBarChartOutline,
+  IoLogOutOutline
+} from "react-icons/io5";
 import s from "../styles/Sidebar.module.css";
 
 const NAV = [
   { section: "Overview" },
-  { path: "/dashboard", icon: "▦", label: "Dashboard" },
-  { path: "/concerns", icon: "◉", label: "Concerns" },
+  { path: "/dashboard", icon: <IoGridOutline />, label: "Dashboard" },
+  { path: "/concerns", icon: <IoChatbubbleEllipsesOutline />, label: "Concerns" },
   { section: "Management" },
-  { path: "/events", icon: "◈", label: "Events & Announcements" },
-  { path: "/verification", icon: "◎", label: "Verification" },
-  { path: "/users", icon: "◍", label: "Citizens" },
-  { path: "/barangays", icon: "🏙️", label: "Barangays" },
+  { path: "/events", icon: <IoMegaphoneOutline />, label: "Events & Announcements" },
+  { path: "/verification", icon: <IoShieldCheckmarkOutline />, label: "Verification" },
+  { path: "/users", icon: <IoPeopleOutline />, label: "Citizens" },
+  { path: "/barangays", icon: <IoBusinessOutline />, label: "Barangays" },
   { section: "Analytics" },
-  { path: "/map", icon: "◬", label: "Map View" },
-  { path: "/reports", icon: "◰", label: "Reports" },
+  { path: "/map", icon: <IoMapOutline />, label: "Map View" },
+  { path: "/reports", icon: <IoBarChartOutline />, label: "Reports" },
 ];
 
 export default function Sidebar({ user }) {
@@ -97,7 +108,7 @@ export default function Sidebar({ user }) {
           className={`${s.logoutBtn} ${collapsed ? s.collapsed : ""}`}
           onClick={() => signOut(auth).then(() => navigate("/"))}
         >
-          <span className={s.navIcon}>⎋</span>
+          <span className={s.navIcon}><IoLogOutOutline /></span>
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>

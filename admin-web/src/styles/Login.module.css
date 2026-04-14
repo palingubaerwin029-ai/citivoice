@@ -84,6 +84,7 @@
 }
 
 .icon { font-size: 15px; flex-shrink: 0; }
+.reactIcon { font-size: 18px; color: var(--text-2); flex-shrink: 0; }
 
 .input {
   flex: 1; background: none; border: none; outline: none;

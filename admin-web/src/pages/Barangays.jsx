@@ -11,6 +11,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { IoBusinessOutline, IoLocationOutline, IoPencilOutline, IoTrashOutline, IoAddOutline } from "react-icons/io5";
 import styles from "../styles/Barangays.module.css";
 
 const EMPTY_BARANGAY = { name: "" };
@@ -86,12 +87,14 @@ export default function Barangays() {
     setShowForm(true);
   };
 
+
+
   return (
     <div className={styles.page}>
       {/* ── Header ── */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>🏙️ Barangays</h1>
+          <h1 className={styles.title}><IoBusinessOutline style={{marginRight: 8, verticalAlign: 'middle'}}/> Barangays</h1>
           <p className={styles.subtitle}>
             Manage registered barangays for user selection
           </p>
@@ -104,7 +107,7 @@ export default function Barangays() {
             setForm(EMPTY_BARANGAY);
           }}
         >
-          + Add Category
+          <IoAddOutline size={18} style={{marginRight: 4, verticalAlign: 'middle'}}/> Add Barangay
         </button>
       </div>
 
@@ -116,14 +119,14 @@ export default function Barangays() {
           {!loading &&
             (barangays.length === 0 ? (
               <div className={styles.empty}>
-                <div style={{ fontSize: 48 }}>🏙️</div>
+                <div style={{ fontSize: 48, color: '#8899BB' }}><IoBusinessOutline /></div>
                 <p style={{ color: "#8899BB" }}>No barangays found</p>
               </div>
             ) : (
               barangays.map((b) => (
                 <div key={b.id} className={styles.card}>
                   <div className={styles.cardTop}>
-                    <span style={{ fontSize: 24 }}>📍</span>
+                    <IoLocationOutline size={22} color="#1A6BFF" />
                     <div style={{ flex: 1 }}>
                       <div className={styles.cardTitle}>{b.name}</div>
                       <div className={styles.cardMeta}>
@@ -134,7 +137,7 @@ export default function Barangays() {
                     </div>
                     <div className={styles.cardActions}>
                       <button className={styles.editBtn} onClick={() => openEdit(b)}>
-                        ✏️ Edit
+                        <IoPencilOutline style={{marginRight: 4}}/> Edit
                       </button>
                       <button
                         className={styles.deleteBtn}
@@ -145,7 +148,7 @@ export default function Barangays() {
                           })
                         }
                       >
-                        🗑️
+                        <IoTrashOutline />
                       </button>
                     </div>
                   </div>
@@ -203,7 +206,7 @@ export default function Barangays() {
       {deleteConfirm && (
         <div className={styles.dialogOverlay}>
           <div className={styles.dialog}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🗑️</div>
+            <div style={{ fontSize: 40, marginBottom: 12, color: '#FF4444' }}><IoTrashOutline /></div>
             <h3 style={{ color: "#fff", margin: "0 0 8px" }}>Delete this?</h3>
             <p style={{ color: "#8899BB", fontSize: 14, marginBottom: 24 }}>
               "{deleteConfirm.name}" will be permanently deleted.
