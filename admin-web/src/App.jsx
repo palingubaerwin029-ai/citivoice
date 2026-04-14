@@ -14,6 +14,7 @@ import Reports from "./pages/Reports";
 import Login from "./pages/Login";
 import EventsAnnouncements from "./pages/Eventsannouncements";
 import Verification from "./pages/Verification";
+import Barangays from "./pages/Barangays";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="/verification" element={<Verification />} />
             <Route path="/users" element={<Users />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/barangays" element={<Barangays />} />
           </Routes>
         </main>
       </div>

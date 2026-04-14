@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { InputField, PrimaryButton } from "../../components/UI";
-import { COLORS, RADIUS, SHADOWS, BARANGAYS } from "../../utils/theme";
+import { COLORS, RADIUS, SHADOWS } from "../../utils/theme";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../../services/firebase";
 
 export default function RegisterScreen({ navigation }) {
   const { register } = useAuth();
@@ -31,6 +33,21 @@ export default function RegisterScreen({ navigation }) {
   const [showPicker, setShowPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [availableBarangays, setAvailableBarangays] = useState(["Other"]);
+
+  useEffect(() => {
+    const fetchBarangays = async () => {
+      try {
+        const snap = await getDocs(collection(db, "barangays"));
+        const list = snap.docs.map(d => d.data().name);
+        list.sort((a, b) => a.localeCompare(b));
+        setAvailableBarangays([...list, "Other"]);
+      } catch (err) {
+        console.log("Error fetching barangays", err);
+      }
+    };
+    fetchBarangays();
+  }, []);
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
@@ -245,7 +262,7 @@ export default function RegisterScreen({ navigation }) {
               {showPicker && (
                 <View style={S.dropdown}>
                   <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
-                    {BARANGAYS.map((b) => (
+                    {availableBarangays.map((b) => (
                       <TouchableOpacity
                         key={b}
                         style={[

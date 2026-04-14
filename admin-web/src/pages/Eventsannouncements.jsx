@@ -22,16 +22,6 @@ const EVENT_CATEGORIES = [
   "other",
 ];
 const ANNOUNCEMENT_TYPES = ["info", "warning", "urgent", "success"];
-const BARANGAYS = [
-  "All Barangays",
-  "Barangay San Isidro",
-  "Barangay Poblacion",
-  "Barangay Molo",
-  "Barangay Jaro",
-  "Barangay La Paz",
-  "Other",
-];
-
 const CAT_COLORS = {
   meeting: "#1A6BFF",
   maintenance: "#FFB800",
@@ -79,6 +69,7 @@ export default function EventsAnnouncements() {
   const [activeTab, setActiveTab] = useState("announcements");
   const [announcements, setAnnouncements] = useState([]);
   const [events, setEvents] = useState([]);
+  const [barangaysList, setBarangaysList] = useState(["All Barangays", "Other"]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -101,9 +92,16 @@ export default function EventsAnnouncements() {
         setEvents(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       },
     );
+    const unsubB = onSnapshot(
+      query(collection(db, "barangays"), orderBy("name", "asc")),
+      (snap) => {
+        setBarangaysList(["All Barangays", ...snap.docs.map(d => d.data().name), "Other"]);
+      }
+    );
     return () => {
       unsubA();
       unsubE();
+      unsubB();
     };
   }, []);
 
@@ -537,7 +535,7 @@ export default function EventsAnnouncements() {
                     }))
                   }
                 >
-                  {BARANGAYS.map((b) => (
+                  {barangaysList.map((b) => (
                     <option key={b} value={b}>
                       {b}
                     </option>

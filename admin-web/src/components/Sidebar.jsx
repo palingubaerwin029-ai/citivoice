@@ -12,6 +12,7 @@ const NAV = [
   { path: "/events", icon: "◈", label: "Events & Announcements" },
   { path: "/verification", icon: "◎", label: "Verification" },
   { path: "/users", icon: "◍", label: "Citizens" },
+  { path: "/barangays", icon: "🏙️", label: "Barangays" },
   { section: "Analytics" },
   { path: "/map", icon: "◬", label: "Map View" },
   { path: "/reports", icon: "◰", label: "Reports" },
