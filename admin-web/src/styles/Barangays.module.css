@@ -40,82 +40,76 @@
     display: flex;
     gap: 20px;
     align-items: flex-start;
+    transition: all 0.3s ease;
+}
+
+.layout.hasForm {
+    gap: 24px;
 }
 
 .listCol {
     flex: 1;
+    min-width: 0;
 }
 
-.loading {
-    color: #8899BB;
-    padding: 40px;
-    text-align: center;
-}
-
-.empty {
-    padding: 80px;
-    text-align: center;
-    background-color: #112240;
-    border-radius: 16px;
-    border: 1px solid #1E3355;
-}
-
-.card {
-    background-color: #112240;
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 12px;
-    border: 1px solid #1E3355;
-    border-left-width: 4px;
-    border-left-color: #1A6BFF;
-}
-
-.cardTop {
+.iconBox {
+    background: rgba(26, 107, 255, 0.1);
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
-    gap: 12px;
-}
-
-.cardTitle {
-    color: #fff;
-    font-size: 15px;
-    font-weight: 700;
-}
-
-.cardMeta {
-    margin-top: 4px;
-}
-
-.metaText {
-    color: #8899BB;
-    font-size: 12px;
-}
-
-.cardActions {
-    display: flex;
-    gap: 6px;
+    justify-content: center;
     flex-shrink: 0;
 }
 
+.actionCol {
+    width: 100px;
+    text-align: right !important;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
 .editBtn {
-    background-color: #1A6BFF22;
-    border: 1px solid #1A6BFF44;
+    background-color: rgba(26, 107, 255, 0.1);
+    border: 1px solid rgba(26, 107, 255, 0.2);
     color: #1A6BFF;
     border-radius: 8px;
-    padding: 5px 10px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.editBtn:hover {
+    background-color: #1A6BFF;
+    color: #fff;
 }
 
 .deleteBtn {
-    background-color: #FF444422;
-    border: 1px solid #FF444444;
+    background-color: rgba(255, 68, 68, 0.1);
+    border: 1px solid rgba(255, 68, 68, 0.2);
     color: #FF4444;
     border-radius: 8px;
-    padding: 5px 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.deleteBtn:hover {
+    background-color: #FF4444;
+    color: #fff;
 }
 
 .formPanel {
@@ -125,7 +119,15 @@
     border: 1px solid #1E3355;
     overflow: hidden;
     flex-shrink: 0;
+    box-shadow: 0 10px 30px -10px rgba(2, 12, 27, 0.7);
+    animation: slideIn 0.3s ease;
 }
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
 
 .formHeader {
     display: flex;

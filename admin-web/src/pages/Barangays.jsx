@@ -13,6 +13,7 @@ import {
 import { db } from "../firebase";
 import { IoBusinessOutline, IoLocationOutline, IoPencilOutline, IoTrashOutline, IoAddOutline } from "react-icons/io5";
 import styles from "../styles/Barangays.module.css";
+import s from "../styles/Admin.module.css";
 
 const EMPTY_BARANGAY = { name: "" };
 
@@ -87,8 +88,6 @@ export default function Barangays() {
     setShowForm(true);
   };
 
-
-
   return (
     <div className={styles.page}>
       {/* ── Header ── */}
@@ -111,50 +110,69 @@ export default function Barangays() {
         </button>
       </div>
 
-      <div className={styles.layout}>
-        {/* ── List ── */}
+      <div className={`${styles.layout} ${showForm ? styles.hasForm : ""}`}>
+        {/* ── Table Container ── */}
         <div className={styles.listCol}>
-          {loading && <div className={styles.loading}>Loading...</div>}
-
-          {!loading &&
-            (barangays.length === 0 ? (
-              <div className={styles.empty}>
-                <div style={{ fontSize: 48, color: '#8899BB' }}><IoBusinessOutline /></div>
-                <p style={{ color: "#8899BB" }}>No barangays found</p>
+          <div className={s.tableWrap}>
+            {loading ? (
+              <div className={s.loading}>Loading barangays...</div>
+            ) : barangays.length === 0 ? (
+              <div className={s.empty}>
+                <div className={s.emptyIcon}><IoBusinessOutline /></div>
+                <p className={s.emptyTitle}>No barangays found</p>
+                <p className={s.emptyText}>Start by adding a new barangay to the system.</p>
               </div>
             ) : (
-              barangays.map((b) => (
-                <div key={b.id} className={styles.card}>
-                  <div className={styles.cardTop}>
-                    <IoLocationOutline size={22} color="#1A6BFF" />
-                    <div style={{ flex: 1 }}>
-                      <div className={styles.cardTitle}>{b.name}</div>
-                      <div className={styles.cardMeta}>
-                        <span className={styles.metaText}>
-                          Added {b.createdAt?.toDate?.()?.toLocaleDateString() || "Recently"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className={styles.cardActions}>
-                      <button className={styles.editBtn} onClick={() => openEdit(b)}>
-                        <IoPencilOutline style={{marginRight: 4}}/> Edit
-                      </button>
-                      <button
-                        className={styles.deleteBtn}
-                        onClick={() =>
-                          setDeleteConfirm({
-                            id: b.id,
-                            name: b.name,
-                          })
-                        }
-                      >
-                        <IoTrashOutline />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ))}
+              <table className={s.table}>
+                <thead className={s.thead}>
+                  <tr>
+                    <th className={s.th}>Barangay Name</th>
+                    <th className={s.th}>Added On</th>
+                    <th className={`${s.th} ${styles.actionCol}`}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {barangays.map((b) => (
+                    <tr key={b.id} className={s.tr}>
+                      <td className={`${s.td} ${s.tdPrimary}`}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div className={styles.iconBox}>
+                            <IoLocationOutline size={16} color="#1A6BFF" />
+                          </div>
+                          {b.name}
+                        </div>
+                      </td>
+                      <td className={s.td}>
+                        {b.createdAt?.toDate?.()?.toLocaleDateString("en-PH", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        }) || "—"}
+                      </td>
+                      <td className={`${s.td} ${styles.actionCol}`}>
+                        <div className={styles.actions}>
+                          <button className={styles.editBtn} onClick={() => openEdit(b)}>
+                            <IoPencilOutline size={14}/>
+                          </button>
+                          <button
+                            className={styles.deleteBtn}
+                            onClick={() =>
+                              setDeleteConfirm({
+                                id: b.id,
+                                name: b.name,
+                              })
+                            }
+                          >
+                            <IoTrashOutline size={14}/>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
 
         {/* ── Form Panel ── */}
@@ -184,6 +202,7 @@ export default function Barangays() {
                   setForm((f) => ({ ...f, name: e.target.value }))
                 }
                 placeholder="e.g. Barangay San Isidro"
+                autoFocus
               />
 
               <button
@@ -194,8 +213,8 @@ export default function Barangays() {
                 {saving
                   ? "Saving..."
                   : editItem
-                    ? "💾 Update Barangay"
-                    : "🏙️ Add Barangay"}
+                    ? "Update Barangay"
+                    : "Add Barangay"}
               </button>
             </div>
           </div>
@@ -231,4 +250,5 @@ export default function Barangays() {
     </div>
   );
 }
+
 
