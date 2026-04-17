@@ -4,12 +4,14 @@ import {
 } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { useConcerns } from '../../context/ConcernContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { StatusBadge } from '../../components/UI';
 import { COLORS, CATEGORY_CONFIG, STATUS_CONFIG } from '../../utils/theme';
+import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const STATUS_FILTERS = ['All', 'Pending', 'In Progress', 'Resolved'];
 const PIN_COLORS = {
@@ -30,17 +32,43 @@ export default function MapScreen({ navigation }) {
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedConcern, setSelectedConcern] = useState(null);
   const [mapType, setMapType] = useState('standard');
+  const [loadingLocation, setLoadingLocation] = useState(false);
+
+  // Ask permission and pinpoint exactly where user is
+  const goToMyLocation = async () => {
+    setLoadingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Please allow location access to find your position.');
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Highest,
+      });
+      mapRef.current?.animateToRegion({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      }, 800);
+    } catch (err) {
+      alert('Could not pinpoint your location accurately.');
+    } finally {
+      setLoadingLocation(false);
+    }
+  };
 
   const pinnable = concerns.filter(c =>
-    c.location?.latitude && c.location?.longitude &&
+    c.location_lat && c.location_lng &&
     (statusFilter === 'All' || c.status === statusFilter)
   );
 
   const handleMarkerPress = (concern) => {
     setSelectedConcern(concern);
     mapRef.current?.animateToRegion({
-      latitude: concern.location.latitude,
-      longitude: concern.location.longitude,
+      latitude: Number(concern.location_lat),
+      longitude: Number(concern.location_lng),
       latitudeDelta: 0.01,
       longitudeDelta: 0.01,
     }, 400);
@@ -69,7 +97,7 @@ export default function MapScreen({ navigation }) {
         {pinnable.map(c => (
           <Marker
             key={c.id}
-            coordinate={{ latitude: c.location.latitude, longitude: c.location.longitude }}
+            coordinate={{ latitude: Number(c.location_lat), longitude: Number(c.location_lng) }}
             pinColor={PIN_COLORS[c.status] || '#8899BB'}
             onPress={() => handleMarkerPress(c)}
           >
@@ -102,7 +130,7 @@ export default function MapScreen({ navigation }) {
                   </Text>
                   <View style={[styles.filterCount, active && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
                     <Text style={[styles.filterCountText, active && { color: '#fff' }]}>
-                      {f === 'All' ? concerns.filter(c => c.location?.latitude).length : concerns.filter(c => c.status === f && c.location?.latitude).length}
+                      {f === 'All' ? concerns.filter(c => c.location_lat).length : concerns.filter(c => c.status === f && c.location_lat).length}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -121,6 +149,14 @@ export default function MapScreen({ navigation }) {
         <Text style={styles.mapTypeToggleText}>
           {mapType === 'standard' ? t('satellite') : t('standard')}
         </Text>
+      </TouchableOpacity>
+
+      {/* 📍 Pinpoint Location Button */}
+      <TouchableOpacity 
+        style={styles.myLocationBtn} 
+        onPress={goToMyLocation}
+      >
+        <Ionicons name="locate" size={24} color={COLORS.primary} />
       </TouchableOpacity>
 
       {/* Legend */}
@@ -153,7 +189,7 @@ export default function MapScreen({ navigation }) {
                   <Text style={styles.bsVotes}>👍 {selectedConcern.upvotes || 0}</Text>
                 </View>
                 <Text style={styles.bsLocation} numberOfLines={1}>
-                  📍 {selectedConcern.location?.address}
+                  📍 {selectedConcern.location_address || "No address provided"}
                 </Text>
               </View>
             </View>
@@ -178,66 +214,76 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
 
   markerPin: {
-    width: 32, height: 32, borderRadius: 16,
+    width: scale(32), height: scale(32), borderRadius: scale(16),
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: '#fff',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3, shadowRadius: 4, elevation: 5,
+    shadowColor: '#000', shadowOffset: { width: 0, height: verticalScale(2) },
+    shadowOpacity: 0.3, shadowRadius: scale(4), elevation: 5,
   },
 
   filterContainer: {
-    position: 'absolute', top: 12, left: 12, right: 12,
+    position: 'absolute', top: verticalScale(12), left: scale(12), right: scale(12),
   },
-  filterRow: { flexDirection: 'row', gap: 8 },
+  filterRow: { flexDirection: 'row', gap: scale(8) },
   filterChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
+    flexDirection: 'row', alignItems: 'center', gap: scale(6),
+    paddingHorizontal: scale(12), paddingVertical: verticalScale(8), borderRadius: moderateScale(20),
     backgroundColor: COLORS.bgCard + 'EE', borderWidth: 1, borderColor: COLORS.border,
   },
-  filterText: { color: COLORS.textPrimary, fontSize: 12, fontWeight: '700' },
-  filterCount: { backgroundColor: COLORS.bgCardAlt, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 },
-  filterCountText: { color: COLORS.textMuted, fontSize: 10, fontWeight: '800' },
+  filterText: { color: COLORS.textPrimary, fontSize: rf(12), fontWeight: '700' },
+  filterCount: { backgroundColor: COLORS.bgCardAlt, borderRadius: moderateScale(10), paddingHorizontal: scale(6), paddingVertical: verticalScale(1) },
+  filterCountText: { color: COLORS.textMuted, fontSize: rf(10), fontWeight: '800' },
 
   legend: {
-    position: 'absolute', bottom: 160, right: 12,
-    backgroundColor: COLORS.bgCard + 'F5', borderRadius: 16,
-    padding: 12, gap: 8, borderWidth: 1, borderColor: COLORS.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2, shadowRadius: 8, elevation: 5,
+    position: 'absolute', bottom: verticalScale(160), right: scale(12),
+    backgroundColor: COLORS.bgCard + 'F5', borderRadius: moderateScale(16),
+    padding: scale(12), gap: scale(8), borderWidth: 1, borderColor: COLORS.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: verticalScale(4) },
+    shadowOpacity: 0.2, shadowRadius: scale(8), elevation: 5,
   },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  legendDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' },
-  legendText: { color: COLORS.textPrimary, fontSize: 12, fontWeight: '700' },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: scale(8) },
+  legendDot: { width: scale(12), height: scale(12), borderRadius: scale(6), borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' },
+  legendText: { color: COLORS.textPrimary, fontSize: rf(12), fontWeight: '700' },
 
   mapTypeToggle: {
-    position: 'absolute', top: 80, right: 12,
-    backgroundColor: COLORS.bgCard + 'EE', borderRadius: 12,
-    padding: 10, alignItems: 'center', justifyContent: 'center',
+    position: 'absolute', top: verticalScale(80), right: scale(12),
+    backgroundColor: COLORS.bgCard + 'EE', borderRadius: moderateScale(12),
+    padding: scale(10), alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: COLORS.border,
-    gap: 4,
+     gap: verticalScale(4),
   },
   mapTypeToggleText: {
-    color: COLORS.primary, fontSize: 10, fontWeight: '800', textTransform: 'uppercase',
+    color: COLORS.primary, fontSize: rf(10), fontWeight: '800', textTransform: 'uppercase',
+  },
+
+  myLocationBtn: {
+    position: 'absolute', top: verticalScale(140), right: scale(12),
+    backgroundColor: COLORS.bgCard + 'EE', borderRadius: moderateScale(12),
+    width: moderateScale(48), height: moderateScale(48),
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: COLORS.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: verticalScale(4) },
+    shadowOpacity: 0.2, shadowRadius: scale(8), elevation: 5,
   },
 
   bottomSheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: COLORS.bgCard, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: COLORS.bgCard, borderTopLeftRadius: moderateScale(20), borderTopRightRadius: moderateScale(20),
     borderTopWidth: 1, borderColor: COLORS.border,
-    paddingBottom: 32, paddingTop: 12,
+    paddingBottom: verticalScale(32), paddingTop: verticalScale(12),
   },
   bottomSheetHandle: {
-    width: 36, height: 4, backgroundColor: COLORS.border,
-    borderRadius: 2, alignSelf: 'center', marginBottom: 14,
+    width: scale(36), height: verticalScale(4), backgroundColor: COLORS.border,
+    borderRadius: scale(2), alignSelf: 'center', marginBottom: verticalScale(14),
   },
-  bottomSheetContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 12 },
-  bsLeft: { flex: 1, flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  bsIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  bsTitle: { color: COLORS.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 6 },
-  bsMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  bsVotes: { color: COLORS.textMuted, fontSize: 12 },
-  bsLocation: { color: COLORS.textMuted, fontSize: 12 },
-  bsActions: { gap: 8 },
-  viewBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
-  closeBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.bgCardAlt, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.border },
+  bottomSheetContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: scale(16), gap: scale(12) },
+  bsLeft: { flex: 1, flexDirection: 'row', gap: scale(12), alignItems: 'flex-start' },
+  bsIcon: { width: scale(44), height: scale(44), borderRadius: moderateScale(12), alignItems: 'center', justifyContent: 'center' },
+  bsTitle: { color: COLORS.textPrimary, fontSize: rf(15), fontWeight: '700', marginBottom: verticalScale(6) },
+  bsMeta: { flexDirection: 'row', alignItems: 'center', gap: scale(8), marginBottom: verticalScale(4) },
+  bsVotes: { color: COLORS.textMuted, fontSize: rf(12) },
+  bsLocation: { color: COLORS.textMuted, fontSize: rf(12) },
+  bsActions: { gap: verticalScale(8) },
+  viewBtn: { width: scale(36), height: scale(36), borderRadius: moderateScale(10), backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
+  closeBtn: { width: scale(36), height: scale(36), borderRadius: moderateScale(10), backgroundColor: COLORS.bgCardAlt, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.border },
 });

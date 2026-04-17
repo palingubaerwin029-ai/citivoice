@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { StatusBadge, CategoryBadge } from '../../components/UI';
 import { COLORS, STATUS_CONFIG } from '../../utils/theme';
+import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 
 export default function ConcernDetailScreen({ route, navigation }) {
   const { concernId } = route.params;
@@ -17,8 +18,8 @@ export default function ConcernDetailScreen({ route, navigation }) {
   const { t } = useLanguage();
 
   const concern = concerns.find(c => c.id === concernId);
-  const isOwner = concern?.userId === user?.uid;
-  const isUpvoted = concern?.upvotedBy?.includes(user?.uid);
+  const isOwner = concern?.user_id === user?.id;
+  const isUpvoted = false;
 
   useEffect(() => {
     navigation.setOptions({
@@ -67,8 +68,8 @@ export default function ConcernDetailScreen({ route, navigation }) {
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
 
       {/* Image */}
-      {concern.imageUrl ? (
-        <Image source={{ uri: concern.imageUrl }} style={styles.heroImage} />
+      {concern.image_url ? (
+        <Image source={{ uri: concern.image_url }} style={styles.heroImage} />
       ) : (
         <View style={styles.heroPlaceholder}>
           <Ionicons name="image-outline" size={40} color={COLORS.textMuted} />
@@ -91,9 +92,9 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
         {/* Meta */}
         <View style={styles.metaGrid}>
-          <MetaItem icon="person-outline" label={t('submittedBy')} value={concern.userName} />
-          <MetaItem icon="location-outline" label="Barangay" value={concern.userBarangay} />
-          <MetaItem icon="calendar-outline" label={t('dateFiled')} value={fmt(concern.createdAt)} />
+          <MetaItem icon="person-outline" label={t('submittedBy')} value={concern.user_name} />
+          <MetaItem icon="location-outline" label="Barangay" value={concern.user_barangay} />
+          <MetaItem icon="calendar-outline" label={t('dateFiled')} value={fmt(concern.created_at)} />
           <MetaItem icon="thumbs-up-outline" label={t('communityUpvotes')} value={`${concern.upvotes || 0} votes`} />
         </View>
 
@@ -122,13 +123,13 @@ export default function ConcernDetailScreen({ route, navigation }) {
         )}
 
         {/* Official Response */}
-        {concern.adminNote && (
+        {concern.admin_note && (
           <View style={[styles.section, styles.adminNoteCard]}>
             <View style={styles.adminNoteHeader}>
               <Ionicons name="shield-checkmark" size={16} color={COLORS.accent} />
               <Text style={styles.adminNoteTitle}>{t('officialResponse')}</Text>
             </View>
-            <Text style={styles.adminNoteText}>{concern.adminNote}</Text>
+            <Text style={styles.adminNoteText}>{concern.admin_note}</Text>
           </View>
         )}
 
@@ -181,68 +182,68 @@ function MetaItem({ icon, label, value }) {
 }
 
 function buildTimeline(c, t) {
-  const fmt = (d) => d?.toDate?.()?.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) || '—';
-  const steps = [{ event: t('concernSubmitted'), date: fmt(c.createdAt) }];
+  const fmt = (d) => d ? new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+  const steps = [{ event: t('concernSubmitted'), date: fmt(c.created_at) }];
   if (c.status === 'In Progress' || c.status === 'Resolved' || c.status === 'Rejected') {
-    steps.push({ event: t('assignedToTeam'), date: fmt(c.updatedAt) });
+    steps.push({ event: t('assignedToTeam'), date: fmt(c.updated_at) });
   }
   if (c.status === 'Resolved') {
-    steps.push({ event: t('workStarted'), date: fmt(c.updatedAt) });
-    steps.push({ event: t('concernResolved'), date: fmt(c.updatedAt) });
+    steps.push({ event: t('workStarted'), date: fmt(c.updated_at) });
+    steps.push({ event: t('concernResolved'), date: fmt(c.updated_at) });
   }
   if (c.status === 'Rejected') {
-    steps.push({ event: t('concernRejected'), date: fmt(c.updatedAt) });
+    steps.push({ event: t('concernRejected'), date: fmt(c.updated_at) });
   }
   return steps;
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgDark },
-  scroll: { paddingBottom: 40 },
+  scroll: { paddingBottom: verticalScale(40) },
 
-  heroImage: { width: '100%', height: 220 },
-  heroPlaceholder: { height: 120, backgroundColor: COLORS.bgCard, alignItems: 'center', justifyContent: 'center' },
+  heroImage: { width: '100%', height: verticalScale(220) },
+  heroPlaceholder: { height: verticalScale(120), backgroundColor: COLORS.bgCard, alignItems: 'center', justifyContent: 'center' },
 
-  body: { padding: 20 },
-  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  priorityBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  priorityText: { fontSize: 11, fontWeight: '700' },
+  body: { padding: scale(20) },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(8), marginBottom: verticalScale(14) },
+  priorityBadge: { paddingHorizontal: scale(10), paddingVertical: verticalScale(4), borderRadius: moderateScale(20) },
+  priorityText: { fontSize: rf(11), fontWeight: '700' },
 
-  title: { color: COLORS.textPrimary, fontSize: 22, fontWeight: '800', marginBottom: 16, lineHeight: 30 },
+  title: { color: COLORS.textPrimary, fontSize: rf(22), fontWeight: '800', marginBottom: verticalScale(16), lineHeight: rf(30) },
 
-  metaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  metaItem: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', width: '47%', backgroundColor: COLORS.bgCard, borderRadius: 10, padding: 10, borderWidth: 1, borderColor: COLORS.border },
-  metaLabel: { color: COLORS.textMuted, fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
-  metaValue: { color: COLORS.textPrimary, fontSize: 13, fontWeight: '600', marginTop: 2 },
+  metaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(10), marginBottom: verticalScale(20) },
+  metaItem: { flexDirection: 'row', gap: scale(8), alignItems: 'flex-start', width: '47%', backgroundColor: COLORS.bgCard, borderRadius: moderateScale(10), padding: scale(10), borderWidth: 1, borderColor: COLORS.border },
+  metaLabel: { color: COLORS.textMuted, fontSize: rf(10), fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
+  metaValue: { color: COLORS.textPrimary, fontSize: rf(13), fontWeight: '600', marginTop: verticalScale(2) },
 
-  section: { marginBottom: 20 },
-  sectionTitle: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 10 },
-  description: { color: COLORS.textPrimary, fontSize: 15, lineHeight: 24 },
+  section: { marginBottom: verticalScale(20) },
+  sectionTitle: { color: COLORS.textSecondary, fontSize: rf(12), fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: verticalScale(10) },
+  description: { color: COLORS.textPrimary, fontSize: rf(15), lineHeight: rf(24) },
 
-  locationCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.bgCard, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: COLORS.border },
-  locationAddr: { color: COLORS.textPrimary, fontSize: 14, fontWeight: '600' },
-  locationCoords: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+  locationCard: { flexDirection: 'row', alignItems: 'center', gap: scale(10), backgroundColor: COLORS.bgCard, borderRadius: moderateScale(12), padding: scale(14), borderWidth: 1, borderColor: COLORS.border },
+  locationAddr: { color: COLORS.textPrimary, fontSize: rf(14), fontWeight: '600' },
+  locationCoords: { color: COLORS.textMuted, fontSize: rf(11), marginTop: verticalScale(2) },
 
-  adminNoteCard: { backgroundColor: COLORS.accent + '11', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.accent + '44' },
-  adminNoteHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  adminNoteTitle: { color: COLORS.accent, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
-  adminNoteText: { color: COLORS.textPrimary, fontSize: 14, lineHeight: 22 },
+  adminNoteCard: { backgroundColor: COLORS.accent + '11', borderRadius: moderateScale(14), padding: scale(14), borderWidth: 1, borderColor: COLORS.accent + '44' },
+  adminNoteHeader: { flexDirection: 'row', alignItems: 'center', gap: scale(6), marginBottom: verticalScale(8) },
+  adminNoteTitle: { color: COLORS.accent, fontSize: rf(12), fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
+  adminNoteText: { color: COLORS.textPrimary, fontSize: rf(14), lineHeight: rf(22) },
 
-  timelineItem: { flexDirection: 'row', gap: 12, marginBottom: 4 },
-  timelineLeft: { alignItems: 'center', width: 16 },
-  timelineDot: { width: 12, height: 12, borderRadius: 6, marginTop: 3 },
-  timelineLine: { width: 2, flex: 1, backgroundColor: COLORS.border, marginVertical: 4 },
-  timelineContent: { flex: 1, paddingBottom: 16 },
-  timelineEvent: { color: COLORS.textPrimary, fontSize: 13, fontWeight: '600' },
-  timelineDate: { color: COLORS.textMuted, fontSize: 11, marginTop: 3 },
+  timelineItem: { flexDirection: 'row', gap: scale(12), marginBottom: verticalScale(4) },
+  timelineLeft: { alignItems: 'center', width: scale(16) },
+  timelineDot: { width: scale(12), height: scale(12), borderRadius: scale(6), marginTop: verticalScale(3) },
+  timelineLine: { width: 2, flex: 1, backgroundColor: COLORS.border, marginVertical: verticalScale(4) },
+  timelineContent: { flex: 1, paddingBottom: verticalScale(16) },
+  timelineEvent: { color: COLORS.textPrimary, fontSize: rf(13), fontWeight: '600' },
+  timelineDate: { color: COLORS.textMuted, fontSize: rf(11), marginTop: verticalScale(3) },
 
   upvoteBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    borderWidth: 1, borderColor: COLORS.border, borderRadius: 14, padding: 14,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: scale(8),
+    borderWidth: 1, borderColor: COLORS.border, borderRadius: moderateScale(14), padding: scale(14),
   },
   upvoteBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary + '11' },
-  upvoteBtnText: { color: COLORS.textMuted, fontSize: 15, fontWeight: '700' },
+  upvoteBtnText: { color: COLORS.textMuted, fontSize: rf(15), fontWeight: '700' },
 
   notFound: { flex: 1, backgroundColor: COLORS.bgDark, alignItems: 'center', justifyContent: 'center' },
-  notFoundText: { color: COLORS.textSecondary, fontSize: 16, marginTop: 12 },
+  notFoundText: { color: COLORS.textSecondary, fontSize: rf(16), marginTop: verticalScale(12) },
 });

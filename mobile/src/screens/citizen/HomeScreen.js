@@ -15,9 +15,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useConcerns } from "../../context/ConcernContext";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
+import { useNotifications } from "../../context/NotificationContext";
 import ConcernCard from "../../components/ConcernCard";
-import { EmptyState } from "../../components/UI";
-import { COLORS, RADIUS, SHADOWS } from "../../utils/theme";
+import { EmptyState, StatCard } from "../../components/UI";
+import { COLORS, RADIUS, SHADOWS, STATUS_CONFIG } from "../../utils/theme";
+import { scale, verticalScale, rf, moderateScale } from "../../utils/responsive";
 
 const FILTERS = [
   { key: "all", label: "All", icon: "apps-outline" },
@@ -37,6 +39,7 @@ export default function HomeScreen({ navigation }) {
   const { concerns, loading, toggleUpvote } = useConcerns();
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { unreadCount } = useNotifications();
 
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -70,7 +73,7 @@ export default function HomeScreen({ navigation }) {
           !q ||
           c.title?.toLowerCase().includes(q) ||
           c.category?.toLowerCase().includes(q) ||
-          c.userBarangay?.toLowerCase().includes(q);
+          c.user_barangay?.toLowerCase().includes(q);
         return match && text;
       }),
     [concerns, activeFilter, search],
@@ -105,54 +108,36 @@ export default function HomeScreen({ navigation }) {
                 </Text>
                 <Text style={S.subGreeting}>CitiVoice Community Feed</Text>
               </View>
-              <TouchableOpacity
-                style={S.reportBtn}
-                onPress={() => navigation.navigate("SubmitConcern")}
-              >
-                <Ionicons name="add" size={18} color="#fff" />
-                <Text style={S.reportBtnText}>Report</Text>
-              </TouchableOpacity>
+              <View style={S.headerActions}>
+                <TouchableOpacity
+                  style={S.bellBtn}
+                  onPress={() => navigation.navigate("Notifications")}
+                >
+                  <Ionicons name="notifications-outline" size={22} color={COLORS.textPrimary} />
+                  {unreadCount > 0 && (
+                    <View style={S.badgeCount}>
+                      <Text style={S.badgeCountText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={S.reportBtn}
+                  onPress={() => navigation.navigate("SubmitConcern")}
+                >
+                  <Ionicons name="add" size={18} color="#fff" />
+                  <Text style={S.reportBtnText}>Report</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* ── Stats strip ── */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={S.statsScroll}
-              contentContainerStyle={S.statsContent}
-            >
-              {[
-                {
-                  label: "Total",
-                  value: stats.total,
-                  color: "#60A5FA",
-                  icon: "◉",
-                },
-                {
-                  label: "Pending",
-                  value: stats.pending,
-                  color: "#F59E0B",
-                  icon: "⏳",
-                },
-                {
-                  label: "Active",
-                  value: stats.inProgress,
-                  color: "#3B82F6",
-                  icon: "🔄",
-                },
-                {
-                  label: "Resolved",
-                  value: stats.resolved,
-                  color: "#10B981",
-                  icon: "✓",
-                },
-              ].map((s, i) => (
-                <View key={i} style={S.statChip}>
-                  <Text style={[S.statNum, { color: s.color }]}>{s.value}</Text>
-                  <Text style={S.statLabel}>{s.label}</Text>
-                </View>
-              ))}
-            </ScrollView>
+            <View style={S.statsRow}>
+              <StatCard icon="📋" value={stats.total} label="Total" color={COLORS.primary} />
+              <StatCard icon="⏳" value={stats.pending} label="Pending" color={COLORS.statusPending} />
+              <StatCard icon="🔄" value={stats.inProgress} label="Active" color={COLORS.primaryLight} />
+              <StatCard icon="✅" value={stats.resolved} label="Resolved" color={COLORS.accent} />
+            </View>
 
             {/* ── Search ── */}
             <View style={S.searchWrap}>
@@ -188,14 +173,15 @@ export default function HomeScreen({ navigation }) {
             >
               {FILTERS.map((f) => {
                 const active = activeFilter === f.key;
-                const color = FILTER_COLOR[f.key];
+                const color = FILTER_COLOR[f.key] || COLORS.primary;
+                const count = f.key === 'all' ? concerns.length : concerns.filter(c => c.status === f.key).length;
                 return (
                   <TouchableOpacity
                     key={f.key}
                     style={[
                       S.filterTab,
                       active && {
-                        backgroundColor: color + "1A",
+                        backgroundColor: color + "22",
                         borderColor: color,
                       },
                     ]}
@@ -203,7 +189,7 @@ export default function HomeScreen({ navigation }) {
                   >
                     <Ionicons
                       name={f.icon}
-                      size={13}
+                      size={14}
                       color={active ? color : COLORS.textMuted}
                     />
                     <Text
@@ -214,6 +200,9 @@ export default function HomeScreen({ navigation }) {
                     >
                       {f.label}
                     </Text>
+                    <View style={[S.filterBadge, active && { backgroundColor: color }]}>
+                      <Text style={[S.filterBadgeText, active && { color: '#fff' }]}>{count}</Text>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -242,7 +231,7 @@ export default function HomeScreen({ navigation }) {
               navigation.navigate("ConcernDetail", { concernId: item.id })
             }
             onUpvote={() => toggleUpvote(item.id)}
-            isUpvoted={item.upvotedBy?.includes(user?.uid)}
+            isUpvoted={false} 
           />
         )}
       />
@@ -252,78 +241,78 @@ export default function HomeScreen({ navigation }) {
 
 const S = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgDark },
-  list: { paddingHorizontal: 16, paddingBottom: 40 },
+  list: { paddingHorizontal: scale(16), paddingBottom: verticalScale(40) },
 
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingTop: verticalScale(12),
+    paddingBottom: verticalScale(16),
   },
   greeting: {
     color: COLORS.textPrimary,
-    fontSize: 18,
+    fontSize: rf(18),
     fontWeight: "800",
     letterSpacing: -0.3,
   },
-  subGreeting: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+  subGreeting: { color: COLORS.textMuted, fontSize: rf(12), marginTop: verticalScale(2) },
+
+  headerActions: { flexDirection: "row", alignItems: "center", gap: scale(12) },
+  bellBtn: { position: "relative", padding: scale(4) },
+  badgeCount: {
+    position: "absolute", top: -scale(2), right: -scale(4),
+    backgroundColor: COLORS.statusRejected, borderRadius: scale(10),
+    paddingHorizontal: scale(4), paddingVertical: verticalScale(1),
+    minWidth: scale(16), alignItems: "center", justifyContent: "center",
+    borderWidth: 1.5, borderColor: COLORS.bgDark
+  },
+  badgeCountText: { color: "#fff", fontSize: rf(9), fontWeight: "900" },
 
   reportBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: scale(5),
     backgroundColor: COLORS.primary,
     borderRadius: RADIUS.full,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(9),
     ...SHADOWS.button,
   },
-  reportBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  reportBtnText: { color: "#fff", fontSize: rf(13), fontWeight: "700" },
 
-  statsScroll: { marginBottom: 14 },
-  statsContent: { gap: 10 },
-  statChip: {
-    backgroundColor: COLORS.bgCard,
-    borderRadius: RADIUS.lg,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    minWidth: 76,
-  },
-  statNum: { fontSize: 20, fontWeight: "800", letterSpacing: -0.5 },
-  statLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+  statsRow: { flexDirection: 'row', gap: scale(8), marginBottom: verticalScale(14) },
 
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: scale(10),
     backgroundColor: COLORS.bgCard,
     borderRadius: RADIUS.lg,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(12),
     borderWidth: 1,
     borderColor: COLORS.border,
-    marginBottom: 12,
+    marginBottom: verticalScale(12),
   },
-  searchInput: { flex: 1, color: COLORS.textPrimary, fontSize: 14 },
+  searchInput: { flex: 1, color: COLORS.textPrimary, fontSize: rf(14) },
 
-  filterScroll: { marginBottom: 10 },
-  filterContent: { gap: 8 },
+  filterScroll: { marginBottom: verticalScale(10) },
+  filterContent: { gap: scale(8) },
   filterTab: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    gap: scale(6),
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(7),
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.bgCard,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  filterTabText: { color: COLORS.textMuted, fontSize: 12, fontWeight: "500" },
+  filterTabText: { color: COLORS.textMuted, fontSize: rf(12), fontWeight: "600" },
+  filterBadge: { backgroundColor: COLORS.bgCardAlt, borderRadius: moderateScale(10), paddingHorizontal: scale(6), paddingVertical: verticalScale(1) },
+  filterBadgeText: { color: COLORS.textMuted, fontSize: rf(10), fontWeight: "800" },
 
-  resultCount: { color: COLORS.textMuted, fontSize: 12, marginBottom: 8 },
+  resultCount: { color: COLORS.textMuted, fontSize: rf(12), marginBottom: verticalScale(8) },
 });

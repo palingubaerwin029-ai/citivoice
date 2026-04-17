@@ -10,6 +10,7 @@ import { useConcerns } from '../../context/ConcernContext.js';
 import { useLanguage } from '../../context/LanguageContext.js';
 import { InputField, PrimaryButton } from '../../components/UI.js';
 import { COLORS, CATEGORY_CONFIG } from '../../utils/theme.js';
+import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive.js';
 
 const CATEGORIES = Object.keys(CATEGORY_CONFIG);
 const PRIORITIES = ['Low', 'Medium', 'High'];
@@ -52,7 +53,7 @@ export default function SubmitConcernScreen({ navigation }) {
         Alert.alert('Permission required', 'Please allow location access.');
         return;
       }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
       const [addr] = await Location.reverseGeocodeAsync(loc.coords);
       setLocation({
         latitude: loc.coords.latitude,
@@ -250,63 +251,63 @@ export default function SubmitConcernScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  scroll: { padding: 20, paddingBottom: 40 },
+  scroll: { padding: scale(20), paddingBottom: verticalScale(40) },
 
-  label: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 10, letterSpacing: 0.3 },
-  errorText: { color: COLORS.statusRejected, fontSize: 11, marginBottom: 6 },
-  fieldGroup: { marginBottom: 20 },
+  label: { color: COLORS.textSecondary, fontSize: rf(12), fontWeight: '600', marginBottom: verticalScale(10), letterSpacing: 0.3 },
+  errorText: { color: COLORS.statusRejected, fontSize: rf(11), marginBottom: verticalScale(6) },
+  fieldGroup: { marginBottom: verticalScale(20) },
 
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(8) },
   catChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
+    flexDirection: 'row', alignItems: 'center', gap: scale(6),
+    paddingHorizontal: scale(12), paddingVertical: verticalScale(8), borderRadius: moderateScale(10),
     backgroundColor: COLORS.bgCard, borderWidth: 1, borderColor: COLORS.border,
   },
-  catChipText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
+  catChipText: { color: COLORS.textMuted, fontSize: rf(12), fontWeight: '600' },
 
-  priorityRow: { flexDirection: 'row', gap: 10 },
+  priorityRow: { flexDirection: 'row', gap: scale(10) },
   priorityBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 10, borderRadius: 10,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: scale(6),
+    paddingVertical: verticalScale(10), borderRadius: moderateScale(10),
     backgroundColor: COLORS.bgCard, borderWidth: 1, borderColor: COLORS.border,
   },
-  priorityDot: { width: 8, height: 8, borderRadius: 4 },
-  priorityText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '700' },
+  priorityDot: { width: scale(8), height: scale(8), borderRadius: scale(4) },
+  priorityText: { color: COLORS.textMuted, fontSize: rf(13), fontWeight: '700' },
 
   photoBox: {
-    height: 140, backgroundColor: COLORS.bgCard, borderRadius: 14,
+    height: verticalScale(140), backgroundColor: COLORS.bgCard, borderRadius: moderateScale(14),
     borderWidth: 1, borderColor: COLORS.border, borderStyle: 'dashed',
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
-  photoPreview: { width: '100%', height: '100%', borderRadius: 14 },
-  photoBoxText: { color: COLORS.textMuted, fontSize: 13, marginTop: 8 },
-  removePhoto: { position: 'absolute', top: 8, right: 8 },
+  photoPreview: { width: '100%', height: '100%', borderRadius: moderateScale(14) },
+  photoBoxText: { color: COLORS.textMuted, fontSize: rf(13), marginTop: verticalScale(8) },
+  removePhoto: { position: 'absolute', top: verticalScale(8), right: scale(8) },
 
   locationBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: COLORS.bgCard, borderRadius: 12, padding: 14,
+    flexDirection: 'row', alignItems: 'center', gap: scale(10),
+    backgroundColor: COLORS.bgCard, borderRadius: moderateScale(12), padding: scale(14),
     borderWidth: 1, borderColor: COLORS.border,
   },
   locationBtnActive: { borderColor: COLORS.accent, backgroundColor: COLORS.accent + '11' },
-  locationText: { flex: 1, color: COLORS.textMuted, fontSize: 13 },
+  locationText: { flex: 1, color: COLORS.textMuted, fontSize: rf(13) },
   locationTextActive: { color: COLORS.accent },
 
   successContainer: {
     flex: 1, backgroundColor: COLORS.bgDark,
-    alignItems: 'center', justifyContent: 'center', padding: 32,
+    alignItems: 'center', justifyContent: 'center', padding: scale(32),
   },
   successCircle: {
-    width: 100, height: 100, borderRadius: 28,
+    width: scale(100), height: scale(100), borderRadius: moderateScale(28),
     backgroundColor: COLORS.bgCard, borderWidth: 1, borderColor: COLORS.border,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 24,
+    alignItems: 'center', justifyContent: 'center', marginBottom: verticalScale(24),
   },
-  successTitle: { color: COLORS.textPrimary, fontSize: 24, fontWeight: '900', marginBottom: 10, textAlign: 'center' },
-  successMsg: { color: COLORS.textSecondary, fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 32 },
+  successTitle: { color: COLORS.textPrimary, fontSize: rf(24), fontWeight: '900', marginBottom: verticalScale(10), textAlign: 'center' },
+  successMsg: { color: COLORS.textSecondary, fontSize: rf(15), textAlign: 'center', lineHeight: rf(22), marginBottom: verticalScale(32) },
   successBtn: {
-    width: '100%', backgroundColor: COLORS.primary, borderRadius: 14,
-    paddingVertical: 16, alignItems: 'center', marginBottom: 12,
+    width: '100%', backgroundColor: COLORS.primary, borderRadius: moderateScale(14),
+    paddingVertical: verticalScale(16), alignItems: 'center', marginBottom: verticalScale(12),
   },
-  successBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  successSecBtn: { paddingVertical: 12 },
-  successSecBtnText: { color: COLORS.textSecondary, fontSize: 14 },
+  successBtnText: { color: '#fff', fontSize: rf(16), fontWeight: '700' },
+  successSecBtn: { paddingVertical: verticalScale(12) },
+  successSecBtnText: { color: COLORS.textSecondary, fontSize: rf(14) },
 });

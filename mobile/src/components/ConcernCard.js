@@ -8,6 +8,7 @@ import {
   CATEGORY_CONFIG,
   STATUS_CONFIG,
 } from "../utils/theme";
+import { scale, verticalScale, rf } from "../utils/responsive";
 
 const PRIORITY_COLORS = {
   High: { color: "#EF4444", bg: "rgba(239,68,68,0.12)" },
@@ -23,8 +24,7 @@ export default function ConcernCard({ concern, onPress, onUpvote, isUpvoted }) {
 
   const fmt = (ts) =>
     ts
-      ?.toDate?.()
-      ?.toLocaleDateString("en-PH", { month: "short", day: "numeric" }) || "";
+      ? new Date(ts).toLocaleDateString("en-PH", { month: "short", day: "numeric" }) : "";
 
   return (
     <TouchableOpacity
@@ -53,7 +53,7 @@ export default function ConcernCard({ concern, onPress, onUpvote, isUpvoted }) {
         </View>
 
         {/* Date */}
-        <Text style={S.dateText}>{fmt(concern.createdAt)}</Text>
+        <Text style={S.dateText}>{fmt(concern.created_at)}</Text>
       </View>
 
       {/* Title */}
@@ -72,15 +72,15 @@ export default function ConcernCard({ concern, onPress, onUpvote, isUpvoted }) {
         <View style={S.authorRow}>
           <View style={S.authorAvatar}>
             <Text style={S.authorInitial}>
-              {concern.userName?.charAt(0)?.toUpperCase() || "?"}
+              {concern.user_name?.charAt(0)?.toUpperCase() || "?"}
             </Text>
           </View>
           <View>
             <Text style={S.authorName} numberOfLines={1}>
-              {concern.userName}
+              {concern.user_name}
             </Text>
             <Text style={S.authorSub} numberOfLines={1}>
-              📍 {concern.userBarangay}
+              📍 {concern.user_barangay}
             </Text>
           </View>
         </View>
@@ -118,8 +118,8 @@ export default function ConcernCard({ concern, onPress, onUpvote, isUpvoted }) {
       </View>
 
       {/* Image strip if present */}
-      {concern.imageUrl && (
-        <Image source={{ uri: concern.imageUrl }} style={S.imageStrip} />
+      {concern.image_url && (
+        <Image source={{ uri: concern.image_url }} style={S.imageStrip} />
       )}
     </TouchableOpacity>
   );
@@ -142,103 +142,103 @@ const S = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: 3,
+    width: scale(3),
     backgroundColor: "#EF4444",
   },
 
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 10,
+    gap: scale(8),
+    paddingHorizontal: scale(16),
+    paddingTop: verticalScale(14),
+    paddingBottom: verticalScale(10),
   },
 
   catPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
+    gap: scale(5),
+    paddingHorizontal: scale(9),
+    paddingVertical: verticalScale(4),
     borderRadius: RADIUS.full,
   },
-  catText: { fontSize: 11, fontWeight: "700" },
+  catText: { fontSize: rf(11), fontWeight: "700" },
 
   prioBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(3),
     borderRadius: RADIUS.full,
   },
-  prioText: { fontSize: 10, fontWeight: "700" },
+  prioText: { fontSize: rf(10), fontWeight: "700" },
 
-  dateText: { color: COLORS.textMuted, fontSize: 11 },
+  dateText: { color: COLORS.textMuted, fontSize: rf(11) },
 
   title: {
     color: COLORS.textPrimary,
-    fontSize: 15,
+    fontSize: rf(15),
     fontWeight: "700",
-    lineHeight: 22,
+    lineHeight: rf(22),
     letterSpacing: -0.2,
-    paddingHorizontal: 16,
-    paddingBottom: 6,
+    paddingHorizontal: scale(16),
+    paddingBottom: verticalScale(6),
   },
 
   desc: {
     color: COLORS.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    fontSize: rf(13),
+    lineHeight: rf(19),
+    paddingHorizontal: scale(16),
+    paddingBottom: verticalScale(12),
   },
 
   footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(10),
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
 
-  authorRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
+  authorRow: { flexDirection: "row", alignItems: "center", gap: scale(8), flex: 1 },
   authorAvatar: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
+    width: scale(26),
+    height: scale(26),
+    borderRadius: RADIUS.sm,
     backgroundColor: COLORS.primary + "33",
     alignItems: "center",
     justifyContent: "center",
   },
   authorInitial: {
     color: COLORS.primaryLight,
-    fontSize: 12,
+    fontSize: rf(12),
     fontWeight: "700",
   },
-  authorName: { color: COLORS.textSecondary, fontSize: 12, fontWeight: "600" },
-  authorSub: { color: COLORS.textMuted, fontSize: 10, marginTop: 1 },
+  authorName: { color: COLORS.textSecondary, fontSize: rf(12), fontWeight: "600" },
+  authorSub: { color: COLORS.textMuted, fontSize: rf(10), marginTop: verticalScale(1) },
 
-  footerRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+  footerRight: { flexDirection: "row", alignItems: "center", gap: scale(8) },
 
   statusChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    gap: scale(5),
+    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(4),
     borderRadius: RADIUS.full,
     borderWidth: 1,
   },
-  statusDot: { width: 5, height: 5, borderRadius: 3 },
-  statusText: { fontSize: 10, fontWeight: "700" },
+  statusDot: { width: scale(5), height: scale(5), borderRadius: scale(3) },
+  statusText: { fontSize: rf(10), fontWeight: "700" },
 
   upvoteBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    gap: scale(4),
+    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(4),
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.bgCardAlt,
     borderWidth: 1,
@@ -248,7 +248,7 @@ const S = StyleSheet.create({
     backgroundColor: COLORS.primary + "18",
     borderColor: COLORS.primary + "44",
   },
-  upvoteNum: { color: COLORS.textMuted, fontSize: 12, fontWeight: "700" },
+  upvoteNum: { color: COLORS.textMuted, fontSize: rf(12), fontWeight: "700" },
 
-  imageStrip: { width: "100%", height: 160, marginTop: 2 },
+  imageStrip: { width: "100%", height: verticalScale(160), marginTop: verticalScale(2) },
 });

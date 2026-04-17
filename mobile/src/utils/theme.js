@@ -2,6 +2,8 @@
 //  CitiVoice Mobile — Design System
 // ═══════════════════════════════════════════════════════
 
+import { rf, moderateScale } from './responsive';
+
 export const COLORS = {
   // Background layers
   bgDeep: "#050D1A",
@@ -47,56 +49,56 @@ export const COLORS = {
 };
 
 export const TYPOGRAPHY = {
-  xs: 11,
-  sm: 13,
-  base: 14,
-  md: 15,
-  lg: 17,
-  xl: 20,
-  "2xl": 24,
-  "3xl": 30,
+  xs: rf(11),
+  sm: rf(13),
+  base: rf(14),
+  md: rf(15),
+  lg: rf(17),
+  xl: rf(20),
+  "2xl": rf(24),
+  "3xl": rf(30),
 };
 
 export const RADIUS = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  "2xl": 24,
-  full: 999,
+  sm: moderateScale(8),
+  md: moderateScale(12),
+  lg: moderateScale(16),
+  xl: moderateScale(20),
+  "2xl": moderateScale(24),
+  full: 999, // Unscaled to retain pure circular shapes
 };
 
 export const SPACING = {
-  1: 4,
-  2: 8,
-  3: 12,
-  4: 16,
-  5: 20,
-  6: 24,
-  8: 32,
-  10: 40,
+  1: moderateScale(4),
+  2: moderateScale(8),
+  3: moderateScale(12),
+  4: moderateScale(16),
+  5: moderateScale(20),
+  6: moderateScale(24),
+  8: moderateScale(32),
+  10: moderateScale(40),
 };
 
 export const SHADOWS = {
   card: {
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: moderateScale(4) },
     shadowOpacity: 0.35,
-    shadowRadius: 12,
+    shadowRadius: moderateScale(12),
     elevation: 5,
   },
   button: {
     shadowColor: "#2563EB",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: moderateScale(4) },
     shadowOpacity: 0.5,
-    shadowRadius: 16,
+    shadowRadius: moderateScale(16),
     elevation: 8,
   },
   sm: {
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: moderateScale(2) },
     shadowOpacity: 0.2,
-    shadowRadius: 6,
+    shadowRadius: moderateScale(6),
     elevation: 3,
   },
 };

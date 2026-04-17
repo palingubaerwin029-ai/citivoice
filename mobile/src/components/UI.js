@@ -15,6 +15,7 @@ import {
   STATUS_CONFIG,
   CATEGORY_CONFIG,
 } from "../utils/theme";
+import { scale, verticalScale, rf } from "../utils/responsive";
 
 export function PrimaryButton({
   title,
@@ -41,9 +42,9 @@ export function PrimaryButton({
     },
   };
   const SZ = {
-    sm: { h: 38, fs: 13 },
-    md: { h: 50, fs: 15 },
-    lg: { h: 56, fs: 16 },
+    sm: { h: verticalScale(38), fs: rf(13) },
+    md: { h: verticalScale(50), fs: rf(15) },
+    lg: { h: verticalScale(56), fs: rf(16) },
   };
   const v = V[variant] || V.primary,
     sz = SZ[size] || SZ.md;
@@ -56,8 +57,8 @@ export function PrimaryButton({
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
-          gap: 8,
-          paddingHorizontal: 20,
+          gap: scale(8),
+          paddingHorizontal: scale(20),
           backgroundColor: v.bg,
           opacity: disabled || loading ? 0.5 : 1,
           ...v,
@@ -96,7 +97,7 @@ export function InputField({
   ...props
 }) {
   return (
-    <View style={[{ marginBottom: 14 }, style]}>
+    <View style={[{ marginBottom: verticalScale(14) }, style]}>
       {label && <Text style={S.inputLabel}>{label}</Text>}
       <View style={[S.inputRow, error && S.inputRowError]}>
         {leftIcon && (
@@ -104,7 +105,7 @@ export function InputField({
             name={leftIcon}
             size={16}
             color={COLORS.textMuted}
-            style={{ marginRight: 8 }}
+            style={{ marginRight: scale(8) }}
           />
         )}
         <TextInput
@@ -119,12 +120,12 @@ export function InputField({
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 5,
-            marginTop: 5,
+            gap: scale(5),
+            marginTop: verticalScale(5),
           }}
         >
           <Ionicons name="alert-circle" size={12} color={COLORS.danger} />
-          <Text style={{ color: COLORS.danger, fontSize: 11 }}>{error}</Text>
+          <Text style={{ color: COLORS.danger, fontSize: rf(11) }}>{error}</Text>
         </View>
       )}
     </View>
@@ -143,13 +144,13 @@ export function StatusBadge({ status, style }) {
     >
       <View
         style={{
-          width: 5,
-          height: 5,
-          borderRadius: 3,
+          width: scale(5),
+          height: scale(5),
+          borderRadius: scale(3),
           backgroundColor: cfg.color,
         }}
       />
-      <Text style={{ fontSize: 11, fontWeight: "600", color: cfg.color }}>
+      <Text style={{ fontSize: rf(11), fontWeight: "600", color: cfg.color }}>
         {cfg.label || status}
       </Text>
     </View>
@@ -161,7 +162,7 @@ export function CategoryBadge({ category, style }) {
   return (
     <View style={[S.badge, { backgroundColor: cfg.bg }, style]}>
       <Ionicons name={cfg.icon} size={11} color={cfg.color} />
-      <Text style={{ fontSize: 11, fontWeight: "600", color: cfg.color }}>
+      <Text style={{ fontSize: rf(11), fontWeight: "600", color: cfg.color }}>
         {cfg.label || category.split(" ")[0]}
       </Text>
     </View>
@@ -171,10 +172,10 @@ export function CategoryBadge({ category, style }) {
 export function StatCard({ icon, value, label, color, style }) {
   return (
     <View style={[S.statCard, style]}>
-      <Text style={{ fontSize: 20, marginBottom: 6 }}>{icon}</Text>
+      <Text style={{ fontSize: rf(20), marginBottom: verticalScale(6) }}>{icon}</Text>
       <Text
         style={{
-          fontSize: 22,
+          fontSize: rf(22),
           fontWeight: "800",
           color: color || COLORS.primary,
           letterSpacing: -0.5,
@@ -182,7 +183,7 @@ export function StatCard({ icon, value, label, color, style }) {
       >
         {value}
       </Text>
-      <Text style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 3 }}>
+      <Text style={{ color: COLORS.textMuted, fontSize: rf(11), marginTop: verticalScale(3) }}>
         {label}
       </Text>
     </View>
@@ -192,13 +193,13 @@ export function StatCard({ icon, value, label, color, style }) {
 export function EmptyState({ icon, title, subtitle, action, actionLabel }) {
   return (
     <View style={S.empty}>
-      <Text style={{ fontSize: 44, marginBottom: 14, opacity: 0.65 }}>
+      <Text style={{ fontSize: rf(44), marginBottom: verticalScale(14), opacity: 0.65 }}>
         {icon || "📭"}
       </Text>
       <Text
         style={{
           color: COLORS.textPrimary,
-          fontSize: 17,
+          fontSize: rf(17),
           fontWeight: "700",
           textAlign: "center",
         }}
@@ -209,10 +210,10 @@ export function EmptyState({ icon, title, subtitle, action, actionLabel }) {
         <Text
           style={{
             color: COLORS.textSecondary,
-            fontSize: 13,
+            fontSize: rf(13),
             textAlign: "center",
-            marginTop: 8,
-            lineHeight: 20,
+            marginTop: verticalScale(8),
+            lineHeight: rf(20),
           }}
         >
           {subtitle}
@@ -220,7 +221,7 @@ export function EmptyState({ icon, title, subtitle, action, actionLabel }) {
       )}
       {action && (
         <TouchableOpacity style={S.emptyAction} onPress={action}>
-          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
+          <Text style={{ color: "#fff", fontWeight: "700", fontSize: rf(14) }}>
             {actionLabel}
           </Text>
         </TouchableOpacity>
@@ -236,13 +237,13 @@ export function SectionHeader({ title, right }) {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 10,
+        marginBottom: verticalScale(10),
       }}
     >
       <Text
         style={{
           color: COLORS.textPrimary,
-          fontSize: 15,
+          fontSize: rf(15),
           fontWeight: "700",
           letterSpacing: -0.2,
         }}
@@ -257,30 +258,30 @@ export function SectionHeader({ title, right }) {
 const S = StyleSheet.create({
   inputLabel: {
     color: COLORS.textSecondary,
-    fontSize: 11,
+    fontSize: rf(11),
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.6,
-    marginBottom: 8,
+    marginBottom: verticalScale(8),
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.bgCardAlt,
     borderRadius: RADIUS.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(12),
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   inputRowError: { borderColor: COLORS.danger },
-  input: { flex: 1, color: COLORS.textPrimary, fontSize: 14 },
+  input: { flex: 1, color: COLORS.textPrimary, fontSize: rf(14) },
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
+    gap: scale(5),
+    paddingHorizontal: scale(9),
+    paddingVertical: verticalScale(4),
     borderRadius: RADIUS.full,
     alignSelf: "flex-start",
   },
@@ -288,7 +289,7 @@ const S = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.bgCard,
     borderRadius: RADIUS.lg,
-    padding: 14,
+    padding: scale(14),
     alignItems: "center",
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -298,14 +299,14 @@ const S = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 40,
+    padding: scale(40),
   },
   emptyAction: {
-    marginTop: 20,
+    marginTop: verticalScale(20),
     backgroundColor: COLORS.primary,
     borderRadius: RADIUS.md,
-    paddingHorizontal: 20,
-    paddingVertical: 11,
+    paddingHorizontal: scale(20),
+    paddingVertical: verticalScale(11),
     ...SHADOWS.button,
   },
 });

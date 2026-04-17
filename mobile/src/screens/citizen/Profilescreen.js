@@ -15,6 +15,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useConcerns } from "../../context/ConcernContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { COLORS, RADIUS, SHADOWS, STATUS_CONFIG } from "../../utils/theme";
+import { scale, verticalScale, rf, moderateScale } from "../../utils/responsive";
 import { LANGUAGES } from "../../i18n/translations";
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -51,40 +52,40 @@ export default function ProfileScreen() {
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 48 }}
+        contentContainerStyle={{ paddingBottom: verticalScale(48) }}
       >
         <LinearGradient
           colors={[COLORS.primary + "22", COLORS.bgDark]}
           style={{
             alignItems: "center",
-            paddingHorizontal: 24,
-            paddingTop: 20,
-            paddingBottom: 28,
+            paddingHorizontal: scale(24),
+            paddingTop: verticalScale(20),
+            paddingBottom: verticalScale(28),
           }}
         >
-          <View style={{ position: "relative", marginBottom: 14 }}>
+          <View style={{ position: "relative", marginBottom: verticalScale(14) }}>
             <LinearGradient
               colors={[COLORS.primary, COLORS.purple || "#8B5CF6"]}
               style={{
-                width: 80,
-                height: 80,
-                borderRadius: 24,
+                width: scale(80),
+                height: scale(80),
+                borderRadius: moderateScale(24),
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Text style={{ color: "#fff", fontSize: 30, fontWeight: "900" }}>
+              <Text style={{ color: "#fff", fontSize: rf(30), fontWeight: "900" }}>
                 {initials}
               </Text>
             </LinearGradient>
             <View
               style={{
                 position: "absolute",
-                bottom: -2,
-                right: -2,
-                width: 22,
-                height: 22,
-                borderRadius: 11,
+                bottom: scale(-2),
+                right: scale(-2),
+                width: scale(22),
+                height: scale(22),
+                borderRadius: scale(11),
                 backgroundColor: COLORS.accent,
                 alignItems: "center",
                 justifyContent: "center",
@@ -98,10 +99,10 @@ export default function ProfileScreen() {
           <Text
             style={{
               color: COLORS.textPrimary,
-              fontSize: 22,
+              fontSize: rf(22),
               fontWeight: "800",
               letterSpacing: -0.4,
-              marginBottom: 3,
+              marginBottom: verticalScale(3),
             }}
           >
             {user?.name}
@@ -109,8 +110,8 @@ export default function ProfileScreen() {
           <Text
             style={{
               color: COLORS.textSecondary,
-              fontSize: 13,
-              marginBottom: 10,
+              fontSize: rf(13),
+              marginBottom: verticalScale(10),
             }}
           >
             {user?.email}
@@ -119,14 +120,14 @@ export default function ProfileScreen() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 5,
+              gap: scale(5),
               backgroundColor: COLORS.bgCard,
               borderRadius: RADIUS.full,
-              paddingHorizontal: 12,
-              paddingVertical: 5,
+              paddingHorizontal: scale(12),
+              paddingVertical: verticalScale(5),
               borderWidth: 1,
               borderColor: COLORS.border,
-              marginBottom: 8,
+              marginBottom: verticalScale(8),
             }}
           >
             <Ionicons
@@ -137,24 +138,24 @@ export default function ProfileScreen() {
             <Text
               style={{
                 color: COLORS.primaryLight,
-                fontSize: 12,
+                fontSize: rf(12),
                 fontWeight: "600",
               }}
             >
               {user?.barangay}
             </Text>
           </View>
-          <Text style={{ color: COLORS.textMuted, fontSize: 11 }}>
+          <Text style={{ color: COLORS.textMuted, fontSize: rf(11) }}>
             Member since {memberSince}
           </Text>
         </LinearGradient>
         <View
           style={{
             flexDirection: "row",
-            paddingHorizontal: 16,
-            gap: 10,
-            marginTop: 4,
-            marginBottom: 20,
+            paddingHorizontal: scale(16),
+            gap: scale(10),
+            marginTop: verticalScale(4),
+            marginBottom: verticalScale(20),
           }}
         >
           {[
@@ -173,7 +174,7 @@ export default function ProfileScreen() {
                 flex: 1,
                 backgroundColor: COLORS.bgCard,
                 borderRadius: RADIUS.lg,
-                paddingVertical: 14,
+                paddingVertical: verticalScale(14),
                 alignItems: "center",
                 borderWidth: 1,
                 borderColor: COLORS.border,
@@ -181,7 +182,7 @@ export default function ProfileScreen() {
             >
               <Text
                 style={{
-                  fontSize: 20,
+                  fontSize: rf(20),
                   fontWeight: "800",
                   letterSpacing: -0.5,
                   color: s.color,
@@ -190,7 +191,7 @@ export default function ProfileScreen() {
                 {s.value}
               </Text>
               <Text
-                style={{ color: COLORS.textMuted, fontSize: 10, marginTop: 3 }}
+                style={{ color: COLORS.textMuted, fontSize: rf(10), marginTop: verticalScale(3) }}
               >
                 {s.label}
               </Text>
@@ -198,15 +199,15 @@ export default function ProfileScreen() {
           ))}
         </View>
         {myConcerns.length > 0 && (
-          <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
+          <View style={{ paddingHorizontal: scale(16), marginBottom: verticalScale(20) }}>
             <Text
               style={{
                 color: COLORS.textSecondary,
-                fontSize: 11,
+                fontSize: rf(11),
                 fontWeight: "700",
                 textTransform: "uppercase",
                 letterSpacing: 0.6,
-                marginBottom: 10,
+                marginBottom: verticalScale(10),
               }}
             >
               My Recent Reports
@@ -230,9 +231,9 @@ export default function ProfileScreen() {
                 >
                   <View
                     style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 4,
+                      width: scale(8),
+                      height: scale(8),
+                      borderRadius: scale(4),
                       flexShrink: 0,
                       backgroundColor: cfg.color,
                     }}
@@ -241,7 +242,7 @@ export default function ProfileScreen() {
                     <Text
                       style={{
                         color: COLORS.textPrimary,
-                        fontSize: 13,
+                        fontSize: rf(13),
                         fontWeight: "600",
                       }}
                       numberOfLines={1}
@@ -251,8 +252,8 @@ export default function ProfileScreen() {
                     <Text
                       style={{
                         color: COLORS.textMuted,
-                        fontSize: 11,
-                        marginTop: 2,
+                        fontSize: rf(11),
+                        marginTop: verticalScale(2),
                       }}
                     >
                       {c.category?.split(" ")[0]} · {c.userBarangay}
@@ -260,8 +261,8 @@ export default function ProfileScreen() {
                   </View>
                   <View
                     style={{
-                      paddingHorizontal: 8,
-                      paddingVertical: 3,
+                      paddingHorizontal: scale(8),
+                      paddingVertical: verticalScale(3),
                       borderRadius: RADIUS.full,
                       borderWidth: 1,
                       backgroundColor: cfg.bg,
@@ -270,7 +271,7 @@ export default function ProfileScreen() {
                   >
                     <Text
                       style={{
-                        fontSize: 10,
+                        fontSize: rf(10),
                         fontWeight: "700",
                         color: cfg.color,
                       }}
@@ -283,15 +284,15 @@ export default function ProfileScreen() {
             })}
           </View>
         )}
-        <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
+        <View style={{ paddingHorizontal: scale(16), marginBottom: verticalScale(20) }}>
           <Text
             style={{
               color: COLORS.textSecondary,
-              fontSize: 11,
+              fontSize: rf(11),
               fontWeight: "700",
               textTransform: "uppercase",
               letterSpacing: 0.6,
-              marginBottom: 10,
+              marginBottom: verticalScale(10),
             }}
           >
             Account Information
@@ -325,7 +326,7 @@ export default function ProfileScreen() {
                   flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  padding: 14,
+                  padding: scale(14),
                   borderBottomWidth: i < arr.length - 1 ? 1 : 0,
                   borderBottomColor: COLORS.border,
                 }}
@@ -334,14 +335,14 @@ export default function ProfileScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 10,
+                    gap: scale(10),
                   }}
                 >
                   <View
                     style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 8,
+                      width: scale(30),
+                      height: scale(30),
+                      borderRadius: moderateScale(8),
                       backgroundColor: COLORS.bgCardAlt,
                       alignItems: "center",
                       justifyContent: "center",
@@ -353,16 +354,16 @@ export default function ProfileScreen() {
                       color={COLORS.textSecondary}
                     />
                   </View>
-                  <Text style={{ color: COLORS.textSecondary, fontSize: 14 }}>
+                  <Text style={{ color: COLORS.textSecondary, fontSize: rf(14) }}>
                     {item.label}
                   </Text>
                 </View>
                 <Text
                   style={{
                     color: COLORS.textPrimary,
-                    fontSize: 13,
+                    fontSize: rf(13),
                     fontWeight: "600",
-                    maxWidth: 180,
+                    maxWidth: scale(180),
                   }}
                   numberOfLines={1}
                 >
@@ -372,15 +373,15 @@ export default function ProfileScreen() {
             ))}
           </View>
         </View>
-        <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
+        <View style={{ paddingHorizontal: scale(16), marginBottom: verticalScale(20) }}>
           <Text
             style={{
               color: COLORS.textSecondary,
-              fontSize: 11,
+              fontSize: rf(11),
               fontWeight: "700",
               textTransform: "uppercase",
               letterSpacing: 0.6,
-              marginBottom: 10,
+              marginBottom: verticalScale(10),
             }}
           >
             Settings
@@ -399,18 +400,18 @@ export default function ProfileScreen() {
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
-                padding: 14,
+                padding: scale(14),
               }}
               onPress={() => setShowLang(true)}
             >
               <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+                style={{ flexDirection: "row", alignItems: "center", gap: scale(10) }}
               >
                 <View
                   style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 8,
+                    width: scale(30),
+                    height: scale(30),
+                    borderRadius: moderateScale(8),
                     backgroundColor: COLORS.bgCardAlt,
                     alignItems: "center",
                     justifyContent: "center",
@@ -422,17 +423,17 @@ export default function ProfileScreen() {
                     color={COLORS.textSecondary}
                   />
                 </View>
-                <Text style={{ color: COLORS.textSecondary, fontSize: 14 }}>
+                <Text style={{ color: COLORS.textSecondary, fontSize: rf(14) }}>
                   Language
                 </Text>
               </View>
               <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                style={{ flexDirection: "row", alignItems: "center", gap: scale(6) }}
               >
                 <Text
                   style={{
                     color: COLORS.primaryLight,
-                    fontSize: 13,
+                    fontSize: rf(13),
                     fontWeight: "600",
                   }}
                 >
@@ -453,13 +454,13 @@ export default function ProfileScreen() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            gap: 8,
-            marginHorizontal: 16,
-            padding: 14,
+            gap: scale(8),
+            marginHorizontal: scale(16),
+            padding: scale(14),
             borderWidth: 1,
             borderColor: "rgba(239,68,68,0.2)",
             borderRadius: RADIUS.xl,
-            marginBottom: 16,
+            marginBottom: verticalScale(16),
             backgroundColor: "rgba(239,68,68,0.06)",
           }}
           onPress={handleLogout}
@@ -472,7 +473,7 @@ export default function ProfileScreen() {
           <Text
             style={{
               color: COLORS.danger || "#EF4444",
-              fontSize: 15,
+              fontSize: rf(15),
               fontWeight: "700",
             }}
           >
@@ -480,7 +481,7 @@ export default function ProfileScreen() {
           </Text>
         </TouchableOpacity>
         <Text
-          style={{ color: COLORS.textMuted, fontSize: 11, textAlign: "center" }}
+          style={{ color: COLORS.textMuted, fontSize: rf(11), textAlign: "center" }}
         >
           CitiVoice v2.0 · Kabankalan City
         </Text>
@@ -501,31 +502,31 @@ export default function ProfileScreen() {
           <View
             style={{
               backgroundColor: COLORS.bgCard,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              padding: 20,
-              paddingBottom: 40,
+              borderTopLeftRadius: moderateScale(24),
+              borderTopRightRadius: moderateScale(24),
+              padding: scale(20),
+              paddingBottom: verticalScale(40),
               borderTopWidth: 1,
               borderColor: COLORS.border,
             }}
           >
             <View
               style={{
-                width: 36,
-                height: 4,
+                width: scale(36),
+                height: verticalScale(4),
                 backgroundColor: COLORS.border,
-                borderRadius: 2,
+                borderRadius: scale(2),
                 alignSelf: "center",
-                marginBottom: 16,
+                marginBottom: verticalScale(16),
               }}
             />
             <Text
               style={{
                 color: COLORS.textPrimary,
-                fontSize: 18,
+                fontSize: rf(18),
                 fontWeight: "800",
                 textAlign: "center",
-                marginBottom: 16,
+                marginBottom: verticalScale(16),
               }}
             >
               Select Language
@@ -536,10 +537,10 @@ export default function ProfileScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 14,
-                  padding: 14,
+                  gap: scale(14),
+                  padding: scale(14),
                   borderRadius: RADIUS.lg,
-                  marginBottom: 8,
+                  marginBottom: verticalScale(8),
                   backgroundColor:
                     language === lang.code
                       ? COLORS.primary + "1A"
@@ -550,14 +551,14 @@ export default function ProfileScreen() {
                   setShowLang(false);
                 }}
               >
-                <Text style={{ fontSize: 22 }}>{lang.flag}</Text>
+                <Text style={{ fontSize: rf(22) }}>{lang.flag}</Text>
                 <Text
                   style={{
                     color:
                       language === lang.code
                         ? COLORS.primaryLight
                         : COLORS.textPrimary,
-                    fontSize: 16,
+                    fontSize: rf(16),
                     fontWeight: "600",
                   }}
                 >
@@ -574,10 +575,10 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             ))}
             <TouchableOpacity
-              style={{ padding: 14, alignItems: "center", marginTop: 4 }}
+              style={{ padding: scale(14), alignItems: "center", marginTop: verticalScale(4) }}
               onPress={() => setShowLang(false)}
             >
-              <Text style={{ color: COLORS.textMuted, fontSize: 15 }}>
+              <Text style={{ color: COLORS.textMuted, fontSize: rf(15) }}>
                 Cancel
               </Text>
             </TouchableOpacity>

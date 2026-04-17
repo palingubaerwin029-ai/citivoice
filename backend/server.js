@@ -25,6 +25,7 @@ app.use('/api/concerns',      require('./routes/concerns'));
 app.use('/api/barangays',     require('./routes/barangays'));
 app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/events',        require('./routes/events'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // ─── Health check ────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));

@@ -8,10 +8,16 @@ import { useConcerns } from '../../context/ConcernContext';
 import { useLanguage } from '../../context/LanguageContext';
 import ConcernCard from '../../components/ConcernCard';
 import { EmptyState, StatCard } from '../../components/UI';
-import { COLORS } from '../../utils/theme';
+import { COLORS, RADIUS } from '../../utils/theme';
+import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 
-const FILTERS = ['All', 'Pending', 'In Progress', 'Resolved', 'Rejected'];
-const STATUS_COLORS = { Pending: COLORS.statusPending, 'In Progress': COLORS.primary, Resolved: COLORS.accent, Rejected: COLORS.statusRejected };
+const FILTERS = [
+  { key: "All", label: "All", icon: "apps-outline" },
+  { key: "Pending", label: "Pending", icon: "time-outline" },
+  { key: "In Progress", label: "Active", icon: "refresh-outline" },
+  { key: "Resolved", label: "Resolved", icon: "checkmark-circle-outline" },
+];
+const STATUS_COLORS = { All: COLORS.primaryLight, Pending: COLORS.statusPending, 'In Progress': COLORS.primary, Resolved: COLORS.accent, Rejected: COLORS.statusRejected };
 
 export default function MyConcernsScreen({ navigation }) {
   const { myConcerns } = useConcerns();
@@ -49,17 +55,22 @@ export default function MyConcernsScreen({ navigation }) {
             {/* Filter Tabs */}
             <View style={styles.filterScroll}>
               {FILTERS.map(f => {
-                const active = activeFilter === f;
-                const color = STATUS_COLORS[f] || COLORS.primary;
-                const count = f === 'All' ? myConcerns.length : myConcerns.filter(c => c.status === f).length;
+                const active = activeFilter === f.key;
+                const color = STATUS_COLORS[f.key] || COLORS.primary;
+                const count = f.key === 'All' ? myConcerns.length : myConcerns.filter(c => c.status === f.key).length;
                 return (
                   <TouchableOpacity
-                    key={f}
+                    key={f.key}
                     style={[styles.filterTab, active && { backgroundColor: color + '22', borderColor: color }]}
-                    onPress={() => setActiveFilter(f)}
+                    onPress={() => setActiveFilter(f.key)}
                   >
+                    <Ionicons
+                      name={f.icon}
+                      size={14}
+                      color={active ? color : COLORS.textMuted}
+                    />
                     <Text style={[styles.filterTabText, active && { color }]}>
-                      {f === 'All' ? t('all') : f === 'In Progress' ? t('inProgress') : t(f.toLowerCase())}
+                      {f.label}
                     </Text>
                     <View style={[styles.filterBadge, active && { backgroundColor: color }]}>
                       <Text style={[styles.filterBadgeText, active && { color: '#fff' }]}>{count}</Text>
@@ -95,19 +106,19 @@ export default function MyConcernsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgDark },
-  list: { padding: 16, paddingBottom: 32 },
+  list: { padding: scale(16), paddingBottom: verticalScale(32) },
 
-  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  statsRow: { flexDirection: 'row', gap: scale(8), marginBottom: verticalScale(16) },
 
-  filterScroll: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  filterScroll: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(8), marginBottom: verticalScale(12) },
   filterTab: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
+    flexDirection: 'row', alignItems: 'center', gap: scale(6),
+    paddingHorizontal: scale(12), paddingVertical: verticalScale(7), borderRadius: RADIUS.full,
     backgroundColor: COLORS.bgCard, borderWidth: 1, borderColor: COLORS.border,
   },
-  filterTabText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
-  filterBadge: { backgroundColor: COLORS.bgCardAlt, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 },
-  filterBadgeText: { color: COLORS.textMuted, fontSize: 10, fontWeight: '800' },
+  filterTabText: { color: COLORS.textMuted, fontSize: rf(12), fontWeight: '600' },
+  filterBadge: { backgroundColor: COLORS.bgCardAlt, borderRadius: moderateScale(10), paddingHorizontal: scale(6), paddingVertical: verticalScale(1) },
+  filterBadgeText: { color: COLORS.textMuted, fontSize: rf(10), fontWeight: '800' },
 
-  resultLabel: { color: COLORS.textMuted, fontSize: 12, marginBottom: 8 },
+  resultLabel: { color: COLORS.textMuted, fontSize: rf(12), marginBottom: verticalScale(8) },
 });

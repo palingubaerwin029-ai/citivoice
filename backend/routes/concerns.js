@@ -91,6 +91,10 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   const { status, admin_note } = req.body;
   try {
+    const [existing] = await pool.query('SELECT user_id, title, status FROM concerns WHERE id = ?', [req.params.id]);
+    if (!existing.length) return res.status(404).json({ error: 'Concern not found' });
+    const concern = existing[0];
+
     const fields  = [];
     const values  = [];
     if (status !== undefined)     { fields.push('status = ?');     values.push(status); }
@@ -100,6 +104,23 @@ router.put('/:id', auth, async (req, res) => {
     values.push(req.params.id);
 
     await pool.query(`UPDATE concerns SET ${fields.join(', ')} WHERE id = ?`, values);
+    
+    // Create in-app notification if needed
+    if (concern.user_id) {
+      if (status && status !== concern.status) {
+        await pool.query(
+          'INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)',
+          [concern.user_id, 'Concern Updated', `Your concern "${concern.title}" was updated to ${status}.`]
+        );
+      }
+      if (admin_note) {
+        await pool.query(
+          'INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)',
+          [concern.user_id, 'New Official Response', `An admin replied to your concern: "${concern.title}".`]
+        );
+      }
+    }
+
     const [rows] = await pool.query('SELECT * FROM concerns WHERE id = ?', [req.params.id]);
     res.json(rows[0]);
   } catch (err) {

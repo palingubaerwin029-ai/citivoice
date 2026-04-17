@@ -20,6 +20,7 @@ import MyConcernsScreen from "../screens/citizen/Myconcernsscreen";
 import MapScreen from "../screens/citizen/Mapscreen";
 import ProfileScreen from "../screens/citizen/Profilescreen";
 import EventsScreen from "../screens/citizen/Eventsscreen";
+import NotificationsScreen from "../screens/citizen/NotificationsScreen";
 
 // ── Admin ──────────────────────────────────────────────────────────────────
 import AdminDashboardScreen from "../screens/admin/Admindashboardscreen";
@@ -91,6 +92,11 @@ function HomeStack() {
         name="SubmitConcern"
         component={SubmitConcernScreen}
         options={{ title: "Report a Concern" }}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

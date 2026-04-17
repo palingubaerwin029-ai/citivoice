@@ -16,6 +16,7 @@ import { useLanguage } from "../../context/LanguageContext";
 import { InputField, PrimaryButton } from "../../components/UI";
 import { COLORS, RADIUS, SHADOWS } from "../../utils/theme";
 import { mobileApi } from "../../context/AuthContext";
+import { scale, verticalScale, rf } from "../../utils/responsive";
 
 export default function RegisterScreen({ navigation }) {
   const { register } = useAuth();
@@ -330,19 +331,19 @@ export default function RegisterScreen({ navigation }) {
 const S = StyleSheet.create({
   scroll: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingHorizontal: scale(24),
+    paddingTop: verticalScale(60),
+    paddingBottom: verticalScale(40),
   },
 
   glowBlob: {
     position: "absolute",
-    top: -80,
+    top: verticalScale(-80),
     left: "50%",
-    marginLeft: -140,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
+    marginLeft: scale(-140),
+    width: scale(280),
+    height: scale(280),
+    borderRadius: scale(140),
     backgroundColor: COLORS.primary,
     opacity: 0.07,
   },
@@ -350,12 +351,12 @@ const S = StyleSheet.create({
   langRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 6,
-    marginBottom: 16,
+    gap: scale(6),
+    marginBottom: verticalScale(16),
   },
   langChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(5),
     borderRadius: RADIUS.full,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -364,19 +365,19 @@ const S = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
-  langText: { color: COLORS.textMuted, fontSize: 11, fontWeight: "700" },
+  langText: { color: COLORS.textMuted, fontSize: rf(11), fontWeight: "700" },
   langTextActive: { color: "#fff" },
 
   topRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 16,
+    gap: scale(12),
+    marginBottom: verticalScale(16),
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: scale(36),
+    height: scale(36),
+    borderRadius: RADIUS.md,
     backgroundColor: COLORS.bgCard,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -384,9 +385,9 @@ const S = StyleSheet.create({
     justifyContent: "center",
   },
   logoSmall: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: scale(36),
+    height: scale(36),
+    borderRadius: RADIUS.md,
     backgroundColor: COLORS.bgCard,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -396,36 +397,36 @@ const S = StyleSheet.create({
 
   pageTitle: {
     color: COLORS.textPrimary,
-    fontSize: 26,
+    fontSize: rf(26),
     fontWeight: "800",
     letterSpacing: -0.4,
-    marginBottom: 4,
+    marginBottom: verticalScale(4),
   },
-  pageSubtitle: { color: COLORS.textSecondary, fontSize: 13, marginBottom: 20 },
+  pageSubtitle: { color: COLORS.textSecondary, fontSize: rf(13), marginBottom: verticalScale(20) },
 
   noticeBox: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
+    gap: scale(12),
     backgroundColor: "rgba(37,99,235,0.08)",
     borderRadius: RADIUS.lg,
-    padding: 14,
+    padding: scale(14),
     borderWidth: 1,
     borderColor: "rgba(37,99,235,0.2)",
-    marginBottom: 20,
+    marginBottom: verticalScale(20),
   },
   noticeTitle: {
     color: COLORS.primaryLight,
-    fontSize: 13,
+    fontSize: rf(13),
     fontWeight: "700",
-    marginBottom: 4,
+    marginBottom: verticalScale(4),
   },
-  noticeText: { color: COLORS.textSecondary, fontSize: 12, lineHeight: 18 },
+  noticeText: { color: COLORS.textSecondary, fontSize: rf(12), lineHeight: rf(18) },
 
   card: {
     backgroundColor: COLORS.bgCard,
     borderRadius: RADIUS["2xl"],
-    padding: 24,
+    padding: scale(24),
     borderWidth: 1,
     borderColor: COLORS.border,
     ...SHADOWS.card,
@@ -433,44 +434,44 @@ const S = StyleSheet.create({
 
   fieldLabel: {
     color: COLORS.textMuted,
-    fontSize: 10,
+    fontSize: rf(10),
     fontWeight: "700",
     letterSpacing: 0.8,
-    marginBottom: 8,
+    marginBottom: verticalScale(8),
   },
 
   picker: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: scale(10),
     backgroundColor: COLORS.bgCardAlt,
     borderRadius: RADIUS.md,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(13),
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   pickerError: { borderColor: COLORS.danger },
-  pickerText: { flex: 1, color: COLORS.textPrimary, fontSize: 14 },
+  pickerText: { flex: 1, color: COLORS.textPrimary, fontSize: rf(14) },
 
   dropdown: {
     backgroundColor: COLORS.bgCardAlt,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.border,
-    marginTop: 4,
+    marginTop: verticalScale(4),
     overflow: "hidden",
   },
   dropdownItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 14,
+    padding: scale(14),
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
   dropdownItemActive: { backgroundColor: COLORS.primary + "18" },
-  dropdownText: { color: COLORS.textSecondary, fontSize: 14 },
+  dropdownText: { color: COLORS.textSecondary, fontSize: rf(14) },
 
-  loginRow: { flexDirection: "row", justifyContent: "center", marginTop: 20 },
+  loginRow: { flexDirection: "row", justifyContent: "center", marginTop: verticalScale(20) },
 });

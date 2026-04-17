@@ -41,13 +41,6 @@
           "locationAlwaysAndWhenInUsePermission": "CitiVoice needs location to pin your concern on the map."
         }
       ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#1A6BFF"
-        }
-      ],
       "expo-font"
     ]
   }
