@@ -10,13 +10,7 @@ import {
   TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  doc,
-  onSnapshot,
-  updateDoc,
-  serverTimestamp,
-} from "firebase/firestore";
-import { db } from "../../services/firebase";
+import { mobileApi } from "../../context/AuthContext";
 import { StatusBadge, CategoryBadge } from "../../components/UI";
 import { COLORS, STATUS_CONFIG } from "../../utils/theme";
 
@@ -36,16 +30,17 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const fetchDetail = async () => {
+    try {
+      const data = await mobileApi.get(`/concerns/${concernId}`);
+      setConcern(data);
+      setSelectedStatus(data.status || "Pending");
+      setAdminNote(data.admin_note || "");
+    } catch {}
+  };
+
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "concerns", concernId), (snap) => {
-      if (snap.exists()) {
-        const data = { id: snap.id, ...snap.data() };
-        setConcern(data);
-        setSelectedStatus(data.status || "Pending");
-        setAdminNote(data.adminNote || "");
-      }
-    });
-    return unsub;
+    fetchDetail();
   }, [concernId]);
 
   navigation.setOptions({ title: "Review Concern" });
@@ -53,11 +48,11 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateDoc(doc(db, "concerns", concernId), {
+      await mobileApi.put(`/concerns/${concernId}`, {
         status: selectedStatus,
-        adminNote: adminNote.trim() || null,
-        updatedAt: serverTimestamp(),
+        admin_note: adminNote.trim() || null,
       });
+      fetchDetail();
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
@@ -79,15 +74,15 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
 
   const hasChanges =
     selectedStatus !== concern.status ||
-    adminNote !== (concern.adminNote || "");
+    adminNote !== (concern.admin_note || "");
   const fmt = (ts) =>
     ts
-      ?.toDate?.()
-      ?.toLocaleDateString("en-PH", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }) || "—";
+      ? new Date(ts).toLocaleDateString("en-PH", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : "—";
   const priorityColors = { High: "#FF4444", Medium: "#FFB800", Low: "#00D4AA" };
 
   return (
@@ -97,8 +92,8 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
       keyboardShouldPersistTaps="handled"
     >
       {/* Photo */}
-      {concern.imageUrl ? (
-        <Image source={{ uri: concern.imageUrl }} style={styles.heroImage} />
+      {concern.image_url ? (
+        <Image source={{ uri: concern.image_url }} style={styles.heroImage} />
       ) : (
         <View style={styles.heroPlaceholder}>
           <Ionicons name="image-outline" size={36} color={COLORS.textMuted} />
@@ -143,17 +138,17 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
             {
               icon: "person-outline",
               label: "Citizen",
-              value: concern.userName,
+              value: concern.user_name,
             },
             {
               icon: "location-outline",
               label: "Barangay",
-              value: concern.userBarangay,
+              value: concern.user_barangay,
             },
             {
               icon: "calendar-outline",
               label: "Filed on",
-              value: fmt(concern.createdAt),
+              value: fmt(concern.created_at),
             },
             {
               icon: "thumbs-up-outline",
@@ -277,10 +272,10 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
         </View>
 
         {/* Previous Admin Note Preview */}
-        {concern.adminNote && (
+        {concern.admin_note && (
           <View style={styles.prevNote}>
             <Text style={styles.prevNoteLabel}>📋 PREVIOUS RESPONSE</Text>
-            <Text style={styles.prevNoteText}>{concern.adminNote}</Text>
+            <Text style={styles.prevNoteText}>{concern.admin_note}</Text>
           </View>
         )}
       </View>

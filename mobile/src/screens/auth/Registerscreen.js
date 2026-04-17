@@ -15,8 +15,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { InputField, PrimaryButton } from "../../components/UI";
 import { COLORS, RADIUS, SHADOWS } from "../../utils/theme";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../../services/firebase";
+import { mobileApi } from "../../context/AuthContext";
 
 export default function RegisterScreen({ navigation }) {
   const { register } = useAuth();
@@ -38,8 +37,8 @@ export default function RegisterScreen({ navigation }) {
   useEffect(() => {
     const fetchBarangays = async () => {
       try {
-        const snap = await getDocs(collection(db, "barangays"));
-        const list = snap.docs.map(d => d.data().name);
+        const rows = await mobileApi.get("/barangays");
+        const list = rows.map(r => r.name);
         list.sort((a, b) => a.localeCompare(b));
         setAvailableBarangays([...list, "Other"]);
       } catch (err) {

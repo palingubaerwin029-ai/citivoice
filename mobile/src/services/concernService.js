@@ -1,150 +1,109 @@
-import {
-  collection,
-  doc,
-  addDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-  arrayUnion,
-  arrayRemove,
-  increment,
-} from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "./firebase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const CONCERNS_COL = "concerns";
+import { BASE_URL } from "../context/AuthContext";
+
+const getToken = async () => AsyncStorage.getItem("cv_token");
+
+const apiRequest = async (path, options = {}) => {
+  const token = await getToken();
+  const isFormData = options.body instanceof FormData;
+  const headers = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    ...options.headers,
+  };
+  const res  = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
+};
 
 export const ConcernService = {
-  // ─── Real-time listener ───────────────────────────────────────────────────
-  subscribeToConcerns(callback) {
-    const q = query(collection(db, CONCERNS_COL), orderBy("createdAt", "desc"));
-    return onSnapshot(q, (snap) => {
-      const concerns = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      callback(concerns);
+
+  // ── Upload an image to the backend ──────────────────────────────────────
+  async uploadImage(imageUri) {
+    const filename = imageUri.split("/").pop();
+    const match    = /\.(\w+)$/.exec(filename);
+    const type     = match ? `image/${match[1]}` : "image/jpeg";
+
+    const formData = new FormData();
+    formData.append("image", { uri: imageUri, name: filename, type });
+
+    const token = await getToken();
+    const res = await fetch(`${BASE_URL}/concerns/upload/id-image`, {
+      method:  "POST",
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body:    formData,
     });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Upload failed");
+    return data.url; // returns the hosted image URL
   },
 
-  // ─── Subscribe to user's concerns ────────────────────────────────────────
-  subscribeToUserConcerns(userId, callback) {
-    const q = query(
-      collection(db, CONCERNS_COL),
-      where("userId", "==", userId),
-      orderBy("createdAt", "desc"),
-    );
-    return onSnapshot(q, (snap) => {
-      const concerns = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      callback(concerns);
-    });
-  },
+  // ── Submit a new concern ────────────────────────────────────────────────
+  async addConcern({ title, description, category, priority, imageUri, location, userName, userBarangay }) {
+    const formData = new FormData();
+    formData.append("title",            title);
+    formData.append("description",      description);
+    formData.append("category",         category);
+    formData.append("priority",         priority || "Medium");
+    formData.append("user_name",        userName || "");
+    formData.append("user_barangay",    userBarangay || "");
+    formData.append("location_address", location?.address || "");
+    if (location?.latitude)  formData.append("location_lat", String(location.latitude));
+    if (location?.longitude) formData.append("location_lng", String(location.longitude));
 
-  // ─── Get single concern ───────────────────────────────────────────────────
-  async getConcern(id) {
-    const docSnap = await getDoc(doc(db, CONCERNS_COL, id));
-    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
-  },
-
-  // ─── Upload image ─────────────────────────────────────────────────────────
-  async uploadImage(uri, concernId) {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const imageRef = ref(storage, `concerns/${concernId}/${Date.now()}.jpg`);
-    await uploadBytes(imageRef, blob);
-    return await getDownloadURL(imageRef);
-  },
-
-  // ─── Add concern ──────────────────────────────────────────────────────────
-  async addConcern({
-    title,
-    description,
-    category,
-    priority,
-    imageUri,
-    location,
-    userId,
-    userName,
-    userBarangay,
-  }) {
-    const concernData = {
-      title,
-      description,
-      category,
-      priority,
-      location,
-      userId,
-      userName,
-      userBarangay,
-      status: "Pending",
-      adminNote: null,
-      imageUrl: null,
-      upvotes: 0,
-      upvotedBy: [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-    const docRef = await addDoc(collection(db, CONCERNS_COL), concernData);
-
-    // Upload image if provided
     if (imageUri) {
-      const imageUrl = await this.uploadImage(imageUri, docRef.id);
-      await updateDoc(docRef, { imageUrl });
+      const filename = imageUri.split("/").pop();
+      const match    = /\.(\w+)$/.exec(filename);
+      const type     = match ? `image/${match[1]}` : "image/jpeg";
+      formData.append("image", { uri: imageUri, name: filename, type });
     }
 
-    return { id: docRef.id, ...concernData };
-  },
-
-  // ─── Update concern (admin) ───────────────────────────────────────────────
-  async updateConcern(id, updates) {
-    await updateDoc(doc(db, CONCERNS_COL, id), {
-      ...updates,
-      updatedAt: serverTimestamp(),
+    const token = await getToken();
+    const res = await fetch(`${BASE_URL}/concerns`, {
+      method:  "POST",
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body:    formData,
     });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to submit concern");
+    return data;
   },
 
-  // ─── Delete concern ───────────────────────────────────────────────────────
-  async deleteConcern(id) {
-    await deleteDoc(doc(db, CONCERNS_COL, id));
+  // ── Get all concerns ────────────────────────────────────────────────────
+  async getConcerns() {
+    return apiRequest("/concerns");
   },
 
-  // ─── Toggle upvote ────────────────────────────────────────────────────────
-  async toggleUpvote(concernId, userId) {
-    const concernRef = doc(db, CONCERNS_COL, concernId);
-    const concernSnap = await getDoc(concernRef);
-    const data = concernSnap.data();
-    const isUpvoted = data.upvotedBy?.includes(userId);
+  // ── Get a single concern ────────────────────────────────────────────────
+  async getConcernById(id) {
+    return apiRequest(`/concerns/${id}`);
+  },
 
-    if (isUpvoted) {
-      await updateDoc(concernRef, {
-        upvotedBy: arrayRemove(userId),
-        upvotes: increment(-1),
-      });
-    } else {
-      await updateDoc(concernRef, {
-        upvotedBy: arrayUnion(userId),
-        upvotes: increment(1),
-      });
+  // ── Get concerns for a specific user ───────────────────────────────────
+  async getUserConcerns(userId) {
+    const all = await apiRequest("/concerns");
+    return all.filter((c) => c.user_id === parseInt(userId, 10));
+  },
+
+  // ── Toggle upvote ───────────────────────────────────────────────────────
+  async toggleUpvote(concernId) {
+    return apiRequest(`/concerns/${concernId}/upvote`, { method: "POST" });
+  },
+
+  // ── Check if current user has upvoted ──────────────────────────────────
+  async hasUserUpvoted(concernId) {
+    try {
+      const data = await apiRequest(`/concerns/${concernId}`);
+      return !!data.is_upvoted_by_me;
+    } catch {
+      return false;
     }
   },
 
-  // ─── Get stats (admin) ────────────────────────────────────────────────────
-  async getStats() {
-    const snap = await getDocs(collection(db, CONCERNS_COL));
-    const concerns = snap.docs.map((d) => d.data());
-    return {
-      total: concerns.length,
-      pending: concerns.filter((c) => c.status === "Pending").length,
-      inProgress: concerns.filter((c) => c.status === "In Progress").length,
-      resolved: concerns.filter((c) => c.status === "Resolved").length,
-      rejected: concerns.filter((c) => c.status === "Rejected").length,
-      byCategory: concerns.reduce((acc, c) => {
-        acc[c.category] = (acc[c.category] || 0) + 1;
-        return acc;
-      }, {}),
-    };
+  // ── Delete a concern ────────────────────────────────────────────────────
+  async deleteConcern(id) {
+    return apiRequest(`/concerns/${id}`, { method: "DELETE" });
   },
 };

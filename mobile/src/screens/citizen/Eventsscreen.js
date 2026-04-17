@@ -11,15 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  collection,
-  onSnapshot,
-  query,
-  orderBy,
-  where,
-  Timestamp,
-} from "firebase/firestore";
-import { db } from "../../services/firebase";
+import { mobileApi } from "../../context/AuthContext";
 import { COLORS } from "../../utils/theme";
 
 const MONTHS = [
@@ -64,33 +56,28 @@ export default function EventsScreen() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
+  const loadData = async () => {
+    try {
+      const anns = await mobileApi.get("/announcements");
+      setAnnouncements(anns);
+      
+      const evts = await mobileApi.get("/events");
+      setEvents(evts);
+    } catch (err) {
+      console.log("Error fetching events/announcements", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
-    // Listen to announcements
-    const unsubAnnouncements = onSnapshot(
-      query(collection(db, "announcements"), orderBy("createdAt", "desc")),
-      (snap) => {
-        setAnnouncements(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-        setLoading(false);
-      },
-    );
-
-    // Listen to events
-    const unsubEvents = onSnapshot(
-      query(collection(db, "events"), orderBy("date", "asc")),
-      (snap) => {
-        setEvents(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      },
-    );
-
-    return () => {
-      unsubAnnouncements();
-      unsubEvents();
-    };
+    loadData();
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    loadData();
   };
 
   // ── Calendar helpers ──────────────────────────────────────────────────────
@@ -292,7 +279,7 @@ export default function EventsScreen() {
                             </Text>
                           </View>
                           <Text style={styles.timeAgo}>
-                            {timeAgo(a.createdAt)}
+                            {timeAgo(a.created_at)}
                           </Text>
                         </View>
                       </View>
@@ -670,7 +657,7 @@ function DetailModal({
                   <View>
                     <Text style={styles.modalInfoLabel}>Posted</Text>
                     <Text style={styles.modalInfoValue}>
-                      {timeAgo(item.createdAt)}
+                      {timeAgo(item.created_at)}
                     </Text>
                   </View>
                 </View>

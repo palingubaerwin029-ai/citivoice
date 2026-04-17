@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ConcernService } from "../../services/concernService";
 import { useAuth, VERIFICATION_STATUS } from "../../context/AuthContext";
 import { InputField, PrimaryButton } from "../../components/UI";
 import { COLORS, RADIUS, SHADOWS } from "../../utils/theme";
@@ -87,15 +87,8 @@ export default function VerifyIdentityScreen({ navigation }) {
     if (!validate()) return;
     setUploading(true);
     try {
-      // Upload ID image to Firebase Storage
-      const response = await fetch(idImage);
-      const blob = await response.blob();
-      const imageRef = ref(
-        storage,
-        `verifications/${user.uid}/id_${Date.now()}.jpg`,
-      );
-      await uploadBytes(imageRef, blob);
-      const idImageUrl = await getDownloadURL(imageRef);
+      // Upload ID image to backend
+      const idImageUrl = await ConcernService.uploadImage(idImage);
 
       // Update Firestore user doc to pending
       await submitVerification(user.uid, {

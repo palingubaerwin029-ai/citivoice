@@ -1,8 +1,9 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
-import { doc, setDoc } from "firebase/firestore";
-import { db } from "./firebase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const BASE_URL = "http://10.0.2.2:5000/api";
 
 // ── Handle incoming notifications while app is open ────────────────────────
 Notifications.setNotificationHandler({
@@ -55,13 +56,14 @@ export const NotificationService = {
       });
       const token = tokenData.data;
 
-      // Save token to Firestore
+      // Save token to backend API
       if (userId && token) {
-        await setDoc(
-          doc(db, "users", userId),
-          { fcmToken: token, tokenUpdatedAt: new Date() },
-          { merge: true },
-        );
+        const jwt = await AsyncStorage.getItem("cv_token");
+        await fetch(`${BASE_URL}/users/${userId}/fcm-token`, {
+          method:  "PUT",
+          headers: { "Content-Type": "application/json", ...(jwt ? { Authorization: `Bearer ${jwt}` } : {}) },
+          body:    JSON.stringify({ fcm_token: token }),
+        });
         console.log("Push token saved:", token);
       }
 

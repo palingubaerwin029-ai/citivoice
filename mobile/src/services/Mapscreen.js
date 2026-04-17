@@ -26,10 +26,10 @@ const PIN_COLORS = {
   Rejected: "#FF4444",
 };
 
-// Default center: Himamaylan, Negros Occidental
+// Default center: Kabankalan, Negros Occidental
 const DEFAULT_REGION = {
-  latitude: 10.0996,
-  longitude: 122.8694,
+  latitude: 9.98,
+  longitude: 122.82,
   latitudeDelta: 0.08,
   longitudeDelta: 0.08,
 };

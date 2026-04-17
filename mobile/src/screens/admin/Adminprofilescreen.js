@@ -9,8 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { collection, onSnapshot, query } from "firebase/firestore";
-import { db } from "../../services/firebase";
+import { ConcernService } from "../../services/concernService";
 import { useAuth } from "../../context/AuthContext";
 import { COLORS } from "../../utils/theme";
 
@@ -19,10 +18,13 @@ export default function AdminProfileScreen() {
   const [concerns, setConcerns] = useState([]);
 
   useEffect(() => {
-    const unsub = onSnapshot(query(collection(db, "concerns")), (snap) => {
-      setConcerns(snap.docs.map((d) => d.data()));
-    });
-    return unsub;
+    const fetchConcerns = async () => {
+      try {
+        const data = await ConcernService.getConcerns();
+        setConcerns(data);
+      } catch (err) {}
+    };
+    fetchConcerns();
   }, []);
 
   const initials =
@@ -68,10 +70,9 @@ export default function AdminProfileScreen() {
       icon: "calendar-outline",
       label: "Admin since",
       value:
-        user?.createdAt
-          ?.toDate?.()
-          ?.toLocaleDateString("en-PH", { year: "numeric", month: "long" }) ||
-        "2024",
+        user?.created_at
+          ? new Date(user.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long" })
+          : "2024",
     },
   ];
 
@@ -236,7 +237,7 @@ export default function AdminProfileScreen() {
         </TouchableOpacity>
 
         <Text style={styles.versionText}>
-          CitiVoice Admin v2.0 · Powered by Firebase
+          CitiVoice Admin v2.0 · Powered by Express API
         </Text>
       </ScrollView>
     </SafeAreaView>

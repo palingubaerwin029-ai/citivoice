@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import { auth } from "../firebase";
 import { 
   IoGridOutline, 
   IoChatbubbleEllipsesOutline, 
@@ -29,7 +27,7 @@ const NAV = [
   { path: "/reports", icon: <IoBarChartOutline />, label: "Reports" },
 ];
 
-export default function Sidebar({ user }) {
+export default function Sidebar({ user, onLogout }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -106,7 +104,7 @@ export default function Sidebar({ user }) {
       <div className={s.navFooter}>
         <button
           className={`${s.logoutBtn} ${collapsed ? s.collapsed : ""}`}
-          onClick={() => signOut(auth).then(() => navigate("/"))}
+          onClick={() => { onLogout(); navigate("/"); }}
         >
           <span className={s.navIcon}><IoLogOutOutline /></span>
           {!collapsed && <span>Sign Out</span>}

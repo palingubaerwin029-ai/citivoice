@@ -1,169 +1,110 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { initializeApp, getApps, getApp } from "firebase/app";
-import {
-  getReactNativePersistence,
-  initializeAuth,
-  getAuth,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-} from "firebase/auth";
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  serverTimestamp,
-} from "firebase/firestore";
-import { getStorage } from "firebase/storage";
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
-
-// ── Firebase config ────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyCijq5i4CbBEovzJCGYhKkCOL4oj2D1rDo",
-  authDomain: "citivoice-e83b2.firebaseapp.com",
-  projectId: "citivoice-e83b2",
-  storageBucket: "citivoice-e83b2.appspot.com",
-  messagingSenderId: "489125998465",
-  appId: "1:489125998465:web:364a60e6a8cf546ca24280",
-};
-
-// ── Firebase init (singleton) ──────────────────────────────────────────────
-let app, auth, db, storage;
-
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(ReactNativeAsyncStorage),
-  });
-  db = getFirestore(app);
-  storage = getStorage(app);
-} else {
-  app = getApp();
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
-}
-
-export { auth, db, storage };
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ── Verification status constants ──────────────────────────────────────────
 export const VERIFICATION_STATUS = {
-  UNVERIFIED: "unverified", // just registered — hasn't submitted ID
-  PENDING: "pending", // submitted ID, waiting for admin review
-  VERIFIED: "verified", // admin approved — full access
-  REJECTED: "rejected", // admin rejected — must resubmit
+  UNVERIFIED: "unverified",
+  PENDING:    "pending",
+  VERIFIED:   "verified",
+  REJECTED:   "rejected",
+};
+
+import Constants from "expo-constants";
+
+// ── API base URL (Dynamically resolve LAN IP for physical dev devices) ──────
+const getBaseUrl = () => {
+  const hostUri = Constants?.expoConfig?.hostUri;
+  if (hostUri) {
+    return `http://${hostUri.split(':')[0]}:5000/api`;
+  }
+  return "http://10.0.2.2:5000/api"; // Default Android emulator fallback
+};
+
+export const BASE_URL = getBaseUrl();
+
+const apiRequest = async (path, options = {}) => {
+  const token = await AsyncStorage.getItem("cv_token");
+  const headers = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
+  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
 };
 
 // ── Auth Context ───────────────────────────────────────────────────────────
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user,    setUser]    = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ── Listen to Firebase auth state ─────────────────────────────────────
+  // Restore session from AsyncStorage on mount
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-          if (snap.exists()) {
-            const userData = { uid: firebaseUser.uid, ...snap.data() };
-
-            // ── VERIFICATION GATE ──────────────────────────────────────
-            // If admin has NOT approved this user yet,
-            // silently sign them out so AppNavigator never
-            // routes them to CitizenTabs or AdminTabs.
-            // They will see the auth stack with a status screen.
-            const status = userData.verificationStatus;
-            const isAdmin = userData.role === "admin";
-
-            if (!isAdmin && status !== VERIFICATION_STATUS.VERIFIED) {
-              // Keep them authenticated in Firebase but expose their
-              // status so the Login/Status screen can show the right message.
-              // Do NOT call signOut — that would cause an infinite loop.
-              setUser({ ...userData, _blocked: true });
-            } else {
-              setUser(userData);
-            }
-          } else {
-            await signOut(auth);
-            setUser(null);
-          }
-        } catch (err) {
-          console.log("Auth state error:", err.message);
-          setUser(null);
+    (async () => {
+      try {
+        const token = await AsyncStorage.getItem("cv_token");
+        if (token) {
+          const userData = await apiRequest("/auth/me");
+          const isBlocked = userData.role !== "admin" && userData.verification_status !== VERIFICATION_STATUS.VERIFIED;
+          setUser({ ...userData, _blocked: isBlocked });
         }
-      } else {
-        setUser(null);
+      } catch {
+        await AsyncStorage.multiRemove(["cv_token", "cv_user"]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
-    return unsub;
+    })();
   }, []);
 
   // ── Login ──────────────────────────────────────────────────────────────
   const login = async (email, password) => {
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    const snap = await getDoc(doc(db, "users", cred.user.uid));
-    if (!snap.exists()) {
-      await signOut(auth);
-      throw new Error("NO_PROFILE");
-    }
-    const userData = { uid: cred.user.uid, ...snap.data() };
-    return userData; // Caller receives full user data incl. verificationStatus
+    const { token, user: userData } = await apiRequest("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    await AsyncStorage.setItem("cv_token", token);
+    await AsyncStorage.setItem("cv_user", JSON.stringify(userData));
+    const isBlocked = userData.role !== "admin" && userData.verification_status !== VERIFICATION_STATUS.VERIFIED;
+    const fullUser = { ...userData, _blocked: isBlocked };
+    setUser(fullUser);
+    return fullUser;
   };
 
   // ── Register ───────────────────────────────────────────────────────────
-  // New users start as 'unverified' — they must submit an ID
-  // before admin can approve them.
   const register = async ({ name, email, password, phone, barangay }) => {
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    const userData = {
-      uid: cred.user.uid,
-      name,
-      email,
-      phone: phone || "",
-      barangay,
-      role: "citizen",
-      verificationStatus: VERIFICATION_STATUS.UNVERIFIED,
-      isVerified: false,
-      idType: null,
-      idNumber: null,
-      idImageUrl: null,
-      rejectionReason: null,
-      verifiedAt: null,
-      submittedAt: null,
-      fcmToken: null,
-      createdAt: serverTimestamp(),
-    };
-    await setDoc(doc(db, "users", cred.user.uid), userData);
+    const { token, user: userData } = await apiRequest("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ name, email, password, phone, barangay }),
+    });
+    await AsyncStorage.setItem("cv_token", token);
+    await AsyncStorage.setItem("cv_user", JSON.stringify(userData));
+    setUser({ ...userData, _blocked: true }); // newly registered → blocked until verified
     return userData;
   };
 
   // ── Submit ID for verification ─────────────────────────────────────────
-  const submitVerification = async (uid, { idType, idNumber, idImageUrl }) => {
-    await updateDoc(doc(db, "users", uid), {
-      idType,
-      idNumber,
-      idImageUrl,
-      verificationStatus: VERIFICATION_STATUS.PENDING,
-      submittedAt: serverTimestamp(),
-      rejectionReason: null,
+  const submitVerification = async (userId, { idType, idNumber, idImageUrl }) => {
+    const updated = await apiRequest(`/users/${userId}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        id_type:             idType,
+        id_number:           idNumber,
+        id_image_url:        idImageUrl,
+        verification_status: VERIFICATION_STATUS.PENDING,
+        submitted_at:        new Date().toISOString(),
+      }),
     });
-    // Refresh local user state
-    const snap = await getDoc(doc(db, "users", uid));
-    if (snap.exists()) {
-      setUser({ uid, ...snap.data(), _blocked: true });
-    }
+    await AsyncStorage.setItem("cv_user", JSON.stringify(updated));
+    setUser({ ...updated, _blocked: true });
   };
 
   // ── Logout ─────────────────────────────────────────────────────────────
   const logout = async () => {
-    await signOut(auth);
+    await AsyncStorage.multiRemove(["cv_token", "cv_user"]);
     setUser(null);
   };
 
@@ -176,9 +117,9 @@ export function AuthProvider({ children }) {
         register,
         logout,
         submitVerification,
-        db,
-        storage,
         VERIFICATION_STATUS,
+        apiRequest,
+        BASE_URL,
       }}
     >
       {children}
@@ -187,3 +128,14 @@ export function AuthProvider({ children }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
+
+// ── Standalone API helper for services ────────────────────────────────────
+// (services import this instead of Firebase)
+export const mobileApi = {
+  request: apiRequest,
+  get:    (path)        => apiRequest(path),
+  post:   (path, body)  => apiRequest(path, { method:"POST",   body:JSON.stringify(body) }),
+  put:    (path, body)  => apiRequest(path, { method:"PUT",    body:JSON.stringify(body) }),
+  patch:  (path, body)  => apiRequest(path, { method:"PATCH",  body:JSON.stringify(body) }),
+  delete: (path)        => apiRequest(path, { method:"DELETE" }),
+};

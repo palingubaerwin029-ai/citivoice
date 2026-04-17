@@ -1,13 +1,28 @@
-// authService.js
-// All auth logic lives in AuthContext.js
-// This file is kept for backward compatibility with other screens that import it
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { doc, setDoc } from "firebase/firestore";
-import { db } from "./firebase";
+import { BASE_URL } from "../context/AuthContext";
 
+// ── Update FCM push token on the API ────────────────────────────────────────
 export const AuthService = {
-  // Save FCM push token to Firestore
-  async updateFCMToken(uid, token) {
-    await setDoc(doc(db, "users", uid), { fcmToken: token }, { merge: true });
+  async updateFcmToken(userId, fcmToken) {
+    try {
+      const token = await AsyncStorage.getItem("cv_token");
+      const res = await fetch(`${BASE_URL}/users/${userId}/fcm-token`, {
+        method:  "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ fcm_token: fcmToken }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update FCM token");
+      }
+      return true;
+    } catch (err) {
+      console.log("FCM token update error:", err.message);
+      return false;
+    }
   },
 };

@@ -9,8 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
-import { db } from "../../services/firebase";
+import { ConcernService } from "../../services/concernService";
 import { useAuth } from "../../context/AuthContext";
 import { COLORS, STATUS_CONFIG, CATEGORY_CONFIG } from "../../utils/theme";
 
@@ -20,13 +19,19 @@ export default function AdminDashboardScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const q = query(collection(db, "concerns"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      setConcerns(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  const loadData = async () => {
+    try {
+      const data = await ConcernService.getConcerns();
+      setConcerns(data);
+    } catch {
+    } finally {
       setLoading(false);
-    });
-    return unsub;
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const stats = {
@@ -55,7 +60,7 @@ export default function AdminDashboardScreen({ navigation }) {
 
   const onRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    loadData();
   };
 
   return (
@@ -197,7 +202,7 @@ export default function AdminDashboardScreen({ navigation }) {
                       {c.title}
                     </Text>
                     <Text style={styles.urgentMeta}>
-                      {c.userName} · {c.userBarangay}
+                      {c.user_name} · {c.user_barangay}
                     </Text>
                   </View>
                 </View>
@@ -250,7 +255,7 @@ export default function AdminDashboardScreen({ navigation }) {
                     {c.title}
                   </Text>
                   <Text style={styles.concernMeta}>
-                    {c.userName} · {c.userBarangay}
+                    {c.user_name} · {c.user_barangay}
                   </Text>
                 </View>
                 <View style={[styles.statusPill, { backgroundColor: cfg.bg }]}>

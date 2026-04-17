@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { collection, onSnapshot, query } from "firebase/firestore";
-import { db } from "../firebase";
+import { api } from "../api";
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -75,8 +74,8 @@ function Routing({ selected }) {
 
     const route = L.Routing.control({
       waypoints: [
-        L.latLng(9.9868, 122.8130), // default start (can be user later)
-        L.latLng(selected.location.latitude, selected.location.longitude),
+        L.latLng(9.9868, 122.8130),
+        L.latLng(parseFloat(selected.location_lat), parseFloat(selected.location_lng)),
       ],
       show: false,
     }).addTo(map);
@@ -92,10 +91,7 @@ function FlyToMarker({ selected }) {
 
   useEffect(() => {
     if (!selected) return;
-
-    map.flyTo([selected.location.latitude, selected.location.longitude], 16, {
-      duration: 1.5,
-    });
+    map.flyTo([parseFloat(selected.location_lat), parseFloat(selected.location_lng)], 16, { duration: 1.5 });
   }, [selected]);
 
   return null;
@@ -116,11 +112,9 @@ function FitBounds({ data, filter }) {
 
   useEffect(() => {
     if (!data.length) return;
-
-    // Only auto-fit on filter change OR initial load
     if (lastFilter.current !== filter || lastFilter.current === undefined) {
       const bounds = L.latLngBounds(
-        data.map((c) => [c.location.latitude, c.location.longitude]),
+        data.map((c) => [parseFloat(c.location_lat), parseFloat(c.location_lng)]),
       );
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
       lastFilter.current = filter;
@@ -140,25 +134,11 @@ export function MapView() {
   const provider = new OpenStreetMapProvider();
 
   useEffect(() => {
-    let firstLoad = true;
-    const unsub = onSnapshot(query(collection(db, "concerns")), (snap) => {
-      const newData = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-      setConcerns((prev) => {
-        // detect new entries after initial load
-        if (!firstLoad && newData.length > prev.length) {
-          console.log("🔥 New concern added!");
-        }
-        firstLoad = false;
-        return newData;
-      });
-    });
-
-    return unsub;
+    api.get("/concerns").then(setConcerns).catch(console.error);
   }, []);
 
   const filtered = concerns.filter(
-    (c) => c.location?.latitude && (filter === "All" || c.status === filter),
+    (c) => c.location_lat && (filter === "All" || c.status === filter),
   );
 
   const handleSearch = async (e) => {
@@ -219,22 +199,16 @@ export function MapView() {
         <MarkerClusterGroup chunkedLoading>
           {filtered.map((c) => {
             const color = STATUS_COLORS[c.status] || "#8899BB";
-
             return (
               <Marker
                 key={c.id}
-                position={[c.location.latitude, c.location.longitude]}
-                icon={
-                  c.status === "In Progress" ? pulseIcon : createIcon(color)
-                }
-                eventHandlers={{
-                  click: () => setSelected(c),
-                }}
+                position={[parseFloat(c.location_lat), parseFloat(c.location_lng)]}
+                icon={c.status === "In Progress" ? pulseIcon : createIcon(color)}
+                eventHandlers={{ click: () => setSelected(c) }}
               >
                 <Popup className="premium-popup">
                   <div style={{ color: "#000" }}>
-                    <strong>{c.title}</strong>
-                    <br />
+                    <strong>{c.title}</strong><br />
                     <span style={{ color: color }}>● {c.status}</span>
                   </div>
                 </Popup>
@@ -440,7 +414,7 @@ export function MapView() {
                 <span style={{ fontSize: 20 }}>📍</span>
                 <div>
                   <div style={{ fontWeight: 600 }}>Location</div>
-                  <div style={{ color: "#8899BB", fontSize: 14 }}>{selected.location?.address}</div>
+                  <div style={{ color: "#8899BB", fontSize: 14 }}>{selected.location_address}</div>
                 </div>
               </div>
             </div>

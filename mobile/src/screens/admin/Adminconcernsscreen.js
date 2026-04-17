@@ -10,8 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
-import { db } from "../../services/firebase";
+import { ConcernService } from "../../services/concernService";
 import { COLORS, STATUS_CONFIG, CATEGORY_CONFIG } from "../../utils/theme";
 
 const FILTERS = ["All", "Pending", "In Progress", "Resolved", "Rejected"];
@@ -26,13 +25,19 @@ export default function AdminConcernsScreen({ navigation }) {
   const [sortBy, setSortBy] = useState("Newest");
   const [showSort, setShowSort] = useState(false);
 
-  useEffect(() => {
-    const q = query(collection(db, "concerns"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      setConcerns(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  const loadData = async () => {
+    try {
+      const data = await ConcernService.getConcerns();
+      setConcerns(data);
+    } catch {
+    } finally {
       setLoading(false);
-    });
-    return unsub;
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const filtered = concerns
@@ -41,17 +46,17 @@ export default function AdminConcernsScreen({ navigation }) {
       const matchSearch =
         !s ||
         c.title?.toLowerCase().includes(s) ||
-        c.userName?.toLowerCase().includes(s) ||
-        c.userBarangay?.toLowerCase().includes(s);
+        c.user_name?.toLowerCase().includes(s) ||
+        c.user_barangay?.toLowerCase().includes(s);
       return (
         matchSearch && (statusFilter === "All" || c.status === statusFilter)
       );
     })
     .sort((a, b) => {
       if (sortBy === "Newest")
-        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
       if (sortBy === "Oldest")
-        return (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0);
+        return new Date(a.created_at || 0) - new Date(b.created_at || 0);
       if (sortBy === "Upvotes") return (b.upvotes || 0) - (a.upvotes || 0);
       if (sortBy === "Priority") {
         const p = { High: 3, Medium: 2, Low: 1 };
@@ -62,7 +67,7 @@ export default function AdminConcernsScreen({ navigation }) {
 
   const onRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    loadData();
   };
 
   const renderItem = ({ item: c }) => {
@@ -115,20 +120,20 @@ export default function AdminConcernsScreen({ navigation }) {
               {c.status}
             </Text>
           </View>
-          <Text style={styles.cardMeta}>{c.userName}</Text>
-          <Text style={styles.cardMeta}>📍 {c.userBarangay}</Text>
+          <Text style={styles.cardMeta}>{c.user_name}</Text>
+          <Text style={styles.cardMeta}>📍 {c.user_barangay}</Text>
           <Text style={styles.upvotes}>👍 {c.upvotes || 0}</Text>
         </View>
 
         {/* Date */}
         <Text style={styles.cardDate}>
-          {c.createdAt
-            ?.toDate?.()
-            ?.toLocaleDateString("en-PH", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            }) || "—"}
+          {c.created_at
+            ? new Date(c.created_at).toLocaleDateString("en-PH", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })
+            : "—"}
         </Text>
       </TouchableOpacity>
     );
