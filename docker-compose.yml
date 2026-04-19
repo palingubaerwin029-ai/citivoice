@@ -1,0 +1,16 @@
+services:
+  database:
+    image: mysql:8.0
+    container_name: citivoice-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: citivoice
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
+
+volumes:
+  mysql_data:

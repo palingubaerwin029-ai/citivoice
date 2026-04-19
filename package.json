@@ -1,0 +1,18 @@
+{
+  "name": "citivoice",
+  "version": "1.0.0",
+  "description": "CitiVoice Monorepo root",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm install --prefix backend && npm install --prefix mobile && npm install --prefix admin-web",
+    "backend": "npm run dev --prefix backend",
+    "mobile": "npm start --prefix mobile",
+    "web": "npm start --prefix admin-web",
+    "dev": "concurrently \"npm run backend\" \"npm run web\" \"npm run mobile\"",
+    "db:up": "docker-compose up -d",
+    "db:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

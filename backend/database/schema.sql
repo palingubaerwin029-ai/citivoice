@@ -104,3 +104,27 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- ─── Essential Bootstrap Data ───────────────────────────────────────────────
+
+-- Default admin account (Login: admin@citivoice.gov.ph / Pass: admin123)
+INSERT INTO users (name, email, password_hash, role, verification_status, is_verified)
+VALUES (
+  'Admin',
+  'admin@citivoice.gov.ph',
+  '$2a$10$N38TYy2iCILpTRuo5GmBqufH1KC3b88sBVc.fk.inV.ovZAnVCJU.',
+  'admin',
+  'verified',
+  1
+) ON DUPLICATE KEY UPDATE updated_at = NOW();
+
+-- Comprehensive Barangay list for Kabankalan City
+INSERT INTO barangays (name) VALUES
+  ('Barangay 1 (Poblacion)'), ('Barangay 2 (Poblacion)'), ('Barangay 3 (Poblacion)'),
+  ('Barangay 4 (Poblacion)'), ('Barangay 5 (Poblacion)'), ('Barangay 6 (Poblacion)'),
+  ('Barangay 7 (Poblacion)'), ('Barangay 8 (Poblacion)'), ('Barangay 9 (Poblacion)'),
+  ('Bantayan'), ('Binicuil'), ('Camansi'), ('Camingawan'), ('Camugao'), ('Carol-an'),
+  ('Daan Banua'), ('Hilamonan'), ('Inapoy'), ('Linao'), ('Locotan'), ('Magballo'),
+  ('Oringao'), ('Orong'), ('Pinaguinpinan'), ('Salong'), ('Tabugon'), ('Tagoc'),
+  ('Tagukon'), ('Talubangi'), ('Tampalon'), ('Tan-Awan'), ('Tapi')
+ON DUPLICATE KEY UPDATE updated_at = NOW();
