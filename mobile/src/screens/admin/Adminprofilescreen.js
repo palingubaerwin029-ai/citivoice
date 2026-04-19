@@ -73,7 +73,7 @@ export default function AdminProfileScreen() {
       value:
         user?.created_at
           ? new Date(user.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long" })
-          : "2024",
+          : "—",
     },
   ];
 

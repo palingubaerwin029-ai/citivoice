@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { mobileApi } from "../../context/AuthContext";
+import { useLanguage } from "../../context/LanguageContext";
 import { COLORS } from "../../utils/theme";
 import { scale, verticalScale, rf, moderateScale } from "../../utils/responsive";
 
@@ -56,6 +57,7 @@ export default function EventsScreen() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const { t } = useLanguage();
 
   const loadData = async () => {
     try {
@@ -131,7 +133,8 @@ export default function EventsScreen() {
   const upcomingEvents = events
     .filter((e) => {
       if (!e.date) return false;
-      const d = e.date.toDate ? e.date.toDate() : new Date(e.date);
+      const d = new Date(e.date);
+      if (isNaN(d)) return false;
       const now = new Date();
       const in30 = new Date(now.getTime() + 30 * 86400000);
       return d >= now && d <= in30;
@@ -142,13 +145,15 @@ export default function EventsScreen() {
 
   const formatEventDate = (date) => {
     if (!date) return "";
-    const d = date.toDate ? date.toDate() : new Date(date);
+    const d = new Date(date);
+    if (isNaN(d)) return "";
     return `${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
   };
 
   const formatEventTime = (date) => {
     if (!date) return "";
-    const d = date.toDate ? date.toDate() : new Date(date);
+    const d = new Date(date);
+    if (isNaN(d)) return "";
     return d.toLocaleTimeString("en-PH", {
       hour: "2-digit",
       minute: "2-digit",
@@ -157,7 +162,8 @@ export default function EventsScreen() {
 
   const timeAgo = (ts) => {
     if (!ts) return "";
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    const d = new Date(ts);
+    if (isNaN(d)) return "";
     const diff = Math.floor((Date.now() - d.getTime()) / 1000);
     if (diff < 60) return "just now";
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
@@ -170,13 +176,13 @@ export default function EventsScreen() {
       {/* ── Header ── */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Community Board</Text>
-          <Text style={styles.headerSub}>Events & Announcements</Text>
+          <Text style={styles.headerTitle}>{t('communityBoard')}</Text>
+          <Text style={styles.headerSub}>{t('eventsAndAnnouncements')}</Text>
         </View>
         <View style={styles.headerBadges}>
           {announcements.filter((a) => !a.read).length > 0 && (
             <View style={styles.unreadBadge}>
-              <Text style={styles.unreadText}>{announcements.length} new</Text>
+              <Text style={styles.unreadText}>{announcements.length} {t('newCount')}</Text>
             </View>
           )}
         </View>
@@ -185,8 +191,8 @@ export default function EventsScreen() {
       {/* ── Tabs ── */}
       <View style={styles.tabRow}>
         {[
-          { key: "announcements", label: "Announcements", icon: "megaphone" },
-          { key: "calendar", label: "Calendar", icon: "calendar" },
+          { key: "announcements", label: t('announcements'), icon: "megaphone" },
+          { key: "calendar", label: t('calendar'), icon: "calendar" },
         ].map((tab) => (
           <TouchableOpacity
             key={tab.key}
@@ -228,14 +234,14 @@ export default function EventsScreen() {
           <>
             {loading ? (
               <View style={styles.loadingBox}>
-                <Text style={styles.loadingText}>Loading announcements...</Text>
+                <Text style={styles.loadingText}>{t('loadingAnnouncements')}</Text>
               </View>
             ) : announcements.length === 0 ? (
               <View style={styles.emptyBox}>
                 <Text style={{ fontSize: 48 }}>📢</Text>
-                <Text style={styles.emptyTitle}>No announcements yet</Text>
+                <Text style={styles.emptyTitle}>{t('noAnnouncementsYet')}</Text>
                 <Text style={styles.emptySubtitle}>
-                  Check back later for updates from your local government.
+                  {t('checkBackAnnouncements')}
                 </Text>
               </View>
             ) : (
@@ -434,7 +440,7 @@ export default function EventsScreen() {
                 {selectedDayEvents.length === 0 ? (
                   <View style={styles.noDayEvents}>
                     <Text style={styles.noDayEventsText}>
-                      No events on this day
+                      {t('noEventsOnDay')}
                     </Text>
                   </View>
                 ) : (
@@ -452,13 +458,13 @@ export default function EventsScreen() {
 
             {/* Upcoming Events */}
             <View style={styles.upcomingSection}>
-              <Text style={styles.sectionTitle}>📆 Upcoming Events</Text>
+              <Text style={styles.sectionTitle}>📆 {t('upcomingEvents')}</Text>
               {upcomingEvents.length === 0 ? (
                 <View style={styles.emptyBox}>
                   <Text style={{ fontSize: 40 }}>🗓️</Text>
-                  <Text style={styles.emptyTitle}>No upcoming events</Text>
+                  <Text style={styles.emptyTitle}>{t('noUpcomingEvents')}</Text>
                   <Text style={styles.emptySubtitle}>
-                    Check back later for scheduled events.
+                    {t('checkBackEvents')}
                   </Text>
                 </View>
               ) : (
@@ -486,6 +492,7 @@ export default function EventsScreen() {
           formatEventDate={formatEventDate}
           formatEventTime={formatEventTime}
           timeAgo={timeAgo}
+          t={t}
         />
       )}
     </SafeAreaView>
@@ -534,6 +541,7 @@ function DetailModal({
   formatEventDate,
   formatEventTime,
   timeAgo,
+  t,
 }) {
   const isEvent = item._type === "event";
   const cfg = isEvent
@@ -580,7 +588,7 @@ function DetailModal({
                       color={COLORS.textMuted}
                     />
                     <View>
-                      <Text style={styles.modalInfoLabel}>Date</Text>
+                      <Text style={styles.modalInfoLabel}>{t('date')}</Text>
                       <Text style={styles.modalInfoValue}>
                         {formatEventDate(item.date)}
                       </Text>
@@ -595,7 +603,7 @@ function DetailModal({
                       color={COLORS.textMuted}
                     />
                     <View>
-                      <Text style={styles.modalInfoLabel}>Time</Text>
+                      <Text style={styles.modalInfoLabel}>{t('time')}</Text>
                       <Text style={styles.modalInfoValue}>
                         {formatEventTime(item.date)}
                       </Text>
@@ -610,7 +618,7 @@ function DetailModal({
                       color={COLORS.textMuted}
                     />
                     <View>
-                      <Text style={styles.modalInfoLabel}>Location</Text>
+                      <Text style={styles.modalInfoLabel}>{t('location')}</Text>
                       <Text style={styles.modalInfoValue}>{item.location}</Text>
                     </View>
                   </View>
@@ -623,7 +631,7 @@ function DetailModal({
                       color={COLORS.textMuted}
                     />
                     <View>
-                      <Text style={styles.modalInfoLabel}>Organizer</Text>
+                      <Text style={styles.modalInfoLabel}>{t('organizerLabel')}</Text>
                       <Text style={styles.modalInfoValue}>
                         {item.organizer}
                       </Text>
@@ -643,7 +651,7 @@ function DetailModal({
                     color={COLORS.textMuted}
                   />
                   <View>
-                    <Text style={styles.modalInfoLabel}>Posted by</Text>
+                    <Text style={styles.modalInfoLabel}>{t('postedBy')}</Text>
                     <Text style={styles.modalInfoValue}>
                       {item.author || "CitiVoice Admin"}
                     </Text>
@@ -656,7 +664,7 @@ function DetailModal({
                     color={COLORS.textMuted}
                   />
                   <View>
-                    <Text style={styles.modalInfoLabel}>Posted</Text>
+                    <Text style={styles.modalInfoLabel}>{t('posted')}</Text>
                     <Text style={styles.modalInfoValue}>
                       {timeAgo(item.created_at)}
                     </Text>
@@ -670,7 +678,7 @@ function DetailModal({
                       color={COLORS.textMuted}
                     />
                     <View>
-                      <Text style={styles.modalInfoLabel}>Barangay</Text>
+                      <Text style={styles.modalInfoLabel}>{t('barangay')}</Text>
                       <Text style={styles.modalInfoValue}>{item.barangay}</Text>
                     </View>
                   </View>
@@ -681,7 +689,7 @@ function DetailModal({
             {/* Body / Description */}
             <View style={styles.modalBody}>
               <Text style={styles.modalBodyLabel}>
-                {isEvent ? "About this Event" : "Announcement"}
+                {isEvent ? t('aboutThisEvent') : t('announcementLabel')}
               </Text>
               <Text style={styles.modalBodyText}>
                 {item.body || item.description || "No details provided."}
@@ -695,7 +703,7 @@ function DetailModal({
                 onPress={() => Linking.openURL(item.link)}
               >
                 <Ionicons name="open-outline" size={18} color="#fff" />
-                <Text style={styles.linkBtnText}>Learn More</Text>
+                <Text style={styles.linkBtnText}>{t('learnMore')}</Text>
               </TouchableOpacity>
             )}
           </ScrollView>

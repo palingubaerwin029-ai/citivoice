@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import { COLORS, RADIUS } from "../utils/theme";
 
 // ── Auth ───────────────────────────────────────────────────────────────────
@@ -104,6 +105,7 @@ function HomeStack() {
 
 // ── Citizen Tabs ───────────────────────────────────────────────────────────
 function CitizenTabs() {
+  const { t } = useLanguage();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -132,27 +134,27 @@ function CitizenTabs() {
       <Tab.Screen
         name="Home"
         component={HomeStack}
-        options={{ headerShown: false, tabBarLabel: "Feed" }}
+        options={{ headerShown: false, tabBarLabel: t('feed') }}
       />
       <Tab.Screen
         name="Events"
         component={EventsScreen}
-        options={{ headerShown: false, tabBarLabel: "Events" }}
+        options={{ headerShown: false, tabBarLabel: t('events') }}
       />
       <Tab.Screen
         name="MyConcerns"
         component={MyConcernsScreen}
-        options={{ title: "My Reports", tabBarLabel: "My Reports" }}
+        options={{ title: t('myReports'), tabBarLabel: t('myReports') }}
       />
       <Tab.Screen
         name="Map"
         component={MapScreen}
-        options={{ headerShown: false, tabBarLabel: "Map" }}
+        options={{ headerShown: false, tabBarLabel: t('map') }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ headerShown: false, tabBarLabel: "Profile" }}
+        options={{ headerShown: false, tabBarLabel: t('profile') }}
       />
     </Tab.Navigator>
   );
@@ -178,6 +180,7 @@ function AdminHomeStack() {
 
 // ── Admin Tabs ─────────────────────────────────────────────────────────────
 function AdminTabs() {
+  const { t } = useLanguage();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -205,17 +208,17 @@ function AdminTabs() {
       <Tab.Screen
         name="AdminHome"
         component={AdminHomeStack}
-        options={{ headerShown: false, tabBarLabel: "Dashboard" }}
+        options={{ headerShown: false, tabBarLabel: t('dashboard') }}
       />
       <Tab.Screen
         name="AdminConcerns"
         component={AdminConcernsScreen}
-        options={{ title: "Concerns", tabBarLabel: "Concerns" }}
+        options={{ title: t('concernsNav'), tabBarLabel: t('concernsNav') }}
       />
       <Tab.Screen
         name="AdminProfile"
         component={AdminProfileScreen}
-        options={{ title: "Profile", tabBarLabel: "Profile" }}
+        options={{ title: t('profile'), tabBarLabel: t('profile') }}
       />
     </Tab.Navigator>
   );

@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const pool   = require('../db');
 const auth   = require('../middleware/auth');
+const { notifyUser } = require('../services/notificationService');
 
 const safe = (user) => {
   const { password_hash, ...rest } = user;
@@ -34,6 +35,11 @@ router.get('/:id', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   const { name, phone, barangay, id_type, id_number, id_image_url, verification_status, submitted_at } = req.body;
   try {
+    if (id_number) {
+      const [existingID] = await pool.query('SELECT id FROM users WHERE id_number = ? AND id != ?', [id_number, req.params.id]);
+      if (existingID.length) return res.status(400).json({ error: 'This ID number is already linked to another account.' });
+    }
+
     await pool.query(
       `UPDATE users SET
         name                = COALESCE(?, name),
@@ -63,6 +69,12 @@ router.patch('/:id/verify', auth, async (req, res) => {
        verified_at=NOW(), rejection_reason=NULL, updated_at=NOW() WHERE id=?`,
       [req.params.id]
     );
+
+    const [rows] = await pool.query('SELECT name, email, phone FROM users WHERE id = ?', [req.params.id]);
+    if (rows.length) {
+      notifyUser(rows[0], "Account Verified!", "Great news! Your CitiVoice account has been successfully verified. You can now log into the app.");
+    }
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -79,6 +91,12 @@ router.patch('/:id/reject', auth, async (req, res) => {
        rejection_reason=?, verified_at=NULL, updated_at=NOW() WHERE id=?`,
       [reason, req.params.id]
     );
+
+    const [rows] = await pool.query('SELECT name, email, phone FROM users WHERE id = ?', [req.params.id]);
+    if (rows.length) {
+      notifyUser(rows[0], "Account Verification Failed", `Unfortunately, your identity verification was rejected for the following reason:\n"${reason}"\nPlease log into the app to resubmit another ID.`);
+    }
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

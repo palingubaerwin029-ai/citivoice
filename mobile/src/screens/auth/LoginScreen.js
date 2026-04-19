@@ -26,7 +26,7 @@ const LANGS = [
 
 // ── Blocked status screen ─────────────────────────────────────────────────
 function VerificationGate({ user, onLogout, onGoVerify }) {
-  const status = user?.verificationStatus;
+  const status = user?.verification_status;
 
   const CONFIG = {
     [VERIFICATION_STATUS.UNVERIFIED]: {
@@ -175,7 +175,7 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
 // ── Main Login Screen ──────────────────────────────────────────────────────
 export default function LoginScreen({ navigation }) {
   const { login, logout, user } = useAuth();
-  const { language, changeLanguage } = useLanguage();
+  const { t, language, changeLanguage } = useLanguage();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -196,9 +196,9 @@ export default function LoginScreen({ navigation }) {
 
   const validate = () => {
     const e = {};
-    if (!email.trim()) e.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = "Enter a valid email";
-    if (!password) e.password = "Password is required";
+    if (!email.trim()) e.email = t('required');
+    else if (!/\S+@\S+\.\S+/.test(email)) e.email = t('invalidEmail');
+    if (!password) e.password = t('required');
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -215,7 +215,7 @@ export default function LoginScreen({ navigation }) {
       // But we also handle it here for immediate feedback.
 
       if (userData.role !== "admin") {
-        const st = userData.verificationStatus;
+        const st = userData.verification_status;
 
         if (st === VERIFICATION_STATUS.UNVERIFIED) {
           // Let onAuthStateChanged handle the redirect to gate
@@ -241,8 +241,8 @@ export default function LoginScreen({ navigation }) {
         NO_PROFILE: "Account not set up. Please register.",
       };
       Alert.alert(
-        "Login Failed",
-        map[err.code] || map[err.message] || "Please try again.",
+        t('loginFailed'),
+        map[err.code] || map[err.message] || t('error'),
       );
     } finally {
       setLoading(false);
@@ -257,7 +257,8 @@ export default function LoginScreen({ navigation }) {
       <View style={S.glowBlob} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -293,12 +294,12 @@ export default function LoginScreen({ navigation }) {
 
           {/* Form card */}
           <View style={S.card}>
-            <Text style={S.cardTitle}>Welcome back</Text>
-            <Text style={S.cardSubtitle}>Sign in to your account</Text>
+            <Text style={S.cardTitle}>{t('welcomeBack')}</Text>
+            <Text style={S.cardSubtitle}>{t('signInSubtitle')}</Text>
 
             {/* Email */}
             <View style={S.field}>
-              <Text style={S.label}>EMAIL ADDRESS</Text>
+              <Text style={S.label}>{t('email').toUpperCase()}</Text>
               <View style={[S.inputWrap, errors.email && S.inputError]}>
                 <Ionicons
                   name="mail-outline"
@@ -324,7 +325,7 @@ export default function LoginScreen({ navigation }) {
 
             {/* Password */}
             <View style={S.field}>
-              <Text style={S.label}>PASSWORD</Text>
+              <Text style={S.label}>{t('password').toUpperCase()}</Text>
               <View style={[S.inputWrap, errors.password && S.inputError]}>
                 <Ionicons
                   name="lock-closed-outline"
@@ -369,7 +370,7 @@ export default function LoginScreen({ navigation }) {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <>
-                  <Text style={S.submitText}>Sign In</Text>
+                  <Text style={S.submitText}>{t('login')}</Text>
                   <Ionicons name="arrow-forward" size={18} color="#fff" />
                 </>
               )}
@@ -377,9 +378,9 @@ export default function LoginScreen({ navigation }) {
 
             {/* Register link */}
             <View style={S.registerRow}>
-              <Text style={S.registerText}>Don't have an account? </Text>
+              <Text style={S.registerText}>{t('noAccount')} </Text>
               <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-                <Text style={S.registerLink}>Register</Text>
+                <Text style={S.registerLink}>{t('register')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -392,7 +393,7 @@ export default function LoginScreen({ navigation }) {
               color={COLORS.textMuted}
             />
             <Text style={S.noteText}>
-              New accounts require admin verification before access
+              {t('adminVerificationNote')}
             </Text>
           </View>
         </ScrollView>

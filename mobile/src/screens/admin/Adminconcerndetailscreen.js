@@ -10,7 +10,7 @@ import {
   TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { mobileApi } from "../../context/AuthContext";
+import { mobileApi, resolveImageUrl } from "../../context/AuthContext";
 import { StatusBadge, CategoryBadge } from "../../components/UI";
 import { COLORS, STATUS_CONFIG } from "../../utils/theme";
 import { scale, verticalScale, rf, moderateScale } from "../../utils/responsive";
@@ -94,7 +94,7 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
     >
       {/* Photo */}
       {concern.image_url ? (
-        <Image source={{ uri: concern.image_url }} style={styles.heroImage} />
+        <Image source={{ uri: resolveImageUrl(concern.image_url) }} style={styles.heroImage} />
       ) : (
         <View style={styles.heroPlaceholder}>
           <Ionicons name="image-outline" size={36} color={COLORS.textMuted} />

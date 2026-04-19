@@ -12,7 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { ConcernService } from "../../services/concernService";
-import { useAuth, VERIFICATION_STATUS } from "../../context/AuthContext";
+import { useAuth, VERIFICATION_STATUS, resolveImageUrl } from "../../context/AuthContext";
 import { InputField, PrimaryButton } from "../../components/UI";
 import { COLORS, RADIUS, SHADOWS } from "../../utils/theme";
 import { scale, verticalScale, rf } from "../../utils/responsive";
@@ -53,7 +53,7 @@ export default function VerifyIdentityScreen({ navigation }) {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.85,
     });
@@ -101,7 +101,7 @@ export default function VerifyIdentityScreen({ navigation }) {
       Alert.alert(
         "✅ Submitted Successfully",
         "Your ID has been submitted for verification. The admin will review it within 1–2 business days.",
-        [{ text: "OK" }],
+        [{ text: "OK", onPress: () => navigation.navigate("Login") }],
       );
     } catch (err) {
       Alert.alert("Submission Failed", err.message || "Please try again.");
@@ -146,6 +146,17 @@ export default function VerifyIdentityScreen({ navigation }) {
               valueColor="#F59E0B"
             />
           </View>
+          
+          {user?.id_image_url && (
+            <View style={{ width: "100%", marginBottom: 20 }}>
+              <Text style={{ color: COLORS.textMuted, fontSize: rf(11), fontWeight: "700", marginBottom: 8, letterSpacing: 0.5 }}>SUBMITTED ID</Text>
+              <Image 
+                source={{ uri: resolveImageUrl(user.id_image_url) }} 
+                style={{ width: "100%", height: verticalScale(160), borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border }}
+                resizeMode="cover"
+              />
+            </View>
+          )}
           <TouchableOpacity
             style={S.logoutBtn}
             onPress={() => navigation.goBack()}
@@ -260,10 +271,17 @@ export default function VerifyIdentityScreen({ navigation }) {
           label="ID NUMBER *"
           value={idNumber}
           onChangeText={(v) => {
-            setIdNumber(v);
+            const cleaned = v.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+            let formatted = "";
+            for (let i = 0; i < cleaned.length; i++) {
+              if (i > 0 && i % 4 === 0) formatted += "-";
+              formatted += cleaned[i];
+            }
+            setIdNumber(formatted);
             setErrors((e) => ({ ...e, idNumber: null }));
           }}
-          placeholder="Enter the ID number exactly as shown"
+          placeholder="XXXX-XXXX-XXXX"
+          maxLength={25}
           leftIcon="key-outline"
           error={errors.idNumber}
         />
@@ -290,7 +308,7 @@ export default function VerifyIdentityScreen({ navigation }) {
                 >
                   <Ionicons name="refresh-outline" size={16} color="#fff" />
                   <Text
-                    style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}
+                    style={{ color: "#fff", fontSize: rf(12), fontWeight: "600" }}
                   >
                     Retake
                   </Text>
@@ -396,7 +414,7 @@ function InfoRow({ icon, label, value, valueColor }) {
       <Text
         style={{
           color: valueColor || COLORS.textPrimary,
-          fontSize: 13,
+          fontSize: rf(13),
           fontWeight: "600",
         }}
       >
@@ -641,14 +659,14 @@ const S = StyleSheet.create({
   },
   statusTitle: {
     color: COLORS.textPrimary,
-    fontSize: 20,
+    fontSize: rf(20),
     fontWeight: "800",
     marginBottom: 10,
     textAlign: "center",
   },
   statusMessage: {
     color: COLORS.textSecondary,
-    fontSize: 14,
+    fontSize: rf(14),
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 20,
@@ -668,5 +686,5 @@ const S = StyleSheet.create({
     gap: 7,
     paddingVertical: 10,
   },
-  logoutText: { color: COLORS.textMuted, fontSize: 14 },
+  logoutText: { color: COLORS.textMuted, fontSize: rf(14) },
 });

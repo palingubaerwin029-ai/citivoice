@@ -392,9 +392,17 @@ export function MapView() {
 
         {selected && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ width: "100%", height: 180, backgroundColor: "#162B4D", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>
-              🖼️
-            </div>
+            {selected.image_url ? (
+              <img 
+                src={selected.image_url} 
+                alt="Problem" 
+                style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 16 }} 
+              />
+            ) : (
+              <div style={{ width: "100%", height: 180, backgroundColor: "#162B4D", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>
+                🖼️
+              </div>
+            )}
 
             <div>
               <span style={{ backgroundColor: STATUS_COLORS[selected.status] + "20", color: STATUS_COLORS[selected.status], padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>

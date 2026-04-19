@@ -173,62 +173,62 @@ export default function EventsAnnouncements() {
             <div style={{ padding:16, display:"flex", flexDirection:"column", gap:14 }}>
               {/* Shared: title */}
               <div>
-                <label className={s.label}>Title *</label>
+                <label className={s.formLabel}>Title *</label>
                 <input className={s.input} value={form.title} onChange={(e)=>setForm(f=>({...f,title:e.target.value}))} placeholder={isAnn?"Announcement title…":"Event title…"} />
               </div>
 
               {isAnn ? <>
                 <div>
-                  <label className={s.label}>Body *</label>
+                  <label className={s.formLabel}>Body *</label>
                   <textarea className={s.textarea} rows={4} value={form.body} onChange={(e)=>setForm(f=>({...f,body:e.target.value}))} placeholder="Announcement details…" />
                 </div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
                   <div>
-                    <label className={s.label}>Type</label>
-                    <select className={s.select} value={form.type} onChange={(e)=>setForm(f=>({...f,type:e.target.value}))}>
+                    <label className={s.formLabel}>Type</label>
+                    <select className={s.formSelect} value={form.type} onChange={(e)=>setForm(f=>({...f,type:e.target.value}))}>
                       {["info","warning","urgent","success"].map((t)=><option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className={s.label}>Author</label>
+                    <label className={s.formLabel}>Author</label>
                     <input className={s.input} value={form.author} onChange={(e)=>setForm(f=>({...f,author:e.target.value}))} placeholder="Admin" />
                   </div>
                 </div>
                 <div>
-                  <label className={s.label}>Barangay</label>
+                  <label className={s.formLabel}>Barangay</label>
                   <input className={s.input} value={form.barangay} onChange={(e)=>setForm(f=>({...f,barangay:e.target.value}))} placeholder="All Barangays" />
                 </div>
               </> : <>
                 <div>
-                  <label className={s.label}>Description</label>
+                  <label className={s.formLabel}>Description</label>
                   <textarea className={s.textarea} rows={3} value={form.description} onChange={(e)=>setForm(f=>({...f,description:e.target.value}))} placeholder="Event details…" />
                 </div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
                   <div>
-                    <label className={s.label}>Category</label>
-                    <select className={s.select} value={form.category} onChange={(e)=>setForm(f=>({...f,category:e.target.value}))}>
+                    <label className={s.formLabel}>Category</label>
+                    <select className={s.formSelect} value={form.category} onChange={(e)=>setForm(f=>({...f,category:e.target.value}))}>
                       {["meeting","maintenance","health","emergency","celebration","other"].map((c)=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className={s.label}>Date & Time *</label>
+                    <label className={s.formLabel}>Date & Time *</label>
                     <input type="datetime-local" className={s.input} value={form.date} onChange={(e)=>setForm(f=>({...f,date:e.target.value}))} />
                   </div>
                 </div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
                   <div>
-                    <label className={s.label}>Location</label>
+                    <label className={s.formLabel}>Location</label>
                     <input className={s.input} value={form.location} onChange={(e)=>setForm(f=>({...f,location:e.target.value}))} placeholder="Venue or address" />
                   </div>
                   <div>
-                    <label className={s.label}>Organizer</label>
+                    <label className={s.formLabel}>Organizer</label>
                     <input className={s.input} value={form.organizer} onChange={(e)=>setForm(f=>({...f,organizer:e.target.value}))} placeholder="Department or office" />
                   </div>
                 </div>
               </>}
 
               <div>
-                <label className={s.label}>Link (optional)</label>
+                <label className={s.formLabel}>Link (optional)</label>
                 <input className={s.input} value={form.link} onChange={(e)=>setForm(f=>({...f,link:e.target.value}))} placeholder="https://…" />
               </div>
 

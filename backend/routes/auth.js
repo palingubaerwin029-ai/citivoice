@@ -34,8 +34,20 @@ router.post('/register', async (req, res) => {
   const { name, email, password, phone, barangay } = req.body;
   if (!name || !email || !password) return res.status(400).json({ error: 'Name, email and password required' });
   try {
-    const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
-    if (existing.length) return res.status(400).json({ error: 'Email already registered' });
+    const [existingEmail] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existingEmail.length) return res.status(400).json({ error: 'Email already registered' });
+
+    if (phone) {
+      const [existingPhone] = await pool.query('SELECT id FROM users WHERE phone = ?', [phone]);
+      if (existingPhone.length) return res.status(400).json({ error: 'Phone number already registered' });
+    }
+
+    // Password complexity check
+    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!complexityRegex.test(password)) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters and include uppercase, lowercase, numbers, and symbols.' });
+    }
+
     const hash = await bcrypt.hash(password, 10);
     const [result] = await pool.query(
       `INSERT INTO users (name, email, password_hash, phone, barangay, role, verification_status, is_verified, created_at, updated_at)

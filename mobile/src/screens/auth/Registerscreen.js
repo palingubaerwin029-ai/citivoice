@@ -57,7 +57,10 @@ export default function RegisterScreen({ navigation }) {
     if (!form.email.trim()) e.email = t('required');
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = t('invalidEmail');
     if (!form.password) e.password = t('required');
-    else if (form.password.length < 6) e.password = t('passwordMin');
+    else if (form.password.length < 8) e.password = "Password must be at least 8 characters.";
+    else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(form.password)) {
+      e.password = "Must include uppercase, lowercase, numbers, and symbols.";
+    }
     if (!form.barangay) e.barangay = t('selectBarangay');
     setErrors(e);
     return !Object.keys(e).length;
@@ -68,10 +71,7 @@ export default function RegisterScreen({ navigation }) {
     setLoading(true);
     try {
       await register(form);
-      // After register, onAuthStateChanged fires and sets user._blocked = true
-      // LoginScreen will show the VerificationGate with "submit ID" prompt.
-      // But we can also navigate directly to the VerifyIdentity screen.
-      // Navigation happens automatically via AppNavigator + LoginScreen gate.
+      navigation.navigate("VerifyIdentity");
     } catch (err) {
       const map = {
         "auth/email-already-in-use": "This email is already registered.",
@@ -95,7 +95,8 @@ export default function RegisterScreen({ navigation }) {
       <View style={S.glowBlob} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -210,6 +211,7 @@ export default function RegisterScreen({ navigation }) {
               onChangeText={(v) => set("phone", v)}
               placeholder="09XXXXXXXXX"
               keyboardType="phone-pad"
+              maxLength={11}
               leftIcon="call-outline"
             />
 
@@ -253,7 +255,7 @@ export default function RegisterScreen({ navigation }) {
                     size={12}
                     color={COLORS.danger}
                   />
-                  <Text style={{ color: COLORS.danger, fontSize: 11 }}>
+                  <Text style={{ color: COLORS.danger, fontSize: rf(11) }}>
                     {errors.barangay}
                   </Text>
                 </View>
@@ -306,14 +308,14 @@ export default function RegisterScreen({ navigation }) {
             />
 
             <View style={S.loginRow}>
-              <Text style={{ color: COLORS.textSecondary, fontSize: 14 }}>
+              <Text style={{ color: COLORS.textSecondary, fontSize: rf(14) }}>
                 {t('hasAccount')}{" "}
               </Text>
               <TouchableOpacity onPress={() => navigation.navigate("Login")}>
                 <Text
                   style={{
                     color: COLORS.primaryLight,
-                    fontSize: 14,
+                    fontSize: rf(14),
                     fontWeight: "700",
                   }}
                 >

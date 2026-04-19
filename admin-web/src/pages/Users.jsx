@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api, fmtDateShort } from "../api";
+import { api, fmtDateShort, maskEmail } from "../api";
 import s from "../styles/Admin.module.css";
 
 const AVATARS = ["#3B82F6","#10B981","#F97316","#F59E0B","#EF4444","#8B5CF6"];
@@ -82,7 +82,7 @@ export default function Users() {
                           <div style={{ width: 34, height: 34, borderRadius: "var(--r-md)", background: AC(u.id), display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>{initials(u.name)}</div>
                           <div>
                             <div style={{ fontWeight: 600, color: "var(--text-1)", fontSize: 13 }}>{u.name}</div>
-                            <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{u.email}</div>
+                            <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{maskEmail(u.email)}</div>
                           </div>
                         </div>
                       </td>
@@ -127,7 +127,7 @@ export default function Users() {
                 { l: "Barangay", v: selected.barangay || "—" },
                 { l: "Joined",   v: fmtDateShort(selected.created_at) },
               ].map((x, i) => (
-                <div key={i} className={s.infoRow}><span className={s.infoLabel}>{x.l}</span><span className={s.infoValue}>{x.v}</span></div>
+                <div key={i} className={s.infoRow}><span className={s.infoLabel}>{x.l}</span><span className={s.infoValue}>{x.l === "Email" ? maskEmail(x.v) : x.v}</span></div>
               ))}
             </div>
             <div style={{ padding: "0 16px 16px" }}>

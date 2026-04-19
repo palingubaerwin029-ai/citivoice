@@ -21,11 +21,11 @@ import { EmptyState, StatCard } from "../../components/UI";
 import { COLORS, RADIUS, SHADOWS, STATUS_CONFIG } from "../../utils/theme";
 import { scale, verticalScale, rf, moderateScale } from "../../utils/responsive";
 
-const FILTERS = [
-  { key: "all", label: "All", icon: "apps-outline" },
-  { key: "Pending", label: "Pending", icon: "time-outline" },
-  { key: "In Progress", label: "Active", icon: "refresh-outline" },
-  { key: "Resolved", label: "Resolved", icon: "checkmark-circle-outline" },
+const FILTER_KEYS = [
+  { key: "all", tKey: "all", icon: "apps-outline" },
+  { key: "Pending", tKey: "pending", icon: "time-outline" },
+  { key: "In Progress", tKey: "active", icon: "refresh-outline" },
+  { key: "Resolved", tKey: "resolved", icon: "checkmark-circle-outline" },
 ];
 
 const FILTER_COLOR = {
@@ -36,7 +36,7 @@ const FILTER_COLOR = {
 };
 
 export default function HomeScreen({ navigation }) {
-  const { concerns, loading, toggleUpvote } = useConcerns();
+  const { concerns, loading, toggleUpvote, refreshConcerns } = useConcerns();
   const { user } = useAuth();
   const { t } = useLanguage();
   const { unreadCount } = useNotifications();
@@ -49,9 +49,9 @@ export default function HomeScreen({ navigation }) {
 
   const greeting = () => {
     const h = new Date().getHours();
-    if (h < 12) return `Good morning`;
-    if (h < 18) return `Good afternoon`;
-    return `Good evening`;
+    if (h < 12) return t('goodMorning');
+    if (h < 18) return t('goodAfternoon');
+    return t('goodEvening');
   };
 
   const stats = useMemo(
@@ -79,16 +79,20 @@ export default function HomeScreen({ navigation }) {
     [concerns, activeFilter, search],
   );
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 700);
+    try {
+      await refreshConcerns();
+    } catch {} finally {
+      setRefreshing(false);
+    }
   };
 
   return (
     <SafeAreaView style={S.container} edges={["top"]}>
       <FlatList
         data={filtered}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         contentContainerStyle={S.list}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -98,7 +102,7 @@ export default function HomeScreen({ navigation }) {
             tintColor={COLORS.primary}
           />
         }
-        ListHeaderComponent={() => (
+        ListHeaderComponent={
           <>
             {/* ── Top bar ── */}
             <View style={S.topBar}>
@@ -106,7 +110,7 @@ export default function HomeScreen({ navigation }) {
                 <Text style={S.greeting}>
                   {greeting()}, {firstName} 👋
                 </Text>
-                <Text style={S.subGreeting}>CitiVoice Community Feed</Text>
+                <Text style={S.subGreeting}>{t('communityFeed')}</Text>
               </View>
               <View style={S.headerActions}>
                 <TouchableOpacity
@@ -126,17 +130,17 @@ export default function HomeScreen({ navigation }) {
                   onPress={() => navigation.navigate("SubmitConcern")}
                 >
                   <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={S.reportBtnText}>Report</Text>
+                  <Text style={S.reportBtnText}>{t('report')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* ── Stats strip ── */}
             <View style={S.statsRow}>
-              <StatCard icon="📋" value={stats.total} label="Total" color={COLORS.primary} />
-              <StatCard icon="⏳" value={stats.pending} label="Pending" color={COLORS.statusPending} />
-              <StatCard icon="🔄" value={stats.inProgress} label="Active" color={COLORS.primaryLight} />
-              <StatCard icon="✅" value={stats.resolved} label="Resolved" color={COLORS.accent} />
+              <StatCard icon="📋" value={stats.total} label={t('total')} color={COLORS.primary} />
+              <StatCard icon="⏳" value={stats.pending} label={t('pending')} color={COLORS.statusPending} />
+              <StatCard icon="🔄" value={stats.inProgress} label={t('active')} color={COLORS.primaryLight} />
+              <StatCard icon="✅" value={stats.resolved} label={t('resolved')} color={COLORS.accent} />
             </View>
 
             {/* ── Search ── */}
@@ -150,7 +154,7 @@ export default function HomeScreen({ navigation }) {
                 style={S.searchInput}
                 value={search}
                 onChangeText={setSearch}
-                placeholder="Search concerns, categories, barangays…"
+                placeholder={t('searchPlaceholder')}
                 placeholderTextColor={COLORS.textMuted}
               />
               {search ? (
@@ -171,7 +175,7 @@ export default function HomeScreen({ navigation }) {
               style={S.filterScroll}
               contentContainerStyle={S.filterContent}
             >
-              {FILTERS.map((f) => {
+              {FILTER_KEYS.map((f) => {
                 const active = activeFilter === f.key;
                 const color = FILTER_COLOR[f.key] || COLORS.primary;
                 const count = f.key === 'all' ? concerns.length : concerns.filter(c => c.status === f.key).length;
@@ -198,7 +202,7 @@ export default function HomeScreen({ navigation }) {
                         active && { color, fontWeight: "700" },
                       ]}
                     >
-                      {f.label}
+                      {t(f.tKey)}
                     </Text>
                     <View style={[S.filterBadge, active && { backgroundColor: color }]}>
                       <Text style={[S.filterBadgeText, active && { color: '#fff' }]}>{count}</Text>
@@ -209,18 +213,18 @@ export default function HomeScreen({ navigation }) {
             </ScrollView>
 
             <Text style={S.resultCount}>
-              {filtered.length} concern{filtered.length !== 1 ? "s" : ""}
+              {filtered.length} {filtered.length !== 1 ? t('concerns') : t('concern')}
             </Text>
           </>
-        )}
+        }
         ListEmptyComponent={
           !loading && (
             <EmptyState
               icon="📭"
-              title="No concerns found"
-              subtitle="Be the first to report an issue in your community."
+              title={t('noConcernsFound')}
+              subtitle={t('beFirstToReport')}
               action={() => navigation.navigate("SubmitConcern")}
-              actionLabel="Report a Concern"
+              actionLabel={t('reportConcern')}
             />
           )
         }

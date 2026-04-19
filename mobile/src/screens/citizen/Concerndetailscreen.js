@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  Image, Alert, StyleSheet, Linking,
+  Image, Alert, StyleSheet, Linking, Platform,
 } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useConcerns } from '../../context/ConcernContext';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, resolveImageUrl } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { StatusBadge, CategoryBadge } from '../../components/UI';
 import { COLORS, STATUS_CONFIG } from '../../utils/theme';
@@ -55,21 +56,25 @@ export default function ConcernDetailScreen({ route, navigation }) {
     return (
       <View style={styles.notFound}>
         <Text style={{ fontSize: 40 }}>🔍</Text>
-        <Text style={styles.notFoundText}>Concern not found</Text>
+        <Text style={styles.notFoundText}>{t('concernNotFound')}</Text>
       </View>
     );
   }
 
   const statusCfg = STATUS_CONFIG[concern.status] || STATUS_CONFIG['Pending'];
   const timelineSteps = buildTimeline(concern, t);
-  const fmt = (ts) => ts?.toDate?.()?.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) || '—';
+  const fmt = (ts) => {
+    if (!ts) return '—';
+    const d = new Date(ts);
+    return isNaN(d) ? '—' : d.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
 
       {/* Image */}
       {concern.image_url ? (
-        <Image source={{ uri: concern.image_url }} style={styles.heroImage} />
+        <Image source={{ uri: resolveImageUrl(concern.image_url) }} style={styles.heroImage} />
       ) : (
         <View style={styles.heroPlaceholder}>
           <Ionicons name="image-outline" size={40} color={COLORS.textMuted} />
@@ -93,29 +98,62 @@ export default function ConcernDetailScreen({ route, navigation }) {
         {/* Meta */}
         <View style={styles.metaGrid}>
           <MetaItem icon="person-outline" label={t('submittedBy')} value={concern.user_name} />
-          <MetaItem icon="location-outline" label="Barangay" value={concern.user_barangay} />
+          <MetaItem icon="location-outline" label={t('barangay')} value={concern.user_barangay} />
           <MetaItem icon="calendar-outline" label={t('dateFiled')} value={fmt(concern.created_at)} />
           <MetaItem icon="thumbs-up-outline" label={t('communityUpvotes')} value={`${concern.upvotes || 0} votes`} />
         </View>
 
         {/* Description */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📝 Description</Text>
+          <Text style={styles.sectionTitle}>📝 {t('description')}</Text>
           <Text style={styles.description}>{concern.description}</Text>
         </View>
 
         {/* Location */}
-        {concern.location && (
+        {concern.location_lat && concern.location_lng && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📍 Location</Text>
+            <Text style={styles.sectionTitle}>📍 {t('location')}</Text>
+
+            {/* Mini Map */}
+            <View style={styles.miniMapContainer}>
+              <MapView
+                style={styles.miniMap}
+                initialRegion={{
+                  latitude: Number(concern.location_lat),
+                  longitude: Number(concern.location_lng),
+                  latitudeDelta: 0.006,
+                  longitudeDelta: 0.006,
+                }}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                rotateEnabled={false}
+                pitchEnabled={false}
+              >
+                <Marker
+                  coordinate={{
+                    latitude: Number(concern.location_lat),
+                    longitude: Number(concern.location_lng),
+                  }}
+                  tracksViewChanges={false}
+                >
+                  <View style={styles.miniMapPin}>
+                    <Ionicons name="location" size={24} color={COLORS.primary} />
+                  </View>
+                </Marker>
+              </MapView>
+            </View>
+
+            {/* Address + Open in Maps */}
             <TouchableOpacity
               style={styles.locationCard}
-              onPress={() => Linking.openURL(`https://maps.google.com/?q=${concern.location.latitude},${concern.location.longitude}`)}
+              onPress={() => Linking.openURL(`https://maps.google.com/?q=${concern.location_lat},${concern.location_lng}`)}
             >
               <Ionicons name="location" size={20} color={COLORS.accent} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.locationAddr}>{concern.location.address}</Text>
-                <Text style={styles.locationCoords}>Tap to open in Maps</Text>
+                <Text style={styles.locationAddr}>
+                  {concern.location_address || `${Number(concern.location_lat).toFixed(5)}, ${Number(concern.location_lng).toFixed(5)}`}
+                </Text>
+                <Text style={styles.locationCoords}>{t('tapToOpenMaps')}</Text>
               </View>
               <Ionicons name="open-outline" size={16} color={COLORS.textMuted} />
             </TouchableOpacity>
@@ -223,6 +261,13 @@ const styles = StyleSheet.create({
   locationCard: { flexDirection: 'row', alignItems: 'center', gap: scale(10), backgroundColor: COLORS.bgCard, borderRadius: moderateScale(12), padding: scale(14), borderWidth: 1, borderColor: COLORS.border },
   locationAddr: { color: COLORS.textPrimary, fontSize: rf(14), fontWeight: '600' },
   locationCoords: { color: COLORS.textMuted, fontSize: rf(11), marginTop: verticalScale(2) },
+
+  miniMapContainer: {
+    height: verticalScale(160), borderRadius: moderateScale(12), overflow: 'hidden',
+    borderWidth: 1, borderColor: COLORS.border, marginBottom: verticalScale(10),
+  },
+  miniMap: { flex: 1 },
+  miniMapPin: { alignItems: 'center', justifyContent: 'center' },
 
   adminNoteCard: { backgroundColor: COLORS.accent + '11', borderRadius: moderateScale(14), padding: scale(14), borderWidth: 1, borderColor: COLORS.accent + '44' },
   adminNoteHeader: { flexDirection: 'row', alignItems: 'center', gap: scale(6), marginBottom: verticalScale(8) },

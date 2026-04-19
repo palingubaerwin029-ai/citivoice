@@ -36,3 +36,11 @@ export const fmtDate = (dateStr, opts = { year: 'numeric', month: 'long', day: '
 
 export const fmtDateShort = (dateStr) =>
   fmtDate(dateStr, { year: 'numeric', month: 'short', day: 'numeric' });
+
+// Utility: mask an email for privacy (e.g. johndoe@gmail.com -> joh***@gmail.com)
+export const maskEmail = (email) => {
+  if (!email || !email.includes('@')) return email;
+  const [user, domain] = email.split('@');
+  if (user.length <= 3) return `${user.charAt(0)}***@${domain}`;
+  return `${user.substring(0, 3)}***@${domain}`;
+};

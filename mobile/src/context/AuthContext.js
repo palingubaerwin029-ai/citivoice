@@ -22,6 +22,21 @@ const getBaseUrl = () => {
 
 export const BASE_URL = getBaseUrl();
 
+// Map localhost backend URLs to the dynamically resolved IP for mobile
+export const resolveImageUrl = (url) => {
+  if (!url) return null;
+  // If the backend saved a localhost URL, swap it for the mobile's resolved BASE_URL IP
+  if (url.startsWith("http://localhost:5000") || url.startsWith("http://127.0.0.1:5000")) {
+    const backendBase = BASE_URL.replace("/api", ""); // e.g., http://192.168.1.5:5000
+    return url.replace(/^http:\/\/(localhost|127\.0\.0\.1):5000/, backendBase);
+  }
+  // If it's a relative path starting with /uploads
+  if (url.startsWith("/uploads/")) {
+    return `${BASE_URL.replace("/api", "")}${url}`;
+  }
+  return url;
+};
+
 const apiRequest = async (path, options = {}) => {
   const token = await AsyncStorage.getItem("cv_token");
   const headers = {

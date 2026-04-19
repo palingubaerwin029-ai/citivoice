@@ -92,8 +92,26 @@
 }
 .input::placeholder { color: var(--text-3); }
 
-.eyeBtn { background: none; border: none; color: var(--text-3); font-size: 15px; transition: color var(--t); }
-.eyeBtn:hover { color: var(--text-2); }
+.eyeBtn {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color var(--t), transform 0.2s ease;
+}
+
+.eyeBtn:hover {
+  color: var(--text-2);
+}
+
+.eyeBtn:active {
+  transform: scale(0.9);
+}
 
 /* ── Submit ── */
 .submit {

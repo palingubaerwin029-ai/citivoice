@@ -11,11 +11,11 @@ import { EmptyState, StatCard } from '../../components/UI';
 import { COLORS, RADIUS } from '../../utils/theme';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 
-const FILTERS = [
-  { key: "All", label: "All", icon: "apps-outline" },
-  { key: "Pending", label: "Pending", icon: "time-outline" },
-  { key: "In Progress", label: "Active", icon: "refresh-outline" },
-  { key: "Resolved", label: "Resolved", icon: "checkmark-circle-outline" },
+const FILTER_KEYS = [
+  { key: "All", tKey: "all", icon: "apps-outline" },
+  { key: "Pending", tKey: "pending", icon: "time-outline" },
+  { key: "In Progress", tKey: "active", icon: "refresh-outline" },
+  { key: "Resolved", tKey: "resolved", icon: "checkmark-circle-outline" },
 ];
 const STATUS_COLORS = { All: COLORS.primaryLight, Pending: COLORS.statusPending, 'In Progress': COLORS.primary, Resolved: COLORS.accent, Rejected: COLORS.statusRejected };
 
@@ -54,7 +54,7 @@ export default function MyConcernsScreen({ navigation }) {
 
             {/* Filter Tabs */}
             <View style={styles.filterScroll}>
-              {FILTERS.map(f => {
+              {FILTER_KEYS.map(f => {
                 const active = activeFilter === f.key;
                 const color = STATUS_COLORS[f.key] || COLORS.primary;
                 const count = f.key === 'All' ? myConcerns.length : myConcerns.filter(c => c.status === f.key).length;
@@ -70,7 +70,7 @@ export default function MyConcernsScreen({ navigation }) {
                       color={active ? color : COLORS.textMuted}
                     />
                     <Text style={[styles.filterTabText, active && { color }]}>
-                      {f.label}
+                      {t(f.tKey)}
                     </Text>
                     <View style={[styles.filterBadge, active && { backgroundColor: color }]}>
                       <Text style={[styles.filterBadgeText, active && { color: '#fff' }]}>{count}</Text>
@@ -80,14 +80,14 @@ export default function MyConcernsScreen({ navigation }) {
               })}
             </View>
 
-            <Text style={styles.resultLabel}>{filtered.length} reports</Text>
+            <Text style={styles.resultLabel}>{filtered.length} {t('reports')}</Text>
           </>
         )}
         ListEmptyComponent={
           <EmptyState
             icon={myConcerns.length === 0 ? '📝' : '🔍'}
-            title={myConcerns.length === 0 ? 'No reports yet' : 'No concerns found'}
-            subtitle={myConcerns.length === 0 ? 'Start reporting issues in your community.' : 'Try a different filter.'}
+            title={myConcerns.length === 0 ? t('noConcernsFound') : t('noConcernsFound')}
+            subtitle={myConcerns.length === 0 ? t('beFirstToReport') : t('tryAdjusting')}
             action={myConcerns.length === 0 ? () => navigation.navigate('Home', { screen: 'SubmitConcern' }) : null}
             actionLabel={t('reportConcern')}
           />

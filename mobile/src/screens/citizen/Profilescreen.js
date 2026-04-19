@@ -20,7 +20,7 @@ import { LANGUAGES } from "../../i18n/translations";
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const { myConcerns } = useConcerns();
-  const { language, changeLanguage } = useLanguage();
+  const { t, language, changeLanguage } = useLanguage();
   const [showLang, setShowLang] = useState(false);
   const initials =
     user?.name
@@ -36,14 +36,12 @@ export default function ProfileScreen() {
     resolved: myConcerns.filter((c) => c.status === "Resolved").length,
   };
   const memberSince =
-    user?.createdAt
-      ?.toDate?.()
-      ?.toLocaleDateString("en-PH", { year: "numeric", month: "long" }) ||
-    "2024";
+    (user?.created_at ? new Date(user.created_at) : null)
+      ?.toLocaleDateString("en-PH", { year: "numeric", month: "long" });
   const handleLogout = () =>
-    Alert.alert("Sign Out", "Are you sure?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Sign Out", style: "destructive", onPress: logout },
+    Alert.alert(t('signOut'), t('signOutConfirm'), [
+      { text: t('cancel'), style: "cancel" },
+      { text: t('signOut'), style: "destructive", onPress: logout },
     ]);
   return (
     <SafeAreaView
@@ -146,7 +144,7 @@ export default function ProfileScreen() {
             </Text>
           </View>
           <Text style={{ color: COLORS.textMuted, fontSize: rf(11) }}>
-            Member since {memberSince}
+            {t('memberSince')} {memberSince}
           </Text>
         </LinearGradient>
         <View
@@ -160,13 +158,13 @@ export default function ProfileScreen() {
         >
           {[
             {
-              label: "Submitted",
+              label: t('submitted_stat'),
               value: stats.total,
               color: COLORS.primaryLight,
             },
-            { label: "Pending", value: stats.pending, color: "#F59E0B" },
-            { label: "Active", value: stats.inProgress, color: "#3B82F6" },
-            { label: "Resolved", value: stats.resolved, color: "#10B981" },
+            { label: t('pending'), value: stats.pending, color: "#F59E0B" },
+            { label: t('active'), value: stats.inProgress, color: "#3B82F6" },
+            { label: t('resolved'), value: stats.resolved, color: "#10B981" },
           ].map((s, i) => (
             <View
               key={i}
@@ -210,7 +208,7 @@ export default function ProfileScreen() {
                 marginBottom: verticalScale(10),
               }}
             >
-              My Recent Reports
+              {t('myRecentReports')}
             </Text>
             {myConcerns.slice(0, 3).map((c) => {
               const cfg = STATUS_CONFIG[c.status] || STATUS_CONFIG["Pending"];
@@ -295,7 +293,7 @@ export default function ProfileScreen() {
               marginBottom: verticalScale(10),
             }}
           >
-            Account Information
+            {t('accountInfo')}
           </Text>
           <View
             style={{
@@ -307,16 +305,16 @@ export default function ProfileScreen() {
             }}
           >
             {[
-              { icon: "person-outline", label: "Full Name", value: user?.name },
-              { icon: "mail-outline", label: "Email", value: user?.email },
+              { icon: "person-outline", label: t('fullName'), value: user?.name },
+              { icon: "mail-outline", label: t('email'), value: user?.email },
               {
                 icon: "call-outline",
-                label: "Phone",
+                label: t('phone'),
                 value: user?.phone || "—",
               },
               {
                 icon: "location-outline",
-                label: "Barangay",
+                label: t('barangay'),
                 value: user?.barangay,
               },
             ].map((item, i, arr) => (
@@ -384,7 +382,7 @@ export default function ProfileScreen() {
               marginBottom: verticalScale(10),
             }}
           >
-            Settings
+            {t('settings')}
           </Text>
           <View
             style={{
@@ -424,7 +422,7 @@ export default function ProfileScreen() {
                   />
                 </View>
                 <Text style={{ color: COLORS.textSecondary, fontSize: rf(14) }}>
-                  Language
+                  {t('language')}
                 </Text>
               </View>
               <View
@@ -477,7 +475,7 @@ export default function ProfileScreen() {
               fontWeight: "700",
             }}
           >
-            Sign Out
+            {t('signOut')}
           </Text>
         </TouchableOpacity>
         <Text
@@ -529,7 +527,7 @@ export default function ProfileScreen() {
                 marginBottom: verticalScale(16),
               }}
             >
-              Select Language
+              {t('selectLanguage')}
             </Text>
             {LANGUAGES.map((lang) => (
               <TouchableOpacity
@@ -579,7 +577,7 @@ export default function ProfileScreen() {
               onPress={() => setShowLang(false)}
             >
               <Text style={{ color: COLORS.textMuted, fontSize: rf(15) }}>
-                Cancel
+                {t('cancel')}
               </Text>
             </TouchableOpacity>
           </View>

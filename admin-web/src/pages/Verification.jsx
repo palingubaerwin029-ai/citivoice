@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api, fmtDateShort } from "../api";
+import { api, fmtDateShort, maskEmail } from "../api";
 import s from "../styles/Admin.module.css";
 
 const STATUS = {
@@ -162,7 +162,7 @@ export default function Verification() {
                           <div style={{ width:34, height:34, borderRadius:10, backgroundColor:avatarColor(u.id), display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:700, fontSize:12, flexShrink:0 }}>{initials(u.name)}</div>
                           <div>
                             <div style={{ fontWeight:600, color:"var(--text-1)", fontSize:13 }}>{u.name}</div>
-                            <div style={{ fontSize:11, color:"var(--text-3)", marginTop:1 }}>{u.email}</div>
+                            <div style={{ fontSize:11, color:"var(--text-3)", marginTop:1 }}>{maskEmail(u.email)}</div>
                           </div>
                         </div>
                       </td>
@@ -205,7 +205,7 @@ export default function Verification() {
                 <div style={{ width:52, height:52, borderRadius:16, backgroundColor:avatarColor(selected.id), display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:900, fontSize:20, flexShrink:0 }}>{initials(selected.name)}</div>
                 <div>
                   <div style={{ fontSize:16, fontWeight:800, color:"var(--text-1)" }}>{selected.name}</div>
-                  <div style={{ fontSize:12, color:"var(--text-3)", marginTop:2 }}>{selected.email}</div>
+                  <div style={{ fontSize:12, color:"var(--text-3)", marginTop:2 }}>{maskEmail(selected.email)}</div>
                 </div>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:0, background:"var(--surface-2)", borderRadius:"var(--r-lg)", border:"1px solid var(--border)", overflow:"hidden" }}>

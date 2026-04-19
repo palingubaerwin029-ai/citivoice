@@ -4,6 +4,7 @@ const auth   = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const fs     = require('fs');
 const path   = require('path');
+const { notifyUser } = require('../services/notificationService');
 
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:5000';
 
@@ -91,7 +92,12 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   const { status, admin_note } = req.body;
   try {
-    const [existing] = await pool.query('SELECT user_id, title, status FROM concerns WHERE id = ?', [req.params.id]);
+    const [existing] = await pool.query(`
+      SELECT c.user_id, c.title, c.status, u.name, u.email, u.phone 
+      FROM concerns c
+      LEFT JOIN users u ON c.user_id = u.id
+      WHERE c.id = ?
+    `, [req.params.id]);
     if (!existing.length) return res.status(404).json({ error: 'Concern not found' });
     const concern = existing[0];
 
@@ -112,12 +118,14 @@ router.put('/:id', auth, async (req, res) => {
           'INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)',
           [concern.user_id, 'Concern Updated', `Your concern "${concern.title}" was updated to ${status}.`]
         );
+        notifyUser(concern, "Concern Updated", `Your concern "${concern.title}" has been updated to ${status}. Check the app for details.`);
       }
       if (admin_note) {
         await pool.query(
           'INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)',
           [concern.user_id, 'New Official Response', `An admin replied to your concern: "${concern.title}".`]
         );
+        notifyUser(concern, "New Official Response", `An admin has officially responded to your concern: "${concern.title}". Check the app to view the update.`);
       }
     }
 

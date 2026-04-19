@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { mobileApi } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { EmptyState } from '../../components/UI';
+import { useLanguage } from '../../context/LanguageContext';
 import { COLORS, RADIUS, SHADOWS } from '../../utils/theme';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 
@@ -12,6 +13,7 @@ export default function NotificationsScreen({ navigation }) {
   const [notifications, setNotifications] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const { fetchUnreadCount } = useNotifications();
+  const { t } = useLanguage();
 
   const loadNotifications = async () => {
     try {
@@ -60,10 +62,10 @@ export default function NotificationsScreen({ navigation }) {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     const diff = Math.floor((Date.now() - d.getTime()) / 1000);
-    if (diff < 60) return "Just now";
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
+    if (diff < 60) return t('justNow');
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+    return `${Math.floor(diff / 86400)}d`;
   };
 
   return (
@@ -73,10 +75,10 @@ export default function NotificationsScreen({ navigation }) {
         <TouchableOpacity style={S.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text style={S.headerTitle}>Notifications</Text>
+        <Text style={S.headerTitle}>{t('notifications')}</Text>
         {hasUnread ? (
           <TouchableOpacity onPress={handleMarkAllRead}>
-            <Text style={S.markAllText}>Mark all read</Text>
+            <Text style={S.markAllText}>{t('markAllRead')}</Text>
           </TouchableOpacity>
         ) : (
           <View style={{ width: scale(60) }} />
@@ -92,8 +94,8 @@ export default function NotificationsScreen({ navigation }) {
           !refreshing && (
             <EmptyState
               icon="📭"
-              title="All Caught Up"
-              subtitle="You have no notifications at the moment."
+              title={t('allCaughtUp')}
+              subtitle={t('noNotifications')}
             />
           )
         }
