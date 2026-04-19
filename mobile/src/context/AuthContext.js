@@ -11,8 +11,12 @@ export const VERIFICATION_STATUS = {
 
 import Constants from "expo-constants";
 
-// ── API base URL (Dynamically resolve LAN IP for physical dev devices) ──────
+// ── API base URL (Prioritize Env Var for Tunnels, then local LAN IP) ────────
 const getBaseUrl = () => {
+  // Use EXPO_PUBLIC_API_URL from .env if defined (useful for ngrok/localtunnel)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
   const hostUri = Constants?.expoConfig?.hostUri;
   if (hostUri) {
     return `http://${hostUri.split(':')[0]}:5000/api`;
