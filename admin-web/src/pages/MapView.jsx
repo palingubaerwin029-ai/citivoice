@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api } from "../api";
+import { api, resolveImageUrl } from "../services/api";
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -394,7 +394,7 @@ export function MapView() {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {selected.image_url ? (
               <img 
-                src={selected.image_url} 
+                src={resolveImageUrl(selected.image_url)} 
                 alt="Problem" 
                 style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 16 }} 
               />

@@ -9,6 +9,7 @@ import {
   STATUS_CONFIG,
 } from "../utils/theme";
 import { scale, verticalScale, rf } from "../utils/responsive";
+import { resolveImageUrl } from "../context/AuthContext";
 
 const PRIORITY_COLORS = {
   High: { color: "#EF4444", bg: "rgba(239,68,68,0.12)" },
@@ -72,15 +73,15 @@ export default function ConcernCard({ concern, onPress, onUpvote, isUpvoted }) {
         <View style={S.authorRow}>
           <View style={S.authorAvatar}>
             <Text style={S.authorInitial}>
-              {concern.user_name?.charAt(0)?.toUpperCase() || "?"}
+              {concern.user_name ? concern.user_name.charAt(0).toUpperCase() : "A"}
             </Text>
           </View>
-          <View>
+          <View style={{ flex: 1, paddingRight: 8 }}>
             <Text style={S.authorName} numberOfLines={1}>
-              {concern.user_name}
+              {concern.user_name || "Anonymous Citizen"}
             </Text>
             <Text style={S.authorSub} numberOfLines={1}>
-              📍 {concern.user_barangay}
+              📍 {concern.location_address || "Location unknown"}
             </Text>
           </View>
         </View>
@@ -119,7 +120,7 @@ export default function ConcernCard({ concern, onPress, onUpvote, isUpvoted }) {
 
       {/* Image strip if present */}
       {concern.image_url && (
-        <Image source={{ uri: concern.image_url }} style={S.imageStrip} />
+        <Image source={{ uri: resolveImageUrl(concern.image_url) }} style={S.imageStrip} />
       )}
     </TouchableOpacity>
   );

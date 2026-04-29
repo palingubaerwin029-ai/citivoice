@@ -97,8 +97,8 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
         {/* Meta */}
         <View style={styles.metaGrid}>
-          <MetaItem icon="person-outline" label={t('submittedBy')} value={concern.user_name} />
-          <MetaItem icon="location-outline" label={t('barangay')} value={concern.user_barangay} />
+          <MetaItem icon="person-outline" label={t('submittedBy')} value={concern.user_name || "Anonymous Citizen"} />
+          <MetaItem icon="location-outline" label={t('barangay')} value={concern.user_barangay || "Location Protected"} />
           <MetaItem icon="calendar-outline" label={t('dateFiled')} value={fmt(concern.created_at)} />
           <MetaItem icon="thumbs-up-outline" label={t('communityUpvotes')} value={`${concern.upvotes || 0} votes`} />
         </View>

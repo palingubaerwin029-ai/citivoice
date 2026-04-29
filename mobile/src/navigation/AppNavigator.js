@@ -10,24 +10,24 @@ import { COLORS, RADIUS } from "../utils/theme";
 
 // ── Auth ───────────────────────────────────────────────────────────────────
 import LoginScreen from "../screens/auth/LoginScreen";
-import RegisterScreen from "../screens/auth/Registerscreen";
+import RegisterScreen from "../screens/auth/RegisterScreen";
 import VerifyIdentityScreen from "../screens/auth/VerifyIdentityScreen";
 
 // ── Citizen ────────────────────────────────────────────────────────────────
 import HomeScreen from "../screens/citizen/HomeScreen";
 import SubmitConcernScreen from "../screens/citizen/SubmitConcernScreen";
-import ConcernDetailScreen from "../screens/citizen/Concerndetailscreen";
-import MyConcernsScreen from "../screens/citizen/Myconcernsscreen";
-import MapScreen from "../screens/citizen/Mapscreen";
-import ProfileScreen from "../screens/citizen/Profilescreen";
-import EventsScreen from "../screens/citizen/Eventsscreen";
+import ConcernDetailScreen from "../screens/citizen/ConcernDetailScreen";
+import MyConcernsScreen from "../screens/citizen/MyConcernsScreen";
+import MapScreen from "../screens/citizen/MapScreen";
+import ProfileScreen from "../screens/citizen/ProfileScreen";
+import EventsScreen from "../screens/citizen/EventsScreen";
 import NotificationsScreen from "../screens/citizen/NotificationsScreen";
 
 // ── Admin ──────────────────────────────────────────────────────────────────
-import AdminDashboardScreen from "../screens/admin/Admindashboardscreen";
-import AdminConcernsScreen from "../screens/admin/Adminconcernsscreen";
-import AdminConcernDetailScreen from "../screens/admin/Adminconcerndetailscreen";
-import AdminProfileScreen from "../screens/admin/Adminprofilescreen";
+import AdminDashboardScreen from "../screens/admin/AdminDashboardScreen";
+import AdminConcernsScreen from "../screens/admin/AdminConcernsScreen";
+import AdminConcernDetailScreen from "../screens/admin/AdminConcernDetailScreen";
+import AdminProfileScreen from "../screens/admin/AdminProfileScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();

@@ -6,8 +6,8 @@ import {
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
+import { useLocation } from '../../hooks/useLocation';
+import { useImagePicker } from '../../hooks/useImagePicker';
 import { useConcerns } from '../../context/ConcernContext.js';
 import { useLanguage } from '../../context/LanguageContext.js';
 import { InputField, PrimaryButton } from '../../components/UI.js';
@@ -28,7 +28,8 @@ export default function SubmitConcernScreen({ navigation }) {
   });
   const [imageUri, setImageUri] = useState(null);
   const [location, setLocation] = useState(null);
-  const [loadingLocation, setLoadingLocation] = useState(false);
+  const { loadingLocation, getCurrentLocation, reverseGeocode } = useLocation();
+  const { pickImage: launchImagePicker } = useImagePicker();
   const [reversingGeocode, setReversingGeocode] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,60 +39,22 @@ export default function SubmitConcernScreen({ navigation }) {
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission required', 'Please allow access to your photos.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true, aspect: [4, 3], quality: 0.7,
-    });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
-  };
-
-  // Reverse geocode coordinates to get a readable address
-  const reverseGeocode = async (latitude, longitude) => {
-    try {
-      const [addr] = await Location.reverseGeocodeAsync({ latitude, longitude });
-      if (addr) {
-        const parts = [
-          addr.name, 
-          addr.street, 
-          addr.district, 
-          addr.city || addr.subregion, 
-          addr.region
-        ].filter(Boolean);
-        
-        const uniqueParts = Array.from(new Set(parts));
-        return uniqueParts.length > 0 ? uniqueParts.join(', ') : `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-      }
-    } catch {}
-    return `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+    const uri = await launchImagePicker({ aspect: [4, 3], quality: 0.7 });
+    if (uri) setImageUri(uri);
   };
 
   // Get current GPS location and open the map picker
   const getLocation = async () => {
-    setLoadingLocation(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission required', 'Please allow location access.');
-        return;
-      }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      const address = await reverseGeocode(loc.coords.latitude, loc.coords.longitude);
-      setLocation({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-        address,
-      });
-      setShowMap(true);
-    } catch (err) {
-      Alert.alert(t('error'), 'Could not get location.');
-    } finally {
-      setLoadingLocation(false);
-    }
+    const loc = await getCurrentLocation(true);
+    if (!loc) return;
+    
+    const address = await reverseGeocode(loc.coords.latitude, loc.coords.longitude);
+    setLocation({
+      latitude: loc.coords.latitude,
+      longitude: loc.coords.longitude,
+      address,
+    });
+    setShowMap(true);
   };
 
   // When user drags the marker or taps on the map to pick a new spot
@@ -322,7 +285,8 @@ export default function SubmitConcernScreen({ navigation }) {
                 <TouchableOpacity
                   style={styles.recenterBtn}
                   onPress={async () => {
-                    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+                    const loc = await getCurrentLocation(false);
+                    if (!loc) return;
                     handleMapPinChange(loc.coords);
                     mapRef.current?.animateToRegion({
                       latitude: loc.coords.latitude,

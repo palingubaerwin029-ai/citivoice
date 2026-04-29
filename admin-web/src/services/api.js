@@ -44,3 +44,12 @@ export const maskEmail = (email) => {
   if (user.length <= 3) return `${user.charAt(0)}***@${domain}`;
   return `${user.substring(0, 3)}***@${domain}`;
 };
+
+// Utility: resolve image URLs — always use current API host, even if DB stored a tunnel/different host
+const API_HOST = BASE_URL.replace(/\/api$/, '');
+export const resolveImageUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith('data:')) return url;
+  const match = url.match(/\/uploads\/.+$/);
+  return match ? `${API_HOST}${match[0]}` : url;
+};

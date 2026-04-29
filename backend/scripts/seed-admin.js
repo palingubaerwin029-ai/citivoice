@@ -1,15 +1,8 @@
 #!/usr/bin/env node
-/**
- * One-time admin account seeder.
- * Run: node seed-admin.js
- *
- * Prompts for email and password interactively so credentials
- * are never hardcoded in source control.
- */
-require('dotenv').config();
+require('dotenv').config({ path: __dirname + '/../.env' });
 const readline = require('readline');
 const bcrypt   = require('bcryptjs');
-const pool     = require('./db');
+const pool     = require('../db');
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 const ask = (q) => new Promise((resolve) => rl.question(q, resolve));

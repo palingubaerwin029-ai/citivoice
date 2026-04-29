@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
+import { useImagePicker } from "../../hooks/useImagePicker";
 import { ConcernService } from "../../services/concernService";
 import { useAuth, VERIFICATION_STATUS, resolveImageUrl } from "../../context/AuthContext";
 import { InputField, PrimaryButton } from "../../components/UI";
@@ -42,35 +42,17 @@ export default function VerifyIdentityScreen({ navigation }) {
   const currentStatus = user?.verificationStatus;
   const alreadyPending = currentStatus === VERIFICATION_STATUS.PENDING;
 
+  const { pickImage: launchImagePicker, takePhoto: launchCamera } = useImagePicker();
+
   // ── Pick ID photo ──────────────────────────────────────────────────────
   const pickPhoto = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission Required",
-        "Please allow access to your photos to upload your ID.",
-      );
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.85,
-    });
-    if (!result.canceled) setIdImage(result.assets[0].uri);
+    const uri = await launchImagePicker({ mediaTypes: ['images'], allowsEditing: true, quality: 0.85 });
+    if (uri) setIdImage(uri);
   };
 
   const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission Required", "Please allow camera access.");
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      quality: 0.85,
-    });
-    if (!result.canceled) setIdImage(result.assets[0].uri);
+    const uri = await launchCamera({ allowsEditing: true, quality: 0.85 });
+    if (uri) setIdImage(uri);
   };
 
   // ── Validate ───────────────────────────────────────────────────────────

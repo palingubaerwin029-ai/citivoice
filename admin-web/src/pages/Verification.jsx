@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api, fmtDateShort, maskEmail } from "../api";
+import { api, fmtDateShort, maskEmail, resolveImageUrl } from "../services/api";
 import s from "../styles/Admin.module.css";
 
 const STATUS = {
@@ -229,11 +229,11 @@ export default function Verification() {
             <div style={{ padding:"14px 18px", borderBottom:"1px solid var(--border)" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
                 <span style={{ fontSize:11, fontWeight:700, color:"var(--text-3)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Submitted ID Photo</span>
-                {selected.id_image_url && <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`} onClick={() => window.open(selected.id_image_url, "_blank")}>View Full ↗</button>}
+                {selected.id_image_url && <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`} onClick={() => window.open(resolveImageUrl(selected.id_image_url), "_blank")}>View Full ↗</button>}
               </div>
               {selected.id_image_url ? (
-                <div style={{ position:"relative", borderRadius:"var(--r-md)", overflow:"hidden", cursor:"pointer" }} onClick={() => window.open(selected.id_image_url, "_blank")}>
-                  <img src={selected.id_image_url} alt="ID" style={{ width:"100%", maxHeight:200, objectFit:"cover", display:"block" }} />
+                <div style={{ position:"relative", borderRadius:"var(--r-md)", overflow:"hidden", cursor:"pointer" }} onClick={() => window.open(resolveImageUrl(selected.id_image_url), "_blank")}>
+                  <img src={resolveImageUrl(selected.id_image_url)} alt="ID" style={{ width:"100%", maxHeight:200, objectFit:"cover", display:"block" }} />
                 </div>
               ) : (
                 <div style={{ padding:24, textAlign:"center", background:"var(--surface-2)", borderRadius:"var(--r-md)", border:"1px dashed var(--border)" }}>

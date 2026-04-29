@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { api } from "./api";
+import { api } from "./services/api";
 
 import Sidebar                from "./components/Sidebar";
 import Dashboard              from "./pages/Dashboard";
@@ -10,7 +10,7 @@ import MapView                from "./pages/MapView";
 import Users                  from "./pages/Users";
 import Reports                from "./pages/Reports";
 import Login                  from "./pages/Login";
-import EventsAnnouncements    from "./pages/Eventsannouncements";
+import EventsAnnouncements    from "./pages/EventsAnnouncements";
 import Verification           from "./pages/Verification";
 import Barangays              from "./pages/Barangays";
 

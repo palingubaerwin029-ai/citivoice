@@ -166,6 +166,7 @@ citivoice/
 │       │   ├── concernService.js # Concern API calls
 │       │   └── Mapscreen.js      # Map service utilities
 │       ├── context/              # React Context providers
+│       ├── hooks/                # Custom React hooks (e.g. useLocation, useImagePicker)
 │       ├── i18n/
 │       │   └── translations.js   # Multi-language strings
 │       ├── navigation/           # React Navigation config
@@ -338,7 +339,7 @@ For testing the mobile app on a physical device over a different network:
 - **Password Encryption** — All passwords are hashed with Bcrypt before storage.
 - **Identity Verification** — Citizens must submit government-issued ID photos which are manually reviewed by admins before granting verified status.
 - **Input Validation** — express-validator sanitizes and validates all incoming request data.
-- **CORS** — Configured to restrict cross-origin access to trusted clients.
+- **CORS & CORP** — Configured to restrict cross-origin access and properly permit cross-origin image rendering for the mobile client.
 
 ---
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api, fmtDateShort } from "../api";
+import { api, fmtDateShort } from "../services/api";
 import { IoBusinessOutline, IoLocationOutline, IoPencilOutline, IoTrashOutline, IoAddOutline } from "react-icons/io5";
 import styles from "../styles/Barangays.module.css";
 import s from "../styles/Admin.module.css";

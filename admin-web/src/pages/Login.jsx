@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { api } from "../api";
+import { api } from "../services/api";
 import { IoMailOutline, IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from "react-icons/io5";
 import s from "../styles/Login.module.css";
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api, fmtDateShort, maskEmail } from "../api";
+import { api, fmtDateShort, maskEmail } from "../services/api";
 import s from "../styles/Admin.module.css";
 
 const AVATARS = ["#3B82F6","#10B981","#F97316","#F59E0B","#EF4444","#8B5CF6"];

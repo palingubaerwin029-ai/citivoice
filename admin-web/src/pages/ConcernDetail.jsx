@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api, fmtDate, fmtDateShort } from "../api";
+import { api, fmtDate, fmtDateShort, resolveImageUrl } from "../services/api";
 import { useParams, useNavigate } from "react-router-dom";
 import s from "../styles/Admin.module.css";
 
@@ -124,7 +124,7 @@ export default function ConcernDetail() {
           {concern.image_url && (
             <div className={s.card}>
               <div className={s.cardHeader}><span className={s.cardTitle}>Attached Photo</span></div>
-              <img src={concern.image_url} alt="Concern" style={{ width: "100%", maxHeight: 280, objectFit: "cover" }} />
+              <img src={resolveImageUrl(concern.image_url)} alt="Concern" style={{ width: "100%", maxHeight: 280, objectFit: "cover" }} />
             </div>
           )}
 

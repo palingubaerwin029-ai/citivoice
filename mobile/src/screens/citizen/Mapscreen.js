@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
+import { useLocation } from '../../hooks/useLocation';
 import { useConcerns } from '../../context/ConcernContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { StatusBadge } from '../../components/UI';
@@ -51,32 +51,20 @@ export default function MapScreen({ navigation }) {
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedConcern, setSelectedConcern] = useState(null);
   const [mapType, setMapType] = useState('standard');
-  const [loadingLocation, setLoadingLocation] = useState(false);
+  const { loadingLocation, getCurrentLocation } = useLocation();
   const [mapReady, setMapReady] = useState(false);
 
   // Ask permission and pinpoint exactly where user is
   const goToMyLocation = async () => {
-    setLoadingLocation(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        alert(t('error'));
-        return;
-      }
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-      mapRef.current?.animateToRegion({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      }, 800);
-    } catch (err) {
-      console.log('Location error', err);
-    } finally {
-      setLoadingLocation(false);
-    }
+    const loc = await getCurrentLocation(true);
+    if (!loc) return;
+    
+    mapRef.current?.animateToRegion({
+      latitude: loc.coords.latitude,
+      longitude: loc.coords.longitude,
+      latitudeDelta: 0.005,
+      longitudeDelta: 0.005,
+    }, 800);
   };
 
   // Filter and validate concerns that have valid coordinates

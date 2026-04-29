@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api, fmtDateShort } from "../api";
+import { api, fmtDateShort } from "../services/api";
 import {
   IoMegaphoneOutline, IoCalendarOutline, IoAddOutline,
   IoTrashOutline, IoPencilOutline, IoCloseOutline,

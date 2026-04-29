@@ -1,10 +1,10 @@
 const router = require('express').Router();
-const pool   = require('../db');
-const auth   = require('../middleware/auth');
+const pool = require('../db');
+const auth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const upload = require('../middleware/upload');
-const fs     = require('fs');
-const path   = require('path');
+const fs = require('fs');
+const path = require('path');
 const { notifyUser } = require('../services/notificationService');
 
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:5000';
@@ -19,23 +19,24 @@ const deleteImageFile = (imageUrl) => {
       const filePath = path.join(__dirname, '..', 'uploads', filename);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
-  } catch (_) {}
+  } catch (_) { }
 };
 
 // ─── List all concerns (auth required) ────────────────────────────────────────
 router.get('/', auth, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM concerns ORDER BY created_at DESC');
-    
-    // If not admin, strip potentially sensitive user info
+
+    // If not admin, strip potentially sensitive user info for concerns not owned by the user
     if (req.user.role !== 'admin') {
       const sanitized = rows.map(r => {
+        if (r.user_id === req.user.id) return r;
         const { user_id, user_name, user_barangay, ...rest } = r;
         return rest;
       });
       return res.json(sanitized);
     }
-    
+
     res.json(rows);
   } catch (err) {
     console.error('Concerns list error:', err);
@@ -50,14 +51,14 @@ router.get('/:id', auth, async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'Concern not found' });
 
     const concern = rows[0];
-    const [up]    = await pool.query(
+    const [up] = await pool.query(
       'SELECT id FROM concern_upvotes WHERE concern_id=? AND user_id=?',
       [concern.id, req.user.id]
     );
     concern.is_upvoted_by_me = up.length > 0;
 
-    // If not admin, strip potentially sensitive user info
-    if (req.user.role !== 'admin') {
+    // If not admin and not owner, strip potentially sensitive user info
+    if (req.user.role !== 'admin' && concern.user_id !== req.user.id) {
       const { user_id, user_name, user_barangay, ...rest } = concern;
       return res.json(rest);
     }
@@ -116,16 +117,16 @@ router.put('/:id', auth, requireRole('admin'), async (req, res) => {
     if (!existing.length) return res.status(404).json({ error: 'Concern not found' });
     const concern = existing[0];
 
-    const fields  = [];
-    const values  = [];
-    if (status !== undefined)     { fields.push('status = ?');     values.push(status); }
+    const fields = [];
+    const values = [];
+    if (status !== undefined) { fields.push('status = ?'); values.push(status); }
     if (admin_note !== undefined) { fields.push('admin_note = ?'); values.push(admin_note || null); }
     if (!fields.length) return res.status(400).json({ error: 'Nothing to update' });
     fields.push('updated_at = NOW()');
     values.push(req.params.id);
 
     await pool.query(`UPDATE concerns SET ${fields.join(', ')} WHERE id = ?`, values);
-    
+
     // Create in-app notification if needed
     if (concern.user_id) {
       if (status && status !== concern.status) {

@@ -7,7 +7,7 @@
 
 /* ── Page header ── */
 .pageHeader { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }
-.pageTitleGroup {}
+.pageTitleGroup { display: flex; flex-direction: column; gap: 2px; }
 .pageTitle { font-size: 20px; font-weight: 700; color: var(--text-1); letter-spacing: -0.3px; }
 .pageSubtitle { font-size: 13px; color: var(--text-2); margin-top: 3px; }
 
@@ -163,8 +163,6 @@
   white-space: nowrap;
 }
 
-.statusBadge { }
-
 /* ── Buttons ── */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
@@ -261,3 +259,16 @@
 /* ── Responsive 2-col ── */
 .splitLayout { display: grid; gap: 16px; }
 .splitLayout.hasSide { grid-template-columns: 1fr 340px; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .page { padding: 20px 16px; }
+  .statsRow { grid-template-columns: repeat(2, 1fr); }
+  .splitLayout.hasSide { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .pageHeader { flex-direction: column; gap: 12px; }
+  .statsRow { grid-template-columns: 1fr; }
+  .toolbar { flex-direction: column; }
+}
