@@ -83,6 +83,12 @@ router.patch('/:id/verify', auth, requireRole('admin'), async (req, res) => {
 
     const [rows] = await pool.query('SELECT name, email, phone FROM users WHERE id = ?', [req.params.id]);
     if (rows.length) {
+      // In-app notification record
+      await pool.query(
+        'INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)',
+        [req.params.id, '✅ Account Verified!', 'Great news! Your CitiVoice account has been successfully verified. You can now log into the app.']
+      );
+      // Email & SMS
       notifyUser(rows[0], "Account Verified!", "Great news! Your CitiVoice account has been successfully verified. You can now log into the app.");
     }
 
@@ -106,6 +112,12 @@ router.patch('/:id/reject', auth, requireRole('admin'), async (req, res) => {
 
     const [rows] = await pool.query('SELECT name, email, phone FROM users WHERE id = ?', [req.params.id]);
     if (rows.length) {
+      // In-app notification record
+      await pool.query(
+        'INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)',
+        [req.params.id, '❌ Verification Rejected', `Your identity verification was rejected. Reason: "${reason}". Please resubmit another ID.`]
+      );
+      // Email & SMS
       notifyUser(rows[0], "Account Verification Failed", `Unfortunately, your identity verification was rejected for the following reason:\n"${reason}"\nPlease log into the app to resubmit another ID.`);
     }
 

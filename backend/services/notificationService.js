@@ -49,12 +49,37 @@ const sendEmail = async (to, subject, htmlContent) => {
 };
 
 /**
+ * Formats a phone number to E.164 international format.
+ * Converts Philippine local numbers (09XX) → +639XX
+ */
+const formatPhoneE164 = (phone) => {
+  if (!phone) return null;
+  let cleaned = phone.replace(/[\s\-()]/g, ''); // strip spaces, dashes, parens
+  // Philippine local format: 09XXXXXXXXX → +639XXXXXXXXX
+  if (cleaned.startsWith('09') && cleaned.length === 11) {
+    return '+63' + cleaned.substring(1);
+  }
+  // Already has country code but missing +
+  if (cleaned.startsWith('63') && cleaned.length === 12) {
+    return '+' + cleaned;
+  }
+  // Already in E.164
+  if (cleaned.startsWith('+')) {
+    return cleaned;
+  }
+  return cleaned;
+};
+
+/**
  * Sends an SMS text message via Twilio
  */
 const sendSMS = async (to, messageBody) => {
   if (!to) return;
+  const formattedTo = formatPhoneE164(to);
+  if (!formattedTo) return;
+
   if (!isTwilioEnabled) {
-    console.log(`\n📱 [SIMULATION] SMS NOTIFICATION TO: ${to}`);
+    console.log(`\n📱 [SIMULATION] SMS NOTIFICATION TO: ${formattedTo}`);
     console.log(`MESSAGE: ${messageBody} \n`);
     return;
   }
@@ -63,13 +88,14 @@ const sendSMS = async (to, messageBody) => {
     const message = await twilioClient.messages.create({
       body: messageBody,
       from: process.env.TWILIO_PHONE_NUMBER,
-      to,
+      to: formattedTo,
     });
-    console.log(`📱 SMS sent to ${to}: ${message.sid}`);
+    console.log(`📱 SMS sent to ${formattedTo}: ${message.sid}`);
   } catch (error) {
     console.error('❌ Failed to send SMS:', error);
   }
 };
+
 
 /**
  * Simple HTML escaping to prevent injection in emails
