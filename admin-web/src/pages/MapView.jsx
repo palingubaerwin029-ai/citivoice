@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, resolveImageUrl } from "../services/api";
 
 import L from "leaflet";
@@ -80,7 +81,9 @@ function Routing({ selected }) {
       show: false,
     }).addTo(map);
 
-    return () => map.removeControl(route);
+    return () => {
+      try { map.removeControl(route); } catch (_) { /* map already destroyed */ }
+    };
   }, [selected]);
 
   return null;
@@ -125,6 +128,7 @@ function FitBounds({ data, filter }) {
 }
 
 export function MapView() {
+  const navigate = useNavigate();
   const [concerns, setConcerns] = useState([]);
   const [selected, setSelected] = useState(null);
   const [filter, setFilter] = useState("All");
@@ -427,7 +431,10 @@ export function MapView() {
               </div>
             </div>
 
-            <button style={{ width: "100%", padding: "16px", borderRadius: 14, border: "none", backgroundColor: "#1A6BFF", color: "#fff", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
+            <button
+              onClick={() => navigate(`/concerns/${selected.id}`)}
+              style={{ width: "100%", padding: "16px", borderRadius: 14, border: "none", backgroundColor: "#1A6BFF", color: "#fff", fontWeight: 700, fontSize: 16, cursor: "pointer" }}
+            >
               View More Details
             </button>
           </div>
