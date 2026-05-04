@@ -8,11 +8,11 @@ import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocation } from '../../hooks/useLocation';
 import { useImagePicker } from '../../hooks/useImagePicker';
-import { useConcerns } from '../../context/ConcernContext.js';
-import { useLanguage } from '../../context/LanguageContext.js';
-import { InputField, PrimaryButton } from '../../components/UI.js';
-import { COLORS, CATEGORY_CONFIG } from '../../utils/theme.js';
-import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive.js';
+import { useConcerns } from '../../context/ConcernContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { InputField, PrimaryButton } from '../../components/UI';
+import { COLORS, CATEGORY_CONFIG } from '../../utils/theme';
+import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 
 const CATEGORIES = Object.keys(CATEGORY_CONFIG);
 const PRIORITIES = ['Low', 'Medium', 'High'];
