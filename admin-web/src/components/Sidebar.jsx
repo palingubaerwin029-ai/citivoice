@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { 
-  IoGridOutline, 
-  IoChatbubbleEllipsesOutline, 
-  IoMegaphoneOutline, 
-  IoShieldCheckmarkOutline, 
-  IoPeopleOutline, 
-  IoBusinessOutline, 
-  IoMapOutline, 
+import {
+  IoGridOutline,
+  IoChatbubbleEllipsesOutline,
+  IoMegaphoneOutline,
+  IoShieldCheckmarkOutline,
+  IoPeopleOutline,
+  IoBusinessOutline,
+  IoMapOutline,
   IoBarChartOutline,
-  IoLogOutOutline
+  IoLogOutOutline,
+  IoSunnyOutline,
+  IoMoonOutline
 } from "react-icons/io5";
 import s from "../styles/Sidebar.module.css";
 
@@ -18,16 +20,15 @@ const NAV = [
   { path: "/dashboard", icon: <IoGridOutline />, label: "Dashboard" },
   { path: "/concerns", icon: <IoChatbubbleEllipsesOutline />, label: "Concerns" },
   { section: "Management" },
-  { path: "/events", icon: <IoMegaphoneOutline />, label: "Events & Announcements" },
   { path: "/verification", icon: <IoShieldCheckmarkOutline />, label: "Verification" },
-  { path: "/users", icon: <IoPeopleOutline />, label: "Citizens" },
+  { path: "/users", icon: <IoPeopleOutline />, label: "Users" },
   { path: "/barangays", icon: <IoBusinessOutline />, label: "Barangays" },
   { section: "Analytics" },
   { path: "/map", icon: <IoMapOutline />, label: "Map View" },
   { path: "/reports", icon: <IoBarChartOutline />, label: "Reports" },
 ];
 
-export default function Sidebar({ user, onLogout }) {
+export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -100,8 +101,17 @@ export default function Sidebar({ user, onLogout }) {
         })}
       </nav>
 
-      {/* Logout */}
+      {/* Footer */}
       <div className={s.navFooter}>
+        <button
+          className={s.logoutBtn}
+          style={{ marginBottom: 4 }}
+          onClick={onThemeToggle}
+        >
+          <span className={s.navIcon}>{theme === 'dark' ? <IoSunnyOutline /> : <IoMoonOutline />}</span>
+          {!collapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
+        </button>
+        
         <button
           className={`${s.logoutBtn} ${collapsed ? s.collapsed : ""}`}
           onClick={() => { onLogout(); navigate("/"); }}

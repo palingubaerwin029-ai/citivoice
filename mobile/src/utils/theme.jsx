@@ -4,7 +4,7 @@
 
 import { rf, moderateScale } from './responsive';
 
-export const COLORS = {
+export const DARK_COLORS = {
   // Background layers
   bgDeep: "#050D1A",
   bgDark: "#080F1E",
@@ -47,6 +47,55 @@ export const COLORS = {
   success: "#10B981",
   info: "#3B82F6",
 };
+
+export const LIGHT_COLORS = {
+  // Background layers
+  bgDeep: "#F1F5F9",
+  bgDark: "#F8FAFC",
+  bgCard: "#FFFFFF",
+  bgCardAlt: "#F1F5F9",
+  bgElevated: "#FFFFFF",
+
+  // Brand
+  primary: "#2563EB",
+  primaryLight: "#3B82F6",
+  primaryDark: "#1D4ED8",
+  primaryGlow: "rgba(37,99,235,0.1)",
+
+  // Accents
+  accent: "#10B981",
+  accentWarm: "#F97316",
+  purple: "#7C3AED",
+  cyan: "#06B6D4",
+
+  // Status
+  statusPending: "#D97706",
+  statusInProgress: "#2563EB",
+  statusResolved: "#059669",
+  statusRejected: "#DC2626",
+
+  // Text
+  textPrimary: "#0F172A",
+  textSecondary: "#475569",
+  textMuted: "#94A3B8",
+  textDisabled: "#CBD5E1",
+
+  // Structure
+  border: "rgba(0,0,0,0.06)",
+  borderMd: "rgba(0,0,0,0.1)",
+  divider: "rgba(0,0,0,0.04)",
+
+  // Semantic
+  danger: "#EF4444",
+  warning: "#F59E0B",
+  success: "#10B981",
+  info: "#3B82F6",
+};
+
+// Legacy support (defaults to dark)
+export const COLORS = DARK_COLORS;
+
+export const getColors = (theme) => (theme === 'light' ? LIGHT_COLORS : DARK_COLORS);
 
 export const TYPOGRAPHY = {
   xs: rf(11),
@@ -103,73 +152,77 @@ export const SHADOWS = {
   },
 };
 
-export const CATEGORY_CONFIG = {
+export const getCategoryConfig = (colors) => ({
   "Road & Infrastructure": {
     icon: "construct",
-    color: "#F97316",
-    bg: "rgba(249,115,22,0.12)",
+    color: colors.accentWarm || "#F97316",
+    bg: (colors.accentWarm || "#F97316") + "1F",
     label: "Road",
   },
   "Water & Drainage": {
     icon: "water",
-    color: "#3B82F6",
-    bg: "rgba(59,130,246,0.12)",
+    color: colors.info || "#3B82F6",
+    bg: (colors.info || "#3B82F6") + "1F",
     label: "Water",
   },
   Electricity: {
     icon: "flash",
-    color: "#F59E0B",
-    bg: "rgba(245,158,11,0.12)",
+    color: colors.statusPending || "#F59E0B",
+    bg: (colors.statusPending || "#F59E0B") + "1F",
     label: "Electric",
   },
   "Waste & Sanitation": {
     icon: "trash",
-    color: "#10B981",
-    bg: "rgba(16,185,129,0.12)",
+    color: colors.accent || "#10B981",
+    bg: (colors.accent || "#10B981") + "1F",
     label: "Waste",
   },
   "Public Safety": {
     icon: "shield",
-    color: "#EF4444",
-    bg: "rgba(239,68,68,0.12)",
+    color: colors.statusRejected || "#EF4444",
+    bg: (colors.statusRejected || "#EF4444") + "1F",
     label: "Safety",
   },
   Other: {
     icon: "ellipsis-horizontal",
-    color: "#94A3B8",
-    bg: "rgba(148,163,184,0.1)",
+    color: colors.textSecondary || "#94A3B8",
+    bg: (colors.textSecondary || "#94A3B8") + "1F",
     label: "Other",
   },
-};
+});
 
-export const STATUS_CONFIG = {
+export const getStatusConfig = (colors) => ({
   Pending: {
-    color: "#F59E0B",
-    bg: "rgba(245,158,11,0.12)",
-    border: "rgba(245,158,11,0.25)",
+    color: colors.statusPending,
+    bg: colors.statusPending + "1F",
+    border: colors.statusPending + "33",
     icon: "time-outline",
     label: "Pending",
   },
   "In Progress": {
-    color: "#3B82F6",
-    bg: "rgba(59,130,246,0.12)",
-    border: "rgba(59,130,246,0.25)",
+    color: colors.statusInProgress,
+    bg: colors.statusInProgress + "1F",
+    border: colors.statusInProgress + "33",
     icon: "refresh-outline",
     label: "Active",
   },
   Resolved: {
-    color: "#10B981",
-    bg: "rgba(16,185,129,0.12)",
-    border: "rgba(16,185,129,0.25)",
+    color: colors.statusResolved,
+    bg: colors.statusResolved + "1F",
+    border: colors.statusResolved + "33",
     icon: "checkmark-circle-outline",
     label: "Resolved",
   },
   Rejected: {
-    color: "#EF4444",
-    bg: "rgba(239,68,68,0.12)",
-    border: "rgba(239,68,68,0.25)",
+    color: colors.statusRejected,
+    bg: colors.statusRejected + "1F",
+    border: colors.statusRejected + "33",
     icon: "close-circle-outline",
     label: "Rejected",
   },
-};
+});
+
+// Keep legacy for migration period
+export const CATEGORY_CONFIG = getCategoryConfig(DARK_COLORS);
+export const STATUS_CONFIG = getStatusConfig(DARK_COLORS);
 

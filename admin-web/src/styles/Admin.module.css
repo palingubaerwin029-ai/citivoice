@@ -492,3 +492,55 @@
 .splitLayout.hasSide {
   grid-template-columns: 1fr 340px;
 }
+
+/* ── Print Styles ── */
+.printOnly { display: none; }
+
+@media print {
+  :global(aside), :global(nav), .noPrint, .btn, .chip, .toolbar {
+    display: none !important;
+  }
+
+  :global(main) {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .page {
+    padding: 0 !important;
+    max-width: 100% !important;
+    background: #fff !important;
+  }
+
+  .printOnly {
+    display: block !important;
+  }
+
+  .card, .statCard {
+    break-inside: avoid;
+    border: 1px solid #eee !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    margin-bottom: 20px !important;
+  }
+
+  .statValue, .cardTitle, .pageTitle, .infoValue {
+    color: #000 !important;
+  }
+
+  .statLabel, .pageSubtitle, .infoLabel {
+    color: #444 !important;
+  }
+
+  :global(body) {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Ensure charts and colors are visible */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

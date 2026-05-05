@@ -1,8 +1,9 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   Dimensions, ActivityIndicator, Platform,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,10 +11,23 @@ import { useLocation } from '../../hooks/useLocation';
 import { useConcerns } from '../../context/ConcernContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { StatusBadge } from '../../components/UI';
-import { COLORS, CATEGORY_CONFIG, STATUS_CONFIG } from '../../utils/theme';
+import { getCategoryConfig, getStatusConfig } from '../../utils/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 
 const { width, height } = Dimensions.get('window');
+
+const DEFAULT_REGION = {
+  latitude: 10.0242,
+  longitude: 122.8122,
+  latitudeDelta: 0.05,
+  longitudeDelta: 0.05,
+};
+
+const safeCoord = (val) => {
+  const n = parseFloat(val);
+  return isNaN(n) ? null : n;
+};
 
 const STATUS_FILTER_KEYS = [
   { key: 'All', tKey: 'all' },
@@ -22,29 +36,16 @@ const STATUS_FILTER_KEYS = [
   { key: 'Resolved', tKey: 'resolved' },
 ];
 
-const PIN_COLORS = {
-  Pending: '#FFB800',
-  'In Progress': '#1A6BFF',
-  Resolved: '#00D4AA',
-  Rejected: '#FF4444',
-};
-
-// Default center: Kabankalan City, Negros Occidental
-const DEFAULT_REGION = {
-  latitude: 9.5847,
-  longitude: 122.8164,
-  latitudeDelta: 0.06,
-  longitudeDelta: 0.06,
-};
-
-// Safely parse a lat/lng value to a number; returns null if invalid
-const safeCoord = (val) => {
-  if (val == null || val === '') return null;
-  const n = Number(val);
-  return isFinite(n) ? n : null;
-};
-
 export default function MapScreen({ navigation }) {
+  const { colors, theme } = useTheme();
+  
+  const PIN_COLORS = {
+    Pending: colors.statusPending,
+    'In Progress': colors.statusInProgress,
+    Resolved: colors.statusResolved,
+    Rejected: colors.statusRejected,
+  };
+
   const { concerns, refreshConcerns, loading: dataLoading } = useConcerns();
   const { t } = useLanguage();
   const mapRef = useRef(null);
@@ -53,6 +54,25 @@ export default function MapScreen({ navigation }) {
   const [mapType, setMapType] = useState('standard');
   const { loadingLocation, getCurrentLocation } = useLocation();
   const [mapReady, setMapReady] = useState(false);
+  const MAP_TYPE_KEY = '@map_type';
+
+  useEffect(() => {
+    const loadMapType = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(MAP_TYPE_KEY);
+        if (saved) setMapType(saved);
+      } catch {}
+    };
+    loadMapType();
+  }, []);
+
+  const toggleMapType = async () => {
+    const next = mapType === 'standard' ? 'satellite' : 'standard';
+    setMapType(next);
+    try {
+      await AsyncStorage.setItem(MAP_TYPE_KEY, next);
+    } catch {}
+  };
 
   // Ask permission and pinpoint exactly where user is
   const goToMyLocation = async () => {
@@ -127,7 +147,7 @@ export default function MapScreen({ navigation }) {
             >
               <View style={[styles.markerPin, { backgroundColor: PIN_COLORS[c.status] || '#8899BB' }]}>
                 <Ionicons
-                  name={CATEGORY_CONFIG[c.category]?.icon || 'alert-circle'}
+                  name={getCategoryConfig(colors)[c.category]?.icon || 'alert-circle'}
                   size={14}
                   color="#fff"
                 />
@@ -144,21 +164,21 @@ export default function MapScreen({ navigation }) {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
             {STATUS_FILTER_KEYS.map(f => {
               const active = statusFilter === f.key;
-              const color = STATUS_CONFIG[f.key]?.color || COLORS.primary;
+              const color = getStatusConfig(colors)[f.key]?.color || colors.primary;
               const count = f.key === 'All'
                 ? concerns.filter(c => safeCoord(c.location_lat) !== null).length
                 : concerns.filter(c => c.status === f.key && safeCoord(c.location_lat) !== null).length;
               return (
                 <TouchableOpacity
                   key={f.key}
-                  style={[styles.filterChip, active && { backgroundColor: color, borderColor: color }]}
+                  style={[styles.filterChip, { backgroundColor: colors.bgCard + 'F0', borderColor: colors.border }, active && { backgroundColor: color, borderColor: color }]}
                   onPress={() => { setStatusFilter(f.key); setSelectedConcern(null); }}
                 >
-                  <Text style={[styles.filterText, active && { color: '#fff' }]}>
+                  <Text style={[styles.filterText, { color: colors.textPrimary }, active && { color: '#fff' }]}>
                     {t(f.tKey)}
                   </Text>
-                  <View style={[styles.filterCount, active && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-                    <Text style={[styles.filterCountText, active && { color: '#fff' }]}>
+                  <View style={[styles.filterCount, { backgroundColor: colors.bgCardAlt }, active && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
+                    <Text style={[styles.filterCountText, { color: colors.textMuted }, active && { color: '#fff' }]}>
                       {count}
                     </Text>
                   </View>
@@ -169,9 +189,9 @@ export default function MapScreen({ navigation }) {
         </View>
 
         {/* Pinnable Count Badge */}
-        <View style={styles.countBadge}>
-          <Ionicons name="location" size={14} color={COLORS.primary} />
-          <Text style={styles.countText}>
+        <View style={[styles.countBadge, { backgroundColor: colors.bgCard + 'F0', borderColor: colors.border }]}>
+          <Ionicons name="location" size={14} color={colors.primary} />
+          <Text style={[styles.countText, { color: colors.textPrimary }]}>
             {pinnable.length} {t('reports')}
           </Text>
         </View>
@@ -179,33 +199,33 @@ export default function MapScreen({ navigation }) {
 
       {/* 🗺️ Map Type Toggle */}
       <TouchableOpacity
-        style={styles.mapTypeToggle}
-        onPress={() => setMapType(prev => prev === 'standard' ? 'satellite' : 'standard')}
+        style={[styles.mapTypeToggle, { backgroundColor: colors.bgCard + 'F0', borderColor: colors.border }]}
+        onPress={toggleMapType}
       >
-        <Ionicons name={mapType === 'standard' ? 'earth' : 'map'} size={22} color={COLORS.primary} />
-        <Text style={styles.mapTypeToggleText}>
+        <Ionicons name={mapType === 'standard' ? 'earth' : 'map'} size={22} color={colors.primary} />
+        <Text style={[styles.mapTypeToggleText, { color: colors.primary }]}>
           {mapType === 'standard' ? t('satellite') : t('standard')}
         </Text>
       </TouchableOpacity>
 
       {/* 📍 Pinpoint Location Button */}
       <TouchableOpacity
-        style={styles.myLocationBtn}
+        style={[styles.myLocationBtn, { backgroundColor: colors.bgCard + 'F0', borderColor: colors.border }]}
         onPress={goToMyLocation}
         disabled={loadingLocation}
       >
         {loadingLocation
-          ? <ActivityIndicator color={COLORS.primary} size="small" />
-          : <Ionicons name="locate" size={22} color={COLORS.primary} />
+          ? <ActivityIndicator color={colors.primary} size="small" />
+          : <Ionicons name="locate" size={22} color={colors.primary} />
         }
       </TouchableOpacity>
 
       {/* Legend */}
-      <View style={styles.legend}>
+      <View style={[styles.legend, { backgroundColor: colors.bgCard + 'F5', borderColor: colors.border }]}>
         {Object.entries(PIN_COLORS).slice(0, 3).map(([status, color]) => (
           <View key={status} style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: color }]} />
-            <Text style={styles.legendText}>
+            <Text style={[styles.legendText, { color: colors.textPrimary }]}>
               {status === 'In Progress' ? t('inProgress') : t(status.toLowerCase())}
             </Text>
           </View>
@@ -214,30 +234,30 @@ export default function MapScreen({ navigation }) {
 
       {/* Selected Concern Bottom Sheet */}
       {selectedConcern && (
-        <View style={styles.bottomSheet}>
-          <View style={styles.bottomSheetHandle} />
+        <View style={[styles.bottomSheet, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+          <View style={[styles.bottomSheetHandle, { backgroundColor: colors.border }]} />
           <View style={styles.bottomSheetContent}>
             <View style={styles.bsLeft}>
-              <View style={[styles.bsIcon, { backgroundColor: (CATEGORY_CONFIG[selectedConcern.category]?.bg || COLORS.bgCard) }]}>
+              <View style={[styles.bsIcon, { backgroundColor: (getCategoryConfig(colors)[selectedConcern.category]?.bg || colors.bgCard) }]}>
                 <Ionicons
-                  name={CATEGORY_CONFIG[selectedConcern.category]?.icon || 'alert-circle'}
+                  name={getCategoryConfig(colors)[selectedConcern.category]?.icon || 'alert-circle'}
                   size={22}
-                  color={CATEGORY_CONFIG[selectedConcern.category]?.color || COLORS.primary}
+                  color={getCategoryConfig(colors)[selectedConcern.category]?.color || colors.primary}
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.bsTitle} numberOfLines={2}>{selectedConcern.title}</Text>
+                <Text style={[styles.bsTitle, { color: colors.textPrimary }]} numberOfLines={2}>{selectedConcern.title}</Text>
                 <View style={styles.bsMeta}>
                   <StatusBadge status={selectedConcern.status} />
-                  <Text style={styles.bsVotes}>👍 {selectedConcern.upvotes || 0}</Text>
+                  <Text style={[styles.bsVotes, { color: colors.textMuted }]}>👍 {selectedConcern.upvotes || 0}</Text>
                 </View>
                 {selectedConcern.location_address ? (
-                  <Text style={styles.bsLocation} numberOfLines={1}>
+                  <Text style={[styles.bsLocation, { color: colors.textMuted }]} numberOfLines={1}>
                     📍 {selectedConcern.location_address}
                   </Text>
                 ) : null}
                 {selectedConcern.user_barangay ? (
-                  <Text style={styles.bsBarangay} numberOfLines={1}>
+                  <Text style={[styles.bsBarangay, { color: colors.textSecondary }]} numberOfLines={1}>
                     🏘️ {selectedConcern.user_barangay}
                   </Text>
                 ) : null}
@@ -245,11 +265,11 @@ export default function MapScreen({ navigation }) {
             </View>
 
             <View style={styles.bsActions}>
-              <TouchableOpacity style={styles.viewBtn} onPress={handleViewDetail}>
+              <TouchableOpacity style={[styles.viewBtn, { backgroundColor: colors.primary }]} onPress={handleViewDetail}>
                 <Ionicons name="arrow-forward" size={16} color="#fff" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.closeBtn} onPress={handleDismiss}>
-                <Ionicons name="close" size={16} color={COLORS.textMuted} />
+              <TouchableOpacity style={[styles.closeBtn, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]} onPress={handleDismiss}>
+                <Ionicons name="close" size={16} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
           </View>
@@ -259,7 +279,7 @@ export default function MapScreen({ navigation }) {
       {/* Loading overlay */}
       {dataLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator color={COLORS.primary} size="large" />
+          <ActivityIndicator color={colors.primary} size="large" />
         </View>
       )}
     </View>
@@ -267,7 +287,7 @@ export default function MapScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgDark },
+  container: { flex: 1 },
   map: { flex: 1 },
 
   markerPin: {
@@ -291,32 +311,32 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: 'row', alignItems: 'center', gap: scale(6),
     paddingHorizontal: scale(14), paddingVertical: verticalScale(9), borderRadius: moderateScale(22),
-    backgroundColor: COLORS.bgCard + 'F0', borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4 },
       android: { elevation: 4 },
     }),
   },
-  filterText: { color: COLORS.textPrimary, fontSize: rf(12), fontWeight: '700' },
-  filterCount: { backgroundColor: COLORS.bgCardAlt, borderRadius: moderateScale(10), paddingHorizontal: scale(7), paddingVertical: verticalScale(1) },
-  filterCountText: { color: COLORS.textMuted, fontSize: rf(10), fontWeight: '800' },
+  filterText: { fontSize: rf(12), fontWeight: '700' },
+  filterCount: { borderRadius: moderateScale(10), paddingHorizontal: scale(7), paddingVertical: verticalScale(1) },
+  filterCountText: { fontSize: rf(10), fontWeight: '800' },
 
   countBadge: {
     flexDirection: 'row', alignItems: 'center', gap: scale(5),
     alignSelf: 'flex-start',
     marginLeft: scale(14), marginTop: verticalScale(10),
-    backgroundColor: COLORS.bgCard + 'F0', borderRadius: moderateScale(16),
+    borderRadius: moderateScale(16),
     paddingHorizontal: scale(12), paddingVertical: verticalScale(6),
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1,
   },
-  countText: { color: COLORS.textPrimary, fontSize: rf(12), fontWeight: '700' },
+  countText: { fontSize: rf(12), fontWeight: '700' },
 
   // ── Controls ──
   mapTypeToggle: {
     position: 'absolute', top: verticalScale(140), right: scale(12),
-    backgroundColor: COLORS.bgCard + 'F0', borderRadius: moderateScale(14),
+    borderRadius: moderateScale(14),
     padding: scale(10), alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1,
     gap: verticalScale(3),
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4 },
@@ -324,15 +344,15 @@ const styles = StyleSheet.create({
     }),
   },
   mapTypeToggleText: {
-    color: COLORS.primary, fontSize: rf(9), fontWeight: '800', textTransform: 'uppercase',
+    fontSize: rf(9), fontWeight: '800', textTransform: 'uppercase',
   },
 
   myLocationBtn: {
     position: 'absolute', top: verticalScale(200), right: scale(12),
-    backgroundColor: COLORS.bgCard + 'F0', borderRadius: moderateScale(14),
+    borderRadius: moderateScale(14),
     width: moderateScale(46), height: moderateScale(46),
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4 },
       android: { elevation: 4 },
@@ -342,9 +362,9 @@ const styles = StyleSheet.create({
   // ── Legend ──
   legend: {
     position: 'absolute', bottom: verticalScale(24), left: scale(12),
-    backgroundColor: COLORS.bgCard + 'F5', borderRadius: moderateScale(14),
+    borderRadius: moderateScale(14),
     paddingHorizontal: scale(12), paddingVertical: scale(10), gap: scale(6),
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
       android: { elevation: 5 },
@@ -355,14 +375,13 @@ const styles = StyleSheet.create({
     width: scale(10), height: scale(10), borderRadius: scale(5),
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)',
   },
-  legendText: { color: COLORS.textPrimary, fontSize: rf(11), fontWeight: '600' },
+  legendText: { fontSize: rf(11), fontWeight: '600' },
 
   // ── Bottom Sheet ──
   bottomSheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: COLORS.bgCard,
     borderTopLeftRadius: moderateScale(20), borderTopRightRadius: moderateScale(20),
-    borderTopWidth: 1, borderColor: COLORS.border,
+    borderTopWidth: 1,
     paddingBottom: verticalScale(36), paddingTop: verticalScale(12),
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 8 },
@@ -370,7 +389,7 @@ const styles = StyleSheet.create({
     }),
   },
   bottomSheetHandle: {
-    width: scale(36), height: verticalScale(4), backgroundColor: COLORS.border,
+    width: scale(36), height: verticalScale(4),
     borderRadius: scale(2), alignSelf: 'center', marginBottom: verticalScale(14),
   },
   bottomSheetContent: {
@@ -382,20 +401,20 @@ const styles = StyleSheet.create({
     width: scale(44), height: scale(44), borderRadius: moderateScale(12),
     alignItems: 'center', justifyContent: 'center',
   },
-  bsTitle: { color: COLORS.textPrimary, fontSize: rf(15), fontWeight: '700', marginBottom: verticalScale(5) },
+  bsTitle: { fontSize: rf(15), fontWeight: '700', marginBottom: verticalScale(5) },
   bsMeta: { flexDirection: 'row', alignItems: 'center', gap: scale(8), marginBottom: verticalScale(4) },
-  bsVotes: { color: COLORS.textMuted, fontSize: rf(12) },
-  bsLocation: { color: COLORS.textMuted, fontSize: rf(11), marginBottom: verticalScale(2) },
-  bsBarangay: { color: COLORS.textSecondary, fontSize: rf(11) },
+  bsVotes: { fontSize: rf(12) },
+  bsLocation: { fontSize: rf(11), marginBottom: verticalScale(2) },
+  bsBarangay: { fontSize: rf(11) },
   bsActions: { gap: verticalScale(8) },
   viewBtn: {
     width: scale(38), height: scale(38), borderRadius: moderateScale(10),
-    backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   closeBtn: {
     width: scale(38), height: scale(38), borderRadius: moderateScale(10),
-    backgroundColor: COLORS.bgCardAlt, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: COLORS.border,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1,
   },
 
   // ── Loading ──

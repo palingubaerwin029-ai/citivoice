@@ -107,6 +107,9 @@ export const translations = {
     changeLanguage: 'Change Language',
     selectLanguage: 'Select Language',
     cancel: 'Cancel',
+    theme: 'Theme',
+    darkMode: 'Dark Mode',
+    lightMode: 'Light Mode',
     submitted_stat: 'Submitted',
 
     // Errors
@@ -266,6 +269,9 @@ export const translations = {
     changeLanguage: 'Baguhin ang Wika',
     selectLanguage: 'Pumili ng Wika',
     cancel: 'Kanselahin',
+    theme: 'Tema',
+    darkMode: 'Dark Mode',
+    lightMode: 'Light Mode',
     submitted_stat: 'Isinumite',
 
     required: 'Kinakailangan ang field na ito',
@@ -419,6 +425,9 @@ export const translations = {
     changeLanguage: 'Bag-uha ang Lingguwahe',
     selectLanguage: 'Pilion ang Lingguwahe',
     cancel: 'Kanselar',
+    theme: 'Tema',
+    darkMode: 'Dark Mode',
+    lightMode: 'Light Mode',
     submitted_stat: 'Ginisumite',
 
     required: 'Kinahanglan ini nga field',

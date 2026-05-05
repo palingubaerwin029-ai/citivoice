@@ -2,24 +2,26 @@ import React from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
-  COLORS,
   RADIUS,
   SHADOWS,
-  CATEGORY_CONFIG,
-  STATUS_CONFIG,
+  getCategoryConfig,
+  getStatusConfig,
 } from "../utils/theme";
+import { useTheme } from "../context/ThemeContext";
 import { scale, verticalScale, rf } from "../utils/responsive";
 import { resolveImageUrl } from "../context/AuthContext";
 
-const PRIORITY_COLORS = {
-  High: { color: "#EF4444", bg: "rgba(239,68,68,0.12)" },
-  Medium: { color: "#F59E0B", bg: "rgba(245,158,11,0.12)" },
-  Low: { color: "#10B981", bg: "rgba(16,185,129,0.12)" },
-};
-
 export default function ConcernCard({ concern, onPress, onUpvote, isUpvoted }) {
-  const cat = CATEGORY_CONFIG[concern.category] || CATEGORY_CONFIG["Other"];
-  const status = STATUS_CONFIG[concern.status] || STATUS_CONFIG["Pending"];
+  const { colors } = useTheme();
+  
+  const PRIORITY_COLORS = {
+    High: { color: colors.danger, bg: colors.danger + "22" },
+    Medium: { color: colors.warning, bg: colors.warning + "22" },
+    Low: { color: colors.success, bg: colors.success + "22" },
+  };
+
+  const cat = getCategoryConfig(colors)[concern.category] || getCategoryConfig(colors)["Other"];
+  const status = getStatusConfig(colors)[concern.status] || getStatusConfig(colors)["Pending"];
   const prio = PRIORITY_COLORS[concern.priority] || PRIORITY_COLORS["Low"];
   const isHigh = concern.priority === "High";
 
@@ -29,12 +31,12 @@ export default function ConcernCard({ concern, onPress, onUpvote, isUpvoted }) {
 
   return (
     <TouchableOpacity
-      style={[S.card, isHigh && S.cardUrgent]}
+      style={[S.card, { backgroundColor: colors.bgCard, borderColor: colors.border }, isHigh && { borderColor: colors.danger + '44' }]}
       onPress={onPress}
       activeOpacity={0.88}
     >
       {/* Urgent strip */}
-      {isHigh && <View style={S.urgentStrip} />}
+      {isHigh && <View style={[S.urgentStrip, { backgroundColor: colors.danger }]} />}
 
       {/* Header row */}
       <View style={S.header}>
@@ -54,33 +56,33 @@ export default function ConcernCard({ concern, onPress, onUpvote, isUpvoted }) {
         </View>
 
         {/* Date */}
-        <Text style={S.dateText}>{fmt(concern.created_at)}</Text>
+        <Text style={[S.dateText, { color: colors.textMuted }]}>{fmt(concern.created_at)}</Text>
       </View>
 
       {/* Title */}
-      <Text style={S.title} numberOfLines={2}>
+      <Text style={[S.title, { color: colors.textPrimary }]} numberOfLines={2}>
         {concern.title}
       </Text>
 
       {/* Description */}
-      <Text style={S.desc} numberOfLines={2}>
+      <Text style={[S.desc, { color: colors.textSecondary }]} numberOfLines={2}>
         {concern.description}
       </Text>
 
       {/* Footer */}
-      <View style={S.footer}>
+      <View style={[S.footer, { borderTopColor: colors.border }]}>
         {/* Avatar + name */}
         <View style={S.authorRow}>
-          <View style={S.authorAvatar}>
-            <Text style={S.authorInitial}>
+          <View style={[S.authorAvatar, { backgroundColor: colors.bgCardAlt }]}>
+            <Text style={[S.authorInitial, { color: colors.textSecondary }]}>
               {concern.user_name ? concern.user_name.charAt(0).toUpperCase() : "A"}
             </Text>
           </View>
           <View style={{ flex: 1, paddingRight: 8 }}>
-            <Text style={S.authorName} numberOfLines={1}>
+            <Text style={[S.authorName, { color: colors.textPrimary }]} numberOfLines={1}>
               {concern.user_name || "Anonymous Citizen"}
             </Text>
-            <Text style={S.authorSub} numberOfLines={1}>
+            <Text style={[S.authorSub, { color: colors.textMuted }]} numberOfLines={1}>
               📍 {concern.location_address || "Location unknown"}
             </Text>
           </View>
@@ -102,16 +104,16 @@ export default function ConcernCard({ concern, onPress, onUpvote, isUpvoted }) {
 
           {/* Upvote */}
           <TouchableOpacity
-            style={[S.upvoteBtn, isUpvoted && S.upvoteBtnActive]}
+            style={[S.upvoteBtn, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, isUpvoted && { backgroundColor: colors.primary + "22", borderColor: colors.primary }]}
             onPress={onUpvote}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons
               name={isUpvoted ? "arrow-up-circle" : "arrow-up-circle-outline"}
               size={15}
-              color={isUpvoted ? COLORS.primary : COLORS.textMuted}
+              color={isUpvoted ? colors.primary : colors.textMuted}
             />
-            <Text style={[S.upvoteNum, isUpvoted && { color: COLORS.primary }]}>
+            <Text style={[S.upvoteNum, { color: colors.textMuted }, isUpvoted && { color: colors.primary }]}>
               {concern.upvotes || 0}
             </Text>
           </TouchableOpacity>
@@ -128,15 +130,12 @@ export default function ConcernCard({ concern, onPress, onUpvote, isUpvoted }) {
 
 const S = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.bgCard,
     borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: COLORS.border,
     marginBottom: 12,
     overflow: "hidden",
-    ...SHADOWS.card,
   },
-  cardUrgent: { borderColor: "rgba(239,68,68,0.3)" },
+  cardUrgent: {},
 
   urgentStrip: {
     position: "absolute",
@@ -144,7 +143,6 @@ const S = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: scale(3),
-    backgroundColor: "#EF4444",
   },
 
   header: {
@@ -173,10 +171,9 @@ const S = StyleSheet.create({
   },
   prioText: { fontSize: rf(10), fontWeight: "700" },
 
-  dateText: { color: COLORS.textMuted, fontSize: rf(11) },
+  dateText: { fontSize: rf(11) },
 
   title: {
-    color: COLORS.textPrimary,
     fontSize: rf(15),
     fontWeight: "700",
     lineHeight: rf(22),
@@ -186,7 +183,6 @@ const S = StyleSheet.create({
   },
 
   desc: {
-    color: COLORS.textSecondary,
     fontSize: rf(13),
     lineHeight: rf(19),
     paddingHorizontal: scale(16),
@@ -200,7 +196,6 @@ const S = StyleSheet.create({
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(10),
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
   },
 
   authorRow: { flexDirection: "row", alignItems: "center", gap: scale(8), flex: 1 },
@@ -208,17 +203,15 @@ const S = StyleSheet.create({
     width: scale(26),
     height: scale(26),
     borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.primary + "33",
     alignItems: "center",
     justifyContent: "center",
   },
   authorInitial: {
-    color: COLORS.primaryLight,
     fontSize: rf(12),
     fontWeight: "700",
   },
-  authorName: { color: COLORS.textSecondary, fontSize: rf(12), fontWeight: "600" },
-  authorSub: { color: COLORS.textMuted, fontSize: rf(10), marginTop: verticalScale(1) },
+  authorName: { fontSize: rf(12), fontWeight: "600" },
+  authorSub: { fontSize: rf(10), marginTop: verticalScale(1) },
 
   footerRight: { flexDirection: "row", alignItems: "center", gap: scale(8) },
 
@@ -241,15 +234,10 @@ const S = StyleSheet.create({
     paddingHorizontal: scale(8),
     paddingVertical: verticalScale(4),
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.bgCardAlt,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  upvoteBtnActive: {
-    backgroundColor: COLORS.primary + "18",
-    borderColor: COLORS.primary + "44",
-  },
-  upvoteNum: { color: COLORS.textMuted, fontSize: rf(12), fontWeight: "700" },
+  upvoteBtnActive: {},
+  upvoteNum: { fontSize: rf(12), fontWeight: "700" },
 
   imageStrip: { width: "100%", height: verticalScale(160), marginTop: verticalScale(2) },
 });

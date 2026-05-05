@@ -15,7 +15,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth, VERIFICATION_STATUS } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
-import { COLORS, RADIUS, SHADOWS } from "../../utils/theme";
+import { RADIUS, SHADOWS } from "../../utils/theme";
+import { useTheme } from "../../context/ThemeContext";
 import { scale, verticalScale, rf } from "../../utils/responsive";
 
 const LANGS = [
@@ -26,6 +27,7 @@ const LANGS = [
 
 // ── Blocked status screen ─────────────────────────────────────────────────
 function VerificationGate({ user, onLogout, onGoVerify }) {
+  const { colors } = useTheme();
   const status = user?.verification_status;
 
   const CONFIG = {
@@ -37,7 +39,7 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
         "To protect the community, we require all citizens to verify their identity before accessing CitiVoice.",
       action: "Submit My ID",
       actionFn: onGoVerify,
-      actionColor: COLORS.primary,
+      actionColor: colors.primary,
     },
     [VERIFICATION_STATUS.PENDING]: {
       icon: "⏳",
@@ -64,11 +66,11 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
   const cfg = CONFIG[status] || CONFIG[VERIFICATION_STATUS.UNVERIFIED];
 
   return (
-    <View style={G.container}>
+    <View style={[G.container, { backgroundColor: colors.bgDark }]}>
       {/* Background glow */}
       <View style={[G.glow, { backgroundColor: cfg.color }]} />
 
-      <View style={G.card}>
+      <View style={[G.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
         {/* Status icon */}
         <View
           style={[
@@ -102,22 +104,22 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
           </Text>
         </View>
 
-        <Text style={G.title}>{cfg.title}</Text>
-        <Text style={G.message}>{cfg.message}</Text>
+        <Text style={[G.title, { color: colors.textPrimary }]}>{cfg.title}</Text>
+        <Text style={[G.message, { color: colors.textSecondary }]}>{cfg.message}</Text>
 
         {/* Steps for unverified */}
         {status === VERIFICATION_STATUS.UNVERIFIED && (
-          <View style={G.stepsBox}>
+          <View style={[G.stepsBox, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}>
             {[
               { n: "1", text: "Submit a valid government ID" },
               { n: "2", text: "Admin reviews your submission" },
               { n: "3", text: "Get verified and access CitiVoice" },
             ].map((step) => (
               <View key={step.n} style={G.step}>
-                <View style={G.stepNum}>
-                  <Text style={G.stepNumText}>{step.n}</Text>
+                <View style={[G.stepNum, { backgroundColor: colors.primary + '22', borderColor: colors.primary + '44' }]}>
+                  <Text style={[G.stepNumText, { color: colors.primaryLight }]}>{step.n}</Text>
                 </View>
-                <Text style={G.stepText}>{step.text}</Text>
+                <Text style={[G.stepText, { color: colors.textSecondary }]}>{step.text}</Text>
               </View>
             ))}
           </View>
@@ -125,13 +127,13 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
 
         {/* Pending info box */}
         {status === VERIFICATION_STATUS.PENDING && (
-          <View style={G.pendingBox}>
+          <View style={[G.pendingBox, { backgroundColor: colors.statusPending + '14', borderColor: colors.statusPending + '33' }]}>
             <Ionicons
               name="information-circle-outline"
               size={18}
-              color="#F59E0B"
+              color={colors.statusPending}
             />
-            <Text style={G.pendingText}>
+            <Text style={[G.pendingText, { color: colors.statusPending }]}>
               You will be notified once your account is approved. You may check
               back later.
             </Text>
@@ -152,19 +154,19 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
 
         {/* Sign out */}
         <TouchableOpacity style={G.signOutBtn} onPress={onLogout}>
-          <Ionicons name="log-out-outline" size={16} color={COLORS.textMuted} />
-          <Text style={G.signOutText}>Sign Out</Text>
+          <Ionicons name="log-out-outline" size={16} color={colors.textMuted} />
+          <Text style={[G.signOutText, { color: colors.textMuted }]}>Sign Out</Text>
         </TouchableOpacity>
       </View>
 
       {/* Account info pill */}
-      <View style={G.accountPill}>
+      <View style={[G.accountPill, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
         <Ionicons
           name="person-circle-outline"
           size={14}
-          color={COLORS.textMuted}
+          color={colors.textMuted}
         />
-        <Text style={G.accountEmail} numberOfLines={1}>
+        <Text style={[G.accountEmail, { color: colors.textSecondary }]} numberOfLines={1}>
           {user?.email}
         </Text>
       </View>
@@ -174,6 +176,7 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
 
 // ── Main Login Screen ──────────────────────────────────────────────────────
 export default function LoginScreen({ navigation }) {
+  const { colors } = useTheme();
   const { login, logout, user } = useAuth();
   const { t, language, changeLanguage } = useLanguage();
 
@@ -251,10 +254,10 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <LinearGradient
-      colors={[COLORS.bgDeep, "#080F1E", COLORS.bgDark]}
+      colors={[colors.bgDeep, colors.bgDark]}
       style={{ flex: 1 }}
     >
-      <View style={S.glowBlob} />
+      <View style={[S.glowBlob, { backgroundColor: colors.primary }]} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -271,11 +274,11 @@ export default function LoginScreen({ navigation }) {
             {LANGS.map((l) => (
               <TouchableOpacity
                 key={l.code}
-                style={[S.langChip, language === l.code && S.langChipActive]}
+                style={[S.langChip, { borderColor: colors.border }, language === l.code && { backgroundColor: colors.primary, borderColor: colors.primary }]}
                 onPress={() => changeLanguage(l.code)}
               >
                 <Text
-                  style={[S.langText, language === l.code && S.langTextActive]}
+                  style={[S.langText, { color: colors.textMuted }, language === l.code && { color: '#fff' }]}
                 >
                   {l.label}
                 </Text>
@@ -285,62 +288,62 @@ export default function LoginScreen({ navigation }) {
 
           {/* Logo */}
           <View style={S.logoSection}>
-            <View style={S.logoRing}>
+            <View style={[S.logoRing, { backgroundColor: colors.bgCard, borderColor: colors.borderMd }]}>
               <Text style={{ fontSize: 32 }}>📢</Text>
             </View>
-            <Text style={S.appName}>CitiVoice</Text>
-            <Text style={S.appTagline}>Kabankalan City</Text>
+            <Text style={[S.appName, { color: colors.textPrimary }]}>CitiVoice</Text>
+            <Text style={[S.appTagline, { color: colors.textMuted }]}>Kabankalan City</Text>
           </View>
 
           {/* Form card */}
-          <View style={S.card}>
-            <Text style={S.cardTitle}>{t('welcomeBack')}</Text>
-            <Text style={S.cardSubtitle}>{t('signInSubtitle')}</Text>
+          <View style={[S.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+            <Text style={[S.cardTitle, { color: colors.textPrimary }]}>{t('welcomeBack')}</Text>
+            <Text style={[S.cardSubtitle, { color: colors.textSecondary }]}>{t('signInSubtitle')}</Text>
 
             {/* Email */}
             <View style={S.field}>
-              <Text style={S.label}>{t('email').toUpperCase()}</Text>
-              <View style={[S.inputWrap, errors.email && S.inputError]}>
+              <Text style={[S.label, { color: colors.textMuted }]}>{t('email').toUpperCase()}</Text>
+              <View style={[S.inputWrap, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, errors.email && { borderColor: colors.danger }]}>
                 <Ionicons
                   name="mail-outline"
                   size={17}
-                  color={COLORS.textMuted}
+                  color={colors.textMuted}
                 />
                 <TextInput
-                  style={S.input}
+                  style={[S.input, { color: colors.textPrimary }]}
                   value={email}
                   onChangeText={(v) => {
                     setEmail(v);
                     setErrors((e) => ({ ...e, email: null }));
                   }}
                   placeholder="you@example.com"
-                  placeholderTextColor={COLORS.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
               </View>
-              {errors.email && <Text style={S.errText}>⚠ {errors.email}</Text>}
+              {errors.email && <Text style={[S.errText, { color: colors.danger }]}>⚠ {errors.email}</Text>}
             </View>
 
             {/* Password */}
             <View style={S.field}>
-              <Text style={S.label}>{t('password').toUpperCase()}</Text>
-              <View style={[S.inputWrap, errors.password && S.inputError]}>
+              <Text style={[S.label, { color: colors.textMuted }]}>{t('password').toUpperCase()}</Text>
+              <View style={[S.inputWrap, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, errors.password && { borderColor: colors.danger }]}>
                 <Ionicons
                   name="lock-closed-outline"
                   size={17}
-                  color={COLORS.textMuted}
+                  color={colors.textMuted}
                 />
                 <TextInput
-                  style={[S.input, { paddingRight: 40 }]}
+                  style={[S.input, { color: colors.textPrimary, paddingRight: 40 }]}
                   value={password}
                   onChangeText={(v) => {
                     setPassword(v);
                     setErrors((e) => ({ ...e, password: null }));
                   }}
                   placeholder="••••••••"
-                  placeholderTextColor={COLORS.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   secureTextEntry={!showPw}
                 />
                 <TouchableOpacity
@@ -350,18 +353,18 @@ export default function LoginScreen({ navigation }) {
                   <Ionicons
                     name={showPw ? "eye-off-outline" : "eye-outline"}
                     size={18}
-                    color={COLORS.textMuted}
+                    color={colors.textMuted}
                   />
                 </TouchableOpacity>
               </View>
               {errors.password && (
-                <Text style={S.errText}>⚠ {errors.password}</Text>
+                <Text style={[S.errText, { color: colors.danger }]}>⚠ {errors.password}</Text>
               )}
             </View>
 
             {/* Submit */}
             <TouchableOpacity
-              style={[S.submitBtn, loading && { opacity: 0.65 }]}
+              style={[S.submitBtn, { backgroundColor: colors.primary }, loading && { opacity: 0.65 }]}
               onPress={handleLogin}
               disabled={loading}
               activeOpacity={0.85}
@@ -378,9 +381,9 @@ export default function LoginScreen({ navigation }) {
 
             {/* Register link */}
             <View style={S.registerRow}>
-              <Text style={S.registerText}>{t('noAccount')} </Text>
+              <Text style={[S.registerText, { color: colors.textSecondary }]}>{t('noAccount')} </Text>
               <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-                <Text style={S.registerLink}>{t('register')}</Text>
+                <Text style={[S.registerLink, { color: colors.primaryLight }]}>{t('register')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -390,9 +393,9 @@ export default function LoginScreen({ navigation }) {
             <Ionicons
               name="shield-checkmark-outline"
               size={14}
-              color={COLORS.textMuted}
+              color={colors.textMuted}
             />
-            <Text style={S.noteText}>
+            <Text style={[S.noteText, { color: colors.textMuted }]}>
               {t('adminVerificationNote')}
             </Text>
           </View>
@@ -419,7 +422,6 @@ const S = StyleSheet.create({
     width: scale(300),
     height: scale(300),
     borderRadius: scale(150),
-    backgroundColor: COLORS.primary,
     opacity: 0.08,
   },
 
@@ -434,56 +436,41 @@ const S = StyleSheet.create({
     paddingVertical: verticalScale(5),
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  langChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  langText: { color: COLORS.textMuted, fontSize: rf(11), fontWeight: "700" },
-  langTextActive: { color: "#fff" },
-
   logoSection: { alignItems: "center", marginBottom: verticalScale(36) },
   logoRing: {
     width: scale(88),
     height: scale(88),
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.borderMd,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: verticalScale(16),
-    backgroundColor: COLORS.bgCard,
     ...SHADOWS.card,
   },
   appName: {
-    color: COLORS.textPrimary,
     fontSize: rf(28),
     fontWeight: "800",
     letterSpacing: -0.5,
   },
-  appTagline: { color: COLORS.textMuted, fontSize: rf(13), marginTop: verticalScale(4) },
+  appTagline: { fontSize: rf(13), marginTop: verticalScale(4) },
 
   card: {
-    backgroundColor: COLORS.bgCard,
     borderRadius: RADIUS["2xl"],
     padding: scale(24),
     borderWidth: 1,
-    borderColor: COLORS.border,
     ...SHADOWS.card,
   },
   cardTitle: {
-    color: COLORS.textPrimary,
     fontSize: rf(20),
     fontWeight: "700",
     letterSpacing: -0.3,
     marginBottom: verticalScale(4),
   },
-  cardSubtitle: { color: COLORS.textSecondary, fontSize: rf(13), marginBottom: verticalScale(24) },
+  cardSubtitle: { fontSize: rf(13), marginBottom: verticalScale(24) },
 
   field: { marginBottom: verticalScale(16) },
   label: {
-    color: COLORS.textMuted,
     fontSize: rf(10),
     fontWeight: "700",
     letterSpacing: 0.8,
@@ -493,24 +480,20 @@ const S = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: scale(10),
-    backgroundColor: COLORS.bgCardAlt,
     borderRadius: RADIUS.md,
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(13),
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  inputError: { borderColor: COLORS.danger },
-  input: { flex: 1, color: COLORS.textPrimary, fontSize: rf(14) },
+  input: { flex: 1, fontSize: rf(14) },
   eyeBtn: { position: "absolute", right: scale(14) },
-  errText: { color: COLORS.danger, fontSize: rf(11), marginTop: verticalScale(5) },
+  errText: { fontSize: rf(11), marginTop: verticalScale(5) },
 
   submitBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: scale(8),
-    backgroundColor: COLORS.primary,
     borderRadius: RADIUS.md,
     height: verticalScale(52),
     marginTop: verticalScale(8),
@@ -523,8 +506,8 @@ const S = StyleSheet.create({
     justifyContent: "center",
     marginTop: verticalScale(20),
   },
-  registerText: { color: COLORS.textSecondary, fontSize: rf(14) },
-  registerLink: { color: COLORS.primaryLight, fontSize: rf(14), fontWeight: "700" },
+  registerText: { fontSize: rf(14) },
+  registerLink: { fontSize: rf(14), fontWeight: "700" },
 
   noteBox: {
     flexDirection: "row",
@@ -533,14 +516,13 @@ const S = StyleSheet.create({
     gap: scale(7),
     marginTop: verticalScale(20),
   },
-  noteText: { color: COLORS.textMuted, fontSize: rf(12) },
+  noteText: { fontSize: rf(12) },
 });
 
 // ── Styles: Verification Gate ──────────────────────────────────────────────
 const G = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bgDark,
     alignItems: "center",
     justifyContent: "center",
     padding: scale(24),
@@ -557,11 +539,9 @@ const G = StyleSheet.create({
 
   card: {
     width: "100%",
-    backgroundColor: COLORS.bgCard,
     borderRadius: RADIUS["2xl"],
     padding: scale(24),
     borderWidth: 1,
-    borderColor: COLORS.border,
     alignItems: "center",
     ...SHADOWS.card,
   },
@@ -591,7 +571,6 @@ const G = StyleSheet.create({
   statusText: { fontSize: rf(12), fontWeight: "700" },
 
   title: {
-    color: COLORS.textPrimary,
     fontSize: rf(19),
     fontWeight: "800",
     textAlign: "center",
@@ -599,7 +578,6 @@ const G = StyleSheet.create({
     marginBottom: verticalScale(10),
   },
   message: {
-    color: COLORS.textSecondary,
     fontSize: rf(14),
     textAlign: "center",
     lineHeight: rf(22),
@@ -608,11 +586,9 @@ const G = StyleSheet.create({
 
   stepsBox: {
     width: "100%",
-    backgroundColor: COLORS.bgCardAlt,
     borderRadius: RADIUS.lg,
     padding: scale(16),
     borderWidth: 1,
-    borderColor: COLORS.border,
     marginBottom: verticalScale(20),
     gap: verticalScale(12),
   },
@@ -621,29 +597,25 @@ const G = StyleSheet.create({
     width: scale(26),
     height: scale(26),
     borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.primary + "22",
     borderWidth: 1,
-    borderColor: COLORS.primary + "44",
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
-  stepNumText: { color: COLORS.primaryLight, fontSize: rf(12), fontWeight: "800" },
-  stepText: { color: COLORS.textSecondary, fontSize: rf(13), flex: 1 },
+  stepNumText: { fontSize: rf(12), fontWeight: "800" },
+  stepText: { fontSize: rf(13), flex: 1 },
 
   pendingBox: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: scale(10),
-    backgroundColor: "rgba(245,158,11,0.08)",
     borderRadius: RADIUS.lg,
     padding: scale(14),
     borderWidth: 1,
-    borderColor: "rgba(245,158,11,0.2)",
     marginBottom: verticalScale(20),
     width: "100%",
   },
-  pendingText: { color: "#FCD34D", fontSize: rf(13), lineHeight: rf(20), flex: 1 },
+  pendingText: { fontSize: rf(13), lineHeight: rf(20), flex: 1 },
 
   actionBtn: {
     flexDirection: "row",
@@ -664,19 +636,17 @@ const G = StyleSheet.create({
     gap: scale(7),
     paddingVertical: verticalScale(10),
   },
-  signOutText: { color: COLORS.textMuted, fontSize: rf(14) },
+  signOutText: { fontSize: rf(14) },
 
   accountPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: scale(6),
     marginTop: verticalScale(16),
-    backgroundColor: COLORS.bgCard,
     borderRadius: RADIUS.full,
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(7),
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  accountEmail: { color: COLORS.textSecondary, fontSize: rf(12), maxWidth: scale(240) },
+  accountEmail: { fontSize: rf(12), maxWidth: scale(240) },
 });

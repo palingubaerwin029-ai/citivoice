@@ -14,10 +14,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../../context/AuthContext";
 import { useConcerns } from "../../context/ConcernContext";
 import { useLanguage } from "../../context/LanguageContext";
-import { COLORS, RADIUS, SHADOWS, STATUS_CONFIG } from "../../utils/theme";
+import { RADIUS, SHADOWS, STATUS_CONFIG } from "../../utils/theme";
+import { useTheme } from "../../context/ThemeContext";
 import { scale, verticalScale, rf, moderateScale } from "../../utils/responsive";
 import { LANGUAGES } from "../../i18n/translations";
+
 export default function ProfileScreen() {
+  const { colors, theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const { myConcerns } = useConcerns();
   const { t, language, changeLanguage } = useLanguage();
@@ -46,7 +49,7 @@ export default function ProfileScreen() {
     ]);
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: COLORS.bgDark }}
+      style={{ flex: 1, backgroundColor: colors.bgDark }}
       edges={["top"]}
     >
       <ScrollView
@@ -54,7 +57,7 @@ export default function ProfileScreen() {
         contentContainerStyle={{ paddingBottom: verticalScale(48) }}
       >
         <LinearGradient
-          colors={[COLORS.primary + "22", COLORS.bgDark]}
+          colors={[colors.primary + "22", colors.bgDark]}
           style={{
             alignItems: "center",
             paddingHorizontal: scale(24),
@@ -64,7 +67,7 @@ export default function ProfileScreen() {
         >
           <View style={{ position: "relative", marginBottom: verticalScale(14) }}>
             <LinearGradient
-              colors={[COLORS.primary, COLORS.purple || "#8B5CF6"]}
+              colors={[colors.primary, colors.purple || "#8B5CF6"]}
               style={{
                 width: scale(80),
                 height: scale(80),
@@ -85,11 +88,11 @@ export default function ProfileScreen() {
                 width: scale(22),
                 height: scale(22),
                 borderRadius: scale(11),
-                backgroundColor: COLORS.accent,
+                backgroundColor: colors.accent,
                 alignItems: "center",
                 justifyContent: "center",
                 borderWidth: 2,
-                borderColor: COLORS.bgDark,
+                borderColor: colors.bgDark,
               }}
             >
               <Ionicons name="checkmark" size={10} color="#fff" />
@@ -97,7 +100,7 @@ export default function ProfileScreen() {
           </View>
           <Text
             style={{
-              color: COLORS.textPrimary,
+              color: colors.textPrimary,
               fontSize: rf(22),
               fontWeight: "800",
               letterSpacing: -0.4,
@@ -108,7 +111,7 @@ export default function ProfileScreen() {
           </Text>
           <Text
             style={{
-              color: COLORS.textSecondary,
+              color: colors.textSecondary,
               fontSize: rf(13),
               marginBottom: verticalScale(10),
             }}
@@ -120,23 +123,23 @@ export default function ProfileScreen() {
               flexDirection: "row",
               alignItems: "center",
               gap: scale(5),
-              backgroundColor: COLORS.bgCard,
+              backgroundColor: colors.bgCard,
               borderRadius: RADIUS.full,
               paddingHorizontal: scale(12),
               paddingVertical: verticalScale(5),
               borderWidth: 1,
-              borderColor: COLORS.border,
+              borderColor: colors.border,
               marginBottom: verticalScale(8),
             }}
           >
             <Ionicons
               name="location-outline"
               size={12}
-              color={COLORS.primaryLight}
+              color={colors.primaryLight}
             />
             <Text
               style={{
-                color: COLORS.primaryLight,
+                color: colors.primaryLight,
                 fontSize: rf(12),
                 fontWeight: "600",
               }}
@@ -144,7 +147,7 @@ export default function ProfileScreen() {
               {user?.barangay}
             </Text>
           </View>
-          <Text style={{ color: COLORS.textMuted, fontSize: rf(11) }}>
+          <Text style={{ color: colors.textMuted, fontSize: rf(11) }}>
             {t('memberSince')} {memberSince}
           </Text>
         </LinearGradient>
@@ -161,22 +164,22 @@ export default function ProfileScreen() {
             {
               label: t('submitted_stat'),
               value: stats.total,
-              color: COLORS.primaryLight,
+              color: colors.primaryLight,
             },
-            { label: t('pending'), value: stats.pending, color: "#F59E0B" },
-            { label: t('active'), value: stats.inProgress, color: "#3B82F6" },
-            { label: t('resolved'), value: stats.resolved, color: "#10B981" },
+            { label: t('pending'), value: stats.pending, color: colors.statusPending },
+            { label: t('active'), value: stats.inProgress, color: colors.statusInProgress },
+            { label: t('resolved'), value: stats.resolved, color: colors.statusResolved },
           ].map((s, i) => (
             <View
               key={i}
               style={{
                 flex: 1,
-                backgroundColor: COLORS.bgCard,
+                backgroundColor: colors.bgCard,
                 borderRadius: RADIUS.lg,
                 paddingVertical: verticalScale(14),
                 alignItems: "center",
                 borderWidth: 1,
-                borderColor: COLORS.border,
+                borderColor: colors.border,
               }}
             >
               <Text
@@ -190,7 +193,7 @@ export default function ProfileScreen() {
                 {s.value}
               </Text>
               <Text
-                style={{ color: COLORS.textMuted, fontSize: rf(10), marginTop: verticalScale(3) }}
+                style={{ color: colors.textMuted, fontSize: rf(10), marginTop: verticalScale(3) }}
               >
                 {s.label}
               </Text>
@@ -201,7 +204,7 @@ export default function ProfileScreen() {
           <View style={{ paddingHorizontal: scale(16), marginBottom: verticalScale(20) }}>
             <Text
               style={{
-                color: COLORS.textSecondary,
+                color: colors.textSecondary,
                 fontSize: rf(11),
                 fontWeight: "700",
                 textTransform: "uppercase",
@@ -220,11 +223,11 @@ export default function ProfileScreen() {
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 10,
-                    backgroundColor: COLORS.bgCard,
+                    backgroundColor: colors.bgCard,
                     borderRadius: RADIUS.lg,
                     padding: 12,
                     borderWidth: 1,
-                    borderColor: COLORS.border,
+                    borderColor: colors.border,
                     marginBottom: 8,
                   }}
                 >
@@ -240,7 +243,7 @@ export default function ProfileScreen() {
                   <View style={{ flex: 1 }}>
                     <Text
                       style={{
-                        color: COLORS.textPrimary,
+                        color: colors.textPrimary,
                         fontSize: rf(13),
                         fontWeight: "600",
                       }}
@@ -250,7 +253,7 @@ export default function ProfileScreen() {
                     </Text>
                     <Text
                       style={{
-                        color: COLORS.textMuted,
+                        color: colors.textMuted,
                         fontSize: rf(11),
                         marginTop: verticalScale(2),
                       }}
@@ -286,7 +289,7 @@ export default function ProfileScreen() {
         <View style={{ paddingHorizontal: scale(16), marginBottom: verticalScale(20) }}>
           <Text
             style={{
-              color: COLORS.textSecondary,
+              color: colors.textSecondary,
               fontSize: rf(11),
               fontWeight: "700",
               textTransform: "uppercase",
@@ -298,10 +301,10 @@ export default function ProfileScreen() {
           </Text>
           <View
             style={{
-              backgroundColor: COLORS.bgCard,
+              backgroundColor: colors.bgCard,
               borderRadius: RADIUS.xl,
               borderWidth: 1,
-              borderColor: COLORS.border,
+              borderColor: colors.border,
               overflow: "hidden",
             }}
           >
@@ -327,7 +330,7 @@ export default function ProfileScreen() {
                   alignItems: "center",
                   padding: scale(14),
                   borderBottomWidth: i < arr.length - 1 ? 1 : 0,
-                  borderBottomColor: COLORS.border,
+                  borderBottomColor: colors.border,
                 }}
               >
                 <View
@@ -342,7 +345,7 @@ export default function ProfileScreen() {
                       width: scale(30),
                       height: scale(30),
                       borderRadius: moderateScale(8),
-                      backgroundColor: COLORS.bgCardAlt,
+                      backgroundColor: colors.bgCardAlt,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
@@ -350,16 +353,16 @@ export default function ProfileScreen() {
                     <Ionicons
                       name={item.icon}
                       size={15}
-                      color={COLORS.textSecondary}
+                      color={colors.textSecondary}
                     />
                   </View>
-                  <Text style={{ color: COLORS.textSecondary, fontSize: rf(14) }}>
+                  <Text style={{ color: colors.textSecondary, fontSize: rf(14) }}>
                     {item.label}
                   </Text>
                 </View>
                 <Text
                   style={{
-                    color: COLORS.textPrimary,
+                    color: colors.textPrimary,
                     fontSize: rf(13),
                     fontWeight: "600",
                     maxWidth: scale(180),
@@ -375,7 +378,7 @@ export default function ProfileScreen() {
         <View style={{ paddingHorizontal: scale(16), marginBottom: verticalScale(20) }}>
           <Text
             style={{
-              color: COLORS.textSecondary,
+              color: colors.textSecondary,
               fontSize: rf(11),
               fontWeight: "700",
               textTransform: "uppercase",
@@ -387,10 +390,10 @@ export default function ProfileScreen() {
           </Text>
           <View
             style={{
-              backgroundColor: COLORS.bgCard,
+              backgroundColor: colors.bgCard,
               borderRadius: RADIUS.xl,
               borderWidth: 1,
-              borderColor: COLORS.border,
+              borderColor: colors.border,
               overflow: "hidden",
             }}
           >
@@ -400,6 +403,8 @@ export default function ProfileScreen() {
                 justifyContent: "space-between",
                 alignItems: "center",
                 padding: scale(14),
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border,
               }}
               onPress={() => setShowLang(true)}
             >
@@ -411,7 +416,7 @@ export default function ProfileScreen() {
                     width: scale(30),
                     height: scale(30),
                     borderRadius: moderateScale(8),
-                    backgroundColor: COLORS.bgCardAlt,
+                    backgroundColor: colors.bgCardAlt,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
@@ -419,10 +424,10 @@ export default function ProfileScreen() {
                   <Ionicons
                     name="language-outline"
                     size={15}
-                    color={COLORS.textSecondary}
+                    color={colors.textSecondary}
                   />
                 </View>
-                <Text style={{ color: COLORS.textSecondary, fontSize: rf(14) }}>
+                <Text style={{ color: colors.textSecondary, fontSize: rf(14) }}>
                   {t('language')}
                 </Text>
               </View>
@@ -431,7 +436,7 @@ export default function ProfileScreen() {
               >
                 <Text
                   style={{
-                    color: COLORS.primaryLight,
+                    color: colors.primaryLight,
                     fontSize: rf(13),
                     fontWeight: "600",
                   }}
@@ -442,7 +447,58 @@ export default function ProfileScreen() {
                 <Ionicons
                   name="chevron-forward"
                   size={14}
-                  color={COLORS.textMuted}
+                  color={colors.textMuted}
+                />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: scale(14),
+              }}
+              onPress={toggleTheme}
+            >
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: scale(10) }}
+              >
+                <View
+                  style={{
+                    width: scale(30),
+                    height: scale(30),
+                    borderRadius: moderateScale(8),
+                    backgroundColor: colors.bgCardAlt,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons
+                    name={theme === 'dark' ? "moon-outline" : "sunny-outline"}
+                    size={15}
+                    color={colors.textSecondary}
+                  />
+                </View>
+                <Text style={{ color: colors.textSecondary, fontSize: rf(14) }}>
+                  {t('theme')}
+                </Text>
+              </View>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: scale(6) }}
+              >
+                <Text
+                  style={{
+                    color: colors.primaryLight,
+                    fontSize: rf(13),
+                    fontWeight: "600",
+                  }}
+                >
+                  {theme === 'dark' ? t('darkMode') : t('lightMode')}
+                </Text>
+                <Ionicons
+                  name="repeat-outline"
+                  size={14}
+                  color={colors.textMuted}
                 />
               </View>
             </TouchableOpacity>
@@ -467,11 +523,11 @@ export default function ProfileScreen() {
           <Ionicons
             name="log-out-outline"
             size={18}
-            color={COLORS.danger || "#EF4444"}
+            color={colors.danger || "#EF4444"}
           />
           <Text
             style={{
-              color: COLORS.danger || "#EF4444",
+              color: colors.danger || "#EF4444",
               fontSize: rf(15),
               fontWeight: "700",
             }}
@@ -480,7 +536,7 @@ export default function ProfileScreen() {
           </Text>
         </TouchableOpacity>
         <Text
-          style={{ color: COLORS.textMuted, fontSize: rf(11), textAlign: "center" }}
+          style={{ color: colors.textMuted, fontSize: rf(11), textAlign: "center" }}
         >
           CitiVoice v2.0 · Kabankalan City
         </Text>
@@ -500,20 +556,20 @@ export default function ProfileScreen() {
         >
           <View
             style={{
-              backgroundColor: COLORS.bgCard,
+              backgroundColor: colors.bgCard,
               borderTopLeftRadius: moderateScale(24),
               borderTopRightRadius: moderateScale(24),
               padding: scale(20),
               paddingBottom: verticalScale(40),
               borderTopWidth: 1,
-              borderColor: COLORS.border,
+              borderColor: colors.border,
             }}
           >
             <View
               style={{
                 width: scale(36),
                 height: verticalScale(4),
-                backgroundColor: COLORS.border,
+                backgroundColor: colors.border,
                 borderRadius: scale(2),
                 alignSelf: "center",
                 marginBottom: verticalScale(16),
@@ -521,7 +577,7 @@ export default function ProfileScreen() {
             />
             <Text
               style={{
-                color: COLORS.textPrimary,
+                color: colors.textPrimary,
                 fontSize: rf(18),
                 fontWeight: "800",
                 textAlign: "center",
@@ -542,7 +598,7 @@ export default function ProfileScreen() {
                   marginBottom: verticalScale(8),
                   backgroundColor:
                     language === lang.code
-                      ? COLORS.primary + "1A"
+                      ? colors.primary + "1A"
                       : "transparent",
                 }}
                 onPress={() => {
@@ -555,8 +611,8 @@ export default function ProfileScreen() {
                   style={{
                     color:
                       language === lang.code
-                        ? COLORS.primaryLight
-                        : COLORS.textPrimary,
+                        ? colors.primaryLight
+                        : colors.textPrimary,
                     fontSize: rf(16),
                     fontWeight: "600",
                   }}
@@ -567,7 +623,7 @@ export default function ProfileScreen() {
                   <Ionicons
                     name="checkmark-circle"
                     size={20}
-                    color={COLORS.primaryLight}
+                    color={colors.primaryLight}
                     style={{ marginLeft: "auto" }}
                   />
                 )}
@@ -577,7 +633,7 @@ export default function ProfileScreen() {
               style={{ padding: scale(14), alignItems: "center", marginTop: verticalScale(4) }}
               onPress={() => setShowLang(false)}
             >
-              <Text style={{ color: COLORS.textMuted, fontSize: rf(15) }}>
+              <Text style={{ color: colors.textMuted, fontSize: rf(15) }}>
                 {t('cancel')}
               </Text>
             </TouchableOpacity>

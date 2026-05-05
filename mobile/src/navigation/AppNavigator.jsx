@@ -6,7 +6,8 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { COLORS, RADIUS } from "../utils/theme";
+import { RADIUS } from "../utils/theme";
+import { useTheme } from "../context/ThemeContext";
 
 // ── Auth ───────────────────────────────────────────────────────────────────
 import LoginScreen from "../screens/auth/LoginScreen";
@@ -20,7 +21,6 @@ import ConcernDetailScreen from "../screens/citizen/ConcernDetailScreen";
 import MyConcernsScreen from "../screens/citizen/MyConcernsScreen";
 import MapScreen from "../screens/citizen/MapScreen";
 import ProfileScreen from "../screens/citizen/ProfileScreen";
-import EventsScreen from "../screens/citizen/EventsScreen";
 import NotificationsScreen from "../screens/citizen/NotificationsScreen";
 
 // ── Admin ──────────────────────────────────────────────────────────────────
@@ -32,31 +32,34 @@ import AdminProfileScreen from "../screens/admin/AdminProfileScreen";
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const HEADER = {
-  headerStyle: { backgroundColor: COLORS.bgCard },
-  headerTintColor: COLORS.textPrimary,
+// Dynamic style generators
+const getHeaderOptions = (colors) => ({
+  headerStyle: { backgroundColor: colors.bgCard },
+  headerTintColor: colors.textPrimary,
   headerTitleStyle: { fontWeight: "700", fontSize: 16 },
   headerShadowVisible: false,
-  contentStyle: { backgroundColor: COLORS.bgDark },
-};
+  contentStyle: { backgroundColor: colors.bgDark },
+});
 
-const TAB_BAR = {
+const getTabBarOptions = (colors) => ({
   tabBarStyle: {
-    backgroundColor: COLORS.bgCard,
-    borderTopColor: COLORS.border,
+    backgroundColor: colors.bgCard,
+    borderTopColor: colors.border,
     borderTopWidth: 1,
     height: 62,
     paddingBottom: 8,
     paddingTop: 4,
   },
   tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
-  tabBarActiveTintColor: COLORS.primary,
-  tabBarInactiveTintColor: COLORS.textMuted,
-};
+  tabBarActiveTintColor: colors.primary,
+  tabBarInactiveTintColor: colors.textMuted,
+});
 
 // ── Auth Stack ─────────────────────────────────────────────────────────────
-// Includes VerifyIdentity so blocked users can submit their ID
 function AuthStack() {
+  const { colors } = useTheme();
+  const headerOptions = getHeaderOptions(colors);
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
@@ -66,9 +69,8 @@ function AuthStack() {
         component={VerifyIdentityScreen}
         options={{
           headerShown: true,
-          ...HEADER,
+          ...headerOptions,
           title: "Verify Identity",
-          headerShown: true,
         }}
       />
     </Stack.Navigator>
@@ -77,8 +79,11 @@ function AuthStack() {
 
 // ── Citizen Home Stack ─────────────────────────────────────────────────────
 function HomeStack() {
+  const { colors } = useTheme();
+  const headerOptions = getHeaderOptions(colors);
+
   return (
-    <Stack.Navigator screenOptions={HEADER}>
+    <Stack.Navigator screenOptions={headerOptions}>
       <Stack.Screen
         name="Feed"
         component={HomeScreen}
@@ -106,17 +111,19 @@ function HomeStack() {
 // ── Citizen Tabs ───────────────────────────────────────────────────────────
 function CitizenTabs() {
   const { t } = useLanguage();
+  const { colors } = useTheme();
+  const tabBarOptions = getTabBarOptions(colors);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        ...TAB_BAR,
-        headerStyle: { backgroundColor: COLORS.bgCard },
-        headerTintColor: COLORS.textPrimary,
+        ...tabBarOptions,
+        headerStyle: { backgroundColor: colors.bgCard },
+        headerTintColor: colors.textPrimary,
         headerShadowVisible: false,
         tabBarIcon: ({ focused, color, size }) => {
           const icons = {
             Home: focused ? "home" : "home-outline",
-            Events: focused ? "megaphone" : "megaphone-outline",
             MyConcerns: focused ? "list" : "list-outline",
             Map: focused ? "map" : "map-outline",
             Profile: focused ? "person" : "person-outline",
@@ -135,11 +142,6 @@ function CitizenTabs() {
         name="Home"
         component={HomeStack}
         options={{ headerShown: false, tabBarLabel: t('feed') }}
-      />
-      <Tab.Screen
-        name="Events"
-        component={EventsScreen}
-        options={{ headerShown: false, tabBarLabel: t('events') }}
       />
       <Tab.Screen
         name="MyConcerns"
@@ -162,17 +164,15 @@ function CitizenTabs() {
 
 // ── Admin Home Stack ───────────────────────────────────────────────────────
 function AdminHomeStack() {
+  const { colors } = useTheme();
+  const headerOptions = getHeaderOptions(colors);
+
   return (
-    <Stack.Navigator screenOptions={HEADER}>
+    <Stack.Navigator screenOptions={headerOptions}>
       <Stack.Screen
         name="AdminDashboard"
         component={AdminDashboardScreen}
         options={{ title: "Dashboard" }}
-      />
-      <Stack.Screen
-        name="AdminConcernDetail"
-        component={AdminConcernDetailScreen}
-        options={{ title: "Review Concern" }}
       />
     </Stack.Navigator>
   );
@@ -181,13 +181,16 @@ function AdminHomeStack() {
 // ── Admin Tabs ─────────────────────────────────────────────────────────────
 function AdminTabs() {
   const { t } = useLanguage();
+  const { colors } = useTheme();
+  const tabBarOptions = getTabBarOptions(colors);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        ...TAB_BAR,
-        tabBarActiveTintColor: COLORS.accent,
-        headerStyle: { backgroundColor: COLORS.bgCard },
-        headerTintColor: COLORS.textPrimary,
+        ...tabBarOptions,
+        tabBarActiveTintColor: colors.accent,
+        headerStyle: { backgroundColor: colors.bgCard },
+        headerTintColor: colors.textPrimary,
         headerShadowVisible: false,
         tabBarIcon: ({ focused, color, size }) => {
           const icons = {
@@ -224,22 +227,44 @@ function AdminTabs() {
   );
 }
 
+// ── Admin Root Stack ───────────────────────────────────────────────────────
+function AdminStack() {
+  const { colors } = useTheme();
+  const headerOptions = getHeaderOptions(colors);
+
+  return (
+    <Stack.Navigator screenOptions={headerOptions}>
+      <Stack.Screen
+        name="AdminTabs"
+        component={AdminTabs}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="AdminConcernDetail"
+        component={AdminConcernDetailScreen}
+        options={{ title: "Review Concern" }}
+      />
+    </Stack.Navigator>
+  );
+}
+
 // ── Root Navigator ─────────────────────────────────────────────────────────
 export default function AppNavigator() {
   const { user, loading } = useAuth();
+  const { colors } = useTheme();
 
   if (loading) {
     return (
       <View
         style={{
           flex: 1,
-          backgroundColor: COLORS.bgDark,
+          backgroundColor: colors.bgDark,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <ActivityIndicator color={COLORS.primary} size="large" />
-        <Text style={{ color: COLORS.textMuted, marginTop: 12, fontSize: 13 }}>
+        <ActivityIndicator color={colors.primary} size="large" />
+        <Text style={{ color: colors.textMuted, marginTop: 12, fontSize: 13 }}>
           Loading…
         </Text>
       </View>
@@ -252,9 +277,9 @@ export default function AppNavigator() {
         !user ? (
           <AuthStack /> // Not logged in
         ) : user._blocked ? (
-          <AuthStack /> // Logged in but NOT verified → show gate in LoginScreen
+          <AuthStack /> // Logged in but NOT verified
         ) : user.role === "admin" ? (
-          <AdminTabs /> // Admin
+          <AdminStack /> // Admin
         ) : (
           <CitizenTabs />
         ) // Verified citizen

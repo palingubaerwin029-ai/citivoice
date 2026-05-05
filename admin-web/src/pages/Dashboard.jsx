@@ -13,8 +13,8 @@ const STATUS_COLORS = {
 };
 const CAT_COLORS = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#F97316"];
 const TT = {
-  contentStyle: { background: "#0D1B2E", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#F1F5F9", fontSize: 12 },
-  cursor: { fill: "rgba(255,255,255,0.04)" },
+  contentStyle: { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--text-1)", fontSize: 12 },
+  cursor: { fill: "rgba(120,150,200,0.05)" },
 };
 const STAT_CONFIGS = [
   { key: "total",      label: "Total Concerns",   icon: "◉", color: "#3B82F6" },
@@ -30,10 +30,17 @@ export default function Dashboard() {
   const [loading,  setLoading]  = useState(true);
 
   useEffect(() => {
-    api.get("/concerns")
-      .then(setConcerns)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    const fetchData = () => {
+      api.get("/concerns")
+        .then(setConcerns)
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000); // Auto-refresh every 30 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const total      = concerns.length;

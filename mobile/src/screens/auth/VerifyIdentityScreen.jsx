@@ -14,7 +14,8 @@ import { useImagePicker } from "../../hooks/useImagePicker";
 import { ConcernService } from "../../services/concernService";
 import { useAuth, VERIFICATION_STATUS, resolveImageUrl } from "../../context/AuthContext";
 import { InputField, PrimaryButton } from "../../components/UI";
-import { COLORS, RADIUS, SHADOWS } from "../../utils/theme";
+import { RADIUS, SHADOWS } from "../../utils/theme";
+import { useTheme } from "../../context/ThemeContext";
 import { scale, verticalScale, rf } from "../../utils/responsive";
 
 const ID_TYPES = [
@@ -30,6 +31,7 @@ const ID_TYPES = [
 ];
 
 export default function VerifyIdentityScreen({ navigation }) {
+  const { colors } = useTheme();
   const { user, storage, submitVerification } = useAuth();
 
   const [idType, setIdType] = useState("");
@@ -95,46 +97,48 @@ export default function VerifyIdentityScreen({ navigation }) {
   // ── Already pending — show status ──────────────────────────────────────
   if (alreadyPending) {
     return (
-      <View style={S.statusContainer}>
-        <View style={S.statusCard}>
+      <View style={[S.statusContainer, { backgroundColor: colors.bgDark }]}>
+        <View style={[S.statusCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
           <View
             style={[
               S.statusIcon,
               {
-                backgroundColor: "rgba(245,158,11,0.12)",
-                borderColor: "rgba(245,158,11,0.3)",
+                backgroundColor: colors.statusPending + "1F",
+                borderColor: colors.statusPending + "4D",
               },
             ]}
           >
             <Text style={{ fontSize: 36 }}>⏳</Text>
           </View>
-          <Text style={S.statusTitle}>Under Review</Text>
-          <Text style={S.statusMessage}>
+          <Text style={[S.statusTitle, { color: colors.textPrimary }]}>Under Review</Text>
+          <Text style={[S.statusMessage, { color: colors.textSecondary }]}>
             Your ID has already been submitted and is being reviewed by the
             administrator. You'll be notified once approved.
           </Text>
-          <View style={S.pendingInfo}>
-            <InfoRow icon="person-outline" label="Name" value={user?.name} />
-            <InfoRow icon="mail-outline" label="Email" value={user?.email} />
+          <View style={[S.pendingInfo, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}>
+            <InfoRow icon="person-outline" label="Name" value={user?.name} colors={colors} />
+            <InfoRow icon="mail-outline" label="Email" value={user?.email} colors={colors} />
             <InfoRow
               icon="card-outline"
               label="ID Type"
               value={user?.idType || "—"}
+              colors={colors}
             />
             <InfoRow
               icon="shield-half-outline"
               label="Status"
               value="Pending Review"
-              valueColor="#F59E0B"
+              valueColor={colors.statusPending}
+              colors={colors}
             />
           </View>
           
           {user?.id_image_url && (
             <View style={{ width: "100%", marginBottom: 20 }}>
-              <Text style={{ color: COLORS.textMuted, fontSize: rf(11), fontWeight: "700", marginBottom: 8, letterSpacing: 0.5 }}>SUBMITTED ID</Text>
+              <Text style={{ color: colors.textMuted, fontSize: rf(11), fontWeight: "700", marginBottom: 8, letterSpacing: 0.5 }}>SUBMITTED ID</Text>
               <Image 
                 source={{ uri: resolveImageUrl(user.id_image_url) }} 
-                style={{ width: "100%", height: verticalScale(160), borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border }}
+                style={{ width: "100%", height: verticalScale(160), borderRadius: RADIUS.md, borderWidth: 1, borderColor: colors.border }}
                 resizeMode="cover"
               />
             </View>
@@ -146,9 +150,9 @@ export default function VerifyIdentityScreen({ navigation }) {
             <Ionicons
               name="arrow-back-outline"
               size={16}
-              color={COLORS.textMuted}
+              color={colors.textMuted}
             />
-            <Text style={S.logoutText}>Go Back</Text>
+            <Text style={[S.logoutText, { color: colors.textMuted }]}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -157,17 +161,17 @@ export default function VerifyIdentityScreen({ navigation }) {
 
   return (
     <ScrollView
-      style={S.container}
+      style={[S.container, { backgroundColor: colors.bgDark }]}
       contentContainerStyle={S.scroll}
       keyboardShouldPersistTaps="handled"
     >
       {/* Header */}
       <View style={S.header}>
-        <View style={S.headerIcon}>
+        <View style={[S.headerIcon, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
           <Text style={{ fontSize: 28 }}>🪪</Text>
         </View>
-        <Text style={S.title}>Verify Your Identity</Text>
-        <Text style={S.subtitle}>
+        <Text style={[S.title, { color: colors.textPrimary }]}>Verify Your Identity</Text>
+        <Text style={[S.subtitle, { color: colors.textSecondary }]}>
           Submit a valid government-issued ID to get verified and access
           CitiVoice.
         </Text>
@@ -178,46 +182,46 @@ export default function VerifyIdentityScreen({ navigation }) {
         {["Select ID", "Enter Number", "Upload Photo", "Submit"].map(
           (step, i) => (
             <View key={i} style={S.step}>
-              <View style={S.stepDot}>
+              <View style={[S.stepDot, { backgroundColor: colors.primary }]}>
                 <Text style={S.stepNum}>{i + 1}</Text>
               </View>
-              <Text style={S.stepLabel}>{step}</Text>
-              {i < 3 && <View style={S.stepLine} />}
+              <Text style={[S.stepLabel, { color: colors.textSecondary }]}>{step}</Text>
+              {i < 3 && <View style={[S.stepLine, { backgroundColor: colors.border }]} />}
             </View>
           ),
         )}
       </View>
 
       {/* Form */}
-      <View style={S.card}>
+      <View style={[S.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
         {/* ID Type picker */}
         <View style={{ marginBottom: 16 }}>
-          <Text style={S.label}>ID TYPE *</Text>
+          <Text style={[S.label, { color: colors.textMuted }]}>ID TYPE *</Text>
           <TouchableOpacity
-            style={[S.picker, errors.idType && { borderColor: COLORS.danger }]}
+            style={[S.picker, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, errors.idType && { borderColor: colors.danger }]}
             onPress={() => setShowPicker((p) => !p)}
           >
-            <Ionicons name="card-outline" size={16} color={COLORS.textMuted} />
+            <Ionicons name="card-outline" size={16} color={colors.textMuted} />
             <Text
-              style={[S.pickerText, !idType && { color: COLORS.textMuted }]}
+              style={[S.pickerText, { color: colors.textPrimary }, !idType && { color: colors.textMuted }]}
             >
               {idType || "Select government ID type…"}
             </Text>
             <Ionicons
               name={showPicker ? "chevron-up" : "chevron-down"}
               size={16}
-              color={COLORS.textMuted}
+              color={colors.textMuted}
             />
           </TouchableOpacity>
-          {errors.idType && <Text style={S.errText}>⚠ {errors.idType}</Text>}
+          {errors.idType && <Text style={[S.errText, { color: colors.danger }]}>⚠ {errors.idType}</Text>}
 
           {showPicker && (
-            <View style={S.dropdown}>
+            <View style={[S.dropdown, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}>
               <ScrollView style={{ maxHeight: 240 }} nestedScrollEnabled>
                 {ID_TYPES.map((t) => (
                   <TouchableOpacity
                     key={t}
-                    style={[S.dropItem, idType === t && S.dropItemActive]}
+                    style={[S.dropItem, { borderBottomColor: colors.border }, idType === t && { backgroundColor: colors.primary + '18' }]}
                     onPress={() => {
                       setIdType(t);
                       setShowPicker(false);
@@ -226,8 +230,9 @@ export default function VerifyIdentityScreen({ navigation }) {
                     <Text
                       style={[
                         S.dropText,
+                        { color: colors.textSecondary },
                         idType === t && {
-                          color: COLORS.primaryLight,
+                          color: colors.primaryLight,
                           fontWeight: "700",
                         },
                       ]}
@@ -238,7 +243,7 @@ export default function VerifyIdentityScreen({ navigation }) {
                       <Ionicons
                         name="checkmark-circle"
                         size={16}
-                        color={COLORS.primaryLight}
+                        color={colors.primaryLight}
                       />
                     )}
                   </TouchableOpacity>
@@ -270,8 +275,8 @@ export default function VerifyIdentityScreen({ navigation }) {
 
         {/* ID Photo */}
         <View style={{ marginBottom: 16 }}>
-          <Text style={S.label}>ID PHOTO *</Text>
-          <Text style={S.sublabel}>
+          <Text style={[S.label, { color: colors.textMuted }]}>ID PHOTO *</Text>
+          <Text style={[S.sublabel, { color: colors.textMuted }]}>
             Take a clear photo of your government ID. All 4 corners must be
             visible.
           </Text>
@@ -301,47 +306,48 @@ export default function VerifyIdentityScreen({ navigation }) {
             <View
               style={[
                 S.photoBox,
-                errors.idImage && { borderColor: COLORS.danger },
+                { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                errors.idImage && { borderColor: colors.danger },
               ]}
             >
               <Text style={{ fontSize: 40, marginBottom: 10, opacity: 0.6 }}>
                 🪪
               </Text>
-              <Text style={S.photoBoxTitle}>Upload your ID photo</Text>
-              <Text style={S.photoBoxSub}>
+              <Text style={[S.photoBoxTitle, { color: colors.textSecondary }]}>Upload your ID photo</Text>
+              <Text style={[S.photoBoxSub, { color: colors.textMuted }]}>
                 Make sure the photo is clear and well-lit
               </Text>
               <View style={S.photoActions}>
-                <TouchableOpacity style={S.photoBtn} onPress={pickPhoto}>
+                <TouchableOpacity style={[S.photoBtn, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '44' }]} onPress={pickPhoto}>
                   <Ionicons
                     name="images-outline"
                     size={18}
-                    color={COLORS.primaryLight}
+                    color={colors.primaryLight}
                   />
-                  <Text style={S.photoBtnText}>Gallery</Text>
+                  <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>Gallery</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={S.photoBtn} onPress={takePhoto}>
+                <TouchableOpacity style={[S.photoBtn, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '44' }]} onPress={takePhoto}>
                   <Ionicons
                     name="camera-outline"
                     size={18}
-                    color={COLORS.primaryLight}
+                    color={colors.primaryLight}
                   />
-                  <Text style={S.photoBtnText}>Camera</Text>
+                  <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>Camera</Text>
                 </TouchableOpacity>
               </View>
             </View>
           )}
-          {errors.idImage && <Text style={S.errText}>⚠ {errors.idImage}</Text>}
+          {errors.idImage && <Text style={[S.errText, { color: colors.danger }]}>⚠ {errors.idImage}</Text>}
         </View>
 
         {/* Security note */}
-        <View style={S.securityBox}>
+        <View style={[S.securityBox, { backgroundColor: colors.primary + '14', borderColor: colors.primary + '33' }]}>
           <Ionicons
             name="lock-closed-outline"
             size={16}
-            color={COLORS.primaryLight}
+            color={colors.primaryLight}
           />
-          <Text style={S.securityText}>
+          <Text style={[S.securityText, { color: colors.textSecondary }]}>
             Your ID is encrypted and stored securely. It is only accessible to
             CitiVoice administrators and will not be shared with third parties.
           </Text>
@@ -349,7 +355,7 @@ export default function VerifyIdentityScreen({ navigation }) {
 
         {/* Submit */}
         <TouchableOpacity
-          style={[S.submitBtn, uploading && { opacity: 0.65 }]}
+          style={[S.submitBtn, { backgroundColor: colors.primary }, uploading && { opacity: 0.65 }]}
           onPress={handleSubmit}
           disabled={uploading}
           activeOpacity={0.85}
@@ -375,7 +381,7 @@ export default function VerifyIdentityScreen({ navigation }) {
   );
 }
 
-function InfoRow({ icon, label, value, valueColor }) {
+function InfoRow({ icon, label, value, valueColor, colors }) {
   return (
     <View
       style={{
@@ -384,18 +390,18 @@ function InfoRow({ icon, label, value, valueColor }) {
         alignItems: "center",
         paddingVertical: 10,
         borderBottomWidth: 1,
-        borderBottomColor: COLORS.border,
+        borderBottomColor: colors.border,
       }}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <Ionicons name={icon} size={15} color={COLORS.textMuted} />
-        <Text style={{ color: COLORS.textSecondary, fontSize: 13 }}>
+        <Ionicons name={icon} size={15} color={colors.textMuted} />
+        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
           {label}
         </Text>
       </View>
       <Text
         style={{
-          color: valueColor || COLORS.textPrimary,
+          color: valueColor || colors.textPrimary,
           fontSize: rf(13),
           fontWeight: "600",
         }}
@@ -407,7 +413,7 @@ function InfoRow({ icon, label, value, valueColor }) {
 }
 
 const S = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgDark },
+  container: { flex: 1 },
   scroll: { padding: scale(20), paddingBottom: verticalScale(48) },
 
   header: { alignItems: "center", marginBottom: verticalScale(24) },
@@ -415,16 +421,13 @@ const S = StyleSheet.create({
     width: scale(72),
     height: scale(72),
     borderRadius: RADIUS["2xl"],
-    backgroundColor: COLORS.bgCard,
     borderWidth: 1,
-    borderColor: COLORS.border,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: verticalScale(14),
     ...SHADOWS.sm,
   },
   title: {
-    color: COLORS.textPrimary,
     fontSize: rf(22),
     fontWeight: "800",
     textAlign: "center",
@@ -432,7 +435,6 @@ const S = StyleSheet.create({
     marginBottom: verticalScale(8),
   },
   subtitle: {
-    color: COLORS.textSecondary,
     fontSize: rf(13),
     textAlign: "center",
     lineHeight: rf(20),
@@ -451,61 +453,51 @@ const S = StyleSheet.create({
     width: scale(22),
     height: scale(22),
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   stepNum: { color: "#fff", fontSize: rf(11), fontWeight: "800" },
-  stepLabel: { color: COLORS.textSecondary, fontSize: rf(10), fontWeight: "600" },
+  stepLabel: { fontSize: rf(10), fontWeight: "600" },
   stepLine: {
     width: scale(20),
     height: 1,
-    backgroundColor: COLORS.border,
     marginHorizontal: scale(2),
   },
 
   card: {
-    backgroundColor: COLORS.bgCard,
     borderRadius: RADIUS["2xl"],
     padding: scale(20),
     borderWidth: 1,
-    borderColor: COLORS.border,
     ...SHADOWS.card,
   },
 
   label: {
-    color: COLORS.textMuted,
     fontSize: rf(10),
     fontWeight: "700",
     letterSpacing: 0.8,
     marginBottom: verticalScale(8),
   },
   sublabel: {
-    color: COLORS.textMuted,
     fontSize: rf(11),
     marginBottom: verticalScale(10),
     marginTop: verticalScale(-4),
   },
-  errText: { color: COLORS.danger, fontSize: rf(11), marginTop: verticalScale(5) },
+  errText: { fontSize: rf(11), marginTop: verticalScale(5) },
 
   picker: {
     flexDirection: "row",
     alignItems: "center",
     gap: scale(10),
-    backgroundColor: COLORS.bgCardAlt,
     borderRadius: RADIUS.md,
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(13),
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  pickerText: { flex: 1, color: COLORS.textPrimary, fontSize: rf(14) },
+  pickerText: { flex: 1, fontSize: rf(14) },
 
   dropdown: {
-    backgroundColor: COLORS.bgCardAlt,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
     marginTop: verticalScale(4),
     overflow: "hidden",
   },
@@ -515,29 +507,23 @@ const S = StyleSheet.create({
     alignItems: "center",
     padding: scale(14),
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
-  dropItemActive: { backgroundColor: COLORS.primary + "18" },
-  dropText: { color: COLORS.textSecondary, fontSize: rf(14) },
+  dropText: { fontSize: rf(14) },
 
   photoBox: {
-    backgroundColor: COLORS.bgCardAlt,
     borderRadius: RADIUS.xl,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
     borderStyle: "dashed",
     padding: scale(28),
     alignItems: "center",
     marginBottom: verticalScale(4),
   },
   photoBoxTitle: {
-    color: COLORS.textSecondary,
     fontSize: rf(14),
     fontWeight: "600",
     marginBottom: verticalScale(4),
   },
   photoBoxSub: {
-    color: COLORS.textMuted,
     fontSize: rf(12),
     marginBottom: verticalScale(16),
     textAlign: "center",
@@ -550,11 +536,9 @@ const S = StyleSheet.create({
     paddingHorizontal: scale(16),
     paddingVertical: verticalScale(10),
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.primary + "18",
     borderWidth: 1,
-    borderColor: COLORS.primary + "44",
   },
-  photoBtnText: { color: COLORS.primaryLight, fontSize: rf(13), fontWeight: "600" },
+  photoBtnText: { fontSize: rf(13), fontWeight: "600" },
 
   imagePreviewWrap: {
     borderRadius: RADIUS.xl,
@@ -586,15 +570,12 @@ const S = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: scale(10),
-    backgroundColor: COLORS.primary + "10",
     borderRadius: RADIUS.lg,
     padding: scale(12),
     borderWidth: 1,
-    borderColor: COLORS.primary + "25",
     marginBottom: verticalScale(18),
   },
   securityText: {
-    color: COLORS.textSecondary,
     fontSize: rf(12),
     lineHeight: rf(18),
     flex: 1,
@@ -605,7 +586,6 @@ const S = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: scale(8),
-    backgroundColor: COLORS.primary,
     borderRadius: RADIUS.md,
     height: verticalScale(52),
     ...SHADOWS.button,
@@ -615,18 +595,15 @@ const S = StyleSheet.create({
   // Status screen
   statusContainer: {
     flex: 1,
-    backgroundColor: COLORS.bgDark,
     padding: 24,
     justifyContent: "center",
     alignItems: "center",
   },
   statusCard: {
     width: "100%",
-    backgroundColor: COLORS.bgCard,
     borderRadius: RADIUS["2xl"],
     padding: 24,
     borderWidth: 1,
-    borderColor: COLORS.border,
     alignItems: "center",
     ...SHADOWS.card,
   },
@@ -640,14 +617,12 @@ const S = StyleSheet.create({
     marginBottom: 16,
   },
   statusTitle: {
-    color: COLORS.textPrimary,
     fontSize: rf(20),
     fontWeight: "800",
     marginBottom: 10,
     textAlign: "center",
   },
   statusMessage: {
-    color: COLORS.textSecondary,
     fontSize: rf(14),
     textAlign: "center",
     lineHeight: 22,
@@ -655,12 +630,10 @@ const S = StyleSheet.create({
   },
   pendingInfo: {
     width: "100%",
-    backgroundColor: COLORS.bgCardAlt,
     borderRadius: RADIUS.lg,
     padding: 14,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
   logoutBtn: {
     flexDirection: "row",
@@ -668,5 +641,5 @@ const S = StyleSheet.create({
     gap: 7,
     paddingVertical: 10,
   },
-  logoutText: { color: COLORS.textMuted, fontSize: rf(14) },
+  logoutText: { fontSize: rf(14) },
 });

@@ -2,16 +2,16 @@ import React, { useEffect, useState } from "react";
 import { api, fmtDateShort, maskEmail } from "../services/api";
 import s from "../styles/Admin.module.css";
 
-const AVATARS = ["#3B82F6","#10B981","#F97316","#F59E0B","#EF4444","#8B5CF6"];
-const AC      = (id) => AVATARS[(id || 0) % AVATARS.length];
+const AVATARS = ["#3B82F6", "#10B981", "#F97316", "#F59E0B", "#EF4444", "#8B5CF6"];
+const AC = (id) => AVATARS[(id || 0) % AVATARS.length];
 const initials = (name) => name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "??";
 const SC = { Pending: "#F59E0B", "In Progress": "#3B82F6", Resolved: "#10B981", Rejected: "#EF4444" };
 
 export default function Users() {
-  const [users,    setUsers]    = useState([]);
+  const [users, setUsers] = useState([]);
   const [concerns, setConcerns] = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [search,   setSearch]   = useState("");
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [brgyFilter, setBrgyFilter] = useState("All");
   const [selected, setSelected] = useState(null);
 
@@ -23,13 +23,13 @@ export default function Users() {
   }, []);
 
   const barangays = ["All", ...new Set(users.map((u) => u.barangay).filter(Boolean))];
-  const filtered  = users.filter((u) => {
+  const filtered = users.filter((u) => {
     const q = search.toLowerCase();
     return (!q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)) &&
-           (brgyFilter === "All" || u.barangay === brgyFilter);
+      (brgyFilter === "All" || u.barangay === brgyFilter);
   });
 
-  const count    = (uid) => concerns.filter((c) => c.user_id === uid).length;
+  const count = (uid) => concerns.filter((c) => c.user_id === uid).length;
   const resCount = (uid) => concerns.filter((c) => c.user_id === uid && c.status === "Resolved").length;
 
   return (
@@ -41,9 +41,9 @@ export default function Users() {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           {[
-            { l: "Total",     v: users.length,           c: "var(--blue-light)" },
-            { l: "Barangays", v: barangays.length - 1,   c: "var(--green)" },
-            { l: "Reports",   v: concerns.length,         c: "var(--amber)" },
+            { l: "Total", v: users.length, c: "var(--blue-light)" },
+            { l: "Barangays", v: barangays.length - 1, c: "var(--green)" },
+            { l: "Reports", v: concerns.length, c: "var(--amber)" },
           ].map((x) => (
             <div key={x.l} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)", padding: "10px 16px", textAlign: "center", minWidth: 80 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: x.c }}>{x.v}</div>
@@ -70,7 +70,7 @@ export default function Users() {
           {loading ? <div className={s.loading}>Loading…</div> : (
             <table className={s.table}>
               <thead className={s.thead}>
-                <tr>{["Citizen","Contact","Barangay","Reports","Resolved","Member Since",""].map((h) => <th key={h} className={s.th}>{h}</th>)}</tr>
+                <tr>{["Citizen", "Contact", "Barangay", "Reports", "Resolved", "Member Since", ""].map((h) => <th key={h} className={s.th}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {filtered.map((u) => {
@@ -122,10 +122,10 @@ export default function Users() {
             </div>
             <div className={s.infoGrid} style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", marginBottom: 12 }}>
               {[
-                { l: "Email",    v: selected.email },
-                { l: "Phone",    v: selected.phone || "—" },
+                { l: "Email", v: selected.email },
+                { l: "Phone", v: selected.phone || "—" },
                 { l: "Barangay", v: selected.barangay || "—" },
-                { l: "Joined",   v: fmtDateShort(selected.created_at) },
+                { l: "Joined", v: fmtDateShort(selected.created_at) },
               ].map((x, i) => (
                 <div key={i} className={s.infoRow}><span className={s.infoLabel}>{x.l}</span><span className={s.infoValue}>{x.l === "Email" ? maskEmail(x.v) : x.v}</span></div>
               ))}

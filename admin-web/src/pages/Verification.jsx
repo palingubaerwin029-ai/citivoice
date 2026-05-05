@@ -29,7 +29,11 @@ export default function Verification() {
   const [search,   setSearch]   = useState("");
 
   const load = () => api.get("/users").then(setUsers).catch(console.error);
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 30000); // Auto-refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   const counts = {
     all:        users.length,

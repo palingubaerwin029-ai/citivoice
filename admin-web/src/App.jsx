@@ -10,13 +10,18 @@ import MapView                from "./pages/MapView";
 import Users                  from "./pages/Users";
 import Reports                from "./pages/Reports";
 import Login                  from "./pages/Login";
-import EventsAnnouncements    from "./pages/EventsAnnouncements";
 import Verification           from "./pages/Verification";
 import Barangays              from "./pages/Barangays";
 
 export default function App() {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
+  const [theme, setTheme]     = useState(localStorage.getItem("cv_theme") || "dark");
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("cv_theme", theme);
+  }, [theme]);
 
   // Restore session from localStorage on mount
   useEffect(() => {
@@ -59,7 +64,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <div style={styles.layout}>
-        <Sidebar user={user} onLogout={handleLogout} />
+        <Sidebar user={user} onLogout={handleLogout} theme={theme} onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />
         <main style={styles.main}>
           <Routes>
             <Route path="/"                element={<Navigate to="/dashboard" />} />
@@ -67,7 +72,6 @@ export default function App() {
             <Route path="/concerns"        element={<Concerns />} />
             <Route path="/concerns/:id"    element={<ConcernDetail />} />
             <Route path="/map"             element={<MapView />} />
-            <Route path="/events"          element={<EventsAnnouncements />} />
             <Route path="/verification"    element={<Verification />} />
             <Route path="/users"           element={<Users />} />
             <Route path="/reports"         element={<Reports />} />
@@ -85,22 +89,22 @@ function LoadingScreen() {
       <div style={styles.loadingLogo}>
         <span style={{ fontSize: 32 }}>📢</span>
       </div>
-      <h2 style={{ color: "#fff", marginTop: 16 }}>CitiVoice Admin</h2>
-      <p style={{ color: "#8899BB", marginTop: 8 }}>Loading...</p>
+      <h2 style={{ color: "var(--text-1)", marginTop: 16 }}>CitiVoice Admin</h2>
+      <p style={{ color: "var(--text-2)", marginTop: 8 }}>Loading...</p>
     </div>
   );
 }
 
 const styles = {
-  layout:  { display: "flex", minHeight: "100vh", backgroundColor: "#0A1628" },
-  main:    { flex: 1, overflowY: "auto", backgroundColor: "#0A1628" },
+  layout:  { display: "flex", minHeight: "100vh", backgroundColor: "var(--bg)" },
+  main:    { flex: 1, overflowY: "auto", backgroundColor: "var(--bg)" },
   loading: {
     display: "flex", flexDirection: "column", alignItems: "center",
-    justifyContent: "center", height: "100vh", backgroundColor: "#0A1628",
+    justifyContent: "center", height: "100vh", backgroundColor: "var(--bg)",
   },
   loadingLogo: {
-    width: 80, height: 80, borderRadius: 20, backgroundColor: "#112240",
+    width: 80, height: 80, borderRadius: 20, backgroundColor: "var(--surface-2)",
     display: "flex", alignItems: "center", justifyContent: "center",
-    border: "1px solid #1E3355",
+    border: "1px solid var(--border)",
   },
 };

@@ -9,12 +9,12 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
-  COLORS,
   RADIUS,
   SHADOWS,
-  STATUS_CONFIG,
-  CATEGORY_CONFIG,
+  getStatusConfig,
+  getCategoryConfig,
 } from "../utils/theme";
+import { useTheme } from "../context/ThemeContext";
 import { scale, verticalScale, rf } from "../utils/responsive";
 
 export function PrimaryButton({
@@ -26,19 +26,20 @@ export function PrimaryButton({
   variant = "primary",
   size = "md",
 }) {
+  const { colors } = useTheme();
   const V = {
-    primary: { bg: COLORS.primary, text: "#fff", ...SHADOWS.button },
+    primary: { bg: colors.primary, text: "#fff" },
     ghost: {
       bg: "transparent",
-      text: COLORS.textSecondary,
+      text: colors.textSecondary,
       borderWidth: 1,
-      borderColor: COLORS.borderMd,
+      borderColor: colors.border,
     },
     danger: {
-      bg: "rgba(239,68,68,0.1)",
-      text: COLORS.danger,
+      bg: colors.statusRejected + "11",
+      text: colors.statusRejected,
       borderWidth: 1,
-      borderColor: "rgba(239,68,68,0.2)",
+      borderColor: colors.statusRejected + "22",
     },
   };
   const SZ = {
@@ -96,21 +97,22 @@ export function InputField({
   rightElement,
   ...props
 }) {
+  const { colors } = useTheme();
   return (
     <View style={[{ marginBottom: verticalScale(14) }, style]}>
-      {label && <Text style={S.inputLabel}>{label}</Text>}
-      <View style={[S.inputRow, error && S.inputRowError]}>
+      {label && <Text style={[S.inputLabel, { color: colors.textSecondary }]}>{label}</Text>}
+      <View style={[S.inputRow, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, error && { borderColor: colors.statusRejected }]}>
         {leftIcon && (
           <Ionicons
             name={leftIcon}
             size={16}
-            color={COLORS.textMuted}
+            color={colors.textMuted}
             style={{ marginRight: scale(8) }}
           />
         )}
         <TextInput
-          style={[S.input, inputStyle]}
-          placeholderTextColor={COLORS.textMuted}
+          style={[S.input, { color: colors.textPrimary }, inputStyle]}
+          placeholderTextColor={colors.textMuted}
           {...props}
         />
         {rightElement}
@@ -124,8 +126,8 @@ export function InputField({
             marginTop: verticalScale(5),
           }}
         >
-          <Ionicons name="alert-circle" size={12} color={COLORS.danger} />
-          <Text style={{ color: COLORS.danger, fontSize: rf(11) }}>{error}</Text>
+          <Ionicons name="alert-circle" size={12} color={colors.statusRejected} />
+          <Text style={{ color: colors.statusRejected, fontSize: rf(11) }}>{error}</Text>
         </View>
       )}
     </View>
@@ -133,7 +135,8 @@ export function InputField({
 }
 
 export function StatusBadge({ status, style }) {
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG["Pending"];
+  const { colors } = useTheme();
+  const cfg = getStatusConfig(colors)[status] || getStatusConfig(colors)["Pending"];
   return (
     <View
       style={[
@@ -158,7 +161,8 @@ export function StatusBadge({ status, style }) {
 }
 
 export function CategoryBadge({ category, style }) {
-  const cfg = CATEGORY_CONFIG[category] || CATEGORY_CONFIG["Other"];
+  const { colors } = useTheme();
+  const cfg = getCategoryConfig(colors)[category] || getCategoryConfig(colors)["Other"];
   return (
     <View style={[S.badge, { backgroundColor: cfg.bg }, style]}>
       <Ionicons name={cfg.icon} size={11} color={cfg.color} />
@@ -170,20 +174,21 @@ export function CategoryBadge({ category, style }) {
 }
 
 export function StatCard({ icon, value, label, color, style }) {
+  const { colors } = useTheme();
   return (
-    <View style={[S.statCard, style]}>
+    <View style={[S.statCard, { backgroundColor: colors.bgCard, borderColor: colors.border }, style]}>
       <Text style={{ fontSize: rf(20), marginBottom: verticalScale(6) }}>{icon}</Text>
       <Text
         style={{
           fontSize: rf(22),
           fontWeight: "800",
-          color: color || COLORS.primary,
+          color: color || colors.primary,
           letterSpacing: -0.5,
         }}
       >
         {value}
       </Text>
-      <Text style={{ color: COLORS.textMuted, fontSize: rf(11), marginTop: verticalScale(3) }}>
+      <Text style={{ color: colors.textMuted, fontSize: rf(11), marginTop: verticalScale(3) }}>
         {label}
       </Text>
     </View>
@@ -191,6 +196,7 @@ export function StatCard({ icon, value, label, color, style }) {
 }
 
 export function EmptyState({ icon, title, subtitle, action, actionLabel }) {
+  const { colors } = useTheme();
   return (
     <View style={S.empty}>
       <Text style={{ fontSize: rf(44), marginBottom: verticalScale(14), opacity: 0.65 }}>
@@ -198,7 +204,7 @@ export function EmptyState({ icon, title, subtitle, action, actionLabel }) {
       </Text>
       <Text
         style={{
-          color: COLORS.textPrimary,
+          color: colors.textPrimary,
           fontSize: rf(17),
           fontWeight: "700",
           textAlign: "center",
@@ -209,7 +215,7 @@ export function EmptyState({ icon, title, subtitle, action, actionLabel }) {
       {subtitle && (
         <Text
           style={{
-            color: COLORS.textSecondary,
+            color: colors.textSecondary,
             fontSize: rf(13),
             textAlign: "center",
             marginTop: verticalScale(8),
@@ -220,7 +226,7 @@ export function EmptyState({ icon, title, subtitle, action, actionLabel }) {
         </Text>
       )}
       {action && (
-        <TouchableOpacity style={S.emptyAction} onPress={action}>
+        <TouchableOpacity style={[S.emptyAction, { backgroundColor: colors.primary }]} onPress={action}>
           <Text style={{ color: "#fff", fontWeight: "700", fontSize: rf(14) }}>
             {actionLabel}
           </Text>
@@ -231,6 +237,7 @@ export function EmptyState({ icon, title, subtitle, action, actionLabel }) {
 }
 
 export function SectionHeader({ title, right }) {
+  const { colors } = useTheme();
   return (
     <View
       style={{
@@ -242,7 +249,7 @@ export function SectionHeader({ title, right }) {
     >
       <Text
         style={{
-          color: COLORS.textPrimary,
+          color: colors.textPrimary,
           fontSize: rf(15),
           fontWeight: "700",
           letterSpacing: -0.2,
@@ -257,7 +264,6 @@ export function SectionHeader({ title, right }) {
 
 const S = StyleSheet.create({
   inputLabel: {
-    color: COLORS.textSecondary,
     fontSize: rf(11),
     fontWeight: "700",
     textTransform: "uppercase",
@@ -267,15 +273,13 @@ const S = StyleSheet.create({
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.bgCardAlt,
     borderRadius: RADIUS.md,
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(12),
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  inputRowError: { borderColor: COLORS.danger },
-  input: { flex: 1, color: COLORS.textPrimary, fontSize: rf(14) },
+  inputRowError: {},
+  input: { flex: 1, fontSize: rf(14) },
   badge: {
     flexDirection: "row",
     alignItems: "center",
@@ -287,13 +291,10 @@ const S = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: COLORS.bgCard,
     borderRadius: RADIUS.lg,
     padding: scale(14),
     alignItems: "center",
     borderWidth: 1,
-    borderColor: COLORS.border,
-    ...SHADOWS.sm,
   },
   empty: {
     flex: 1,
@@ -303,10 +304,8 @@ const S = StyleSheet.create({
   },
   emptyAction: {
     marginTop: verticalScale(20),
-    backgroundColor: COLORS.primary,
     borderRadius: RADIUS.md,
     paddingHorizontal: scale(20),
     paddingVertical: verticalScale(11),
-    ...SHADOWS.button,
   },
 });

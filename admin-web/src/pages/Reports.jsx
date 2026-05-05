@@ -9,8 +9,8 @@ import s from "../styles/Admin.module.css";
 const SC = { Pending:"#F59E0B","In Progress":"#3B82F6",Resolved:"#10B981",Rejected:"#EF4444" };
 const CC = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#F97316"];
 const TT = {
-  contentStyle:{ background:"#0D1B2E", border:"1px solid rgba(255,255,255,0.08)", borderRadius:10, color:"#F1F5F9", fontSize:12 },
-  cursor:{ fill:"rgba(255,255,255,0.03)" },
+  contentStyle:{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, color:"var(--text-1)", fontSize:12 },
+  cursor:{ fill:"rgba(120,150,200,0.05)" },
 };
 
 const PriorityLabel = ({ cx,cy,midAngle,innerRadius,outerRadius,percent }) => {
@@ -80,12 +80,28 @@ export default function Reports() {
 
   return (
     <div className={s.page}>
-      <div className={s.pageHeader}>
+      <div className={`${s.pageHeader} ${s.noPrint}`}>
         <div><h1 className={s.pageTitle}>Reports & Analytics</h1><p className={s.pageSubtitle}>CitiVoice performance overview</p></div>
-        <div style={{ display:"flex", gap:6 }}>
-          {[{l:"All Time",v:"all"},{l:"7 days",v:"7d"},{l:"30 days",v:"30d"},{l:"90 days",v:"90d"}].map((r)=>(
-            <button key={r.v} className={s.chip} style={range===r.v?{background:"rgba(37,99,235,0.2)",borderColor:"var(--blue)",color:"var(--blue-light)",fontWeight:600}:{}} onClick={()=>setRange(r.v)}>{r.l}</button>
-          ))}
+        <div style={{ display:"flex", gap:10, alignItems: "center" }}>
+          <div style={{ display:"flex", gap:6 }}>
+            {[{l:"All Time",v:"all"},{l:"7 days",v:"7d"},{l:"30 days",v:"30d"},{l:"90 days",v:"90d"}].map((r)=>(
+              <button key={r.v} className={s.chip} style={range===r.v?{background:"rgba(37,99,235,0.2)",borderColor:"var(--blue)",color:"var(--blue-light)",fontWeight:600}:{}} onClick={()=>setRange(r.v)}>{r.l}</button>
+            ))}
+          </div>
+          <button className={s.btnPrimary} onClick={() => window.print()} style={{ padding: "8px 16px", borderRadius: 8 }}>
+            🖨️ Print Report
+          </button>
+        </div>
+      </div>
+
+      {/* Print Header (Only visible when printing) */}
+      <div className={s.printOnly} style={{ marginBottom: 30, borderBottom: "2px solid #000", paddingBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h1 style={{ margin: 0, color: "#000", fontSize: 28 }}>CitiVoice Analytics Report</h1>
+            <p style={{ margin: "5px 0 0", color: "#666" }}>Generated on {new Date().toLocaleString()} · Range: {range === 'all' ? 'All Time' : range}</p>
+          </div>
+          <div style={{ fontSize: 40 }}>📢</div>
         </div>
       </div>
 

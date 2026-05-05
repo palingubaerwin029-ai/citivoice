@@ -14,11 +14,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { InputField, PrimaryButton } from "../../components/UI";
-import { COLORS, RADIUS, SHADOWS } from "../../utils/theme";
+import { RADIUS, SHADOWS } from "../../utils/theme";
+import { useTheme } from "../../context/ThemeContext";
 import { mobileApi } from "../../context/AuthContext";
 import { scale, verticalScale, rf } from "../../utils/responsive";
 
 export default function RegisterScreen({ navigation }) {
+  const { colors } = useTheme();
   const { register } = useAuth();
   const { t, language, changeLanguage } = useLanguage();
 
@@ -89,10 +91,10 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <LinearGradient
-      colors={[COLORS.bgDeep, "#080F1E", COLORS.bgDark]}
+      colors={[colors.bgDeep, colors.bgDark]}
       style={{ flex: 1 }}
     >
-      <View style={S.glowBlob} />
+      <View style={[S.glowBlob, { backgroundColor: colors.primary }]} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -113,11 +115,11 @@ export default function RegisterScreen({ navigation }) {
             ].map((l) => (
               <TouchableOpacity
                 key={l.code}
-                style={[S.langChip, language === l.code && S.langChipActive]}
+                style={[S.langChip, { borderColor: colors.border }, language === l.code && { backgroundColor: colors.primary, borderColor: colors.primary }]}
                 onPress={() => changeLanguage(l.code)}
               >
                 <Text
-                  style={[S.langText, language === l.code && S.langTextActive]}
+                  style={[S.langText, { color: colors.textMuted }, language === l.code && { color: "#fff" }]}
                 >
                   {l.label}
                 </Text>
@@ -128,40 +130,40 @@ export default function RegisterScreen({ navigation }) {
           {/* Back + Logo */}
           <View style={S.topRow}>
             <TouchableOpacity
-              style={S.backBtn}
+              style={[S.backBtn, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
               onPress={() => navigation.goBack()}
             >
               <Ionicons
                 name="chevron-back"
                 size={20}
-                color={COLORS.textSecondary}
+                color={colors.textSecondary}
               />
             </TouchableOpacity>
-            <View style={S.logoSmall}>
+            <View style={[S.logoSmall, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
               <Text style={{ fontSize: 20 }}>📢</Text>
             </View>
           </View>
 
-          <Text style={S.pageTitle}>{t('register')}</Text>
-          <Text style={S.pageSubtitle}>{t('joinCommunity')}</Text>
+          <Text style={[S.pageTitle, { color: colors.textPrimary }]}>{t('register')}</Text>
+          <Text style={[S.pageSubtitle, { color: colors.textSecondary }]}>{t('joinCommunity')}</Text>
 
           {/* Verification notice */}
-          <View style={S.noticeBox}>
+          <View style={[S.noticeBox, { backgroundColor: colors.primary + '14', borderColor: colors.primary + '33' }]}>
             <Ionicons
               name="shield-checkmark-outline"
               size={18}
-              color={COLORS.primaryLight}
+              color={colors.primaryLight}
             />
             <View style={{ flex: 1 }}>
-              <Text style={S.noticeTitle}>{t('verificationRequired')}</Text>
-              <Text style={S.noticeText}>
+              <Text style={[S.noticeTitle, { color: colors.primaryLight }]}>{t('verificationRequired')}</Text>
+              <Text style={[S.noticeText, { color: colors.textSecondary }]}>
                 {t('verificationNotice')}
               </Text>
             </View>
           </View>
 
           {/* Form */}
-          <View style={S.card}>
+          <View style={[S.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
             <InputField
               label={t('fullName').toUpperCase()}
               value={form.name}
@@ -198,7 +200,7 @@ export default function RegisterScreen({ navigation }) {
                   <Ionicons
                     name={showPw ? "eye-off-outline" : "eye-outline"}
                     size={18}
-                    color={COLORS.textMuted}
+                    color={colors.textMuted}
                   />
                 </TouchableOpacity>
               }
@@ -217,20 +219,21 @@ export default function RegisterScreen({ navigation }) {
 
             {/* Barangay picker */}
             <View style={{ marginBottom: 14 }}>
-              <Text style={S.fieldLabel}>{t('barangay').toUpperCase()}</Text>
+              <Text style={[S.fieldLabel, { color: colors.textMuted }]}>{t('barangay').toUpperCase()}</Text>
               <TouchableOpacity
-                style={[S.picker, errors.barangay && S.pickerError]}
+                style={[S.picker, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, errors.barangay && { borderColor: colors.danger }]}
                 onPress={() => setShowPicker((p) => !p)}
               >
                 <Ionicons
                   name="location-outline"
                   size={16}
-                  color={COLORS.textMuted}
+                  color={colors.textMuted}
                 />
                 <Text
                   style={[
                     S.pickerText,
-                    !form.barangay && { color: COLORS.textMuted },
+                    { color: colors.textPrimary },
+                    !form.barangay && { color: colors.textMuted },
                   ]}
                 >
                   {form.barangay || t('selectBarangay')}
@@ -238,7 +241,7 @@ export default function RegisterScreen({ navigation }) {
                 <Ionicons
                   name={showPicker ? "chevron-up" : "chevron-down"}
                   size={16}
-                  color={COLORS.textMuted}
+                  color={colors.textMuted}
                 />
               </TouchableOpacity>
               {errors.barangay && (
@@ -253,22 +256,23 @@ export default function RegisterScreen({ navigation }) {
                   <Ionicons
                     name="alert-circle"
                     size={12}
-                    color={COLORS.danger}
+                    color={colors.danger}
                   />
-                  <Text style={{ color: COLORS.danger, fontSize: rf(11) }}>
+                  <Text style={{ color: colors.danger, fontSize: rf(11) }}>
                     {errors.barangay}
                   </Text>
                 </View>
               )}
               {showPicker && (
-                <View style={S.dropdown}>
+                <View style={[S.dropdown, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}>
                   <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
                     {availableBarangays.map((b) => (
                       <TouchableOpacity
                         key={b}
                         style={[
                           S.dropdownItem,
-                          form.barangay === b && S.dropdownItemActive,
+                          { borderBottomColor: colors.border },
+                          form.barangay === b && { backgroundColor: colors.primary + '18' },
                         ]}
                         onPress={() => {
                           set("barangay", b);
@@ -278,8 +282,9 @@ export default function RegisterScreen({ navigation }) {
                         <Text
                           style={[
                             S.dropdownText,
+                            { color: colors.textSecondary },
                             form.barangay === b && {
-                              color: COLORS.primaryLight,
+                              color: colors.primaryLight,
                               fontWeight: "700",
                             },
                           ]}
@@ -290,7 +295,7 @@ export default function RegisterScreen({ navigation }) {
                           <Ionicons
                             name="checkmark-circle"
                             size={16}
-                            color={COLORS.primaryLight}
+                            color={colors.primaryLight}
                           />
                         )}
                       </TouchableOpacity>
@@ -308,13 +313,13 @@ export default function RegisterScreen({ navigation }) {
             />
 
             <View style={S.loginRow}>
-              <Text style={{ color: COLORS.textSecondary, fontSize: rf(14) }}>
+              <Text style={{ color: colors.textSecondary, fontSize: rf(14) }}>
                 {t('hasAccount')}{" "}
               </Text>
               <TouchableOpacity onPress={() => navigation.navigate("Login")}>
                 <Text
                   style={{
-                    color: COLORS.primaryLight,
+                    color: colors.primaryLight,
                     fontSize: rf(14),
                     fontWeight: "700",
                   }}
@@ -346,7 +351,6 @@ const S = StyleSheet.create({
     width: scale(280),
     height: scale(280),
     borderRadius: scale(140),
-    backgroundColor: COLORS.primary,
     opacity: 0.07,
   },
 
@@ -361,15 +365,7 @@ const S = StyleSheet.create({
     paddingVertical: verticalScale(5),
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  langChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  langText: { color: COLORS.textMuted, fontSize: rf(11), fontWeight: "700" },
-  langTextActive: { color: "#fff" },
-
   topRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -380,9 +376,7 @@ const S = StyleSheet.create({
     width: scale(36),
     height: scale(36),
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.bgCard,
     borderWidth: 1,
-    borderColor: COLORS.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -390,52 +384,43 @@ const S = StyleSheet.create({
     width: scale(36),
     height: scale(36),
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.bgCard,
     borderWidth: 1,
-    borderColor: COLORS.border,
     alignItems: "center",
     justifyContent: "center",
   },
 
   pageTitle: {
-    color: COLORS.textPrimary,
     fontSize: rf(26),
     fontWeight: "800",
     letterSpacing: -0.4,
     marginBottom: verticalScale(4),
   },
-  pageSubtitle: { color: COLORS.textSecondary, fontSize: rf(13), marginBottom: verticalScale(20) },
+  pageSubtitle: { fontSize: rf(13), marginBottom: verticalScale(20) },
 
   noticeBox: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: scale(12),
-    backgroundColor: "rgba(37,99,235,0.08)",
     borderRadius: RADIUS.lg,
     padding: scale(14),
     borderWidth: 1,
-    borderColor: "rgba(37,99,235,0.2)",
     marginBottom: verticalScale(20),
   },
   noticeTitle: {
-    color: COLORS.primaryLight,
     fontSize: rf(13),
     fontWeight: "700",
     marginBottom: verticalScale(4),
   },
-  noticeText: { color: COLORS.textSecondary, fontSize: rf(12), lineHeight: rf(18) },
+  noticeText: { fontSize: rf(12), lineHeight: rf(18) },
 
   card: {
-    backgroundColor: COLORS.bgCard,
     borderRadius: RADIUS["2xl"],
     padding: scale(24),
     borderWidth: 1,
-    borderColor: COLORS.border,
     ...SHADOWS.card,
   },
 
   fieldLabel: {
-    color: COLORS.textMuted,
     fontSize: rf(10),
     fontWeight: "700",
     letterSpacing: 0.8,
@@ -446,21 +431,16 @@ const S = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: scale(10),
-    backgroundColor: COLORS.bgCardAlt,
     borderRadius: RADIUS.md,
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(13),
     borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  pickerError: { borderColor: COLORS.danger },
-  pickerText: { flex: 1, color: COLORS.textPrimary, fontSize: rf(14) },
+  pickerText: { flex: 1, fontSize: rf(14) },
 
   dropdown: {
-    backgroundColor: COLORS.bgCardAlt,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
     marginTop: verticalScale(4),
     overflow: "hidden",
   },
@@ -470,10 +450,8 @@ const S = StyleSheet.create({
     alignItems: "center",
     padding: scale(14),
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
-  dropdownItemActive: { backgroundColor: COLORS.primary + "18" },
-  dropdownText: { color: COLORS.textSecondary, fontSize: rf(14) },
+  dropdownText: { fontSize: rf(14) },
 
   loginRow: { flexDirection: "row", justifyContent: "center", marginTop: verticalScale(20) },
 });

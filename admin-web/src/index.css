@@ -40,6 +40,37 @@
   --shadow-blue:0 4px 24px rgba(37,99,235,0.45);
 
   --t: 180ms ease;
+
+  /* Legacy aliases for older modules (Table, Concerns, etc) */
+  --primary:         var(--blue);
+  --primary-light:   var(--blue-light);
+  --bg-card:         var(--surface);
+  --bg-card-alt:     var(--surface-2);
+  --text-primary:    var(--text-1);
+  --text-secondary:  var(--text-2);
+  --text-muted:      var(--text-3);
+  --radius-sm:       var(--r-sm);
+  --radius-md:       var(--r-md);
+  --radius-lg:       var(--r-lg);
+  --shadow-button:   var(--shadow-sm);
+}
+
+[data-theme="light"] {
+  --bg:          #F8FAFC;
+  --surface:     #FFFFFF;
+  --surface-2:   #F1F5F9;
+  --surface-3:   #E2E8F0;
+  --border:      rgba(0,0,0,0.08);
+  --border-md:   rgba(0,0,0,0.15);
+
+  --text-1:  #0F172A;
+  --text-2:  #475569;
+  --text-3:  #64748B;
+
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.1);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg:  0 8px 24px rgba(0,0,0,0.1);
+  --shadow-blue:0 4px 16px rgba(37,99,235,0.25);
 }
 
 html, body, #root {

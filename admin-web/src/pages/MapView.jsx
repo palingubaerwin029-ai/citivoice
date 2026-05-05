@@ -131,11 +131,20 @@ export function MapView() {
   const navigate = useNavigate();
   const [concerns, setConcerns] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState(localStorage.getItem("mv_filter") || "All");
+  const [mapType, setMapType] = useState(localStorage.getItem("mv_layer") || "Dark Matter");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [flyCoords, setFlyCoords] = useState(null);
   const provider = new OpenStreetMapProvider();
+
+  useEffect(() => {
+    localStorage.setItem("mv_filter", filter);
+  }, [filter]);
+
+  useEffect(() => {
+    localStorage.setItem("mv_layer", mapType);
+  }, [mapType]);
 
   useEffect(() => {
     api.get("/concerns").then(setConcerns).catch(console.error);
@@ -175,22 +184,25 @@ export function MapView() {
         style={{ height: "100%", width: "100%" }}
       >
         <LayersControl position="topright">
-          <LayersControl.BaseLayer checked name="Dark Matter">
+          <LayersControl.BaseLayer checked={mapType === "Dark Matter"} name="Dark Matter">
             <TileLayer 
               url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" 
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              eventHandlers={{ add: () => setMapType("Dark Matter") }}
             />
           </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Positron (Light)">
+          <LayersControl.BaseLayer checked={mapType === "Positron (Light)"} name="Positron (Light)">
             <TileLayer 
               url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" 
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              eventHandlers={{ add: () => setMapType("Positron (Light)") }}
             />
           </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Satellite">
+          <LayersControl.BaseLayer checked={mapType === "Satellite"} name="Satellite">
             <TileLayer 
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" 
               attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+              eventHandlers={{ add: () => setMapType("Satellite") }}
             />
           </LayersControl.BaseLayer>
         </LayersControl>

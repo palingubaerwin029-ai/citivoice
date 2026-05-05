@@ -6,10 +6,12 @@ import { mobileApi } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { EmptyState } from '../../components/UI';
 import { useLanguage } from '../../context/LanguageContext';
-import { COLORS, RADIUS, SHADOWS } from '../../utils/theme';
+import { RADIUS, SHADOWS } from '../../utils/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 
 export default function NotificationsScreen({ navigation }) {
+  const { colors } = useTheme();
   const [notifications, setNotifications] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const { fetchUnreadCount } = useNotifications();
@@ -69,16 +71,16 @@ export default function NotificationsScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={S.container} edges={['top']}>
+    <SafeAreaView style={[S.container, { backgroundColor: colors.bgDark }]} edges={['top']}>
       {/* Header */}
-      <View style={S.header}>
+      <View style={[S.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity style={S.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={S.headerTitle}>{t('notifications')}</Text>
+        <Text style={[S.headerTitle, { color: colors.textPrimary }]}>{t('notifications')}</Text>
         {hasUnread ? (
           <TouchableOpacity onPress={handleMarkAllRead}>
-            <Text style={S.markAllText}>{t('markAllRead')}</Text>
+            <Text style={[S.markAllText, { color: colors.primary }]}>{t('markAllRead')}</Text>
           </TouchableOpacity>
         ) : (
           <View style={{ width: scale(60) }} />
@@ -89,7 +91,7 @@ export default function NotificationsScreen({ navigation }) {
         data={notifications}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={S.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListEmptyComponent={
           !refreshing && (
             <EmptyState
@@ -101,21 +103,21 @@ export default function NotificationsScreen({ navigation }) {
         }
         renderItem={({ item }) => (
           <TouchableOpacity 
-            style={[S.card, !item.is_read && S.cardUnread]}
+            style={[S.card, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, !item.is_read && { backgroundColor: colors.bgCard, borderColor: colors.primary + '33' }]}
             onPress={() => !item.is_read && handleMarkAsRead(item.id)}
             activeOpacity={0.8}
           >
-            <View style={S.iconBox}>
-              <Ionicons name="notifications" size={20} color={!item.is_read ? COLORS.primary : COLORS.textMuted} />
+            <View style={[S.iconBox, { backgroundColor: colors.border }]}>
+              <Ionicons name="notifications" size={20} color={!item.is_read ? colors.primary : colors.textMuted} />
             </View>
             <View style={S.content}>
               <View style={S.titleRow}>
-                <Text style={[S.title, !item.is_read && S.titleUnread]}>{item.title}</Text>
-                <Text style={S.time}>{timeAgo(item.created_at)}</Text>
+                <Text style={[S.title, { color: colors.textSecondary }, !item.is_read && { color: colors.textPrimary, fontWeight: '800' }]}>{item.title}</Text>
+                <Text style={[S.time, { color: colors.textMuted }]}>{timeAgo(item.created_at)}</Text>
               </View>
-              <Text style={S.message} numberOfLines={3}>{item.message}</Text>
+              <Text style={[S.message, { color: colors.textPrimary }]} numberOfLines={3}>{item.message}</Text>
             </View>
-            {!item.is_read && <View style={S.unreadDot} />}
+            {!item.is_read && <View style={[S.unreadDot, { backgroundColor: colors.primary }]} />}
           </TouchableOpacity>
         )}
       />
@@ -124,36 +126,33 @@ export default function NotificationsScreen({ navigation }) {
 }
 
 const S = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgDark },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: scale(16), paddingVertical: verticalScale(12),
-    borderBottomWidth: 1, borderBottomColor: COLORS.border
+    borderBottomWidth: 1,
   },
   backBtn: { padding: scale(4) },
-  headerTitle: { color: COLORS.textPrimary, fontSize: rf(18), fontWeight: '800' },
-  markAllText: { color: COLORS.primary, fontSize: rf(13), fontWeight: '600' },
+  headerTitle: { fontSize: rf(18), fontWeight: '800' },
+  markAllText: { fontSize: rf(13), fontWeight: '600' },
   
   list: { paddingHorizontal: scale(16), paddingTop: verticalScale(16), paddingBottom: verticalScale(40), gap: verticalScale(10) },
 
   card: {
     flexDirection: 'row', gap: scale(12), padding: scale(14),
-    backgroundColor: COLORS.bgCardAlt, borderRadius: moderateScale(14),
-    borderWidth: 1, borderColor: COLORS.border,
+    borderRadius: moderateScale(14),
+    borderWidth: 1,
   },
-  cardUnread: {
-    backgroundColor: COLORS.bgCard,
-    borderColor: COLORS.primary + '33',
-  },
+  cardUnread: {},
   iconBox: {
     width: scale(36), height: scale(36), borderRadius: scale(18),
-    backgroundColor: COLORS.border, alignItems: 'center', justifyContent: 'center'
+    alignItems: 'center', justifyContent: 'center'
   },
   content: { flex: 1 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: verticalScale(4) },
-  title: { color: COLORS.textSecondary, fontSize: rf(14), fontWeight: '600', flex: 1, marginRight: scale(8) },
-  titleUnread: { color: COLORS.textPrimary, fontWeight: '800' },
-  time: { color: COLORS.textMuted, fontSize: rf(11) },
-  message: { color: COLORS.textPrimary, fontSize: rf(13), lineHeight: rf(19) },
-  unreadDot: { width: scale(8), height: scale(8), borderRadius: scale(4), backgroundColor: COLORS.primary, alignSelf: 'center', marginLeft: scale(8) }
+  title: { fontSize: rf(14), fontWeight: '600', flex: 1, marginRight: scale(8) },
+  titleUnread: {},
+  time: { fontSize: rf(11) },
+  message: { fontSize: rf(13), lineHeight: rf(19) },
+  unreadDot: { width: scale(8), height: scale(8), borderRadius: scale(4), alignSelf: 'center', marginLeft: scale(8) }
 });
