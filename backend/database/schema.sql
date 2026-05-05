@@ -105,6 +105,18 @@ CREATE TABLE IF NOT EXISTS notifications (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- ─── Concern Templates ──────────────────────────────────────────────────────
+-- Stores pre-defined titles and descriptions for the mobile app "Quick Selection"
+CREATE TABLE IF NOT EXISTS concern_templates (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  category    VARCHAR(100) NOT NULL,
+  priority    ENUM('High','Medium','Low') NOT NULL DEFAULT 'Medium',
+  quick_title VARCHAR(500) NOT NULL,
+  template_body TEXT NOT NULL,
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- ─── Essential Bootstrap Data ───────────────────────────────────────────────
 
 -- Comprehensive Barangay list for Kabankalan City
@@ -116,5 +128,16 @@ INSERT INTO barangays (name) VALUES
   ('Daan Banua'), ('Hilamonan'), ('Inapoy'), ('Linao'), ('Locotan'), ('Magballo'),
   ('Oringao'), ('Orong'), ('Pinaguinpinan'), ('Salong'), ('Tabugon'), ('Tagoc'),
   ('Tagukon'), ('Talubangi'), ('Tampalon'), ('Tan-Awan'), ('Tapi')
+ON DUPLICATE KEY UPDATE updated_at = NOW();
+
+-- Default Concern Templates
+INSERT INTO concern_templates (category, priority, quick_title, template_body) VALUES
+  ('Waste Management', 'Medium', 'Uncollected Garbage', 'Requesting for immediate garbage collection in our area. The trash has been piled up for days.'),
+  ('Waste Management', 'High', 'Illegal Dumping Site', 'Reporting a major illegal dumping site that is causing a foul smell and attracting pests.'),
+  ('Infrastructure', 'High', 'Dangerous Pothole', 'There is a deep and dangerous pothole along the main road that poses a risk to motorists.'),
+  ('Infrastructure', 'Medium', 'Street Light Repair', 'Requesting repair for a busted street light. The area is very dark and unsafe at night.'),
+  ('Security', 'High', 'Suspicious Activity', 'Reporting suspicious individuals loitering in the neighborhood late at night.'),
+  ('Health', 'High', 'Stagnant Water / Dengue Risk', 'Requesting anti-dengue fogging due to stagnant water and rising mosquito cases in the area.'),
+  ('Traffic', 'Medium', 'Obstructed Sidewalk', 'Reporting a vehicle or structure obstructing the sidewalk, forcing pedestrians to walk on the road.')
 ON DUPLICATE KEY UPDATE updated_at = NOW();
 

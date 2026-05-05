@@ -104,6 +104,16 @@ erDiagram
         datetime created_at
         datetime updated_at
     }
+ 
+    CONCERN_TEMPLATES {
+        int id PK
+        varchar category
+        enum priority "High | Medium | Low"
+        varchar quick_title
+        text template_body
+        datetime created_at
+        datetime updated_at
+    }
 
     %% ── Physical Foreign Key Relationships ──
     USERS ||--o{ CONCERNS : "submits (user_id → users.id, ON DELETE SET NULL)"
@@ -190,7 +200,6 @@ flowchart LR
     P1 -- "Token / Status" --> Citizen
     Citizen -- "Concern / Upvote" --> P2
     P2 -- "Updates" --> Citizen
-    P3 -- "Feed" --> Citizen
     P4 -- "Push Alert" --> Citizen
 
     Admin -- "Credentials / Verify" --> P1
@@ -363,10 +372,14 @@ flowchart TD
 
     CitizenHome --> CitizenAction{Select Feature}
     CitizenAction --> SubmitConcern[Submit Civic Concern]
+    SubmitConcern --> Selection[Select Category & Priority]
+    Selection --> AutoFill[Auto-fill Description via Quick Templates]
+    AutoFill --> Capture[Capture/Select Photos]
+    Capture --> PostToDB[Submit to Database]
     CitizenAction --> ViewStatus[View Concern Status]
     CitizenAction --> VerifyID[Submit ID for Verification]
 
-    SubmitConcern --> DB[(System Database)]
+    PostToDB --> DB[(System Database)]
     ViewStatus --> DB
     VerifyID --> DB
 
