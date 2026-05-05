@@ -18,7 +18,9 @@
       "bundleIdentifier": "com.citivoice.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "CitiVoice needs your location to pin your concern on the map.",
-        "NSLocationAlwaysUsageDescription": "CitiVoice needs your location to pin your concern on the map."
+        "NSLocationAlwaysUsageDescription": "CitiVoice needs your location to pin your concern on the map.",
+        "NSPhotoLibraryUsageDescription": "The app needs access to your gallery to upload concern photos.",
+        "NSCameraUsageDescription": "The app needs access to your camera to take concern photos."
       }
     },
     "android": {
@@ -30,6 +32,9 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
         "VIBRATE",
         "POST_NOTIFICATIONS"
       ]
@@ -39,6 +44,13 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "CitiVoice needs location to pin your concern on the map."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app needs access to your gallery to upload concern photos.",
+          "cameraPermission": "The app needs access to your camera to take concern photos."
         }
       ],
       "expo-font"

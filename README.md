@@ -38,12 +38,11 @@ citivoice/
 - **Reports** — Generate and export analytical reports on community data.
 
 ### 📱 Citizen App (Mobile)
-- **Civic Reporting** — Submit concerns with photo attachments, GPS location, category tags, and descriptions.
-- **Interactive Map** — React Native Maps integration with color-coded concern markers and clustering.
-- **Events Feed** — Browse upcoming community events and city announcements.
-- **My Concerns** — Track the status of submitted reports in real-time.
-- **Notifications** — Push-style notifications for concern status updates and announcements.
-- **Profile & Verification** — Complete identity verification by uploading government-issued IDs.
+- **Civic Reporting** — Submit concerns with photo attachments, GPS location, and automatic category/priority-based descriptions.
+- **Smart Templates** — One-tap "Quick Templates" and "Quick Titles" that update dynamically based on the urgency and type of the report.
+- **Interactive Map** — React Native Maps integration with color-coded concern markers and real-time clustering.
+- **My Concerns** — Track the status of submitted reports and view detailed feedback from city administrators.
+- **Dynamic Themes** — Full light and dark mode support with a premium, modern design system.
 - **Multi-language Support** — Built-in i18n supporting English, Filipino, and Hiligaynon.
 
 ---

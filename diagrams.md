@@ -144,7 +144,6 @@ flowchart TD
     System -- "JWT Auth Token" --> Citizen
     System -- "Concern Status Updates" --> Citizen
     System -- "In-App Notifications" --> Citizen
-    System -- "Announcements & Events Feed" --> Citizen
     System -- "Verification Decision" --> Citizen
 
     %% ── Admin → System ──
@@ -365,7 +364,6 @@ flowchart TD
     CitizenHome --> CitizenAction{Select Feature}
     CitizenAction --> SubmitConcern[Submit Civic Concern]
     CitizenAction --> ViewStatus[View Concern Status]
-    CitizenAction --> ViewFeed[View Announcements & Events]
     CitizenAction --> VerifyID[Submit ID for Verification]
 
     SubmitConcern --> DB[(System Database)]
