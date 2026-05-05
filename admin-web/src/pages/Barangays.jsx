@@ -52,12 +52,12 @@ export default function Barangays() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}><IoBusinessOutline style={{ marginRight: 8, verticalAlign: "middle" }} /> Barangays</h1>
-          <p className={styles.subtitle}>Manage registered barangays for user selection</p>
+      <div className={s.pageHeader}>
+        <div className={s.pageTitleGroup}>
+          <h1 className={s.pageTitle}><IoBusinessOutline style={{ marginRight: 8, verticalAlign: "middle" }} /> Barangays</h1>
+          <p className={s.pageSubtitle}>Manage registered barangays for user selection</p>
         </div>
-        <button className={styles.addBtn} onClick={() => { setShowForm(true); setEditItem(null); setForm(EMPTY); }}>
+        <button className={`${s.btn} ${s.btnPrimary}`} onClick={() => { setShowForm(true); setEditItem(null); setForm(EMPTY); }}>
           <IoAddOutline size={18} style={{ marginRight: 4, verticalAlign: "middle" }} /> Add Barangay
         </button>
       </div>
@@ -126,8 +126,8 @@ export default function Barangays() {
         <div className={styles.dialogOverlay}>
           <div className={styles.dialog}>
             <div style={{ fontSize: 40, marginBottom: 12, color: "#FF4444" }}><IoTrashOutline /></div>
-            <h3 style={{ color: "#fff", margin: "0 0 8px" }}>Delete this?</h3>
-            <p style={{ color: "#8899BB", fontSize: 14, marginBottom: 24 }}>"{deleteConfirm.name}" will be permanently deleted.</p>
+            <h3 style={{ color: "var(--text-1)", margin: "0 0 8px" }}>Delete this?</h3>
+            <p style={{ color: "var(--text-2)", fontSize: 14, marginBottom: 24 }}>"{deleteConfirm.name}" will be permanently deleted.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <button className={styles.dialogCancel} onClick={() => setDeleteConfirm(null)}>Cancel</button>
               <button className={styles.dialogDelete} onClick={() => handleDelete(deleteConfirm.id)}>Delete</button>

@@ -12,6 +12,7 @@ import Reports                from "./pages/Reports";
 import Login                  from "./pages/Login";
 import Verification           from "./pages/Verification";
 import Barangays              from "./pages/Barangays";
+import Templates              from "./pages/Templates";
 
 export default function App() {
   const [user, setUser]       = useState(null);
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="/users"           element={<Users />} />
             <Route path="/reports"         element={<Reports />} />
             <Route path="/barangays"       element={<Barangays />} />
+            <Route path="/templates"       element={<Templates />} />
           </Routes>
         </main>
       </div>

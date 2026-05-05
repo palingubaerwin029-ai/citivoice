@@ -389,7 +389,7 @@ export function MapView() {
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ color: "#fff", fontSize: 22, fontWeight: 800 }}>Problem Details</h2>
+          <h2 style={{ color: "var(--text-1)", fontSize: 22, fontWeight: 800 }}>Problem Details</h2>
           <button
             onClick={() => setSelected(null)}
             style={{
@@ -424,7 +424,7 @@ export function MapView() {
               <span style={{ backgroundColor: STATUS_COLORS[selected.status] + "20", color: STATUS_COLORS[selected.status], padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>
                 {selected.status}
               </span>
-              <h3 style={{ color: "#fff", fontSize: 24, marginTop: 12, lineHeight: 1.2 }}>
+              <h3 style={{ color: "var(--text-1)", fontSize: 24, marginTop: 12, lineHeight: 1.2 }}>
                 {selected.title}
               </h3>
             </div>
@@ -434,7 +434,7 @@ export function MapView() {
             </p>
 
             <div style={{ padding: 16, borderTop: "1px solid rgba(255,255,255,0.1)", marginTop: "auto" }}>
-              <div style={{ display: "flex", gap: 10, color: "#fff", alignItems: "flex-start" }}>
+              <div style={{ display: "flex", gap: 10, color: "var(--text-1)", alignItems: "flex-start" }}>
                 <span style={{ fontSize: 20 }}>📍</span>
                 <div>
                   <div style={{ fontWeight: 600 }}>Location</div>

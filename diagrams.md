@@ -103,6 +103,7 @@ erDiagram
     %% ── Logical / Text-Based Relationships ──
     BARANGAYS ||--o{ USERS : "resides in (users.barangay)"
     BARANGAYS ||--o{ CONCERNS : "reported from (concerns.user_barangay)"
+    CONCERN_TEMPLATES ||--o{ CONCERNS : "populates data for (concerns.title, description, category, priority)"
 ```
 
 ---
@@ -165,6 +166,7 @@ flowchart LR
 
     P1(("1.0 Manage<br/>Users & Auth"))
     P2(("2.0 Process<br/>Concerns"))
+    P3(("3.0 Manage<br/>Templates"))
     P4(("4.0 Dispatch<br/>Notifications"))
 
     DB[(System Database)]
@@ -175,6 +177,8 @@ flowchart LR
     P1 -- "Token / Status" --> Citizen
     Citizen -- "Concern / Upvote" --> P2
     P2 -- "Updates" --> Citizen
+    Citizen -- "Fetch Templates" --> P3
+    P3 -- "Templates List" --> Citizen
     P4 -- "Push Alert" --> Citizen
 
     Admin -- "Credentials / Verify" --> P1
@@ -185,6 +189,7 @@ flowchart LR
 
     P1 <--> DB
     P2 <--> DB
+    P3 <--> DB
     P4 <--> DB
 
     P2 -- "Trigger" --> P4
@@ -341,15 +346,22 @@ flowchart TD
     AuthCheck -- No --> Login
     AuthCheck -- Yes --> CheckRole{User Role?}
 
-    CheckRole -- Citizen --> CitizenHome[Citizen Dashboard]
-    CheckRole -- Admin --> AdminHome[Admin Dashboard]
+    CheckRole -- Citizen --> CitizenHome([Citizen Dashboard])
+    CheckRole -- Admin --> AdminHome([Admin Dashboard])
+```
 
-    CitizenHome --> CitizenAction{Select Feature}
+#### Citizen Workflow
+
+```mermaid
+flowchart TD
+    CitizenHome([Citizen Dashboard]) --> CitizenAction{Select Feature}
+    
     CitizenAction --> SubmitConcern[Submit Civic Concern]
     SubmitConcern --> Selection[Select Category & Priority]
-    Selection --> AutoFill[Auto-fill Description via Quick Templates]
+    Selection --> AutoFill[Auto-fill via Quick Templates]
     AutoFill --> Capture[Capture/Select Photos]
     Capture --> PostToDB[Submit to Database]
+    
     CitizenAction --> ViewStatus[View Concern Status]
     CitizenAction --> VerifyID[Submit ID for Verification]
 
@@ -357,19 +369,26 @@ flowchart TD
     ViewStatus --> DB
     VerifyID --> DB
 
-    AdminHome --> AdminAction{Select Feature}
+    DB --> Notify[Notification Triggered]
+```
+
+#### Admin Workflow
+
+```mermaid
+flowchart TD
+    AdminHome([Admin Dashboard]) --> AdminAction{Select Feature}
+    
     AdminAction --> ManageConcerns[Review & Update Concerns]
     AdminAction --> VerifyUsers[Verify / Reject Users]
-    AdminAction --> ManageContent[Manage Events & Announcements]
+    AdminAction --> ManageTemplates[Manage Concern Templates]
     AdminAction --> ViewReports[Generate Reports]
 
-    ManageConcerns --> DB
+    ManageConcerns --> DB[(System Database)]
     VerifyUsers --> DB
-    ManageContent --> DB
+    ManageTemplates --> DB
     ViewReports --> DB
-
-    DB --> Notify[Send Notification to Citizen]
-    Notify --> End([End])
+    
+    DB --> Notify[Notification Triggered]
 ```
 
 ---
@@ -390,8 +409,7 @@ flowchart TD
 
     Menu --> Concerns[Concerns Management]
     Menu --> Verify[User Verification]
-    Menu --> Events[Events Management]
-    Menu --> Announce[Announcements Management]
+    Menu --> Templates[Template Management]
     Menu --> Barangays[Barangay Management]
     Menu --> Reports[Reports & Analytics]
     Menu --> MapView[Map View]
@@ -413,11 +431,8 @@ flowchart TD
     ApproveUser --> DB
     RejectUser --> DB
 
-    Events --> CRUDEvent[Create / Edit / Delete Event]
-    CRUDEvent --> DB
-
-    Announce --> CRUDAnnounce[Create / Edit / Delete Announcement]
-    CRUDAnnounce --> DB
+    Templates --> CRUDTemplate[Create / Edit / Delete Template]
+    CRUDTemplate --> DB
 
     Barangays --> CRUDBarangay[Add / Edit / Delete Barangay]
     CRUDBarangay --> DB
@@ -452,16 +467,14 @@ flowchart TD
     Route -- "/api/auth" --> AuthRoute[Auth Route]
     Route -- "/api/concerns" --> ConcernRoute[Concerns Route]
     Route -- "/api/users" --> UserRoute[Users Route]
-    Route -- "/api/events" --> EventRoute[Events Route]
-    Route -- "/api/announcements" --> AnnounceRoute[Announcements Route]
+    Route -- "/api/templates" --> TemplateRoute[Templates Route]
     Route -- "/api/notifications" --> NotifRoute[Notifications Route]
     Route -- "/api/barangays" --> BarangayRoute[Barangays Route]
 
     AuthRoute --> NeedAuth{Requires Auth?}
     ConcernRoute --> NeedAuth
     UserRoute --> NeedAuth
-    EventRoute --> NeedAuth
-    AnnounceRoute --> NeedAuth
+    TemplateRoute --> NeedAuth
     NotifRoute --> NeedAuth
     BarangayRoute --> NeedAuth
 

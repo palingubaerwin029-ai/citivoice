@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api, fmtDateShort } from "../services/api";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles/Table.module.css";
+import s from "../styles/Admin.module.css";
 
 const STATUS_COLORS   = { Pending: "#FFB800", "In Progress": "#1A6BFF", Resolved: "#00D4AA", Rejected: "#FF4444" };
 const PRIORITY_COLORS = { High: "#FF4444", Medium: "#FFB800", Low: "#00D4AA" };
@@ -83,19 +84,19 @@ export default function Concerns() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.pageTitle}>
+      <div className={s.pageHeader}>
+        <div className={s.pageTitleGroup}>
+          <h1 className={s.pageTitle}>
             {selectedCitizen ? `👤 Concerns of ${selectedCitizen.name}` : "📋 Concerns Management"}
           </h1>
-          <p className={styles.pageSubtitle}>
+          <p className={s.pageSubtitle}>
             {selectedCitizen 
               ? `${filteredConcerns.length} concerns found for this citizen` 
               : `${citizensList.length} citizens with active concerns`}
           </p>
         </div>
         {selectedCitizen && (
-          <button className={styles.addBtn} onClick={() => { setSelectedCitizen(null); setSearch(""); }}>
+          <button className={`${s.btn} ${s.btnGhost}`} onClick={() => { setSelectedCitizen(null); setSearch(""); }}>
             ← Back to Citizens
           </button>
         )}
