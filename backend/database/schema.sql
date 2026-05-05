@@ -67,9 +67,6 @@ CREATE TABLE IF NOT EXISTS concern_upvotes (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
 -- ─── Notifications ───────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS notifications (
   id          INT AUTO_INCREMENT PRIMARY KEY,
