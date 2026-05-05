@@ -80,30 +80,9 @@ erDiagram
         datetime updated_at
     }
 
-    ANNOUNCEMENTS {
-        int id PK
-        varchar title
-        text body
-        enum type "info | warning | urgent | success"
-        varchar author
-        varchar barangay
-        text link
-        datetime created_at
-        datetime updated_at
-    }
 
-    EVENTS {
-        int id PK
-        varchar title
-        text description
-        enum category "meeting | maintenance | health | emergency | celebration | other"
-        datetime date
-        varchar location
-        varchar organizer
-        text link
-        datetime created_at
-        datetime updated_at
-    }
+
+
  
     CONCERN_TEMPLATES {
         int id PK
@@ -124,7 +103,6 @@ erDiagram
     %% ── Logical / Text-Based Relationships ──
     BARANGAYS ||--o{ USERS : "resides in (users.barangay)"
     BARANGAYS ||--o{ CONCERNS : "reported from (concerns.user_barangay)"
-    BARANGAYS ||--o{ ANNOUNCEMENTS : "targeted at (announcements.barangay)"
 ```
 
 ---
@@ -160,8 +138,6 @@ flowchart TD
     Admin -- "Login Credentials" --> System
     Admin -- "Concern Status & Admin Note" --> System
     Admin -- "Verification Approve / Reject" --> System
-    Admin -- "New Announcement" --> System
-    Admin -- "New Event" --> System
     Admin -- "Barangay Data" --> System
 
     %% ── System → Admin ──
@@ -189,7 +165,6 @@ flowchart LR
 
     P1(("1.0 Manage<br/>Users & Auth"))
     P2(("2.0 Process<br/>Concerns"))
-    P3(("3.0 Manage<br/>Events &<br/>Announcements"))
     P4(("4.0 Dispatch<br/>Notifications"))
 
     DB[(System Database)]
@@ -210,7 +185,6 @@ flowchart LR
 
     P1 <--> DB
     P2 <--> DB
-    P3 <--> DB
     P4 <--> DB
 
     P2 -- "Trigger" --> P4

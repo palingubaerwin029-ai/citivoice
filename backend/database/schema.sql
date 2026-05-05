@@ -67,31 +67,7 @@ CREATE TABLE IF NOT EXISTS concern_upvotes (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- ─── Announcements ───────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS announcements (
-  id         INT AUTO_INCREMENT PRIMARY KEY,
-  title      VARCHAR(500) NOT NULL,
-  body       TEXT         NOT NULL,
-  type       ENUM('info','warning','urgent','success') NOT NULL DEFAULT 'info',
-  author     VARCHAR(255) DEFAULT NULL,
-  barangay   VARCHAR(255) DEFAULT 'All Barangays',
-  link       TEXT         DEFAULT NULL,
-  created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- ─── Events ──────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS events (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  title       VARCHAR(500) NOT NULL,
-  description TEXT         DEFAULT NULL,
-  category    ENUM('meeting','maintenance','health','emergency','celebration','other') NOT NULL DEFAULT 'other',
-  date        DATETIME     NOT NULL,
-  location    VARCHAR(255) DEFAULT NULL,
-  organizer   VARCHAR(255) DEFAULT NULL,
-  link        TEXT         DEFAULT NULL,
-  created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- ─── Notifications ───────────────────────────────────────────────────────────
