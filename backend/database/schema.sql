@@ -106,3 +106,15 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- ─── Essential Bootstrap Data ───────────────────────────────────────────────
+
+-- Comprehensive Barangay list for Kabankalan City
+INSERT INTO barangays (name) VALUES
+  ('Barangay 1 (Poblacion)'), ('Barangay 2 (Poblacion)'), ('Barangay 3 (Poblacion)'),
+  ('Barangay 4 (Poblacion)'), ('Barangay 5 (Poblacion)'), ('Barangay 6 (Poblacion)'),
+  ('Barangay 7 (Poblacion)'), ('Barangay 8 (Poblacion)'), ('Barangay 9 (Poblacion)'),
+  ('Bantayan'), ('Binicuil'), ('Camansi'), ('Camingawan'), ('Camugao'), ('Carol-an'),
+  ('Daan Banua'), ('Hilamonan'), ('Inapoy'), ('Linao'), ('Locotan'), ('Magballo'),
+  ('Oringao'), ('Orong'), ('Pinaguinpinan'), ('Salong'), ('Tabugon'), ('Tagoc'),
+  ('Tagukon'), ('Talubangi'), ('Tampalon'), ('Tan-Awan'), ('Tapi')
+ON DUPLICATE KEY UPDATE updated_at = NOW();
+
