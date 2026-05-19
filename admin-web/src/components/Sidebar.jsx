@@ -46,7 +46,7 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
     <aside className={`${s.sidebar} ${collapsed ? s.sidebarCollapsed : ""}`}>
       {/* Brand */}
       <div className={s.brand}>
-        <div className={s.brandMark}>📢</div>
+        <img src="/logo.png" className={s.brandMark} alt="Logo" />
         {!collapsed && (
           <div className={s.brandText}>
             <div className={s.brandName}>CitiVoice</div>

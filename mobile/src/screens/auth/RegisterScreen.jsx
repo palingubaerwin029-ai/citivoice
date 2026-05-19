@@ -8,6 +8,7 @@ import {
   Platform,
   Alert,
   StyleSheet,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -139,9 +140,11 @@ export default function RegisterScreen({ navigation }) {
                 color={colors.textSecondary}
               />
             </TouchableOpacity>
-            <View style={[S.logoSmall, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
-              <Text style={{ fontSize: 20 }}>📢</Text>
-            </View>
+            <Image
+              source={require("../../../assets/logo.png")}
+              style={S.logoSmallImage}
+              resizeMode="contain"
+            />
           </View>
 
           <Text style={[S.pageTitle, { color: colors.textPrimary }]}>{t('register')}</Text>
@@ -380,13 +383,10 @@ const S = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  logoSmall: {
+  logoSmallImage: {
     width: scale(36),
     height: scale(36),
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    borderRadius: RADIUS.sm,
   },
 
   pageTitle: {

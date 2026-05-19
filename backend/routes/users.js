@@ -3,6 +3,7 @@ const pool   = require('../db');
 const auth   = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const { notifyUser } = require('../services/notificationService');
+const { validateIdParam } = require('../middleware/validate');
 
 const safe = (user) => {
   const { password_hash, ...rest } = user;
@@ -23,7 +24,7 @@ router.get('/', auth, requireRole('admin'), async (req, res) => {
 });
 
 // ─── Get single user (auth required, ownership or admin check) ────────────────
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', auth, validateIdParam, async (req, res) => {
   try {
     if (req.user.role !== 'admin' && req.user.id !== parseInt(req.params.id)) {
       return res.status(403).json({ error: 'Forbidden' });
@@ -38,7 +39,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // ─── Update user (auth required, ownership check) ─────────────────────────────
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, validateIdParam, async (req, res) => {
   const { name, phone, barangay, id_type, id_number, id_image_url, submitted_at } = req.body;
   
   if (req.user.id !== parseInt(req.params.id)) {
@@ -73,7 +74,7 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 // ─── Verify user (admin only) ─────────────────────────────────────────────────
-router.patch('/:id/verify', auth, requireRole('admin'), async (req, res) => {
+router.patch('/:id/verify', auth, requireRole('admin'), validateIdParam, async (req, res) => {
   try {
     await pool.query(
       `UPDATE users SET verification_status='verified', is_verified=1,
@@ -100,7 +101,7 @@ router.patch('/:id/verify', auth, requireRole('admin'), async (req, res) => {
 });
 
 // ─── Reject user (admin only) ─────────────────────────────────────────────────
-router.patch('/:id/reject', auth, requireRole('admin'), async (req, res) => {
+router.patch('/:id/reject', auth, requireRole('admin'), validateIdParam, async (req, res) => {
   const { reason } = req.body;
   if (!reason) return res.status(400).json({ error: 'Rejection reason required' });
   try {
@@ -129,7 +130,7 @@ router.patch('/:id/reject', auth, requireRole('admin'), async (req, res) => {
 });
 
 // ─── Revoke verification (admin only) ─────────────────────────────────────────
-router.patch('/:id/revoke', auth, requireRole('admin'), async (req, res) => {
+router.patch('/:id/revoke', auth, requireRole('admin'), validateIdParam, async (req, res) => {
   try {
     await pool.query(
       `UPDATE users SET verification_status='unverified', is_verified=0,
@@ -144,7 +145,7 @@ router.patch('/:id/revoke', auth, requireRole('admin'), async (req, res) => {
 });
 
 // ─── Update FCM token (auth required, ownership check) ────────────────────────
-router.put('/:id/fcm-token', auth, async (req, res) => {
+router.put('/:id/fcm-token', auth, validateIdParam, async (req, res) => {
   const { fcm_token } = req.body;
   if (req.user.id !== parseInt(req.params.id)) {
     return res.status(403).json({ error: 'Forbidden' });

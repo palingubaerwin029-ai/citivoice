@@ -10,6 +10,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -288,11 +289,16 @@ export default function LoginScreen({ navigation }) {
 
           {/* Logo */}
           <View style={S.logoSection}>
-            <View style={[S.logoRing, { backgroundColor: colors.bgCard, borderColor: colors.borderMd }]}>
-              <Text style={{ fontSize: 32 }}>📢</Text>
-            </View>
+            <Image
+              source={require("../../../assets/logo.png")}
+              style={S.logoImage}
+              resizeMode="contain"
+            />
             <Text style={[S.appName, { color: colors.textPrimary }]}>CitiVoice</Text>
-            <Text style={[S.appTagline, { color: colors.textMuted }]}>Kabankalan City</Text>
+            <Text style={[S.appTagline, { color: colors.primaryLight }]}>Kabankalan City</Text>
+            <Text style={[S.cityDescText, { color: colors.textSecondary }]}>
+              {t('cityDescription')}
+            </Text>
           </View>
 
           {/* Form card */}
@@ -437,23 +443,30 @@ const S = StyleSheet.create({
     borderRadius: RADIUS.full,
     borderWidth: 1,
   },
-  logoSection: { alignItems: "center", marginBottom: verticalScale(36) },
-  logoRing: {
-    width: scale(88),
-    height: scale(88),
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: verticalScale(16),
-    ...SHADOWS.card,
+  logoSection: { alignItems: "center", marginBottom: verticalScale(30) },
+  logoImage: {
+    width: scale(96),
+    height: scale(96),
+    borderRadius: RADIUS.lg,
+    marginBottom: verticalScale(12),
   },
   appName: {
     fontSize: rf(28),
     fontWeight: "800",
     letterSpacing: -0.5,
   },
-  appTagline: { fontSize: rf(13), marginTop: verticalScale(4) },
+  appTagline: { 
+    fontSize: rf(13), 
+    fontWeight: "700", 
+    marginTop: verticalScale(4) 
+  },
+  cityDescText: {
+    fontSize: rf(12.5),
+    textAlign: "center",
+    lineHeight: rf(18.5),
+    marginTop: verticalScale(8),
+    paddingHorizontal: scale(16),
+  },
 
   card: {
     borderRadius: RADIUS["2xl"],

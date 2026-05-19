@@ -26,13 +26,8 @@
   width: 36px;
   height: 36px;
   border-radius: var(--r-md);
-  background: linear-gradient(135deg, var(--blue), #7C3AED);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
   flex-shrink: 0;
-  box-shadow: var(--shadow-blue);
+  object-fit: contain;
 }
 
 .brandText { flex: 1; min-width: 0; }

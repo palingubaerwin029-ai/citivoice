@@ -33,9 +33,12 @@ export default function Login({ onLogin }) {
       <div className={s.card}>
         {/* Header */}
         <div className={s.header}>
-          <div className={s.logo}>📢</div>
+          <img src="/logo.png" className={s.logo} alt="CitiVoice Logo" />
           <h1 className={s.title}>CitiVoice</h1>
           <p className={s.subtitle}>Kabankalan City — Admin Console</p>
+          <p className={s.description}>
+            Inspired by the golden sun of our democracy and the green growth of the Bangkal tree, CitiVoice connects Kabankalanons to unity, progress, and sustainable civic action.
+          </p>
         </div>
 
         {/* Form */}

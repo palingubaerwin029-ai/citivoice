@@ -6,6 +6,8 @@ const upload = require('../middleware/upload');
 const fs = require('fs');
 const path = require('path');
 const { notifyUser } = require('../services/notificationService');
+const { cacheMiddleware, invalidate } = require('../middleware/cache');
+const { validateConcern, validateIdParam } = require('../middleware/validate');
 
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:5000';
 
@@ -22,8 +24,8 @@ const deleteImageFile = (imageUrl) => {
   } catch (_) { }
 };
 
-// ─── List all concerns (auth required) ────────────────────────────────────────
-router.get('/', auth, async (req, res) => {
+// ─── List all concerns (auth required, cached 60s) ────────────────────────────
+router.get('/', auth, cacheMiddleware('concerns', 60), async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM concerns ORDER BY created_at DESC');
 
@@ -44,8 +46,8 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// ─── Get single concern (auth required) ───────────────────────────────────────
-router.get('/:id', auth, async (req, res) => {
+// ─── Get single concern (auth required, cached 60s) ──────────────────────────
+router.get('/:id', auth, validateIdParam, cacheMiddleware('concern_detail', 60), async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM concerns WHERE id = ?', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Concern not found' });
@@ -71,15 +73,12 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // ─── Submit new concern ───────────────────────────────────────────────────────
-router.post('/', auth, upload.single('image'), async (req, res) => {
+router.post('/', auth, upload.single('image'), validateConcern, async (req, res) => {
   const {
     title, description, category, priority,
     location_address, location_lat, location_lng,
     user_name, user_barangay,
   } = req.body;
-
-  if (!title || !description || !category)
-    return res.status(400).json({ error: 'title, description and category are required' });
 
   const image_url = req.file ? `${BASE_URL()}/uploads/${req.file.filename}` : null;
 
@@ -96,6 +95,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
         req.user.id, user_name || null, user_barangay || null,
       ]
     );
+    invalidate('concerns', 'concern_detail');
     const [rows] = await pool.query('SELECT * FROM concerns WHERE id = ?', [result.insertId]);
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -105,7 +105,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
 });
 
 // ─── Update concern (admin only: status, admin_note) ──────────────────────────
-router.put('/:id', auth, requireRole('admin'), async (req, res) => {
+router.put('/:id', auth, requireRole('admin'), validateIdParam, async (req, res) => {
   const { status, admin_note } = req.body;
   try {
     const [existing] = await pool.query(`
@@ -145,6 +145,7 @@ router.put('/:id', auth, requireRole('admin'), async (req, res) => {
       }
     }
 
+    invalidate('concerns', 'concern_detail');
     const [rows] = await pool.query('SELECT * FROM concerns WHERE id = ?', [req.params.id]);
     res.json(rows[0]);
   } catch (err) {
@@ -154,13 +155,14 @@ router.put('/:id', auth, requireRole('admin'), async (req, res) => {
 });
 
 // ─── Delete concern (admin only) ──────────────────────────────────────────────
-router.delete('/:id', auth, requireRole('admin'), async (req, res) => {
+router.delete('/:id', auth, requireRole('admin'), validateIdParam, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT image_url FROM concerns WHERE id = ?', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Concern not found' });
     deleteImageFile(rows[0].image_url);
     await pool.query('DELETE FROM concern_upvotes WHERE concern_id = ?', [req.params.id]);
     await pool.query('DELETE FROM concerns WHERE id = ?', [req.params.id]);
+    invalidate('concerns', 'concern_detail');
     res.json({ success: true });
   } catch (err) {
     console.error('Concern delete error:', err);
@@ -169,7 +171,7 @@ router.delete('/:id', auth, requireRole('admin'), async (req, res) => {
 });
 
 // ─── Toggle upvote ────────────────────────────────────────────────────────────
-router.post('/:id/upvote', auth, async (req, res) => {
+router.post('/:id/upvote', auth, validateIdParam, async (req, res) => {
   const { id: concernId } = req.params;
   const userId = req.user.id;
   try {
@@ -180,10 +182,12 @@ router.post('/:id/upvote', auth, async (req, res) => {
     if (existing.length) {
       await pool.query('DELETE FROM concern_upvotes WHERE concern_id = ? AND user_id = ?', [concernId, userId]);
       await pool.query('UPDATE concerns SET upvotes = GREATEST(upvotes - 1, 0) WHERE id = ?', [concernId]);
+      invalidate('concerns', 'concern_detail');
       return res.json({ upvoted: false });
     }
     await pool.query('INSERT INTO concern_upvotes (concern_id, user_id) VALUES (?, ?)', [concernId, userId]);
     await pool.query('UPDATE concerns SET upvotes = upvotes + 1 WHERE id = ?', [concernId]);
+    invalidate('concerns', 'concern_detail');
     res.json({ upvoted: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

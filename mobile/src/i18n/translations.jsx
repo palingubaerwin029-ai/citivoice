@@ -3,6 +3,7 @@ export const translations = {
     // App
     appName: 'CitiVoice',
     tagline: 'Your voice. Your community.',
+    cityDescription: 'Inspired by the golden sun of our democracy and the green growth of the Bangkal tree, CitiVoice connects Kabankalanons to unity, progress, and sustainable civic action.',
 
     // Auth
     login: 'Sign In',
@@ -171,6 +172,7 @@ export const translations = {
   fil: {
     appName: 'CitiVoice',
     tagline: 'Ang iyong boses. Ang iyong komunidad.',
+    cityDescription: 'Dinasig ng gintong araw ng ating demokrasya at luntiang paglago ng puno ng Bangkal, pinag-uugnay ng CitiVoice ang mga Kabankalanon tungo sa pagkakaisa, pag-unlad, at napapanatiling pagkilos.',
 
     login: 'Mag-sign In',
     register: 'Gumawa ng Account',
@@ -327,6 +329,7 @@ export const translations = {
   hil: {
     appName: 'CitiVoice',
     tagline: 'Ang imo tingog. Ang imo komunidad.',
+    cityDescription: 'Dinasig sang bulawanon nga adlaw sang aton demokrasya kag berde nga pagtubo sang puno sang Bangkal, ginaangot sang CitiVoice ang mga Kabankalanon para sa pag-ugyon, pag-uswag, kag padayon nga civic action.',
 
     login: 'Mag-login',
     register: 'Maghimo sang Account',

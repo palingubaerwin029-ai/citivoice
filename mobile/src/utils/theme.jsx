@@ -13,10 +13,10 @@ export const DARK_COLORS = {
   bgElevated: "#152234",
 
   // Brand
-  primary: "#2563EB",
-  primaryLight: "#60A5FA",
-  primaryDark: "#1D4ED8",
-  primaryGlow: "rgba(37,99,235,0.25)",
+  primary: "#EAB308",
+  primaryLight: "#FDE047",
+  primaryDark: "#CA8A04",
+  primaryGlow: "rgba(234,179,8,0.25)",
 
   // Accents
   accent: "#10B981",
@@ -57,10 +57,10 @@ export const LIGHT_COLORS = {
   bgElevated: "#FFFFFF",
 
   // Brand
-  primary: "#2563EB",
-  primaryLight: "#3B82F6",
-  primaryDark: "#1D4ED8",
-  primaryGlow: "rgba(37,99,235,0.1)",
+  primary: "#D97706",
+  primaryLight: "#EAB308",
+  primaryDark: "#A16207",
+  primaryGlow: "rgba(217,119,6,0.15)",
 
   // Accents
   accent: "#10B981",
@@ -137,7 +137,7 @@ export const SHADOWS = {
     elevation: 5,
   },
   button: {
-    shadowColor: "#2563EB",
+    shadowColor: "#EAB308",
     shadowOffset: { width: 0, height: moderateScale(4) },
     shadowOpacity: 0.5,
     shadowRadius: moderateScale(16),

@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 const auth = require("../middleware/auth");
+const { validateIdParam } = require('../middleware/validate');
 
 // GET /api/notifications - Get all notifications for current user
 router.get("/", auth, async (req, res) => {
@@ -32,7 +33,7 @@ router.get("/unread-count", auth, async (req, res) => {
 });
 
 // PUT /api/notifications/:id/read - Mark single notification as read
-router.put("/:id/read", auth, async (req, res) => {
+router.put("/:id/read", auth, validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;
     await db.query(

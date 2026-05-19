@@ -3,6 +3,7 @@ const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const pool    = require('../db');
 const auth    = require('../middleware/auth');
+const { validateLogin, validateRegister } = require('../middleware/validate');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -15,9 +16,8 @@ const safe = (user) => {
 };
 
 // ─── Login (admin + mobile) ───────────────────────────────────────────────────
-router.post('/login', async (req, res) => {
+router.post('/login', validateLogin, async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
   try {
     const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
     if (!rows.length) return res.status(401).json({ error: 'Invalid credentials' });
@@ -33,9 +33,8 @@ router.post('/login', async (req, res) => {
 });
 
 // ─── Register (mobile citizens) ──────────────────────────────────────────────
-router.post('/register', async (req, res) => {
+router.post('/register', validateRegister, async (req, res) => {
   const { name, email, password, phone, barangay } = req.body;
-  if (!name || !email || !password) return res.status(400).json({ error: 'Name, email and password required' });
   try {
     const [existingEmail] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
     if (existingEmail.length) return res.status(400).json({ error: 'Email already registered' });
@@ -79,4 +78,3 @@ router.get('/me', auth, async (req, res) => {
 });
 
 module.exports = router;
-
