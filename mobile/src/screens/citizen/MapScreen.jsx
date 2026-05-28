@@ -6,6 +6,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocation } from '../../hooks/useLocation';
 import { useConcerns } from '../../context/ConcernContext';
@@ -157,6 +158,13 @@ export default function MapScreen({ navigation }) {
         })}
       </MapView>
 
+      {/* ── Status Bar Background Gradient ── */}
+      <LinearGradient
+        colors={theme === 'dark' ? ['rgba(10,22,40,0.8)', 'transparent'] : ['rgba(255,255,255,0.8)', 'transparent']}
+        style={styles.statusBarGradient}
+        pointerEvents="none"
+      />
+
       {/* ── Header overlay (safe from notch) ── */}
       <SafeAreaView style={styles.headerOverlay} edges={['top']} pointerEvents="box-none">
         {/* Filter Pills */}
@@ -290,6 +298,12 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
 
+  statusBarGradient: {
+    position: 'absolute', top: 0, left: 0, right: 0,
+    height: verticalScale(100),
+    zIndex: 1,
+  },
+
   markerPin: {
     width: scale(32), height: scale(32), borderRadius: scale(16),
     alignItems: 'center', justifyContent: 'center',
@@ -302,6 +316,7 @@ const styles = StyleSheet.create({
   headerOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0,
     pointerEvents: 'box-none',
+    zIndex: 2,
   },
   filterContainer: {
     marginTop: verticalScale(8),
