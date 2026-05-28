@@ -3,6 +3,7 @@ import { api, fmtDateShort } from "../services/api";
 import { IoDocumentTextOutline, IoPencilOutline, IoTrashOutline, IoAddOutline, IoCheckmarkCircleOutline } from "react-icons/io5";
 import styles from "../styles/Templates.module.css";
 import s from "../styles/Admin.module.css";
+import Pagination from "../components/Pagination";
 
 const EMPTY = { category: "", priority: "Medium", quick_title: "", template_body: "" };
 const CATEGORIES = ["Waste Management", "Infrastructure", "Security", "Health", "Traffic", "Environment", "Others"];
@@ -15,6 +16,8 @@ export default function Templates() {
   const [form,          setForm]          = useState(EMPTY);
   const [saving,        setSaving]        = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [page,          setPage]          = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const load = () =>
     api.get("/templates")
@@ -61,8 +64,11 @@ export default function Templates() {
     setShowForm(true);
   };
 
+  const totalPages         = Math.ceil(templates.length / itemsPerPage);
+  const displayedTemplates = templates.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
   return (
-    <div className={styles.page}>
+    <div className={s.page}>
       <div className={s.pageHeader}>
         <div className={s.pageTitleGroup}>
           <h1 className={s.pageTitle}><IoDocumentTextOutline style={{ marginRight: 8, verticalAlign: "middle" }} /> Concern Templates</h1>
@@ -94,7 +100,7 @@ export default function Templates() {
                    </tr>
                  </thead>
                  <tbody>
-                   {templates.map((t) => (
+                   {displayedTemplates.map((t) => (
                      <tr key={t.id} className={s.tr}>
                        <td className={`${s.td} ${s.tdPrimary}`}>
                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -127,6 +133,15 @@ export default function Templates() {
                  </tbody>
                </table>
              )}
+
+             <Pagination
+               page={page}
+               totalPages={totalPages}
+               onPageChange={setPage}
+               totalItems={templates.length}
+               itemsPerPage={itemsPerPage}
+               onItemsPerPage={(n) => { setItemsPerPage(n); setPage(1); }}
+             />
           </div>
         </div>
 

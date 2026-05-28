@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api, fmtDateShort, maskEmail, resolveImageUrl } from "../services/api";
 import s from "../styles/Admin.module.css";
+import Pagination from "../components/Pagination";
 
 const STATUS = {
   unverified: { label:"Unverified", color:"#64748B", bg:"rgba(100,116,139,0.12)", icon:"—",  border:"rgba(100,116,139,0.2)" },
@@ -27,6 +28,8 @@ export default function Verification() {
   const [saving,   setSaving]   = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [search,   setSearch]   = useState("");
+  const [page,     setPage]     = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const load = () => api.get("/users").then(setUsers).catch(console.error);
   useEffect(() => {
@@ -54,6 +57,9 @@ export default function Verification() {
       const order = { pending:0, unverified:1, rejected:2, verified:3 };
       return (order[a.verification_status] ?? 9) - (order[b.verification_status] ?? 9);
     });
+
+  const totalPages     = Math.ceil(filtered.length / itemsPerPage);
+  const displayedUsers = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   const act = async (fn) => { setSaving(true); try { await fn(); await load(); } catch(e){ alert(e.message); } setSaving(false); };
 
@@ -86,7 +92,7 @@ export default function Verification() {
     <div className={s.page}>
       {/* Header */}
       <div className={s.pageHeader}>
-        <div>
+        <div className={s.pageTitleGroup}>
           <h1 className={s.pageTitle}>Identity Verification</h1>
           <p className={s.pageSubtitle}>Review and approve citizen identity submissions</p>
         </div>
@@ -129,7 +135,7 @@ export default function Verification() {
                   border: `1px solid ${active ? sc?.color||"var(--blue)" : "var(--border)"}`,
                   color: active ? sc?.color||"var(--blue-light)" : "var(--text-2)",
                   display:"flex", alignItems:"center", gap:6 }}
-                onClick={() => { setFilter(tab.key); setSelected(null); }}>
+                onClick={() => { setFilter(tab.key); setSelected(null); setPage(1); }}>
                 {tab.urgent && counts.pending > 0 && tab.key === "pending" && <span style={{ width:6, height:6, borderRadius:3, background:"#F59E0B", display:"inline-block" }} />}
                 {tab.label}
                 <span style={{ background:"rgba(255,255,255,0.08)", borderRadius:99, padding:"1px 7px", fontSize:11 }}>{counts[tab.key]}</span>
@@ -155,7 +161,7 @@ export default function Verification() {
                 <tr>{["Citizen","Contact","Barangay","ID Type","Status","Submitted","Actions"].map((h) => <th key={h} className={s.th}>{h}</th>)}</tr>
               </thead>
               <tbody>
-                {filtered.map((u) => {
+                {displayedUsers.map((u) => {
                   const st = STATUS[u.verification_status || "unverified"];
                   const isSel = selected?.id === u.id;
                   return (
@@ -190,6 +196,15 @@ export default function Verification() {
               </tbody>
             </table>
           )}
+
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={(p) => { setPage(p); setSelected(null); }}
+            totalItems={filtered.length}
+            itemsPerPage={itemsPerPage}
+            onItemsPerPage={(n) => { setItemsPerPage(n); setPage(1); }}
+          />
         </div>
 
         {/* Detail panel */}

@@ -81,7 +81,7 @@ export default function Reports() {
   return (
     <div className={s.page}>
       <div className={`${s.pageHeader} ${s.noPrint}`}>
-        <div><h1 className={s.pageTitle}>Reports & Analytics</h1><p className={s.pageSubtitle}>CitiVoice performance overview</p></div>
+        <div className={s.pageTitleGroup}><h1 className={s.pageTitle}>Reports & Analytics</h1><p className={s.pageSubtitle}>CitiVoice performance overview</p></div>
         <div style={{ display:"flex", gap:10, alignItems: "center" }}>
           <div style={{ display:"flex", gap:6 }}>
             {[{l:"All Time",v:"all"},{l:"7 days",v:"7d"},{l:"30 days",v:"30d"},{l:"90 days",v:"90d"}].map((r)=>(
