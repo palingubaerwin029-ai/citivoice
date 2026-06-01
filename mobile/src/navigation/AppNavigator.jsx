@@ -37,6 +37,7 @@ const getHeaderOptions = (colors) => ({
   headerStyle: { backgroundColor: colors.bgCard },
   headerTintColor: colors.textPrimary,
   headerTitleStyle: { fontWeight: "700", fontSize: 16 },
+  headerTitleAlign: "left",
   headerShadowVisible: false,
   contentStyle: { backgroundColor: colors.bgDark },
 });
@@ -120,6 +121,8 @@ function CitizenTabs() {
         ...tabBarOptions,
         headerStyle: { backgroundColor: colors.bgCard },
         headerTintColor: colors.textPrimary,
+        headerTitleStyle: { fontWeight: "700", fontSize: 16 },
+        headerTitleAlign: "left",
         headerShadowVisible: false,
         tabBarIcon: ({ focused, color, size }) => {
           const icons = {
@@ -191,6 +194,8 @@ function AdminTabs() {
         tabBarActiveTintColor: colors.accent,
         headerStyle: { backgroundColor: colors.bgCard },
         headerTintColor: colors.textPrimary,
+        headerTitleStyle: { fontWeight: "700", fontSize: 16 },
+        headerTitleAlign: "left",
         headerShadowVisible: false,
         tabBarIcon: ({ focused, color, size }) => {
           const icons = {

@@ -252,8 +252,8 @@ export default function RegisterScreen({ navigation }) {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 5,
-                    marginTop: 5,
+                    gap: scale(5),
+                    marginTop: verticalScale(5),
                   }}
                 >
                   <Ionicons

@@ -151,55 +151,7 @@ export default function ProfileScreen() {
             {t('memberSince')} {memberSince}
           </Text>
         </LinearGradient>
-        <View
-          style={{
-            flexDirection: "row",
-            paddingHorizontal: scale(16),
-            gap: scale(10),
-            marginTop: verticalScale(4),
-            marginBottom: verticalScale(20),
-          }}
-        >
-          {[
-            {
-              label: t('submitted_stat'),
-              value: stats.total,
-              color: colors.primaryLight,
-            },
-            { label: t('pending'), value: stats.pending, color: colors.statusPending },
-            { label: t('active'), value: stats.inProgress, color: colors.statusInProgress },
-            { label: t('resolved'), value: stats.resolved, color: colors.statusResolved },
-          ].map((s, i) => (
-            <View
-              key={i}
-              style={{
-                flex: 1,
-                backgroundColor: colors.bgCard,
-                borderRadius: RADIUS.lg,
-                paddingVertical: verticalScale(14),
-                alignItems: "center",
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: rf(20),
-                  fontWeight: "800",
-                  letterSpacing: -0.5,
-                  color: s.color,
-                }}
-              >
-                {s.value}
-              </Text>
-              <Text
-                style={{ color: colors.textMuted, fontSize: rf(10), marginTop: verticalScale(3) }}
-              >
-                {s.label}
-              </Text>
-            </View>
-          ))}
-        </View>
+
         {myConcerns.length > 0 && (
           <View style={{ paddingHorizontal: scale(16), marginBottom: verticalScale(20) }}>
             <Text
@@ -222,13 +174,13 @@ export default function ProfileScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 10,
+                    gap: scale(10),
                     backgroundColor: colors.bgCard,
                     borderRadius: RADIUS.lg,
-                    padding: 12,
+                    padding: scale(12),
                     borderWidth: 1,
                     borderColor: colors.border,
-                    marginBottom: 8,
+                    marginBottom: verticalScale(8),
                   }}
                 >
                   <View

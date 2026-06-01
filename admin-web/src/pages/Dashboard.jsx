@@ -97,8 +97,8 @@ export default function Dashboard() {
           <div style={{ padding: "16px 16px 8px" }}>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={catData} barSize={22}>
-                <XAxis dataKey="name" stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
+                <XAxis dataKey="name" stroke="var(--text-2)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--text-2)" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip {...TT} />
                 <Bar dataKey="value" radius={[5, 5, 0, 0]}>
                   {catData.map((_, i) => <Cell key={i} fill={CAT_COLORS[i % CAT_COLORS.length]} />)}

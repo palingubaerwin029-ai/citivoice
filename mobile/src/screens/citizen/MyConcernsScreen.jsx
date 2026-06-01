@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet,
+  View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -63,7 +63,12 @@ export default function MyConcernsScreen({ navigation }) {
             </View>
 
             {/* Filter Tabs */}
-            <View style={styles.filterScroll}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              style={styles.filterScroll}
+              contentContainerStyle={styles.filterContent}
+            >
               {FILTER_KEYS.map(f => {
                 const active = activeFilter === f.key;
                 const color = STATUS_COLORS[f.key] || colors.primary;
@@ -88,7 +93,7 @@ export default function MyConcernsScreen({ navigation }) {
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </ScrollView>
 
             <Text style={[styles.resultLabel, { color: colors.textMuted }]}>{filtered.length} {t('reports')}</Text>
           </>
@@ -118,9 +123,10 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { padding: scale(16), paddingBottom: verticalScale(32) },
 
-  statsRow: { flexDirection: 'row', gap: scale(8), marginBottom: verticalScale(16) },
+  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(8), marginBottom: verticalScale(16) },
 
-  filterScroll: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(8), marginBottom: verticalScale(12) },
+  filterScroll: { marginBottom: verticalScale(12) },
+  filterContent: { gap: scale(8) },
   filterTab: {
     flexDirection: 'row', alignItems: 'center', gap: scale(6),
     paddingHorizontal: scale(12), paddingVertical: verticalScale(7), borderRadius: RADIUS.full,

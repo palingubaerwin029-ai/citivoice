@@ -24,7 +24,7 @@
 
   --text-1:  #F1F5F9;
   --text-2:  #94A3B8;
-  --text-3:  #475569;
+  --text-3:  #64748B;
 
   --font: 'Inter', 'Segoe UI', system-ui, sans-serif;
 
@@ -94,3 +94,17 @@ input, textarea, select { font-family: inherit; }
 @keyframes fadeUp   { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 @keyframes pulse    { 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
 @keyframes spin     { to { transform:rotate(360deg); } }
+
+@media print {
+  :root {
+    --bg:          #FFFFFF;
+    --surface:     #FFFFFF;
+    --surface-2:   #F1F5F9;
+    --surface-3:   #E2E8F0;
+    --border:      rgba(0,0,0,0.1);
+    --border-md:   rgba(0,0,0,0.15);
+    --text-1:      #000000;
+    --text-2:      #333333;
+    --text-3:      #555555;
+  }
+}

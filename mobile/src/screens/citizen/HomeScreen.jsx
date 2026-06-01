@@ -137,14 +137,7 @@ export default function HomeScreen({ navigation }) {
                   </View>
                 </View>
     
-                {/* ── Stats strip ── */}
-                <View style={S.statsRow}>
-                  <StatCard icon="📋" value={stats.total} label={t('total')} color={colors.primary} />
-                  <StatCard icon="⏳" value={stats.pending} label={t('pending')} color={colors.statusPending} />
-                  <StatCard icon="🔄" value={stats.inProgress} label={t('active')} color={colors.primaryLight} />
-                  <StatCard icon="✅" value={stats.resolved} label={t('resolved')} color={colors.accent} />
-                </View>
-    
+                {/* ── Stats strip removed ── */}    
                 {/* ── Search ── */}
                 <View style={[S.searchWrap, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
                   <Ionicons
@@ -287,7 +280,6 @@ const S = StyleSheet.create({
   },
   reportBtnText: { color: "#fff", fontSize: rf(13), fontWeight: "700" },
 
-  statsRow: { flexDirection: 'row', gap: scale(8), marginBottom: verticalScale(14) },
 
   searchWrap: {
     flexDirection: "row",

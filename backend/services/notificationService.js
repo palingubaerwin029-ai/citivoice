@@ -125,12 +125,18 @@ const notifyUser = async (user, subject, message) => {
 
   // Format HTML nicely for emails
   const htmlBody = `
-    <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f8; color: #333; max-width: 600px; margin: auto; border-radius: 8px;">
-      <h2 style="color: #1A6BFF;">CitiVoice Update</h2>
-      <p style="font-size: 16px; line-height: 1.5;">Hello ${safeName},</p>
-      <p style="font-size: 16px; line-height: 1.5;">${safeMsg}</p>
-      <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
-      <p style="font-size: 12px; color: #888;">This is an automated message from the CitiVoice Platform.</p>
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; background: linear-gradient(135deg, #f0f7ff 0%, #e6f0ff 100%); color: #333; max-width: 600px; margin: auto; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center;">
+      <div style="background-color: #1A6BFF; padding: 15px; border-radius: 8px; margin-bottom: 25px;">
+        <h2 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 1px;">📢 CitiVoice Update</h2>
+      </div>
+      <p style="font-size: 18px; color: #444; font-weight: 500; text-align: left;">Hello ${safeName}, 👋</p>
+      <div style="background: #ffffff; padding: 20px; border-radius: 8px; border-left: 4px solid #1A6BFF; margin: 20px 0; text-align: left; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+        <p style="font-size: 16px; line-height: 1.6; margin: 0; color: #222;">${safeMsg}</p>
+      </div>
+      <p style="font-size: 15px; color: #666; margin-top: 25px;">Thank you for being an active part of our community!</p>
+      <hr style="border: none; border-top: 1px dashed #ccc; margin: 30px 0;" />
+      <p style="font-size: 12px; color: #888; margin: 0;">This is an automated message from your friendly <strong>CitiVoice Platform</strong>.</p>
+      <p style="font-size: 12px; color: #aaa; margin-top: 5px;">Together, we make the city better! 🏙️</p>
     </div>
   `;
 

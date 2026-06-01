@@ -5,7 +5,7 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="users" parent="1" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#000000;fontSize=13;" value="USERS" vertex="1">
-          <mxGeometry height="504" width="340" y="-150" as="geometry" />
+          <mxGeometry height="504" width="340" x="-90" y="-150" as="geometry" />
         </mxCell>
         <mxCell id="users_attr_1" parent="users" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;fontSize=11;" value="PK id : INT AUTO_INCREMENT" vertex="1">
           <mxGeometry height="26" width="340" y="28" as="geometry" />
@@ -65,7 +65,7 @@
           <mxGeometry height="26" width="260" y="478" as="geometry" />
         </mxCell>
         <mxCell id="concerns" parent="1" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#dae8fc;strokeColor=#000000;fontSize=13;" value="CONCERNS" vertex="1">
-          <mxGeometry height="478" width="300" x="780" y="-150" as="geometry" />
+          <mxGeometry height="478" width="300" x="520" y="-170" as="geometry" />
         </mxCell>
         <mxCell id="concerns_attr_1" parent="concerns" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;fontSize=11;" value="PK id : INT AUTO_INCREMENT" vertex="1">
           <mxGeometry height="26" width="290" y="28" as="geometry" />
@@ -74,7 +74,7 @@
           <mxGeometry height="8" width="300" y="54" as="geometry" />
         </mxCell>
         <mxCell id="concerns_attr_title" parent="concerns" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="     title : VARCHAR(500) NOT NULL" vertex="1">
-          <mxGeometry height="26" width="270" y="62" as="geometry" />
+          <mxGeometry height="26" width="300" y="62" as="geometry" />
         </mxCell>
         <mxCell id="concerns_attr_description" parent="concerns" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="     description : TEXT NOT NULL" vertex="1">
           <mxGeometry height="26" width="270" y="88" as="geometry" />
@@ -122,7 +122,7 @@
           <mxGeometry height="26" width="270" y="452" as="geometry" />
         </mxCell>
         <mxCell id="upvotes" parent="1" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#d5e8d4;strokeColor=#000000;fontSize=13;" value="CONCERN_UPVOTES" vertex="1">
-          <mxGeometry height="140" width="260" x="90" y="400" as="geometry" />
+          <mxGeometry height="140" width="260" x="200" y="410" as="geometry" />
         </mxCell>
         <mxCell id="upvotes_attr_1" parent="upvotes" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;fontSize=11;" value="PK id : INT AUTO_INCREMENT" vertex="1">
           <mxGeometry height="26" width="260" y="28" as="geometry" />
@@ -158,7 +158,7 @@
           <mxGeometry height="26" width="240" y="114" as="geometry" />
         </mxCell>
         <mxCell id="concern_templates" parent="1" style="swimlane;fontStyle=1;align=center;startSize=28;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" value="CONCERN_TEMPLATES" vertex="1">
-          <mxGeometry height="218" width="260" x="450" y="400" as="geometry" />
+          <mxGeometry height="218" width="260" x="550" y="400" as="geometry" />
         </mxCell>
         <mxCell id="templates_attr_1" parent="concern_templates" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=1;fontSize=11;" value="PK id : INT AUTO_INCREMENT" vertex="1">
           <mxGeometry height="26" width="260" y="28" as="geometry" />
@@ -213,8 +213,14 @@
             <mxPoint x="520" y="77" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel_2" edge="1" parent="1" source="users_attr_1" style="endArrow=ERzeroToMany;endFill=0;startArrow=ERmandOne;startFill=0;strokeWidth=1;strokeColor=#000000;edgeStyle=entityRelationEdgeStyle;exitX=0.999;exitY=0.794;exitDx=0;exitDy=0;exitPerimeter=0;" target="upvotes_fk_user_id">
+        <mxCell id="rel_2" edge="1" parent="1" source="users_attr_1" style="endArrow=ERzeroToMany;endFill=0;startArrow=ERmandOne;startFill=0;strokeWidth=1;strokeColor=#000000;edgeStyle=orthogonalEdgeStyle;exitX=0.999;exitY=0.794;exitDx=0;exitDy=0;exitPerimeter=0;" target="upvotes_fk_user_id">
           <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="290" y="-101" />
+              <mxPoint x="290" y="390" />
+              <mxPoint x="190" y="390" />
+              <mxPoint x="190" y="511" />
+            </Array>
             <mxPoint x="520" y="80" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
@@ -227,7 +233,7 @@
         <mxCell id="rel_5" edge="1" parent="1" source="barangays_attr_1" style="endArrow=ERzeroToMany;endFill=0;startArrow=ERmandOne;startFill=0;strokeWidth=1;strokeColor=#000000;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;edgeStyle=entityRelationEdgeStyle;" target="users_attr_barangay">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="rel_logical_templates" edge="1" parent="1" source="templates_attr_1" style="endArrow=ERzeroToMany;endFill=0;startArrow=ERmandOne;startFill=0;strokeWidth=1;strokeColor=#000000;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;edgeStyle=entityRelationEdgeStyle;" target="concerns_attr_title">
+        <mxCell id="rel_logical_templates" edge="1" parent="1" source="templates_attr_1" style="endArrow=ERzeroToMany;endFill=0;startArrow=ERmandOne;startFill=0;strokeWidth=1;strokeColor=#000000;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;edgeStyle=entityRelationEdgeStyle;" target="concerns_attr_title">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>

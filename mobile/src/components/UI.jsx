@@ -291,6 +291,7 @@ const S = StyleSheet.create({
   },
   statCard: {
     flex: 1,
+    minWidth: '45%',
     borderRadius: RADIUS.lg,
     padding: scale(14),
     alignItems: "center",

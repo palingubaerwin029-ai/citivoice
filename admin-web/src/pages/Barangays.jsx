@@ -9,7 +9,7 @@ import {
 } from 'react-icons/io5';
 import styles from '../styles/Barangays.module.css';
 import s from '../styles/Admin.module.css';
-import Pagination from '../components/Pagination';
+import Pagination, { useFitPagination } from '../components/Pagination';
 
 const EMPTY = { name: '' };
 
@@ -22,7 +22,7 @@ export default function Barangays() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [page, setPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 55, 300);
 
   const load = () =>
     api

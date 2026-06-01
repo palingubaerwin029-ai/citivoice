@@ -108,7 +108,7 @@ export default function VerifyIdentityScreen({ navigation }) {
               },
             ]}
           >
-            <Text style={{ fontSize: 36 }}>⏳</Text>
+            <Text style={{ fontSize: rf(36) }}>⏳</Text>
           </View>
           <Text style={[S.statusTitle, { color: colors.textPrimary }]}>Under Review</Text>
           <Text style={[S.statusMessage, { color: colors.textSecondary }]}>
@@ -134,8 +134,8 @@ export default function VerifyIdentityScreen({ navigation }) {
           </View>
           
           {user?.id_image_url && (
-            <View style={{ width: "100%", marginBottom: 20 }}>
-              <Text style={{ color: colors.textMuted, fontSize: rf(11), fontWeight: "700", marginBottom: 8, letterSpacing: 0.5 }}>SUBMITTED ID</Text>
+            <View style={{ width: "100%", marginBottom: verticalScale(20) }}>
+              <Text style={{ color: colors.textMuted, fontSize: rf(11), fontWeight: "700", marginBottom: verticalScale(8), letterSpacing: 0.5 }}>SUBMITTED ID</Text>
               <Image 
                 source={{ uri: resolveImageUrl(user.id_image_url) }} 
                 style={{ width: "100%", height: verticalScale(160), borderRadius: RADIUS.md, borderWidth: 1, borderColor: colors.border }}
@@ -168,7 +168,7 @@ export default function VerifyIdentityScreen({ navigation }) {
       {/* Header */}
       <View style={S.header}>
         <View style={[S.headerIcon, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
-          <Text style={{ fontSize: 28 }}>🪪</Text>
+          <Text style={{ fontSize: rf(28) }}>🪪</Text>
         </View>
         <Text style={[S.title, { color: colors.textPrimary }]}>Verify Your Identity</Text>
         <Text style={[S.subtitle, { color: colors.textSecondary }]}>
@@ -310,7 +310,7 @@ export default function VerifyIdentityScreen({ navigation }) {
                 errors.idImage && { borderColor: colors.danger },
               ]}
             >
-              <Text style={{ fontSize: 40, marginBottom: 10, opacity: 0.6 }}>
+              <Text style={{ fontSize: rf(40), marginBottom: verticalScale(10), opacity: 0.6 }}>
                 🪪
               </Text>
               <Text style={[S.photoBoxTitle, { color: colors.textSecondary }]}>Upload your ID photo</Text>
@@ -388,14 +388,14 @@ function InfoRow({ icon, label, value, valueColor, colors }) {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingVertical: 10,
+        paddingVertical: verticalScale(10),
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: scale(8) }}>
         <Ionicons name={icon} size={15} color={colors.textMuted} />
-        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+        <Text style={{ color: colors.textSecondary, fontSize: rf(13) }}>
           {label}
         </Text>
       </View>
@@ -595,51 +595,51 @@ const S = StyleSheet.create({
   // Status screen
   statusContainer: {
     flex: 1,
-    padding: 24,
+    padding: scale(24),
     justifyContent: "center",
     alignItems: "center",
   },
   statusCard: {
     width: "100%",
     borderRadius: RADIUS["2xl"],
-    padding: 24,
+    padding: scale(24),
     borderWidth: 1,
     alignItems: "center",
     ...SHADOWS.card,
   },
   statusIcon: {
-    width: 80,
-    height: 80,
+    width: scale(80),
+    height: scale(80),
     borderRadius: 24,
     borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    marginBottom: verticalScale(16),
   },
   statusTitle: {
     fontSize: rf(20),
     fontWeight: "800",
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
     textAlign: "center",
   },
   statusMessage: {
     fontSize: rf(14),
     textAlign: "center",
     lineHeight: 22,
-    marginBottom: 20,
+    marginBottom: verticalScale(20),
   },
   pendingInfo: {
     width: "100%",
     borderRadius: RADIUS.lg,
-    padding: 14,
-    marginBottom: 20,
+    padding: scale(14),
+    marginBottom: verticalScale(20),
     borderWidth: 1,
   },
   logoutBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
-    paddingVertical: 10,
+    gap: scale(7),
+    paddingVertical: verticalScale(10),
   },
   logoutText: { fontSize: rf(14) },
 });

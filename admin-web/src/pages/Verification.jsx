@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api, fmtDateShort, maskEmail, resolveImageUrl } from "../services/api";
 import s from "../styles/Admin.module.css";
-import Pagination from "../components/Pagination";
+import Pagination, { useFitPagination } from "../components/Pagination";
 
 const STATUS = {
   unverified: { label:"Unverified", color:"#64748B", bg:"rgba(100,116,139,0.12)", icon:"—",  border:"rgba(100,116,139,0.2)" },
@@ -29,7 +29,7 @@ export default function Verification() {
   const [feedback, setFeedback] = useState(null);
   const [search,   setSearch]   = useState("");
   const [page,     setPage]     = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 350);
 
   const load = () => api.get("/users").then(setUsers).catch(console.error);
   useEffect(() => {

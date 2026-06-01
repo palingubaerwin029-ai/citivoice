@@ -3,7 +3,7 @@ import { api, fmtDateShort } from "../services/api";
 import { IoDocumentTextOutline, IoPencilOutline, IoTrashOutline, IoAddOutline, IoCheckmarkCircleOutline } from "react-icons/io5";
 import styles from "../styles/Templates.module.css";
 import s from "../styles/Admin.module.css";
-import Pagination from "../components/Pagination";
+import Pagination, { useFitPagination } from "../components/Pagination";
 
 const EMPTY = { category: "", priority: "Medium", quick_title: "", template_body: "" };
 const CATEGORIES = ["Waste Management", "Infrastructure", "Security", "Health", "Traffic", "Environment", "Others"];
@@ -17,7 +17,7 @@ export default function Templates() {
   const [saving,        setSaving]        = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [page,          setPage]          = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 300);
 
   const load = () =>
     api.get("/templates")

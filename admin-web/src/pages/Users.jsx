@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api, fmtDateShort, maskEmail } from '../services/api';
 import s from '../styles/Admin.module.css';
-import Pagination from '../components/Pagination';
+import Pagination, { useFitPagination } from '../components/Pagination';
 
 const AVATARS = ['#3B82F6', '#10B981', '#F97316', '#F59E0B', '#EF4444', '#8B5CF6'];
 const AC = (id) => AVATARS[(id || 0) % AVATARS.length];
@@ -27,7 +27,7 @@ export default function Users() {
   const [brgyFilter, setBrgyFilter] = useState('All');
   const [selected, setSelected] = useState(null);
   const [page, setPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 320);
 
   useEffect(() => {
     Promise.all([api.get('/users'), api.get('/concerns')])

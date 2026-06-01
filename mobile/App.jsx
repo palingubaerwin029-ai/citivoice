@@ -4,6 +4,7 @@ import { LanguageProvider } from "./src/context/LanguageContext";
 import { AuthProvider } from "./src/context/AuthContext";
 import { ConcernProvider } from "./src/context/ConcernContext";
 import { NotificationProvider } from "./src/context/NotificationContext";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 
@@ -20,15 +21,17 @@ function AppContent() {
   const { theme } = useTheme();
 
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <ConcernProvider>
-            <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-            <AppNavigator />
-          </ConcernProvider>
-        </NotificationProvider>
-      </AuthProvider>
-    </LanguageProvider>
+    <SafeAreaProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <ConcernProvider>
+              <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+              <AppNavigator />
+            </ConcernProvider>
+          </NotificationProvider>
+        </AuthProvider>
+      </LanguageProvider>
+    </SafeAreaProvider>
   );
 }

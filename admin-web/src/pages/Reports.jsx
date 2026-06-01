@@ -34,6 +34,11 @@ export default function Reports() {
 
   const filtered = concerns.filter((c) => {
     if (range === "all" || !c.created_at) return true;
+    if (range === "month") {
+      const d = new Date(c.created_at);
+      const now = new Date();
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }
     const ms = { "7d":7,"30d":30,"90d":90 }[range]*86400000;
     return Date.now() - new Date(c.created_at).getTime() <= ms;
   });
@@ -57,9 +62,11 @@ export default function Reports() {
       if (!c.created_at) return;
       const d=new Date(c.created_at);
       const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-      if(!m[k]) m[k]={month:k,submitted:0,resolved:0};
+      if(!m[k]) m[k]={month:k,submitted:0,completed:0,pending:0,inProgress:0};
       m[k].submitted++;
-      if(c.status==="Resolved") m[k].resolved++;
+      if(c.status==="Resolved") m[k].completed++;
+      if(c.status==="Pending") m[k].pending++;
+      if(c.status==="In Progress") m[k].inProgress++;
     });
     return Object.values(m).sort((a,b)=>a.month.localeCompare(b.month)).slice(-6);
   })();
@@ -84,7 +91,7 @@ export default function Reports() {
         <div className={s.pageTitleGroup}><h1 className={s.pageTitle}>Reports & Analytics</h1><p className={s.pageSubtitle}>CitiVoice performance overview</p></div>
         <div style={{ display:"flex", gap:10, alignItems: "center" }}>
           <div style={{ display:"flex", gap:6 }}>
-            {[{l:"All Time",v:"all"},{l:"7 days",v:"7d"},{l:"30 days",v:"30d"},{l:"90 days",v:"90d"}].map((r)=>(
+            {[{l:"All Time",v:"all"},{l:"This Month",v:"month"},{l:"7 days",v:"7d"},{l:"30 days",v:"30d"},{l:"90 days",v:"90d"}].map((r)=>(
               <button key={r.v} className={s.chip} style={range===r.v?{background:"rgba(37,99,235,0.2)",borderColor:"var(--blue)",color:"var(--blue-light)",fontWeight:600}:{}} onClick={()=>setRange(r.v)}>{r.l}</button>
             ))}
           </div>
@@ -99,7 +106,7 @@ export default function Reports() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h1 style={{ margin: 0, color: "#000", fontSize: 28 }}>CitiVoice Analytics Report</h1>
-            <p style={{ margin: "5px 0 0", color: "#666" }}>Generated on {new Date().toLocaleString()} · Range: {range === 'all' ? 'All Time' : range}</p>
+            <p style={{ margin: "5px 0 0", color: "#666" }}>Generated on {new Date().toLocaleString()} · Range: {range === 'all' ? 'All Time' : range === 'month' ? 'This Month' : range}</p>
           </div>
           <div style={{ fontSize: 40 }}>📢</div>
         </div>
@@ -123,12 +130,14 @@ export default function Reports() {
             {monthly.length===0 ? <div style={{padding:40,textAlign:"center",color:"var(--text-3)",fontSize:13}}>No trend data yet</div> : (
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={monthly}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="month" stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
-                  <Tooltip {...TT} /><Legend wrapperStyle={{color:"#94A3B8",fontSize:12}} />
-                  <Line type="monotone" dataKey="submitted" stroke="#3B82F6" strokeWidth={2} dot={{fill:"#3B82F6",r:3}} name="Submitted" />
-                  <Line type="monotone" dataKey="resolved"  stroke="#10B981" strokeWidth={2} dot={{fill:"#10B981",r:3}} name="Resolved" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="month" stroke="var(--text-2)" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--text-2)" fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip {...TT} /><Legend wrapperStyle={{color:"var(--text-2)",fontSize:12}} />
+                  <Line type="monotone" dataKey="submitted" stroke="#8B5CF6" strokeWidth={2} dot={{fill:"#8B5CF6",r:3}} name="Submitted" />
+                  <Line type="monotone" dataKey="completed"  stroke="#10B981" strokeWidth={2} dot={{fill:"#10B981",r:3}} name="Completed" />
+                  <Line type="monotone" dataKey="pending" stroke="#F59E0B" strokeWidth={2} dot={{fill:"#F59E0B",r:3}} name="Pending" />
+                  <Line type="monotone" dataKey="inProgress" stroke="#3B82F6" strokeWidth={2} dot={{fill:"#3B82F6",r:3}} name="In Progress" />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -158,9 +167,9 @@ export default function Reports() {
           <div style={{padding:"12px 12px 8px"}}>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={catData} layout="vertical" barSize={14}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                <XAxis type="number" stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="name" stroke="#475569" fontSize={11} width={65} tickLine={false} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                <XAxis type="number" stroke="var(--text-2)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis type="category" dataKey="name" stroke="var(--text-2)" fontSize={11} width={65} tickLine={false} axisLine={false} />
                 <Tooltip {...TT} formatter={(v,n,p)=>[v,p.payload.full]} />
                 <Bar dataKey="value" radius={[0,6,6,0]}>{catData.map((_,i)=><Cell key={i} fill={CC[i%CC.length]}/>)}</Bar>
               </BarChart>
@@ -176,7 +185,7 @@ export default function Reports() {
             {prioData.map((p)=>{const pct=total?Math.round(p.value/total*100):0;return(
               <div key={p.name} style={{display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:12,fontWeight:600,color:"var(--text-2)",minWidth:52}}>{p.name}</span>
-                <div style={{flex:1,height:5,background:"rgba(255,255,255,0.06)",borderRadius:99,overflow:"hidden"}}><div style={{height:5,background:p.color,width:`${pct}%`,borderRadius:99,transition:"width 0.8s ease"}}/></div>
+                <div style={{flex:1,height:5,background:"var(--surface-3)",borderRadius:99,overflow:"hidden"}}><div style={{height:5,background:p.color,width:`${pct}%`,borderRadius:99,transition:"width 0.8s ease"}}/></div>
                 <span style={{fontSize:12,fontWeight:700,color:p.color,minWidth:22,textAlign:"right"}}>{p.value}</span>
               </div>
             );})}
@@ -196,7 +205,7 @@ export default function Reports() {
                     <span style={{color:"var(--text-1)"}}><span style={{color:"var(--text-3)",marginRight:8,fontSize:11}}>#{i+1}</span>{brgy}</span>
                     <span style={{color:"var(--blue-light)",fontWeight:700}}>{count}</span>
                   </div>
-                  <div style={{height:5,background:"rgba(255,255,255,0.06)",borderRadius:99}}><div style={{height:5,background:CC[i%CC.length],width:`${pct}%`,borderRadius:99,transition:"width 0.8s ease"}}/></div>
+                  <div style={{height:5,background:"var(--surface-3)",borderRadius:99}}><div style={{height:5,background:CC[i%CC.length],width:`${pct}%`,borderRadius:99,transition:"width 0.8s ease"}}/></div>
                 </div>
               );})
             )}
@@ -242,7 +251,7 @@ export default function Reports() {
           <div style={{textAlign:"center",minWidth:160}}>
             <div style={{fontSize:60,fontWeight:900,color:"#10B981",lineHeight:1}}>{rate}%</div>
             <div style={{color:"var(--text-3)",fontSize:13,marginTop:6,marginBottom:12}}>Resolution Rate</div>
-            <div style={{height:8,background:"rgba(255,255,255,0.06)",borderRadius:99}}><div style={{height:8,background:"#10B981",width:`${rate}%`,borderRadius:99,transition:"width 1s ease"}}/></div>
+            <div style={{height:8,background:"var(--surface-3)",borderRadius:99}}><div style={{height:8,background:"#10B981",width:`${rate}%`,borderRadius:99,transition:"width 1s ease"}}/></div>
           </div>
         </div>
       </div>

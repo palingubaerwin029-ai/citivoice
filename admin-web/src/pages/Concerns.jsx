@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { api, fmtDateShort } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+
 import s from '../styles/Admin.module.css';
-import Pagination from '../components/Pagination';
+import Pagination, { useFitPagination } from '../components/Pagination';
 
 const STATUS_COLORS = {
   Pending: '#FFB800',
@@ -24,7 +25,7 @@ export default function Concerns() {
   const [sortBy, setSortBy] = useState('newest');
   const [citizenPage, setCitizenPage] = useState(1);
   const [concernPage, setConcernPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 380);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -173,22 +174,22 @@ export default function Concerns() {
           <>
             <div className={s.filterGroup}>
               <span className={s.filterGroupLabel}>Status:</span>
-              {STATUSES.map((s) => (
+              {STATUSES.map((status) => (
                 <button
-                  key={s}
-                  className={`${s.chip} ${statusFilter === s ? s.chipActive : ''}`}
+                  key={status}
+                  className={`${s.chip} ${statusFilter === status ? s.chipActive : ''}`}
                   style={
-                    statusFilter === s
+                    statusFilter === status && status !== 'All'
                       ? {
-                          borderColor: STATUS_COLORS[s] || 'var(--primary)',
-                          color: STATUS_COLORS[s] || 'var(--primary)',
-                          backgroundColor: (STATUS_COLORS[s] || '#1A6BFF') + '22',
+                          borderColor: STATUS_COLORS[status] || 'var(--primary)',
+                          color: STATUS_COLORS[status] || 'var(--primary)',
+                          backgroundColor: (STATUS_COLORS[status] || '#1A6BFF') + '22',
                         }
                       : {}
                   }
-                  onClick={() => setStatusFilter(s)}
+                  onClick={() => setStatusFilter(status)}
                 >
-                  {s}
+                  {status}
                 </button>
               ))}
             </div>
