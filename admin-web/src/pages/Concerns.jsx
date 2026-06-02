@@ -52,6 +52,7 @@ export default function Concerns() {
         name: c.user_name || 'Anonymous',
         barangay: c.user_barangay || 'N/A',
         total: 0,
+        Resolved: 0,
         High: 0,
         Medium: 0,
         Low: 0,
@@ -60,6 +61,7 @@ export default function Concerns() {
       };
     }
     acc[key].total++;
+    if (c.status === 'Resolved') acc[key].Resolved++;
     if (c.priority) acc[key][c.priority]++;
     acc[key].concerns.push(c);
     if (new Date(c.created_at) > new Date(acc[key].latest)) {
@@ -228,14 +230,15 @@ export default function Concerns() {
                   {[
                     'Citizen',
                     'Barangay',
-                    'Total',
                     'High',
                     'Medium',
                     'Low',
+                    'Total',
+                    'Resolved',
                     'Latest',
                     'Action',
                   ].map((h) => (
-                    <th key={h} className={s.th}>
+                    <th key={h} className={s.th} style={['High', 'Medium', 'Low', 'Total', 'Resolved'].includes(h) ? { textAlign: 'center' } : {}}>
                       {h}
                     </th>
                   ))}
@@ -256,17 +259,20 @@ export default function Concerns() {
                       {c.name}
                     </td>
                     <td className={s.td}>{c.barangay}</td>
-                    <td className={s.td} style={{ fontWeight: 700 }}>
-                      {c.total}
-                    </td>
-                    <td className={s.td}>
+                    <td className={s.td} style={{ textAlign: 'center' }}>
                       <span style={{ color: PRIORITY_COLORS.High }}>🔴 {c.High}</span>
                     </td>
-                    <td className={s.td}>
+                    <td className={s.td} style={{ textAlign: 'center' }}>
                       <span style={{ color: PRIORITY_COLORS.Medium }}>🟡 {c.Medium}</span>
                     </td>
-                    <td className={s.td}>
+                    <td className={s.td} style={{ textAlign: 'center' }}>
                       <span style={{ color: PRIORITY_COLORS.Low }}>🟢 {c.Low}</span>
+                    </td>
+                    <td className={s.td} style={{ fontWeight: 700, textAlign: 'center' }}>
+                      {c.total - c.Resolved}
+                    </td>
+                    <td className={s.td} style={{ fontWeight: 700, color: '#00D4AA', textAlign: 'center' }}>
+                      {c.Resolved}
                     </td>
                     <td className={s.td} style={{ fontSize: 12 }}>
                       {fmtDateShort(c.latest)}

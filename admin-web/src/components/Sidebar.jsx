@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import React, { useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   IoGridOutline,
   IoChatbubbleEllipsesOutline,
@@ -12,22 +12,22 @@ import {
   IoLogOutOutline,
   IoSunnyOutline,
   IoMoonOutline,
-  IoDocumentTextOutline
-} from "react-icons/io5";
-import s from "../styles/Sidebar.module.css";
+  IoDocumentTextOutline,
+} from 'react-icons/io5';
+import s from '../styles/Sidebar.module.css';
 
 const NAV = [
-  { section: "Overview" },
-  { path: "/dashboard", icon: <IoGridOutline />, label: "Dashboard" },
-  { path: "/concerns", icon: <IoChatbubbleEllipsesOutline />, label: "Concerns" },
-  { section: "Management" },
-  { path: "/verification", icon: <IoShieldCheckmarkOutline />, label: "Verification" },
-  { path: "/users", icon: <IoPeopleOutline />, label: "Users" },
-  { path: "/barangays", icon: <IoBusinessOutline />, label: "Barangays" },
-  { path: "/templates", icon: <IoDocumentTextOutline />, label: "Templates" },
-  { section: "Analytics" },
-  { path: "/map", icon: <IoMapOutline />, label: "Map View" },
-  { path: "/reports", icon: <IoBarChartOutline />, label: "Reports" },
+  { section: 'Overview' },
+  { path: '/dashboard', icon: <IoGridOutline />, label: 'Dashboard' },
+  { path: '/concerns', icon: <IoChatbubbleEllipsesOutline />, label: 'Concerns' },
+  { section: 'Management' },
+  { path: '/verification', icon: <IoShieldCheckmarkOutline />, label: 'Verification' },
+  { path: '/users', icon: <IoPeopleOutline />, label: 'Users' },
+  { path: '/barangays', icon: <IoBusinessOutline />, label: 'Barangays' },
+  { path: '/templates', icon: <IoDocumentTextOutline />, label: 'Templates' },
+  { section: 'Analytics' },
+  { path: '/map', icon: <IoMapOutline />, label: 'Map View' },
+  { path: '/reports', icon: <IoBarChartOutline />, label: 'Reports' },
 ];
 
 export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
@@ -36,14 +36,14 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
 
   const initials =
     user?.name
-      ?.split(" ")
+      ?.split(' ')
       .map((n) => n[0])
-      .join("")
+      .join('')
       .toUpperCase()
-      .slice(0, 2) || "AD";
+      .slice(0, 2) || 'AD';
 
   return (
-    <aside className={`${s.sidebar} ${collapsed ? s.sidebarCollapsed : ""}`}>
+    <aside className={`${s.sidebar} ${s.sidebar_print} ${collapsed ? s.sidebarCollapsed : ''}`}>
       {/* Brand */}
       <div className={s.brand}>
         <img src="/logo.png" className={s.brandMark} alt="Logo" />
@@ -53,11 +53,8 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
             <div className={s.brandSub}>Admin Console</div>
           </div>
         )}
-        <button
-          className={s.collapseBtn}
-          onClick={() => setCollapsed((c) => !c)}
-        >
-          {collapsed ? "›" : "‹"}
+        <button className={s.collapseBtn} onClick={() => setCollapsed((c) => !c)}>
+          {collapsed ? '›' : '‹'}
         </button>
       </div>
 
@@ -66,14 +63,14 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
         <div className={s.userCard}>
           <div className={s.avatar}>{initials}</div>
           <div>
-            <div className={s.userName}>{user?.name || "Admin"}</div>
+            <div className={s.userName}>{user?.name || 'Admin'}</div>
             <div className={s.userRole}>● Administrator</div>
           </div>
         </div>
       )}
 
       {/* Nav */}
-      <nav style={{ flex: 1, overflowY: "auto", padding: "4px 0" }}>
+      <nav style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
         {NAV.map((item, i) => {
           if (item.section) {
             if (collapsed) return null;
@@ -87,12 +84,12 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
             <div
               key={item.path}
               className={s.navSection}
-              style={{ padding: "0 10px", marginBottom: 1 }}
+              style={{ padding: '0 10px', marginBottom: 1 }}
             >
               <NavLink
                 to={item.path}
                 className={({ isActive }) =>
-                  `${s.navItem} ${collapsed ? s.collapsed : ""} ${isActive ? s.navItemActive : ""}`
+                  `${s.navItem} ${collapsed ? s.collapsed : ''} ${isActive ? s.navItemActive : ''}`
                 }
               >
                 <span className={s.navIcon}>{item.icon}</span>
@@ -105,20 +102,23 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
 
       {/* Footer */}
       <div className={s.navFooter}>
-        <button
-          className={s.logoutBtn}
-          style={{ marginBottom: 4 }}
-          onClick={onThemeToggle}
-        >
-          <span className={s.navIcon}>{theme === 'dark' ? <IoSunnyOutline /> : <IoMoonOutline />}</span>
+        <button className={s.logoutBtn} style={{ marginBottom: 4 }} onClick={onThemeToggle}>
+          <span className={s.navIcon}>
+            {theme === 'dark' ? <IoSunnyOutline /> : <IoMoonOutline />}
+          </span>
           {!collapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
         </button>
-        
+
         <button
-          className={`${s.logoutBtn} ${collapsed ? s.collapsed : ""}`}
-          onClick={() => { onLogout(); navigate("/"); }}
+          className={`${s.logoutBtn} ${collapsed ? s.collapsed : ''}`}
+          onClick={() => {
+            onLogout();
+            navigate('/');
+          }}
         >
-          <span className={s.navIcon}><IoLogOutOutline /></span>
+          <span className={s.navIcon}>
+            <IoLogOutOutline />
+          </span>
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>

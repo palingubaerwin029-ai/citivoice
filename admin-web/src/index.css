@@ -107,4 +107,7 @@ input, textarea, select { font-family: inherit; }
     --text-2:      #333333;
     --text-3:      #555555;
   }
+
+  .sidebar { display: none; }
+
 }

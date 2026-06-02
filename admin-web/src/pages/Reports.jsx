@@ -23,7 +23,10 @@ export default function Reports() {
   const [concerns, setConcerns] = useState([]);
   const [users,    setUsers]    = useState([]);
   const [loading,  setLoading]  = useState(true);
-  const [range,    setRange]    = useState("all");
+  const defaultStart = new Date();
+  defaultStart.setDate(1); // First day of current month
+  const [startDate, setStartDate] = useState(defaultStart.toISOString().split("T")[0]);
+  const [endDate,   setEndDate]   = useState(new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
     Promise.all([api.get("/concerns"), api.get("/users")])
@@ -33,14 +36,11 @@ export default function Reports() {
   }, []);
 
   const filtered = concerns.filter((c) => {
-    if (range === "all" || !c.created_at) return true;
-    if (range === "month") {
-      const d = new Date(c.created_at);
-      const now = new Date();
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }
-    const ms = { "7d":7,"30d":30,"90d":90 }[range]*86400000;
-    return Date.now() - new Date(c.created_at).getTime() <= ms;
+    if (!c.created_at) return true;
+    const d = new Date(c.created_at).getTime();
+    const start = new Date(startDate).setHours(0, 0, 0, 0);
+    const end = new Date(endDate).setHours(23, 59, 59, 999);
+    return d >= start && d <= end;
   });
 
   const total=filtered.length, resolved=filtered.filter(c=>c.status==="Resolved").length;
@@ -77,7 +77,7 @@ export default function Reports() {
   if (loading) return <div className={s.loading}>Loading analytics…</div>;
 
   const KPIS=[
-    {label:"Total Concerns",   value:total,      color:"#3B82F6", sub:range==="all"?"All time":"In range"},
+    {label:"Total Concerns",   value:total,      color:"#3B82F6", sub:"In date range"},
     {label:"Resolution Rate",  value:`${rate}%`, color:"#10B981", sub:`${resolved} resolved`},
     {label:"Avg Upvotes",      value:avgUp,      color:"#F59E0B", sub:`${totalUp} total votes`},
     {label:"High Priority",    value:hiPrio,     color:"#EF4444", sub:`${total?Math.round(hiPrio/total*100):0}% of total`},
@@ -90,12 +90,13 @@ export default function Reports() {
       <div className={`${s.pageHeader} ${s.noPrint}`}>
         <div className={s.pageTitleGroup}><h1 className={s.pageTitle}>Reports & Analytics</h1><p className={s.pageSubtitle}>CitiVoice performance overview</p></div>
         <div style={{ display:"flex", gap:10, alignItems: "center" }}>
-          <div style={{ display:"flex", gap:6 }}>
-            {[{l:"All Time",v:"all"},{l:"This Month",v:"month"},{l:"7 days",v:"7d"},{l:"30 days",v:"30d"},{l:"90 days",v:"90d"}].map((r)=>(
-              <button key={r.v} className={s.chip} style={range===r.v?{background:"rgba(37,99,235,0.2)",borderColor:"var(--blue)",color:"var(--blue-light)",fontWeight:600}:{}} onClick={()=>setRange(r.v)}>{r.l}</button>
-            ))}
+          <div style={{ display:"flex", gap:8, alignItems: "center" }}>
+            <span style={{color: "var(--text-3)", fontSize: 13, fontWeight: 600}}>From:</span>
+            <input type="date" className={s.input} style={{padding: "6px 10px", width: "auto", margin: 0}} value={startDate} onChange={e => setStartDate(e.target.value)} />
+            <span style={{color: "var(--text-3)", fontSize: 13, fontWeight: 600, marginLeft: 4}}>To:</span>
+            <input type="date" className={s.input} style={{padding: "6px 10px", width: "auto", margin: 0}} value={endDate} onChange={e => setEndDate(e.target.value)} />
           </div>
-          <button className={s.btnPrimary} onClick={() => window.print()} style={{ padding: "8px 16px", borderRadius: 8 }}>
+          <button className={s.btnPrimary} onClick={() => window.print()} style={{ padding: "8px 16px", borderRadius: 8, marginLeft: 8 }}>
             🖨️ Print Report
           </button>
         </div>
@@ -105,8 +106,7 @@ export default function Reports() {
       <div className={s.printOnly} style={{ marginBottom: 30, borderBottom: "2px solid #000", paddingBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h1 style={{ margin: 0, color: "#000", fontSize: 28 }}>CitiVoice Analytics Report</h1>
-            <p style={{ margin: "5px 0 0", color: "#666" }}>Generated on {new Date().toLocaleString()} · Range: {range === 'all' ? 'All Time' : range === 'month' ? 'This Month' : range}</p>
+            <p style={{ margin: 0, color: "#666" }}>Generated on {new Date().toLocaleString()} · Range: {startDate} to {endDate}</p>
           </div>
           <div style={{ fontSize: 40 }}>📢</div>
         </div>
@@ -128,18 +128,46 @@ export default function Reports() {
           <div className={s.cardHeader}><span className={s.cardTitle}>Monthly Submission Trend</span></div>
           <div style={{padding:"12px 12px 8px"}}>
             {monthly.length===0 ? <div style={{padding:40,textAlign:"center",color:"var(--text-3)",fontSize:13}}>No trend data yet</div> : (
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={monthly}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="month" stroke="var(--text-2)" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="var(--text-2)" fontSize={11} tickLine={false} axisLine={false} />
-                  <Tooltip {...TT} /><Legend wrapperStyle={{color:"var(--text-2)",fontSize:12}} />
-                  <Line type="monotone" dataKey="submitted" stroke="#8B5CF6" strokeWidth={2} dot={{fill:"#8B5CF6",r:3}} name="Submitted" />
-                  <Line type="monotone" dataKey="completed"  stroke="#10B981" strokeWidth={2} dot={{fill:"#10B981",r:3}} name="Completed" />
-                  <Line type="monotone" dataKey="pending" stroke="#F59E0B" strokeWidth={2} dot={{fill:"#F59E0B",r:3}} name="Pending" />
-                  <Line type="monotone" dataKey="inProgress" stroke="#3B82F6" strokeWidth={2} dot={{fill:"#3B82F6",r:3}} name="In Progress" />
-                </LineChart>
-              </ResponsiveContainer>
+              <>
+                <div className={s.noPrint}>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={monthly}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="month" stroke="var(--text-2)" fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis stroke="var(--text-2)" fontSize={11} tickLine={false} axisLine={false} />
+                      <Tooltip {...TT} /><Legend wrapperStyle={{color:"var(--text-2)",fontSize:12}} />
+                      <Line type="monotone" dataKey="submitted" stroke="#8B5CF6" strokeWidth={2} dot={{fill:"#8B5CF6",r:3}} name="Submitted" />
+                      <Line type="monotone" dataKey="completed"  stroke="#10B981" strokeWidth={2} dot={{fill:"#10B981",r:3}} name="Completed" />
+                      <Line type="monotone" dataKey="pending" stroke="#F59E0B" strokeWidth={2} dot={{fill:"#F59E0B",r:3}} name="Pending" />
+                      <Line type="monotone" dataKey="inProgress" stroke="#3B82F6" strokeWidth={2} dot={{fill:"#3B82F6",r:3}} name="In Progress" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className={s.printOnly} style={{ padding: "0 10px 10px" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, textAlign: "left" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid #ccc" }}>
+                        <th style={{ padding: "8px 0" }}>Month</th>
+                        <th style={{ padding: "8px 0" }}>Submitted</th>
+                        <th style={{ padding: "8px 0" }}>Completed</th>
+                        <th style={{ padding: "8px 0" }}>Pending</th>
+                        <th style={{ padding: "8px 0" }}>In Progress</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {monthly.map((m) => (
+                        <tr key={m.month} style={{ borderBottom: "1px solid #eee" }}>
+                          <td style={{ padding: "8px 0", fontWeight: 600 }}>{m.month}</td>
+                          <td style={{ padding: "8px 0" }}>{m.submitted}</td>
+                          <td style={{ padding: "8px 0", color: "#10B981", fontWeight: 700 }}>{m.completed}</td>
+                          <td style={{ padding: "8px 0", color: "#F59E0B", fontWeight: 700 }}>{m.pending}</td>
+                          <td style={{ padding: "8px 0", color: "#3B82F6", fontWeight: 700 }}>{m.inProgress}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </div>

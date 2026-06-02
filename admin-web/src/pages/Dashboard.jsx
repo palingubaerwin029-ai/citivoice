@@ -27,6 +27,13 @@ const STAT_CONFIGS = [
 export default function Dashboard() {
   const [concerns, setConcerns] = useState([]);
   const [loading,  setLoading]  = useState(true);
+  
+  const todayStr = new Date().toISOString().split("T")[0];
+  const [filterMode, setFilterMode] = useState("daily");
+  const [singleDate, setSingleDate] = useState(todayStr);
+  const [singleMonth, setSingleMonth] = useState(todayStr.slice(0, 7));
+  const [startDate, setStartDate] = useState(todayStr);
+  const [endDate,   setEndDate]   = useState(todayStr);
 
   useEffect(() => {
     const fetchData = () => {
@@ -42,24 +49,44 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const total      = concerns.length;
-  const pending    = concerns.filter((c) => c.status === "Pending").length;
-  const inProgress = concerns.filter((c) => c.status === "In Progress").length;
-  const resolved   = concerns.filter((c) => c.status === "Resolved").length;
-  const rejected   = concerns.filter((c) => c.status === "Rejected").length;
+  const filteredConcerns = concerns.filter((c) => {
+    if (!c.created_at) return true;
+    const d = new Date(c.created_at).getTime();
+    let start, end;
+
+    if (filterMode === "daily") {
+      start = new Date(singleDate).setHours(0, 0, 0, 0);
+      end = new Date(singleDate).setHours(23, 59, 59, 999);
+    } else if (filterMode === "monthly") {
+      const [y, m] = singleMonth.split("-");
+      start = new Date(y, m - 1, 1).getTime();
+      end = new Date(y, m, 0, 23, 59, 59, 999).getTime();
+    } else {
+      start = new Date(startDate).setHours(0, 0, 0, 0);
+      end = new Date(endDate).setHours(23, 59, 59, 999);
+    }
+
+    return d >= start && d <= end;
+  });
+
+  const total      = filteredConcerns.length;
+  const pending    = filteredConcerns.filter((c) => c.status === "Pending").length;
+  const inProgress = filteredConcerns.filter((c) => c.status === "In Progress").length;
+  const resolved   = filteredConcerns.filter((c) => c.status === "Resolved").length;
+  const rejected   = filteredConcerns.filter((c) => c.status === "Rejected").length;
   const rate       = total ? Math.round((resolved / total) * 100) : 0;
   const stats      = { total, pending, inProgress, resolved, rejected, rate };
 
   const catData = Object.entries(
-    concerns.reduce((a, c) => { a[c.category] = (a[c.category] || 0) + 1; return a; }, {})
+    filteredConcerns.reduce((a, c) => { a[c.category] = (a[c.category] || 0) + 1; return a; }, {})
   ).map(([name, value]) => ({ name: name.split(" ")[0], value }));
 
   const statusData = Object.entries(STATUS_COLORS).map(([name, color]) => ({
-    name, value: concerns.filter((c) => c.status === name).length, color,
+    name, value: filteredConcerns.filter((c) => c.status === name).length, color,
   }));
 
-  const urgent = concerns.filter((c) => c.priority === "High" && c.status === "Pending").slice(0, 5);
-  const recent = concerns.slice(0, 10);
+  const urgent = filteredConcerns.filter((c) => c.priority === "High" && c.status === "Pending").slice(0, 5);
+  const recent = filteredConcerns.slice(0, 10);
 
   if (loading) return <div className={s.loading}>Loading dashboard…</div>;
 
@@ -73,9 +100,35 @@ export default function Dashboard() {
             {new Date().toLocaleDateString("en-PH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--green)" }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--green)", animation: "pulse 2s infinite", display: "inline-block" }} />
-          Live data
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <select className={s.select} style={{ padding: "6px 10px", width: "auto", minWidth: 100 }} value={filterMode} onChange={e => setFilterMode(e.target.value)}>
+              <option value="daily">Daily</option>
+              <option value="monthly">Monthly</option>
+              <option value="custom">Custom Range</option>
+            </select>
+
+            {filterMode === "daily" && (
+              <input type="date" className={s.input} style={{ padding: "6px 10px", width: "auto", margin: 0 }} value={singleDate} onChange={e => setSingleDate(e.target.value)} />
+            )}
+            
+            {filterMode === "monthly" && (
+              <input type="month" className={s.input} style={{ padding: "6px 10px", width: "auto", margin: 0 }} value={singleMonth} onChange={e => setSingleMonth(e.target.value)} />
+            )}
+
+            {filterMode === "custom" && (
+              <>
+                <span style={{ color: "var(--text-3)", fontSize: 13, fontWeight: 600 }}>From:</span>
+                <input type="date" className={s.input} style={{ padding: "6px 10px", width: "auto", margin: 0 }} value={startDate} onChange={e => setStartDate(e.target.value)} />
+                <span style={{ color: "var(--text-3)", fontSize: 13, fontWeight: 600, marginLeft: 4 }}>To:</span>
+                <input type="date" className={s.input} style={{ padding: "6px 10px", width: "auto", margin: 0 }} value={endDate} onChange={e => setEndDate(e.target.value)} />
+              </>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--green)" }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--green)", animation: "pulse 2s infinite", display: "inline-block" }} />
+            Live data
+          </div>
         </div>
       </div>
 
