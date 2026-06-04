@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Alert,
   StyleSheet,
   Image,
+  Animated,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -36,6 +37,8 @@ export default function RegisterScreen({ navigation }) {
   const [showPicker, setShowPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [pwFocused, setPwFocused] = useState(false);
+  const strengthAnim = useRef(new Animated.Value(0)).current;
   const [availableBarangays, setAvailableBarangays] = useState(["Other"]);
 
   useEffect(() => {
@@ -53,6 +56,36 @@ export default function RegisterScreen({ navigation }) {
   }, []);
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
+
+  // Password strength analysis
+  const passwordAnalysis = useMemo(() => {
+    const pw = form.password;
+    const checks = {
+      minLength: pw.length >= 8,
+      hasUpper: /[A-Z]/.test(pw),
+      hasLower: /[a-z]/.test(pw),
+      hasNumber: /\d/.test(pw),
+      hasSpecial: /[@$!%*?&]/.test(pw),
+    };
+    const passed = Object.values(checks).filter(Boolean).length;
+    let level, label, color;
+    if (passed <= 1) { level = 0; label = 'Weak'; color = colors.danger; }
+    else if (passed <= 2) { level = 1; label = 'Fair'; color = colors.warning; }
+    else if (passed <= 3) { level = 2; label = 'Good'; color = colors.accentWarm; }
+    else if (passed <= 4) { level = 3; label = 'Strong'; color = colors.accent; }
+    else { level = 4; label = 'Excellent'; color = colors.success; }
+    return { checks, passed, level, label, color };
+  }, [form.password, colors]);
+
+  // Animate strength bar
+  useEffect(() => {
+    Animated.spring(strengthAnim, {
+      toValue: form.password.length > 0 ? (passwordAnalysis.passed / 5) : 0,
+      friction: 8,
+      tension: 60,
+      useNativeDriver: false,
+    }).start();
+  }, [passwordAnalysis.passed, form.password.length]);
 
   const validate = () => {
     const e = {};
@@ -208,7 +241,66 @@ export default function RegisterScreen({ navigation }) {
                 </TouchableOpacity>
               }
               error={errors.password}
+              onFocus={() => setPwFocused(true)}
+              onBlur={() => setPwFocused(false)}
             />
+
+            {/* Password Strength Checker */}
+            {(form.password.length > 0 || pwFocused) && (
+              <View style={[S.pwChecker, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}>
+                {/* Strength bar */}
+                <View style={S.strengthBarRow}>
+                  <View style={[S.strengthBarTrack, { backgroundColor: colors.border }]}>
+                    <Animated.View
+                      style={[
+                        S.strengthBarFill,
+                        {
+                          backgroundColor: passwordAnalysis.color,
+                          width: strengthAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['0%', '100%'],
+                          }),
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={[S.strengthLabel, { color: passwordAnalysis.color }]}>
+                    {form.password.length > 0 ? passwordAnalysis.label : ''}
+                  </Text>
+                </View>
+
+                {/* Requirements checklist */}
+                <View style={S.reqList}>
+                  {[
+                    { key: 'minLength', label: 'At least 8 characters' },
+                    { key: 'hasUpper', label: 'Uppercase letter (A-Z)' },
+                    { key: 'hasLower', label: 'Lowercase letter (a-z)' },
+                    { key: 'hasNumber', label: 'Number (0-9)' },
+                    { key: 'hasSpecial', label: 'Special character (@$!%*?&)' },
+                  ].map((req) => {
+                    const met = passwordAnalysis.checks[req.key];
+                    return (
+                      <View key={req.key} style={S.reqRow}>
+                        <Ionicons
+                          name={met ? 'checkmark-circle' : 'ellipse-outline'}
+                          size={14}
+                          color={met ? colors.success : colors.textMuted}
+                        />
+                        <Text
+                          style={[
+                            S.reqText,
+                            { color: met ? colors.success : colors.textMuted },
+                            met && { fontWeight: '600' },
+                          ]}
+                        >
+                          {req.label}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
 
             <InputField
               label={t('phone').toUpperCase()}
@@ -454,4 +546,47 @@ const S = StyleSheet.create({
   dropdownText: { fontSize: rf(14) },
 
   loginRow: { flexDirection: "row", justifyContent: "center", marginTop: verticalScale(20) },
+
+  // Password strength checker
+  pwChecker: {
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    padding: scale(12),
+    marginTop: verticalScale(-4),
+    marginBottom: verticalScale(10),
+  },
+  strengthBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(10),
+    marginBottom: verticalScale(10),
+  },
+  strengthBarTrack: {
+    flex: 1,
+    height: verticalScale(5),
+    borderRadius: RADIUS.full,
+    overflow: 'hidden',
+  },
+  strengthBarFill: {
+    height: '100%',
+    borderRadius: RADIUS.full,
+  },
+  strengthLabel: {
+    fontSize: rf(11),
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    minWidth: scale(60),
+    textAlign: 'right',
+  },
+  reqList: {
+    gap: verticalScale(6),
+  },
+  reqRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+  },
+  reqText: {
+    fontSize: rf(11),
+  },
 });

@@ -15,10 +15,10 @@ const login = async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await selectByEmail(email);
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user) return res.status(401).json({ error: 'auth/user-not-found' });
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!valid) return res.status(401).json({ error: 'auth/wrong-password' });
     const token = sign({ id: user.id, role: user.role });
     res.json({ token, user: safe(user) });
   } catch (err) {

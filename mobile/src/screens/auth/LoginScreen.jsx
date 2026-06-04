@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Animated,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -186,6 +187,18 @@ export default function LoginScreen({ navigation }) {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState(null);
+  const errorBannerAnim = useRef(new Animated.Value(0)).current;
+
+  // Animate error banner in/out
+  useEffect(() => {
+    Animated.spring(errorBannerAnim, {
+      toValue: serverError ? 1 : 0,
+      friction: 8,
+      tension: 80,
+      useNativeDriver: false,
+    }).start();
+  }, [serverError]);
 
   // ── Show verification gate if user is blocked ─────────────────────────
   if (user?._blocked) {
@@ -198,13 +211,22 @@ export default function LoginScreen({ navigation }) {
     );
   }
 
+  const validateField = (field, value) => {
+    let error = null;
+    if (field === 'email') {
+      if (!value.trim()) error = t('required');
+      else if (!/\S+@\S+\.\S+/.test(value)) error = t('invalidEmail');
+    } else if (field === 'password') {
+      if (!value) error = t('required');
+    }
+    setErrors((prev) => ({ ...prev, [field]: error }));
+    return error;
+  };
+
   const validate = () => {
-    const e = {};
-    if (!email.trim()) e.email = t('required');
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = t('invalidEmail');
-    if (!password) e.password = t('required');
-    setErrors(e);
-    return !Object.keys(e).length;
+    const emailErr = validateField('email', email);
+    const passErr = validateField('password', password);
+    return !emailErr && !passErr;
   };
 
   const handleLogin = async () => {
@@ -235,19 +257,36 @@ export default function LoginScreen({ navigation }) {
       }
       // admin → AppNavigator routes to AdminTabs
     } catch (err) {
-      const map = {
+      const errKey = err?.code || err?.message || '';
+
+      // Map error codes to user-friendly messages
+      const messageMap = {
         "auth/invalid-credential": "Wrong email or password.",
         "auth/user-not-found": "No account with this email.",
         "auth/wrong-password": "Incorrect password.",
         "auth/invalid-email": "Invalid email address.",
         "auth/too-many-requests": "Too many attempts. Try again later.",
         "auth/network-request-failed": "No internet connection.",
-        NO_PROFILE: "Account not set up. Please register.",
+        "NO_PROFILE": "Account not set up. Please register.",
       };
-      Alert.alert(
-        t('loginFailed'),
-        map[err.code] || map[err.message] || t('error'),
-      );
+
+      // Map certain errors to specific fields for inline display
+      const fieldMap = {
+        "auth/user-not-found": { email: "No account found with this email." },
+        "auth/invalid-email": { email: "Please enter a valid email address." },
+        "auth/wrong-password": { password: "Incorrect password. Try again." },
+        "auth/invalid-credential": { email: "Wrong email or password.", password: "Wrong email or password." },
+      };
+
+      // Set field-specific inline errors if applicable
+      const fieldErrors = fieldMap[errKey];
+      if (fieldErrors) {
+        setErrors((prev) => ({ ...prev, ...fieldErrors }));
+      }
+
+      // Set the server error banner message
+      const errorText = messageMap[errKey] || err?.response?.data?.message || err?.message || t('error');
+      setServerError(typeof err === 'string' ? err : errorText);
     } finally {
       setLoading(false);
     }
@@ -306,6 +345,32 @@ export default function LoginScreen({ navigation }) {
             <Text style={[S.cardTitle, { color: colors.textPrimary }]}>{t('welcomeBack')}</Text>
             <Text style={[S.cardSubtitle, { color: colors.textSecondary }]}>{t('signInSubtitle')}</Text>
 
+            {/* Server error banner */}
+            {serverError && (
+              <Animated.View
+                style={[
+                  S.errorBanner,
+                  {
+                    backgroundColor: colors.danger + '14',
+                    borderColor: colors.danger + '33',
+                    opacity: errorBannerAnim,
+                    transform: [{
+                      translateY: errorBannerAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-8, 0],
+                      }),
+                    }],
+                  },
+                ]}
+              >
+                <Ionicons name="alert-circle" size={18} color={colors.danger} />
+                <Text style={[S.errorBannerText, { color: colors.danger }]}>{serverError}</Text>
+                <TouchableOpacity onPress={() => setServerError(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close" size={16} color={colors.danger} />
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+
             {/* Email */}
             <View style={S.field}>
               <Text style={[S.label, { color: colors.textMuted }]}>{t('email').toUpperCase()}</Text>
@@ -320,8 +385,10 @@ export default function LoginScreen({ navigation }) {
                   value={email}
                   onChangeText={(v) => {
                     setEmail(v);
-                    setErrors((e) => ({ ...e, email: null }));
+                    if (errors.email) validateField('email', v);
+                    if (serverError) setServerError(null);
                   }}
+                  onBlur={() => validateField('email', email)}
                   placeholder="you@example.com"
                   placeholderTextColor={colors.textMuted}
                   keyboardType="email-address"
@@ -346,8 +413,10 @@ export default function LoginScreen({ navigation }) {
                   value={password}
                   onChangeText={(v) => {
                     setPassword(v);
-                    setErrors((e) => ({ ...e, password: null }));
+                    if (errors.password) validateField('password', v);
+                    if (serverError) setServerError(null);
                   }}
+                  onBlur={() => validateField('password', password)}
                   placeholder="••••••••"
                   placeholderTextColor={colors.textMuted}
                   secureTextEntry={!showPw}
@@ -455,10 +524,10 @@ const S = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: -0.5,
   },
-  appTagline: { 
-    fontSize: rf(13), 
-    fontWeight: "700", 
-    marginTop: verticalScale(4) 
+  appTagline: {
+    fontSize: rf(13),
+    fontWeight: "700",
+    marginTop: verticalScale(4)
   },
   cityDescText: {
     fontSize: rf(12.5),
@@ -501,6 +570,22 @@ const S = StyleSheet.create({
   input: { flex: 1, fontSize: rf(14) },
   eyeBtn: { position: "absolute", right: scale(14) },
   errText: { fontSize: rf(11), marginTop: verticalScale(5) },
+
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(10),
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    padding: scale(12),
+    marginBottom: verticalScale(16),
+  },
+  errorBannerText: {
+    flex: 1,
+    fontSize: rf(12),
+    fontWeight: '600',
+    lineHeight: rf(18),
+  },
 
   submitBtn: {
     flexDirection: "row",
