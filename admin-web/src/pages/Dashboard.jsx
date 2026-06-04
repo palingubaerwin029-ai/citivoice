@@ -28,12 +28,32 @@ export default function Dashboard() {
   const [concerns, setConcerns] = useState([]);
   const [loading,  setLoading]  = useState(true);
   
-  const todayStr = new Date().toISOString().split("T")[0];
+  const getLocalDate = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const todayStr = getLocalDate();
   const [filterMode, setFilterMode] = useState("daily");
   const [singleDate, setSingleDate] = useState(todayStr);
   const [singleMonth, setSingleMonth] = useState(todayStr.slice(0, 7));
   const [startDate, setStartDate] = useState(todayStr);
   const [endDate,   setEndDate]   = useState(todayStr);
+
+  // Auto-reset date filters when the day changes (e.g., app left open overnight)
+  useEffect(() => {
+    const checkDayChange = () => {
+      const now = getLocalDate();
+      if (now !== singleDate) {
+        setSingleDate(now);
+        setSingleMonth(now.slice(0, 7));
+        setStartDate(now);
+        setEndDate(now);
+      }
+    };
+
+    const dayCheck = setInterval(checkDayChange, 60000); // Check every 60 seconds
+    return () => clearInterval(dayCheck);
+  }, [singleDate]);
 
   useEffect(() => {
     const fetchData = () => {
