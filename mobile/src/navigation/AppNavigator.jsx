@@ -88,12 +88,12 @@ function HomeStack() {
       <Stack.Screen
         name="Feed"
         component={HomeScreen}
-        options={{ title: "CitiVoice" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="ConcernDetail"
         component={ConcernDetailScreen}
-        options={{ title: "" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="SubmitConcern"

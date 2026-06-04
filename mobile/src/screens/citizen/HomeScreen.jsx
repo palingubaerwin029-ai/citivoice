@@ -109,6 +109,9 @@ export default function HomeScreen({ navigation }) {
                 {/* ── Top bar ── */}
                 <View style={[S.topBar, { backgroundColor: colors.bgDark }]}>
                   <View>
+                    <Text style={{ fontSize: rf(24), fontWeight: '800', color: colors.primary, marginBottom: verticalScale(4), letterSpacing: -0.5 }}>
+                      CitiVoice
+                    </Text>
                     <Text style={[S.greeting, { color: colors.textPrimary }]}>
                       {greeting()}, {firstName} 👋
                     </Text>

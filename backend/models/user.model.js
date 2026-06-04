@@ -3,7 +3,7 @@ const pool = require('../db');
 const selectByEmail = async (email) => {
   try {
     const [row] = await pool.query(
-      'SELECT users.id, users.email, users.password_hash, users.role FROM users WHERE email = ?',
+      'SELECT * FROM users WHERE email = ?',
       [email],
     );
     return row[0];

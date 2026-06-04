@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   Image, Alert, StyleSheet, Linking, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useConcerns } from '../../context/ConcernContext';
@@ -24,18 +25,7 @@ export default function ConcernDetailScreen({ route, navigation }) {
   const isOwner = concern?.user_id === user?.id;
   const isUpvoted = false;
 
-  useEffect(() => {
-    navigation.setOptions({
-      title: t('concernDetail'),
-      headerRight: isOwner
-        ? () => (
-          <TouchableOpacity onPress={handleDelete} style={{ padding: 8 }}>
-            <Ionicons name="trash-outline" size={20} color={colors.statusRejected} />
-          </TouchableOpacity>
-        )
-        : null,
-    });
-  }, [concern, isOwner, colors]);
+  // Custom header replaces navigation.setOptions
 
   const handleDelete = () => {
     Alert.alert(t('deleteConcern'), t('deleteConfirm'), [
@@ -72,7 +62,23 @@ export default function ConcernDetailScreen({ route, navigation }) {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.bgDark }]} contentContainerStyle={styles.scroll}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bgDark }]} edges={['top', 'bottom']}>
+      {/* ── Custom Header ── */}
+      <View style={[styles.customHeader, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('concernDetail')}</Text>
+        {isOwner ? (
+          <TouchableOpacity onPress={handleDelete} style={styles.headerBtn}>
+            <Ionicons name="trash-outline" size={20} color={colors.statusRejected} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.headerBtn} />
+        )}
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scroll}>
 
       {/* Image */}
       {concern.image_url ? (
@@ -136,7 +142,6 @@ export default function ConcernDetailScreen({ route, navigation }) {
                     latitude: Number(concern.location_lat),
                     longitude: Number(concern.location_lng),
                   }}
-                  tracksViewChanges={false}
                 >
                   <View style={styles.miniMapPin}>
                     <Ionicons name="location" size={24} color={colors.primary} />
@@ -206,7 +211,8 @@ export default function ConcernDetailScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
     </ScrollView>
-  );
+  </SafeAreaView>
+);
 }
 
 function MetaItem({ icon, label, value, colors }) {
@@ -240,6 +246,25 @@ function buildTimeline(c, t) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { paddingBottom: verticalScale(40) },
+
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(12),
+    borderBottomWidth: 1,
+  },
+  headerBtn: {
+    width: scale(40),
+    height: scale(40),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: rf(16),
+    fontWeight: '700',
+  },
 
   heroImage: { width: '100%', height: verticalScale(220) },
   heroPlaceholder: { height: verticalScale(120), alignItems: 'center', justifyContent: 'center' },

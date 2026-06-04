@@ -30,6 +30,17 @@ const safeCoord = (val) => {
   return isNaN(n) ? null : n;
 };
 
+// Adds a deterministic offset (~150m) based on ID to prevent markers from stacking perfectly
+const getJitteredCoord = (lat, lng, id) => {
+  if (lat === null || lng === null || !id) return { lat, lng };
+  const angle = id * 2.39996; // 137.5 degrees (Golden Angle) in radians
+  const radius = 0.0015; // Increased to 150m so it's visible even when zoomed out
+  return {
+    lat: lat + (Math.sin(angle) * radius),
+    lng: lng + (Math.cos(angle) * radius)
+  };
+};
+
 const STATUS_FILTER_KEYS = [
   { key: 'All', tKey: 'all' },
   { key: 'Pending', tKey: 'pending' },
@@ -99,12 +110,12 @@ export default function MapScreen({ navigation }) {
 
   const handleMarkerPress = useCallback((concern) => {
     setSelectedConcern(concern);
-    const lat = safeCoord(concern.location_lat);
-    const lng = safeCoord(concern.location_lng);
-    if (lat !== null && lng !== null) {
+    const rawLat = safeCoord(concern.location_lat);
+    const rawLng = safeCoord(concern.location_lng);
+    if (rawLat !== null && rawLng !== null) {
       mapRef.current?.animateToRegion({
-        latitude: lat,
-        longitude: lng,
+        latitude: rawLat,
+        longitude: rawLng,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       }, 400);
@@ -136,15 +147,15 @@ export default function MapScreen({ navigation }) {
         onPress={handleDismiss}
       >
         {mapReady && pinnable.map(c => {
-          const lat = safeCoord(c.location_lat);
-          const lng = safeCoord(c.location_lng);
-          if (lat === null || lng === null) return null;
+          const rawLat = safeCoord(c.location_lat);
+          const rawLng = safeCoord(c.location_lng);
+          if (rawLat === null || rawLng === null) return null;
+          const { lat, lng } = getJitteredCoord(rawLat, rawLng, c.id);
           return (
             <Marker
               key={c.id}
               coordinate={{ latitude: lat, longitude: lng }}
               onPress={() => handleMarkerPress(c)}
-              tracksViewChanges={false}
             >
               <View style={[styles.markerPin, { backgroundColor: PIN_COLORS[c.status] || '#8899BB' }]}>
                 <Ionicons
@@ -156,6 +167,22 @@ export default function MapScreen({ navigation }) {
             </Marker>
           );
         })}
+
+        {/* The Exact True Location of the Selected Concern */}
+        {selectedConcern && safeCoord(selectedConcern.location_lat) !== null && (
+          <Marker
+            coordinate={{
+              latitude: safeCoord(selectedConcern.location_lat),
+              longitude: safeCoord(selectedConcern.location_lng),
+            }}
+            zIndex={999}
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
+            <View style={styles.exactLocationPulse}>
+              <View style={styles.exactLocationDot} />
+            </View>
+          </Marker>
+        )}
       </MapView>
 
       {/* ── Status Bar Background Gradient ── */}
@@ -174,8 +201,8 @@ export default function MapScreen({ navigation }) {
               const active = statusFilter === f.key;
               const color = getStatusConfig(colors)[f.key]?.color || colors.primary;
               const count = f.key === 'All'
-                ? concerns.filter(c => safeCoord(c.location_lat) !== null).length
-                : concerns.filter(c => c.status === f.key && safeCoord(c.location_lat) !== null).length;
+                ? concerns.length
+                : concerns.filter(c => c.status === f.key).length;
               return (
                 <TouchableOpacity
                   key={f.key}
@@ -430,6 +457,20 @@ const styles = StyleSheet.create({
     width: scale(38), height: scale(38), borderRadius: moderateScale(10),
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1,
+  },
+
+  // ── Exact Location Pin ──
+  exactLocationPulse: {
+    width: scale(36), height: scale(36), borderRadius: scale(18),
+    backgroundColor: 'rgba(239, 68, 68, 0.25)', // Red pulse
+    alignItems: 'center', justifyContent: 'center',
+  },
+  exactLocationDot: {
+    width: scale(12), height: scale(12), borderRadius: scale(6),
+    backgroundColor: '#EF4444',
+    borderWidth: 2, borderColor: '#fff',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4, shadowRadius: 3, elevation: 5,
   },
 
   // ── Loading ──
