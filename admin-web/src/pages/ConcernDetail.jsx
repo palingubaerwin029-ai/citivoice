@@ -12,12 +12,17 @@ const STATUSES = [
   { key: "Rejected",    icon: "❌", label: "Rejected" },
 ];
 
+const CATEGORIES = ["Road & Infrastructure", "Electricity", "Water & Drainage", "Waste & Sanitation", "Public Safety", "Other"];
+const PRIORITIES = ["High", "Medium", "Low"];
+
 export default function ConcernDetail() {
   const { id }    = useParams();
   const navigate  = useNavigate();
   const [concern,   setConcern]   = useState(null);
   const [loading,   setLoading]   = useState(true);
   const [selStatus, setSelStatus] = useState("");
+  const [selCategory, setSelCategory] = useState("");
+  const [selPriority, setSelPriority] = useState("");
   const [note,      setNote]      = useState("");
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
@@ -27,6 +32,8 @@ export default function ConcernDetail() {
       .then((data) => {
         setConcern(data);
         setSelStatus(data.status || "Pending");
+        setSelCategory(data.category || "Other");
+        setSelPriority(data.priority || "Medium");
         setNote(data.admin_note || "");
       })
       .catch(console.error)
@@ -38,6 +45,8 @@ export default function ConcernDetail() {
     try {
       await api.put(`/concerns/${id}`, {
         status:     selStatus,
+        category:   selCategory,
+        priority:   selPriority,
         admin_note: note.trim() || null,
       });
       setSaved(true);
@@ -54,7 +63,7 @@ export default function ConcernDetail() {
   if (loading)  return <div className={s.loading}>Loading…</div>;
   if (!concern) return <div className={s.loading}>Concern not found.</div>;
 
-  const hasChanges = selStatus !== concern.status || note !== (concern.admin_note || "");
+  const hasChanges = selStatus !== concern.status || selCategory !== concern.category || selPriority !== concern.priority || note !== (concern.admin_note || "");
 
   const buildTimeline = (c) => {
     const steps = [{ event: "Concern submitted", date: fmtDateShort(c.created_at) }];
@@ -168,6 +177,25 @@ export default function ConcernDetail() {
 
         {/* ── Right: Admin panel ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Classify */}
+          <div className={s.card}>
+            <div className={s.cardHeader}><span className={s.cardTitle}>Classification</span></div>
+            <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 6 }}>Category</div>
+                <select className={s.input} value={selCategory} onChange={e => setSelCategory(e.target.value)} style={{ width: "100%", padding: "8px 12px", background: "var(--surface-3)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", color: "var(--text-1)" }}>
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 6 }}>Priority</div>
+                <select className={s.input} value={selPriority} onChange={e => setSelPriority(e.target.value)} style={{ width: "100%", padding: "8px 12px", background: "var(--surface-3)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", color: "var(--text-1)" }}>
+                  {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Update status */}
           <div className={s.card}>
             <div className={s.cardHeader}><span className={s.cardTitle}>Update Status</span></div>

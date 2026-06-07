@@ -40,6 +40,7 @@ export default function SubmitConcernScreen({ navigation }) {
   });
   const [imageUri, setImageUri] = useState(null);
   const [location, setLocation] = useState(null);
+  const [manualAddress, setManualAddress] = useState('');
   
   const { loadingLocation, getCurrentLocation, reverseGeocode } = useLocation();
   const { pickImage: launchImagePicker, takePhoto: launchCamera } = useImagePicker();
@@ -162,7 +163,9 @@ export default function SubmitConcernScreen({ navigation }) {
       Alert.alert(t('error'), 'Please attach a photo of the concern.');
       return;
     }
-    if (!location) {
+    const finalLocation = location || (manualAddress.trim() ? { address: manualAddress.trim(), latitude: null, longitude: null } : null);
+
+    if (!finalLocation) {
       Alert.alert(t('error'), 'Please provide the exact location of the concern.');
       return;
     }
@@ -175,7 +178,7 @@ export default function SubmitConcernScreen({ navigation }) {
         category: form.category,
         priority: form.priority,
         imageUri,
-        location,
+        location: finalLocation,
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setSubmitted(true);
@@ -371,38 +374,8 @@ export default function SubmitConcernScreen({ navigation }) {
                           : "Use My Current GPS Location"}
                     </Text>
                   </TouchableOpacity>
-                  <Text style={{ textAlign: 'center', marginVertical: verticalScale(8), color: colors.textMuted }}>OR</Text>
                 </>
               )}
-
-              {/* Search Bar */}
-              <View style={{flexDirection: 'row', gap: scale(8), marginBottom: showMap ? verticalScale(12) : 0}}>
-                <InputField 
-                   placeholder="Type a location to search..."
-                   value={searchQuery}
-                   onChangeText={setSearchQuery}
-                   style={{ flex: 1, marginBottom: 0 }}
-                   onSubmitEditing={handleSearchLocation}
-                   returnKeyType="search"
-                />
-                <TouchableOpacity 
-                  onPress={handleSearchLocation}
-                  disabled={geocoding}
-                  style={{
-                    width: verticalScale(50), height: verticalScale(50),
-                    backgroundColor: colors.bgCardAlt,
-                    borderWidth: 1, borderColor: colors.border,
-                    borderRadius: scale(12),
-                    alignItems: 'center', justifyContent: 'center'
-                  }}
-                >
-                  {geocoding ? (
-                    <ActivityIndicator size="small" color={colors.accent} />
-                  ) : (
-                    <Ionicons name="search" size={20} color={colors.textPrimary} />
-                  )}
-                </TouchableOpacity>
-              </View>
 
               {showMap && (
                 <View style={styles.mapSection}>
@@ -481,6 +454,28 @@ export default function SubmitConcernScreen({ navigation }) {
                   </View>
                 </View>
               )}
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: verticalScale(16) }}>
+                <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+                <Text style={{ marginHorizontal: scale(10), color: colors.textMuted, fontSize: rf(12), fontWeight: '600' }}>OR WRITE IT</Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+              </View>
+
+              <InputField 
+                label="Manual Address"
+                placeholder="e.g. Near Barangay Hall..."
+                value={manualAddress}
+                onChangeText={(text) => {
+                  setManualAddress(text);
+                  if (text && location) {
+                    setLocation(null);
+                    setShowMap(false);
+                  }
+                }}
+                multiline
+                numberOfLines={2}
+                style={{ minHeight: verticalScale(60) }}
+              />
             </View>
 
             {/* Review Summary */}

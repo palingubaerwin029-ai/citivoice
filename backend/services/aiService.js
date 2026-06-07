@@ -9,6 +9,7 @@ categoryClassifier.addDocument('pothole on the road is huge', 'Road & Infrastruc
 categoryClassifier.addDocument('damaged sidewalk pavement', 'Road & Infrastructure');
 categoryClassifier.addDocument('butas ang kalsada baha', 'Road & Infrastructure'); // Tagalog
 categoryClassifier.addDocument('guba ang karsada buslot', 'Road & Infrastructure'); // Hiligaynon
+categoryClassifier.addDocument('guba nga dalan damo buslot', 'Road & Infrastructure'); // Hiligaynon
 categoryClassifier.addDocument('street sign traffic light parking meter crater trench stone wall pole', 'Road & Infrastructure'); // Visual
 
 // Electricity (English, Tagalog, Hiligaynon, Visual Tags)
@@ -22,6 +23,7 @@ categoryClassifier.addDocument('water pipe burst flooding', 'Water & Drainage');
 categoryClassifier.addDocument('clogged drainage', 'Water & Drainage');
 categoryClassifier.addDocument('baradong kanal', 'Water & Drainage'); // Tagalog
 categoryClassifier.addDocument('baha butas kalsada', 'Water & Drainage'); // Tagalog
+categoryClassifier.addDocument('gabaha ang dalan budlay magtabok dalom ang tubig', 'Water & Drainage'); // Hiligaynon
 categoryClassifier.addDocument('puddle lake river water bucket manhole cover drain', 'Water & Drainage'); // Visual
 
 // Waste & Sanitation (English, Tagalog, Hiligaynon, Visual Tags)
@@ -44,13 +46,15 @@ categoryClassifier.addDocument('may kawatan naga away', 'Public Safety'); // Hil
 categoryClassifier.addDocument('buang nga ido nagapangagat', 'Public Safety'); // Hiligaynon
 categoryClassifier.addDocument('police cruiser fire engine ambulance patrol car weapon dog', 'Public Safety'); // Visual
 
-// Other (English, Tagalog, Hiligaynon)
+// Other (English, Tagalog, Hiligaynon, Visual Noise)
 categoryClassifier.addDocument('loud music party next door', 'Other');
 categoryClassifier.addDocument('dogs barking all night', 'Other');
 categoryClassifier.addDocument('maingay na videoke kapitbahay', 'Other'); // Tagalog
 categoryClassifier.addDocument('tahol ng aso magdamag', 'Other'); // Tagalog
 categoryClassifier.addDocument('gahod nga videoke kag pamalay', 'Other'); // Hiligaynon
 categoryClassifier.addDocument('paghot sang ido bilog nga gab-i', 'Other'); // Hiligaynon
+// IMPORTANT: Visual noise (when users take random photos of computers, screens, faces, rooms)
+categoryClassifier.addDocument('laptop computer monitor screen keyboard television cellphone phone table chair person face room wall paper pen', 'Other');
 
 categoryClassifier.train();
 
