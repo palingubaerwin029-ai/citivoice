@@ -70,6 +70,29 @@ export default function NotificationsScreen({ navigation }) {
     return `${Math.floor(diff / 86400)}d`;
   };
 
+  const getNotificationIcon = (title, isRead) => {
+    const tLower = title?.toLowerCase() || '';
+    let icon = "notifications";
+    let color = isRead ? colors.textMuted : colors.primary;
+    let bg = isRead ? colors.border : colors.primary + '22';
+
+    if (tLower.includes('resolved') || tLower.includes('completed')) {
+      icon = "checkmark-circle";
+      if (!isRead) { color = colors.statusResolved; bg = colors.statusResolved + '22'; }
+    } else if (tLower.includes('progress') || tLower.includes('assigned') || tLower.includes('update')) {
+      icon = "construct";
+      if (!isRead) { color = colors.statusInProgress; bg = colors.statusInProgress + '22'; }
+    } else if (tLower.includes('rejected') || tLower.includes('declined')) {
+      icon = "close-circle";
+      if (!isRead) { color = colors.statusRejected; bg = colors.statusRejected + '22'; }
+    } else if (tLower.includes('comment') || tLower.includes('message')) {
+      icon = "chatbubble-ellipses";
+      if (!isRead) { color = colors.info; bg = colors.info + '22'; }
+    }
+
+    return { icon, color, bg };
+  };
+
   return (
     <SafeAreaView style={[S.container, { backgroundColor: colors.bgDark }]} edges={['top']}>
       {/* Header */}
@@ -101,25 +124,28 @@ export default function NotificationsScreen({ navigation }) {
             />
           )
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity 
-            style={[S.card, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, !item.is_read && { backgroundColor: colors.bgCard, borderColor: colors.primary + '33' }]}
-            onPress={() => !item.is_read && handleMarkAsRead(item.id)}
-            activeOpacity={0.8}
-          >
-            <View style={[S.iconBox, { backgroundColor: colors.border }]}>
-              <Ionicons name="notifications" size={20} color={!item.is_read ? colors.primary : colors.textMuted} />
-            </View>
-            <View style={S.content}>
-              <View style={S.titleRow}>
-                <Text style={[S.title, { color: colors.textSecondary }, !item.is_read && { color: colors.textPrimary, fontWeight: '800' }]}>{item.title}</Text>
-                <Text style={[S.time, { color: colors.textMuted }]}>{timeAgo(item.created_at)}</Text>
+        renderItem={({ item }) => {
+          const { icon, color, bg } = getNotificationIcon(item.title, item.is_read);
+          return (
+            <TouchableOpacity 
+              style={[S.card, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, !item.is_read && { backgroundColor: colors.bgCard, borderColor: color + '44' }]}
+              onPress={() => !item.is_read && handleMarkAsRead(item.id)}
+              activeOpacity={0.8}
+            >
+              <View style={[S.iconBox, { backgroundColor: bg }]}>
+                <Ionicons name={icon} size={20} color={color} />
               </View>
-              <Text style={[S.message, { color: colors.textPrimary }]} numberOfLines={3}>{item.message}</Text>
-            </View>
-            {!item.is_read && <View style={[S.unreadDot, { backgroundColor: colors.primary }]} />}
-          </TouchableOpacity>
-        )}
+              <View style={S.content}>
+                <View style={S.titleRow}>
+                  <Text style={[S.title, { color: colors.textSecondary }, !item.is_read && { color: colors.textPrimary, fontWeight: '800' }]} numberOfLines={1}>{item.title}</Text>
+                  <Text style={[S.time, { color: colors.textMuted }]}>{timeAgo(item.created_at)}</Text>
+                </View>
+                <Text style={[S.message, { color: colors.textPrimary }, item.is_read && { color: colors.textSecondary }]} numberOfLines={3}>{item.message}</Text>
+              </View>
+              {!item.is_read && <View style={[S.unreadDot, { backgroundColor: color }]} />}
+            </TouchableOpacity>
+          );
+        }}
       />
     </SafeAreaView>
   );

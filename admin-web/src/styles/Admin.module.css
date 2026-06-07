@@ -493,6 +493,154 @@
   grid-template-columns: 1fr 340px;
 }
 
+/* ── UI Improvements ── */
+.toastContainer {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: var(--r-md);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.lightboxOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  padding: 40px;
+}
+
+.lightboxImage {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--r-md);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  object-fit: contain;
+}
+
+.lightboxClose {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.lightboxClose:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+.quickChip {
+  display: inline-block;
+  padding: 5px 12px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  font-size: 11px;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-right: 6px;
+  margin-bottom: 10px;
+}
+
+.quickChip:hover {
+  background: var(--surface-2);
+  border-color: var(--text-3);
+  color: var(--text-1);
+}
+
+.mainLayout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+.mainLayoutWithSide {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr 380px;
+}
+
+.sidePanelWrapper {
+  align-self: start;
+}
+
+.sidePanelOverlay {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .mainLayoutWithSide {
+    grid-template-columns: 1fr;
+  }
+  
+  .sidePanelWrapper {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 380px;
+    max-width: 100%;
+    z-index: 1000;
+    background: var(--surface);
+    box-shadow: -4px 0 32px rgba(0,0,0,0.3);
+    overflow-y: auto;
+    border-left: 1px solid var(--border);
+    animation: slideInRightDrawer 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .sidePanelOverlay {
+    display: block;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+  }
+}
+
+@keyframes slideInRightDrawer {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
 /* ── Print Styles ── */
 .printOnly { display: none; }
 

@@ -26,13 +26,13 @@ router.post('/', auth, upload.single('image'), validateConcern, createConcern);
 // ─── Update concern (admin only: status, admin_note) ──────────────────────────
 router.put('/:id', auth, requireRole('admin'), validateIdParam, editConcern);
 
-// ─── Delete concern (admin only) ──────────────────────────────────────────────
-router.delete('/:id', auth, requireRole('admin'), validateIdParam, removeConcern);
+// ─── Delete concern (admin or owner) ──────────────────────────────────────────
+router.delete('/:id', auth, validateIdParam, removeConcern);
 
 // ─── Toggle upvote ────────────────────────────────────────────────────────────
 router.post('/:id/upvote', auth, validateIdParam, toggleUpvote);
 
 // ─── Upload ID image (mobile verification) ────────────────────────────────────
-router.post('/upload/id-image', auth, upload.single('image'), uploadIdImage);
+router.post('/upload/id-image', upload.single('image'), uploadIdImage);
 
 module.exports = router;

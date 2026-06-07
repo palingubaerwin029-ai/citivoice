@@ -28,7 +28,7 @@ const login = async (req, res) => {
 };
 
 const register = async (req, res) => {
-  const { name, email, password, phone, barangay } = req.body;
+  const { name, email, password, phone, barangay, idType, idNumber, idImageUrl } = req.body;
   try {
     const existingEmail = await selectByEmail(email);
     if (existingEmail) return res.status(400).json({ error: 'Email already registered' });
@@ -49,7 +49,7 @@ const register = async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 12);
-    const insertId = await insertUser(name, email, hash, phone, barangay);
+    const insertId = await insertUser(name, email, hash, phone, barangay, idType, idNumber, idImageUrl);
     const newUser = await selectById(insertId);
     const token = sign({ id: newUser.id, role: newUser.role });
     res.status(201).json({ token, user: safe(newUser) });

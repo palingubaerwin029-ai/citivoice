@@ -94,10 +94,10 @@ export function AuthProvider({ children }) {
   };
 
   // ── Register ───────────────────────────────────────────────────────────
-  const register = async ({ name, email, password, phone, barangay }) => {
+  const register = async ({ name, email, password, phone, barangay, idType, idNumber, idImageUrl }) => {
     const { token, user: userData } = await apiRequest("/auth/register", {
       method: "POST",
-      body: JSON.stringify({ name, email, password, phone, barangay }),
+      body: JSON.stringify({ name, email, password, phone, barangay, idType, idNumber, idImageUrl }),
     });
     await AsyncStorage.setItem("cv_token", token);
     await AsyncStorage.setItem("cv_user", JSON.stringify(userData));

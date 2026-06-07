@@ -98,7 +98,7 @@ function HomeStack() {
       <Stack.Screen
         name="SubmitConcern"
         component={SubmitConcernScreen}
-        options={{ title: "Report a Concern" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Notifications"

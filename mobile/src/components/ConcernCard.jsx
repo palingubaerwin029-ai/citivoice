@@ -10,6 +10,7 @@ import {
 import { useTheme } from "../context/ThemeContext";
 import { scale, verticalScale, rf } from "../utils/responsive";
 import { resolveImageUrl } from "../context/AuthContext";
+import * as Haptics from "expo-haptics";
 
 export default function ConcernCard({ concern, onPress, onUpvote, isUpvoted }) {
   const { colors } = useTheme();
@@ -105,7 +106,10 @@ export default function ConcernCard({ concern, onPress, onUpvote, isUpvoted }) {
           {/* Upvote */}
           <TouchableOpacity
             style={[S.upvoteBtn, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, isUpvoted && { backgroundColor: colors.primary + "22", borderColor: colors.primary }]}
-            onPress={onUpvote}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onUpvote();
+            }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons

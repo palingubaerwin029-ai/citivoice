@@ -77,7 +77,6 @@ app.use('/api/users',         require('./routes/users'));
 app.use('/api/concerns',      require('./routes/concerns'));
 app.use('/api/barangays',     require('./routes/barangays'));
 app.use('/api/notifications', require('./routes/notifications'));
-app.use('/api/templates',     require('./routes/templates'));
 
 // ─── Health check ────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));

@@ -20,6 +20,20 @@ import { RADIUS, SHADOWS } from "../../utils/theme";
 import { useTheme } from "../../context/ThemeContext";
 import { mobileApi } from "../../context/AuthContext";
 import { scale, verticalScale, rf } from "../../utils/responsive";
+import { useImagePicker } from "../../hooks/useImagePicker";
+import { ConcernService } from "../../services/concernService";
+
+const ID_TYPES = [
+  "PhilSys (National ID)",
+  "Driver's License",
+  "Philippine Passport",
+  "SSS ID",
+  "GSIS ID",
+  "Postal ID",
+  "Voter's ID",
+  "PRC ID",
+  "Barangay ID",
+];
 
 export default function RegisterScreen({ navigation }) {
   const { colors } = useTheme();
@@ -32,9 +46,13 @@ export default function RegisterScreen({ navigation }) {
     password: "",
     phone: "",
     barangay: "",
+    idType: "",
+    idNumber: "",
+    idImage: null,
   });
   const [showPw, setShowPw] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [showIdPicker, setShowIdPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [pwFocused, setPwFocused] = useState(false);
@@ -56,6 +74,18 @@ export default function RegisterScreen({ navigation }) {
   }, []);
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
+
+  const { pickImage: launchImagePicker, takePhoto: launchCamera } = useImagePicker();
+
+  const pickPhoto = async () => {
+    const uri = await launchImagePicker();
+    if (uri) set("idImage", uri);
+  };
+
+  const takePhoto = async () => {
+    const uri = await launchCamera();
+    if (uri) set("idImage", uri);
+  };
 
   // Password strength analysis
   const passwordAnalysis = useMemo(() => {
@@ -98,6 +128,9 @@ export default function RegisterScreen({ navigation }) {
       e.password = "Must include uppercase, lowercase, numbers, and symbols.";
     }
     if (!form.barangay) e.barangay = t('selectBarangay');
+    if (!form.idType) e.idType = "Please select an ID type";
+    if (!form.idNumber.trim()) e.idNumber = "Enter your ID number";
+    if (!form.idImage) e.idImage = "Please upload a photo of your ID";
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -106,7 +139,8 @@ export default function RegisterScreen({ navigation }) {
     if (!validate()) return;
     setLoading(true);
     try {
-      await register(form);
+      const idImageUrl = await ConcernService.uploadImage(form.idImage);
+      await register({ ...form, idImageUrl });
       navigation.navigate("VerifyIdentity");
     } catch (err) {
       const map = {
@@ -400,6 +434,103 @@ export default function RegisterScreen({ navigation }) {
               )}
             </View>
 
+            {/* ID Type picker */}
+            <View style={{ marginBottom: 14 }}>
+              <Text style={[S.fieldLabel, { color: colors.textMuted }]}>ID TYPE *</Text>
+              <TouchableOpacity
+                style={[S.picker, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, errors.idType && { borderColor: colors.danger }]}
+                onPress={() => setShowIdPicker((p) => !p)}
+              >
+                <Ionicons name="card-outline" size={16} color={colors.textMuted} />
+                <Text style={[S.pickerText, { color: colors.textPrimary }, !form.idType && { color: colors.textMuted }]}>
+                  {form.idType || "Select government ID type…"}
+                </Text>
+                <Ionicons name={showIdPicker ? "chevron-up" : "chevron-down"} size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+              {errors.idType && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: scale(5), marginTop: verticalScale(5) }}>
+                  <Ionicons name="alert-circle" size={12} color={colors.danger} />
+                  <Text style={{ color: colors.danger, fontSize: rf(11) }}>{errors.idType}</Text>
+                </View>
+              )}
+              {showIdPicker && (
+                <View style={[S.dropdown, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}>
+                  <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                    {ID_TYPES.map((tItem) => (
+                      <TouchableOpacity
+                        key={tItem}
+                        style={[S.dropdownItem, { borderBottomColor: colors.border }, form.idType === tItem && { backgroundColor: colors.primary + '18' }]}
+                        onPress={() => { set("idType", tItem); setShowIdPicker(false); }}
+                      >
+                        <Text style={[S.dropdownText, { color: colors.textSecondary }, form.idType === tItem && { color: colors.primaryLight, fontWeight: "700" }]}>
+                          {tItem}
+                        </Text>
+                        {form.idType === tItem && <Ionicons name="checkmark-circle" size={16} color={colors.primaryLight} />}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+
+            {/* ID Number */}
+            <InputField
+              label="ID NUMBER *"
+              value={form.idNumber}
+              onChangeText={(v) => {
+                const cleaned = v.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+                let formatted = "";
+                for (let i = 0; i < cleaned.length; i++) {
+                  if (i > 0 && i % 4 === 0) formatted += "-";
+                  formatted += cleaned[i];
+                }
+                set("idNumber", formatted);
+              }}
+              placeholder="XXXX-XXXX-XXXX"
+              maxLength={25}
+              leftIcon="key-outline"
+              error={errors.idNumber}
+            />
+
+            {/* ID Photo */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={[S.fieldLabel, { color: colors.textMuted }]}>ID PHOTO *</Text>
+              {form.idImage ? (
+                <View style={{ width: '100%', marginBottom: 16 }}>
+                  <Image source={{ uri: form.idImage }} style={{ width: '100%', height: 200, borderRadius: 16 }} resizeMode="cover" />
+                  <TouchableOpacity 
+                    style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 4 }} 
+                    onPress={() => set("idImage", null)}
+                  >
+                    <Ionicons name="refresh-outline" size={16} color="#fff" />
+                    <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>Retake</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={[S.photoBox, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, errors.idImage && { borderColor: colors.danger }]}>
+                  <Ionicons name="id-card-outline" size={rf(40)} color={colors.textSecondary} style={{ marginBottom: verticalScale(10), opacity: 0.6 }} />
+                  <Text style={[S.photoBoxTitle, { color: colors.textSecondary }]}>Upload your ID photo</Text>
+                  <Text style={[S.photoBoxSub, { color: colors.textMuted }]}>Make sure the photo is clear and well-lit</Text>
+                  <View style={S.photoActions}>
+                    <TouchableOpacity style={[S.photoBtn, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '44' }]} onPress={pickPhoto}>
+                      <Ionicons name="images-outline" size={18} color={colors.primaryLight} />
+                      <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>Gallery</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[S.photoBtn, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '44' }]} onPress={takePhoto}>
+                      <Ionicons name="camera-outline" size={18} color={colors.primaryLight} />
+                      <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>Camera</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              {errors.idImage && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: scale(5), marginTop: verticalScale(5) }}>
+                  <Ionicons name="alert-circle" size={12} color={colors.danger} />
+                  <Text style={{ color: colors.danger, fontSize: rf(11) }}>{errors.idImage}</Text>
+                </View>
+              )}
+            </View>
+
             <PrimaryButton
               title={t('register')}
               onPress={handleRegister}
@@ -588,5 +719,46 @@ const S = StyleSheet.create({
   },
   reqText: {
     fontSize: rf(11),
+  },
+
+  photoBox: {
+    borderRadius: RADIUS.xl,
+    borderWidth: 2,
+    borderStyle: "solid",
+    backgroundColor: "rgba(0,0,0,0.05)",
+    padding: scale(28),
+    alignItems: "center",
+    marginBottom: verticalScale(4),
+  },
+  photoBoxTitle: {
+    fontSize: rf(14),
+    fontWeight: "600",
+    marginBottom: verticalScale(4),
+  },
+  photoBoxSub: {
+    fontSize: rf(12),
+    marginBottom: verticalScale(16),
+    textAlign: "center",
+  },
+  photoActions: { flexDirection: "row", gap: scale(12) },
+  photoBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: scale(7),
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(10),
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+  },
+  photoBtnText: { fontSize: rf(13), fontWeight: "600" },
+
+  retakeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: scale(6),
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(6),
+    borderRadius: RADIUS.md,
+    backgroundColor: "rgba(255,255,255,0.15)",
   },
 });

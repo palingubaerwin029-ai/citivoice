@@ -33,12 +33,12 @@ const selectById = async (id) => {
   }
 };
 
-const insertUser = async (name, email, hash, phone, barangay) => {
+const insertUser = async (name, email, hash, phone, barangay, idType, idNumber, idImageUrl) => {
   try {
     const [result] = await pool.query(
-      `INSERT INTO users (name, email, password_hash, phone, barangay, role, verification_status, is_verified, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'citizen', 'unverified', 0, NOW(), NOW())`,
-      [name, email, hash, phone || null, barangay || null],
+      `INSERT INTO users (name, email, password_hash, phone, barangay, role, verification_status, is_verified, id_type, id_number, id_image_url, submitted_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'citizen', 'pending', 0, ?, ?, ?, NOW(), NOW(), NOW())`,
+      [name, email, hash, phone || null, barangay || null, idType, idNumber, idImageUrl],
     );
     return result.insertId;
   } catch (err) {
@@ -90,6 +90,10 @@ const updateUserFcmToken = async (id, fcmToken) => {
   await pool.query('UPDATE users SET fcm_token=?, updated_at=NOW() WHERE id=?', [fcmToken, id]);
 };
 
+const deleteUser = async (id) => {
+  await pool.query('DELETE FROM users WHERE id = ?', [id]);
+};
+
 module.exports = {
   selectByEmail,
   selectByPhone,
@@ -100,5 +104,6 @@ module.exports = {
   updateUserDetails,
   updateUserVerification,
   selectUserContactInfo,
-  updateUserFcmToken
+  updateUserFcmToken,
+  deleteUser
 };

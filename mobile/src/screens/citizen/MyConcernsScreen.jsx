@@ -54,41 +54,37 @@ export default function MyConcernsScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={() => (
           <>
-            {/* Stats */}
-            <View style={styles.statsRow}>
-              <StatCard icon="📋" value={stats.total} label={t('total')} color={colors.primary} />
-              <StatCard icon="⏳" value={stats.pending} label={t('pending')} color={colors.statusPending} />
-              <StatCard icon="🔄" value={stats.inProgress} label={t('inProgress')} color={colors.primary} />
-              <StatCard icon="✅" value={stats.resolved} label={t('done')} color={colors.accent} />
-            </View>
-
-            {/* Filter Tabs */}
+            {/* ── Stats strip ── */}
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false} 
-              style={styles.filterScroll}
-              contentContainerStyle={styles.filterContent}
+              contentContainerStyle={styles.statsContent}
+              style={styles.statsScroll}
             >
-              {FILTER_KEYS.map(f => {
-                const active = activeFilter === f.key;
-                const color = STATUS_COLORS[f.key] || colors.primary;
-                const count = f.key === 'All' ? myConcerns.length : myConcerns.filter(c => c.status === f.key).length;
+              {[
+                { label: 'All', tKey: 'all', value: stats.total, icon: "apps-outline", color: colors.primaryLight },
+                { label: 'Pending', tKey: 'pending', value: stats.pending, icon: "time-outline", color: colors.statusPending },
+                { label: 'In Progress', tKey: 'active', value: stats.inProgress, icon: "refresh-outline", color: colors.statusInProgress },
+                { label: 'Resolved', tKey: 'resolved', value: stats.resolved, icon: "checkmark-circle-outline", color: colors.statusResolved }
+              ].map((s, i) => {
+                const isActive = activeFilter === s.label;
                 return (
-                  <TouchableOpacity
-                    key={f.key}
-                    style={[styles.filterTab, { backgroundColor: colors.bgCard, borderColor: colors.border }, active && { backgroundColor: color + '22', borderColor: color }]}
-                    onPress={() => setActiveFilter(f.key)}
+                  <TouchableOpacity 
+                    key={i} 
+                    style={[
+                      styles.statItem, 
+                      { backgroundColor: colors.bgCard, borderColor: colors.border },
+                      isActive && { backgroundColor: s.color + '22', borderColor: s.color }
+                    ]}
+                    onPress={() => setActiveFilter(s.label)}
+                    activeOpacity={0.8}
                   >
-                    <Ionicons
-                      name={f.icon}
-                      size={14}
-                      color={active ? color : colors.textMuted}
-                    />
-                    <Text style={[styles.filterTabText, { color: colors.textMuted }, active && { color }]}>
-                      {t(f.tKey)}
-                    </Text>
-                    <View style={[styles.filterBadge, { backgroundColor: colors.bgCardAlt }, active && { backgroundColor: color }]}>
-                      <Text style={[styles.filterBadgeText, { color: colors.textMuted }, active && { color: '#fff' }]}>{count}</Text>
+                    <View style={[styles.statIconBox, { backgroundColor: s.color + '22' }, isActive && { backgroundColor: s.color }]}>
+                      <Ionicons name={s.icon} size={16} color={isActive ? '#fff' : s.color} />
+                    </View>
+                    <View>
+                      <Text style={[styles.statValue, { color: colors.textPrimary }, isActive && { color: s.color }]}>{s.value}</Text>
+                      <Text style={[styles.statLabel, { color: colors.textSecondary }, isActive && { color: s.color }]}>{t(s.tKey)}</Text>
                     </View>
                   </TouchableOpacity>
                 );
@@ -123,18 +119,16 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { padding: scale(16), paddingBottom: verticalScale(32) },
 
-  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(8), marginBottom: verticalScale(16) },
-
-  filterScroll: { marginBottom: verticalScale(12) },
-  filterContent: { gap: scale(8) },
-  filterTab: {
-    flexDirection: 'row', alignItems: 'center', gap: scale(6),
-    paddingHorizontal: scale(12), paddingVertical: verticalScale(7), borderRadius: RADIUS.full,
-    borderWidth: 1,
+  statsScroll: { marginBottom: verticalScale(16) },
+  statsContent: { gap: scale(10), paddingRight: scale(16) },
+  statItem: {
+    flexDirection: "row", alignItems: "center", gap: scale(12),
+    paddingHorizontal: scale(14), paddingVertical: verticalScale(10),
+    borderRadius: RADIUS.lg, borderWidth: 1, minWidth: scale(120),
   },
-  filterTabText: { fontSize: rf(12), fontWeight: '600' },
-  filterBadge: { borderRadius: moderateScale(10), paddingHorizontal: scale(6), paddingVertical: verticalScale(1) },
-  filterBadgeText: { fontSize: rf(10), fontWeight: '800' },
+  statIconBox: { width: scale(32), height: scale(32), borderRadius: scale(16), alignItems: "center", justifyContent: "center" },
+  statValue: { fontSize: rf(16), fontWeight: "800" },
+  statLabel: { fontSize: rf(11), marginTop: -verticalScale(2) },
 
   resultLabel: { fontSize: rf(12), marginBottom: verticalScale(8) },
 });

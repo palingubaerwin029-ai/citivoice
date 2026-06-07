@@ -1,4 +1,5 @@
 import React from "react";
+import Skeleton from "./Skeleton";
 import {
   View,
   Text,
@@ -235,6 +236,8 @@ export function EmptyState({ icon, title, subtitle, action, actionLabel }) {
     </View>
   );
 }
+
+export { Skeleton };
 
 export function SectionHeader({ title, right }) {
   const { colors } = useTheme();

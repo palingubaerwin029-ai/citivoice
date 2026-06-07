@@ -12,7 +12,7 @@ import Reports                from "./pages/Reports";
 import Login                  from "./pages/Login";
 import Verification           from "./pages/Verification";
 import Barangays              from "./pages/Barangays";
-import Templates              from "./pages/Templates";
+import ToastProvider          from "./components/ToastProvider";
 
 export default function App() {
   const [user, setUser]       = useState(null);
@@ -63,8 +63,9 @@ export default function App() {
   if (!user)   return <Login onLogin={handleLogin} />;
 
   return (
-    <BrowserRouter>
-      <div style={styles.layout}>
+    <ToastProvider>
+      <BrowserRouter>
+        <div style={styles.layout}>
         <Sidebar user={user} onLogout={handleLogout} theme={theme} onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />
         <main style={styles.main}>
           <Routes>
@@ -77,11 +78,11 @@ export default function App() {
             <Route path="/users"           element={<Users />} />
             <Route path="/reports"         element={<Reports />} />
             <Route path="/barangays"       element={<Barangays />} />
-            <Route path="/templates"       element={<Templates />} />
           </Routes>
         </main>
       </div>
     </BrowserRouter>
+    </ToastProvider>
   );
 }
 

@@ -16,18 +16,14 @@ import { useConcerns } from "../../context/ConcernContext";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
+import * as Haptics from "expo-haptics";
 import ConcernCard from "../../components/ConcernCard";
-import { EmptyState, StatCard } from "../../components/UI";
+import { EmptyState, StatCard, Skeleton } from "../../components/UI";
 import { RADIUS, SHADOWS, STATUS_CONFIG } from "../../utils/theme";
 import { useTheme } from "../../context/ThemeContext";
 import { scale, verticalScale, rf, moderateScale } from "../../utils/responsive";
 
-const FILTER_KEYS = [
-  { key: "all", tKey: "all", icon: "apps-outline" },
-  { key: "Pending", tKey: "pending", icon: "time-outline" },
-  { key: "In Progress", tKey: "active", icon: "refresh-outline" },
-  { key: "Resolved", tKey: "resolved", icon: "checkmark-circle-outline" },
-];
+
 
 export default function HomeScreen({ navigation }) {
   const { colors, theme } = useTheme();
@@ -83,12 +79,30 @@ export default function HomeScreen({ navigation }) {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await refreshConcerns();
     } catch {} finally {
       setRefreshing(false);
     }
   };
+
+  const renderSkeletons = () => (
+    <View style={{ gap: verticalScale(16), paddingHorizontal: scale(16) }}>
+      {[1, 2, 3].map((key) => (
+        <View key={key} style={{ gap: verticalScale(8), paddingVertical: verticalScale(12), borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <View style={{ flexDirection: 'row', gap: scale(12), alignItems: 'center' }}>
+            <Skeleton width={scale(40)} height={scale(40)} borderRadius={scale(20)} />
+            <View style={{ flex: 1, gap: verticalScale(4) }}>
+              <Skeleton width="60%" height={verticalScale(16)} />
+              <Skeleton width="40%" height={verticalScale(12)} />
+            </View>
+          </View>
+          <Skeleton width="100%" height={verticalScale(120)} borderRadius={RADIUS.md} />
+        </View>
+      ))}
+    </View>
+  );
 
   return (
     <SafeAreaView style={S.container} edges={["top"]}>
@@ -140,7 +154,36 @@ export default function HomeScreen({ navigation }) {
                   </View>
                 </View>
     
-                {/* ── Stats strip removed ── */}    
+                {/* ── Stats strip ── */}
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false} 
+                  contentContainerStyle={S.statsContent}
+                  style={S.statsScroll}
+                >
+                  {[
+                    { label: t('all'), value: stats.total, icon: "apps-outline", color: colors.primaryLight },
+                    { label: t('pending'), value: stats.pending, icon: "time-outline", color: colors.statusPending },
+                    { label: t('active'), value: stats.inProgress, icon: "refresh-outline", color: colors.statusInProgress },
+                    { label: t('resolved'), value: stats.resolved, icon: "checkmark-circle-outline", color: colors.statusResolved }
+                  ].map((s, i) => (
+                    <TouchableOpacity 
+                      key={i} 
+                      style={[S.statItem, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+                      onPress={() => setActiveFilter(s.label === t('all') ? 'all' : s.label === t('pending') ? 'Pending' : s.label === t('active') ? 'In Progress' : 'Resolved')}
+                      activeOpacity={0.8}
+                    >
+                      <View style={[S.statIconBox, { backgroundColor: s.color + '22' }]}>
+                        <Ionicons name={s.icon} size={16} color={s.color} />
+                      </View>
+                      <View>
+                        <Text style={[S.statValue, { color: colors.textPrimary }]}>{s.value}</Text>
+                        <Text style={[S.statLabel, { color: colors.textSecondary }]}>{s.label}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+    
                 {/* ── Search ── */}
                 <View style={[S.searchWrap, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
                   <Ionicons
@@ -166,51 +209,7 @@ export default function HomeScreen({ navigation }) {
                   ) : null}
                 </View>
     
-                {/* ── Filter tabs ── */}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={S.filterScroll}
-                  contentContainerStyle={S.filterContent}
-                >
-                  {FILTER_KEYS.map((f) => {
-                    const active = activeFilter === f.key;
-                    const color = FILTER_COLOR[f.key] || colors.primary;
-                    const count = f.key === 'all' ? concerns.length : concerns.filter(c => c.status === f.key).length;
-                    return (
-                      <TouchableOpacity
-                        key={f.key}
-                        style={[
-                          S.filterTab,
-                          { backgroundColor: colors.bgCard, borderColor: colors.border },
-                          active && {
-                            backgroundColor: color + "22",
-                            borderColor: color,
-                          },
-                        ]}
-                        onPress={() => setActiveFilter(f.key)}
-                      >
-                        <Ionicons
-                          name={f.icon}
-                          size={14}
-                          color={active ? color : colors.textMuted}
-                        />
-                        <Text
-                          style={[
-                            S.filterTabText,
-                            { color: colors.textMuted },
-                            active && { color, fontWeight: "700" },
-                          ]}
-                        >
-                          {t(f.tKey)}
-                        </Text>
-                        <View style={[S.filterBadge, { backgroundColor: colors.bgCardAlt }, active && { backgroundColor: color }]}>
-                          <Text style={[S.filterBadgeText, { color: colors.textMuted }, active && { color: '#fff' }]}>{count}</Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
+
     
                 <Text style={[S.resultCount, { color: colors.textMuted }]}>
                   {filtered.length} {filtered.length !== 1 ? t('concerns') : t('concern')}
@@ -218,7 +217,9 @@ export default function HomeScreen({ navigation }) {
               </>
             }
         ListEmptyComponent={
-          !loading && (
+          loading && concerns.length === 0 ? (
+            renderSkeletons()
+          ) : (
             <EmptyState
               icon="📭"
               title={t('noConcernsFound')}
@@ -283,6 +284,16 @@ const S = StyleSheet.create({
   },
   reportBtnText: { color: "#fff", fontSize: rf(13), fontWeight: "700" },
 
+  statsScroll: { marginBottom: verticalScale(16) },
+  statsContent: { gap: scale(10), paddingRight: scale(16) },
+  statItem: {
+    flexDirection: "row", alignItems: "center", gap: scale(12),
+    paddingHorizontal: scale(14), paddingVertical: verticalScale(10),
+    borderRadius: RADIUS.lg, borderWidth: 1, minWidth: scale(120),
+  },
+  statIconBox: { width: scale(32), height: scale(32), borderRadius: scale(16), alignItems: "center", justifyContent: "center" },
+  statValue: { fontSize: rf(16), fontWeight: "800" },
+  statLabel: { fontSize: rf(11), marginTop: -verticalScale(2) },
 
   searchWrap: {
     flexDirection: "row",

@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { notifyUser } = require('../services/notificationService');
+const { analyzeConcern } = require('../services/aiService');
+const { analyzeImage } = require('../services/imageAnalyzer');
 const { invalidate } = require('../middleware/cache');
 const {
   selectAllConcerns,
@@ -75,9 +77,28 @@ const createConcern = async (req, res) => {
 
   const image_url = req.file ? `${BASE_URL()}/uploads/${req.file.filename}` : null;
 
+  let finalCategory = category || 'Other';
+  let finalPriority = priority || 'Medium';
+
+  try {
+    let imageTags = [];
+    if (req.file) {
+      const filePath = path.join(__dirname, '..', 'uploads', req.file.filename);
+      imageTags = await analyzeImage(filePath);
+    }
+
+    const aiResult = analyzeConcern(`${title} ${description}`, imageTags);
+    if (aiResult) {
+      finalCategory = aiResult.category;
+      finalPriority = aiResult.priority;
+    }
+  } catch (e) {
+    console.error("AI Categorization Error:", e);
+  }
+
   try {
     const insertId = await insertConcern({
-      title, description, category, priority, image_url,
+      title, description, category: finalCategory, priority: finalPriority, image_url,
       location_address, location_lat, location_lng,
       user_id: req.user.id, user_name, user_barangay
     });
@@ -128,9 +149,19 @@ const editConcern = async (req, res) => {
 
 const removeConcern = async (req, res) => {
   try {
-    const imageUrl = await selectConcernImageUrl(req.params.id);
-    if (imageUrl === undefined) return res.status(404).json({ error: 'Concern not found' });
-    deleteImageFile(imageUrl);
+    const concern = await selectConcernById(req.params.id);
+    if (!concern) return res.status(404).json({ error: 'Concern not found' });
+
+    if (req.user.role !== 'admin' && concern.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    if (req.user.role !== 'admin' && concern.status !== 'Pending') {
+      return res.status(403).json({ error: 'Only pending concerns can be deleted' });
+    }
+
+    const imageUrl = concern.image_url;
+    if (imageUrl) deleteImageFile(imageUrl);
     await deleteConcernAndUpvotes(req.params.id);
     invalidate('concerns', 'concern_detail');
     res.json({ success: true });

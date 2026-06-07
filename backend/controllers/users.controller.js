@@ -1,3 +1,5 @@
+const Tesseract = require('tesseract.js');
+const path = require('path');
 const { notifyUser } = require('../services/notificationService');
 const { insertNotification } = require('../models/notification.model');
 const {
@@ -7,7 +9,8 @@ const {
   updateUserDetails,
   updateUserVerification,
   selectUserContactInfo,
-  updateUserFcmToken
+  updateUserFcmToken,
+  deleteUser
 } = require('../models/user.model');
 
 const safe = (user) => {
@@ -54,7 +57,51 @@ const updateUser = async (req, res) => {
     }
 
     await updateUserDetails(req.params.id, name, phone, barangay, id_type, id_number, id_image_url, submitted_at);
-    const updatedUser = await selectById(req.params.id);
+    
+    let updatedUser = await selectById(req.params.id);
+
+    // OCR Auto-verification Logic
+    if (id_image_url && submitted_at && updatedUser.verification_status !== 'verified') {
+      try {
+        const filename = id_image_url.split('/uploads/')[1];
+        if (filename) {
+          const filePath = path.join(__dirname, '..', 'uploads', filename);
+          const result = await Tesseract.recognize(filePath, 'eng');
+          const text = result.data.text.toLowerCase();
+          const searchName = updatedUser.name.toLowerCase();
+          
+          if (text.includes(searchName)) {
+            // Match found! Auto-verify
+            await updateUserVerification(req.params.id, 'verified', 1, null, 'NOW()');
+            updatedUser = await selectById(req.params.id); // refresh user object
+            
+            const contactInfo = await selectUserContactInfo(req.params.id);
+            if (contactInfo) {
+              await insertNotification(
+                req.params.id, 
+                '✅ Account Auto-Verified!', 
+                'Your ID was scanned and automatically verified by our system. You can now log into the app.'
+              );
+              notifyUser(contactInfo, "Account Auto-Verified!", "Your ID was automatically verified by our system. You can now log into the app.");
+            }
+          } else {
+            // No match found, ensure status is 'pending' for manual review
+            await updateUserVerification(req.params.id, 'pending', 0, null, 'NULL');
+            updatedUser = await selectById(req.params.id); // refresh user object
+          }
+        }
+      } catch (e) {
+        console.error("OCR Auto-verification error:", e);
+        // Fallback to manual review if OCR fails
+        await updateUserVerification(req.params.id, 'pending', 0, null, 'NULL');
+        updatedUser = await selectById(req.params.id); // refresh user object
+      }
+    } else if (submitted_at && updatedUser.verification_status === 'unverified') {
+      // If no image or something else, but they submitted, ensure it's pending
+      await updateUserVerification(req.params.id, 'pending', 0, null, 'NULL');
+      updatedUser = await selectById(req.params.id);
+    }
+
     res.json(safe(updatedUser));
   } catch (err) {
     console.error('User update error:', err);
@@ -87,16 +134,13 @@ const rejectUser = async (req, res) => {
   const { reason } = req.body;
   if (!reason) return res.status(400).json({ error: 'Rejection reason required' });
   try {
-    await updateUserVerification(req.params.id, 'rejected', 0, reason, 'NULL');
-
     const contactInfo = await selectUserContactInfo(req.params.id);
+    
+    // Delete the user instead of just marking them rejected
+    await deleteUser(req.params.id);
+
     if (contactInfo) {
-      await insertNotification(
-        req.params.id, 
-        '❌ Verification Rejected', 
-        `Your identity verification was rejected. Reason: "${reason}". Please resubmit another ID.`
-      );
-      notifyUser(contactInfo, "Account Verification Failed", `Unfortunately, your identity verification was rejected for the following reason:\n"${reason}"\nPlease log into the app to resubmit another ID.`);
+      notifyUser(contactInfo, "Account Verification Failed", `Unfortunately, your identity verification was rejected for the following reason:\n"${reason}"\nPlease register again with a valid ID.`);
     }
 
     res.json({ success: true });

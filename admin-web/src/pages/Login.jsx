@@ -30,6 +30,7 @@ export default function Login({ onLogin }) {
 
   return (
     <div className={s.page}>
+      <div className={s.particles} />
       <div className={s.card}>
         {/* Header */}
         <div className={s.header}>

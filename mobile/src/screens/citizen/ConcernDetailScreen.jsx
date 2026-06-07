@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  Image, Alert, StyleSheet, Linking, Platform,
+  View, Text, ScrollView, TouchableOpacity, Image, Alert, StyleSheet, Linking, Platform, Modal, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
@@ -23,7 +22,9 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
   const concern = concerns.find(c => c.id === concernId);
   const isOwner = concern?.user_id === user?.id;
+  const canDelete = isOwner && concern?.status === 'Pending';
   const isUpvoted = false;
+  const [imageModalVisible, setImageModalVisible] = useState(false);
 
   // Custom header replaces navigation.setOptions
 
@@ -55,6 +56,16 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
   const statusCfg = getStatusConfig(colors)[concern.status] || getStatusConfig(colors)['Pending'];
   const timelineSteps = buildTimeline(concern, t);
+  
+  const [anim] = useState(new Animated.Value(0));
+  useEffect(() => {
+    Animated.timing(anim, { 
+      toValue: timelineSteps.length, 
+      duration: timelineSteps.length * 400, 
+      useNativeDriver: true 
+    }).start();
+  }, []);
+
   const fmt = (ts) => {
     if (!ts) return '—';
     const d = new Date(ts);
@@ -69,7 +80,7 @@ export default function ConcernDetailScreen({ route, navigation }) {
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('concernDetail')}</Text>
-        {isOwner ? (
+        {canDelete ? (
           <TouchableOpacity onPress={handleDelete} style={styles.headerBtn}>
             <Ionicons name="trash-outline" size={20} color={colors.statusRejected} />
           </TouchableOpacity>
@@ -82,7 +93,9 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
       {/* Image */}
       {concern.image_url ? (
-        <Image source={{ uri: resolveImageUrl(concern.image_url) }} style={styles.heroImage} />
+        <TouchableOpacity activeOpacity={0.9} onPress={() => setImageModalVisible(true)}>
+          <Image source={{ uri: resolveImageUrl(concern.image_url) }} style={styles.heroImage} />
+        </TouchableOpacity>
       ) : (
         <View style={[styles.heroPlaceholder, { backgroundColor: colors.bgCard }]}>
           <Ionicons name="image-outline" size={40} color={colors.textMuted} />
@@ -181,18 +194,31 @@ export default function ConcernDetailScreen({ route, navigation }) {
         {/* Timeline */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>📅 {t('timeline')}</Text>
-          {timelineSteps.map((step, i) => (
-            <View key={i} style={styles.timelineItem}>
-              <View style={styles.timelineLeft}>
-                <View style={[styles.timelineDot, { backgroundColor: statusCfg.color }]} />
-                {i < timelineSteps.length - 1 && <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />}
-              </View>
-              <View style={styles.timelineContent}>
-                <Text style={[styles.timelineEvent, { color: colors.textPrimary }]}>{step.event}</Text>
-                <Text style={[styles.timelineDate, { color: colors.textMuted }]}>{step.date}</Text>
-              </View>
-            </View>
-          ))}
+          {timelineSteps.map((step, i) => {
+            const opacity = anim.interpolate({
+              inputRange: [i - 1, i, i + 1],
+              outputRange: [0, 1, 1],
+              extrapolate: 'clamp',
+            });
+            const translateY = anim.interpolate({
+              inputRange: [i - 1, i, i + 1],
+              outputRange: [15, 0, 0],
+              extrapolate: 'clamp',
+            });
+
+            return (
+              <Animated.View key={i} style={[styles.timelineItem, { opacity, transform: [{ translateY }] }]}>
+                <View style={styles.timelineLeft}>
+                  <View style={[styles.timelineDot, { backgroundColor: statusCfg.color }]} />
+                  {i < timelineSteps.length - 1 && <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />}
+                </View>
+                <View style={styles.timelineContent}>
+                  <Text style={[styles.timelineEvent, { color: colors.textPrimary }]}>{step.event}</Text>
+                  <Text style={[styles.timelineDate, { color: colors.textMuted }]}>{step.date}</Text>
+                </View>
+              </Animated.View>
+            );
+          })}
         </View>
 
         {/* Upvote Button */}
@@ -209,10 +235,35 @@ export default function ConcernDetailScreen({ route, navigation }) {
             {isUpvoted ? t('youUpvoted') : t('upvoteThis')} · {concern.upvotes || 0}
           </Text>
         </TouchableOpacity>
-      </View>
-    </ScrollView>
-  </SafeAreaView>
-);
+        </View>
+      </ScrollView>
+
+      {/* ── Fullscreen Image Modal ── */}
+      <Modal visible={imageModalVisible} transparent={true} animationType="fade" onRequestClose={() => setImageModalVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity 
+            style={{ position: 'absolute', top: verticalScale(50), right: scale(20), zIndex: 10, padding: scale(10), backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: scale(20) }} 
+            onPress={() => setImageModalVisible(false)}
+          >
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+          <ScrollView 
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }} 
+            maximumZoomScale={3} 
+            minimumZoomScale={1}
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+            centerContent
+          >
+            <Image 
+              source={{ uri: resolveImageUrl(concern.image_url) }} 
+              style={{ width: scale(350), height: verticalScale(500), resizeMode: 'contain' }} 
+            />
+          </ScrollView>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
 }
 
 function MetaItem({ icon, label, value, colors }) {

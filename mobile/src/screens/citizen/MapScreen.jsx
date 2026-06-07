@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
+import { Marker } from 'react-native-maps';
+import MapView from 'react-native-map-clustering';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocation } from '../../hooks/useLocation';
@@ -145,6 +146,27 @@ export default function MapScreen({ navigation }) {
         mapType={mapType}
         onMapReady={() => setMapReady(true)}
         onPress={handleDismiss}
+        clusterColor={colors.primary}
+        renderCluster={(cluster) => {
+          const { id, geometry, onPress, properties } = cluster;
+          const points = properties.point_count;
+          return (
+            <Marker
+              key={`cluster-${id}`}
+              coordinate={{
+                longitude: geometry.coordinates[0],
+                latitude: geometry.coordinates[1],
+              }}
+              onPress={onPress}
+            >
+              <View style={[styles.clusterMarker, { backgroundColor: colors.primary, borderColor: colors.primaryLight }]}>
+                <Text style={styles.clusterText}>
+                  {points}
+                </Text>
+              </View>
+            </Marker>
+          );
+        }}
       >
         {mapReady && pinnable.map(c => {
           const rawLat = safeCoord(c.location_lat);
@@ -337,6 +359,17 @@ const styles = StyleSheet.create({
     borderWidth: 2.5, borderColor: '#fff',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3, shadowRadius: 4, elevation: 5,
+  },
+  
+  clusterMarker: {
+    width: scale(40), height: scale(40), borderRadius: scale(20),
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 3,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4, shadowRadius: 5, elevation: 6,
+  },
+  clusterText: {
+    color: '#fff', fontSize: rf(14), fontWeight: '800',
   },
 
   // ── Header overlay ──

@@ -13,9 +13,10 @@ const TABS = [
   { key:"pending",    label:"Pending Review", urgent:true  },
   { key:"verified",   label:"Verified",       urgent:false },
   { key:"rejected",   label:"Rejected",       urgent:false },
-  { key:"unverified", label:"Unverified",     urgent:false },
+  { key:"unverified", label:"No ID Submitted",urgent:false },
   { key:"all",        label:"All",            urgent:false },
 ];
+const REJECTION_REASONS = ["Blurry Photo", "Expired ID", "Name Mismatch", "Invalid ID Type"];
 const AVATARS = ["#3B82F6","#10B981","#F97316","#F59E0B","#EF4444","#8B5CF6"];
 const avatarColor = (id) => AVATARS[(id || 0) % AVATARS.length];
 const initials    = (n)  => n?.split(" ").map((x) => x[0]).join("").toUpperCase().slice(0,2) || "?";
@@ -26,7 +27,8 @@ export default function Verification() {
   const [filter,   setFilter]   = useState("pending");
   const [reason,   setReason]   = useState("");
   const [saving,   setSaving]   = useState(false);
-  const [feedback, setFeedback] = useState(null);
+  const [toast,    setToast]    = useState(null);
+  const [lightboxImg, setLightboxImg] = useState(null);
   const [search,   setSearch]   = useState("");
   const [page,     setPage]     = useState(1);
   const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 350);
@@ -63,18 +65,33 @@ export default function Verification() {
 
   const act = async (fn) => { setSaving(true); try { await fn(); await load(); } catch(e){ alert(e.message); } setSaving(false); };
 
+  const showToast = (message, type) => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const autoAdvanceOrClose = () => {
+    const pendingOnly = filtered.filter(u => u.verification_status === "pending" && u.id !== selected.id);
+    if (pendingOnly.length > 0) {
+      setSelected(pendingOnly[0]);
+    } else {
+      setSelected(null);
+    }
+    setReason("");
+  };
+
   const handleApprove = () => act(async () => {
     await api.patch(`/users/${selected.id}/verify`);
-    setFeedback("approved");
-    setTimeout(() => { setFeedback(null); setSelected(null); setReason(""); }, 2500);
+    showToast(`✅ Verification Approved`, "success");
+    autoAdvanceOrClose();
   });
 
   const handleReject = () => {
     if (!reason.trim()) { alert("Please enter a rejection reason."); return; }
     act(async () => {
       await api.patch(`/users/${selected.id}/reject`, { reason: reason.trim() });
-      setFeedback("rejected");
-      setTimeout(() => { setFeedback(null); setSelected(null); setReason(""); }, 2500);
+      showToast(`❌ Verification Rejected`, "error");
+      autoAdvanceOrClose();
     });
   };
 
@@ -150,7 +167,7 @@ export default function Verification() {
       </div>
 
       {/* Main layout */}
-      <div style={{ display:"grid", gridTemplateColumns: selected ? "1fr 380px" : "1fr", gap:16 }}>
+      <div className={selected ? s.mainLayoutWithSide : s.mainLayout}>
         {/* Table */}
         <div className={s.tableWrap}>
           {filtered.length === 0 ? (
@@ -166,7 +183,7 @@ export default function Verification() {
                   const isSel = selected?.id === u.id;
                   return (
                     <tr key={u.id} className={`${s.tr} ${s.trClickable} ${isSel ? s.trSelected : ""}`}
-                      onClick={() => { setSelected(isSel ? null : u); setReason(""); setFeedback(null); }}>
+                      onClick={() => { setSelected(isSel ? null : u); setReason(""); }}>
                       <td className={s.td}>
                         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                           <div style={{ width:34, height:34, borderRadius:10, backgroundColor:avatarColor(u.id), display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:700, fontSize:12, flexShrink:0 }}>{initials(u.name)}</div>
@@ -183,7 +200,7 @@ export default function Verification() {
                       <td className={s.td} style={{ fontSize:11, color:"var(--text-3)", whiteSpace:"nowrap" }}>{fmtDateShort(u.submitted_at)}</td>
                       <td className={s.td}>
                         <div style={{ display:"flex", gap:6 }}>
-                          <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`} onClick={() => { setSelected(isSel ? null : u); setReason(""); setFeedback(null); }}>{isSel ? "Close" : "Review"}</button>
+                          <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`} onClick={() => { setSelected(isSel ? null : u); setReason(""); }}>{isSel ? "Close" : "Review"}</button>
                           {(u.verification_status === "pending" || u.verification_status === "unverified") && !isSel && (
                             <button style={{ padding:"5px 8px", borderRadius:"var(--r-sm)", background:"rgba(16,185,129,0.12)", border:"1px solid rgba(16,185,129,0.25)", color:"#10B981", cursor:"pointer", fontSize:13 }}
                               title="Quick approve" onClick={(e) => { e.stopPropagation(); quickApprove(u); }}>✓</button>
@@ -209,67 +226,72 @@ export default function Verification() {
 
         {/* Detail panel */}
         {selected && (
-          <div className={s.card} style={{ alignSelf:"start", padding:0, overflow:"hidden" }}>
-            <div style={{ padding:"16px 18px", borderBottom:"1px solid var(--border)", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-              <div>
-                <div style={{ fontSize:13, fontWeight:700, color:"var(--text-1)", marginBottom:6 }}>Review Submission</div>
-                <span className={s.badge} style={{ backgroundColor:cfg.bg, color:cfg.color, border:`1px solid ${cfg.border}`, fontSize:11 }}>{cfg.icon} {cfg.label}</span>
-              </div>
-              <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`} onClick={() => setSelected(null)}>✕</button>
-            </div>
-
-            {/* Citizen info */}
-            <div style={{ padding:"14px 18px", borderBottom:"1px solid var(--border)" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
-                <div style={{ width:52, height:52, borderRadius:16, backgroundColor:avatarColor(selected.id), display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:900, fontSize:20, flexShrink:0 }}>{initials(selected.name)}</div>
-                <div>
-                  <div style={{ fontSize:16, fontWeight:800, color:"var(--text-1)" }}>{selected.name}</div>
-                  <div style={{ fontSize:12, color:"var(--text-3)", marginTop:2 }}>{maskEmail(selected.email)}</div>
-                </div>
-              </div>
-              <div style={{ display:"flex", flexDirection:"column", gap:0, background:"var(--surface-2)", borderRadius:"var(--r-lg)", border:"1px solid var(--border)", overflow:"hidden" }}>
-                {[
-                  { label:"Phone",      value: selected.phone || "—" },
-                  { label:"Barangay",   value: selected.barangay || "—" },
-                  { label:"ID Type",    value: selected.id_type || "Not submitted" },
-                  { label:"ID No.",     value: selected.id_number || "—" },
-                  { label:"Submitted",  value: fmtDateShort(selected.submitted_at) },
-                  { label:"Registered", value: fmtDateShort(selected.created_at) },
-                ].map((x,i,arr) => (
-                  <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 14px", borderBottom: i < arr.length-1 ? "1px solid var(--border)" : "none", fontSize:13 }}>
-                    <span style={{ color:"var(--text-3)" }}>{x.label}</span>
-                    <span style={{ color:"var(--text-1)", fontWeight:500 }}>{x.value}</span>
+          <>
+            <div className={s.sidePanelOverlay} onClick={() => setSelected(null)} />
+            <div className={s.sidePanelWrapper}>
+              <div className={s.card} style={{ alignSelf:"start", padding:0, overflow:"hidden" }}>
+                <div style={{ padding:"16px 18px", borderBottom:"1px solid var(--border)", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:700, color:"var(--text-1)", marginBottom:6 }}>Review Submission</div>
+                    <span className={s.badge} style={{ backgroundColor:cfg.bg, color:cfg.color, border:`1px solid ${cfg.border}`, fontSize:11 }}>{cfg.icon} {cfg.label}</span>
                   </div>
-                ))}
-              </div>
-            </div>
+                  <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`} onClick={() => setSelected(null)}>✕</button>
+                </div>
 
-            {/* ID Photo */}
-            <div style={{ padding:"14px 18px", borderBottom:"1px solid var(--border)" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                <span style={{ fontSize:11, fontWeight:700, color:"var(--text-3)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Submitted ID Photo</span>
-                {selected.id_image_url && <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`} onClick={() => window.open(resolveImageUrl(selected.id_image_url), "_blank")}>View Full ↗</button>}
-              </div>
-              {selected.id_image_url ? (
-                <div style={{ position:"relative", borderRadius:"var(--r-md)", overflow:"hidden", cursor:"pointer" }} onClick={() => window.open(resolveImageUrl(selected.id_image_url), "_blank")}>
-                  <img src={resolveImageUrl(selected.id_image_url)} alt="ID" style={{ width:"100%", maxHeight:200, objectFit:"cover", display:"block" }} />
+                {/* Citizen info */}
+                <div style={{ padding:"14px 18px", borderBottom:"1px solid var(--border)" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
+                    <div style={{ width:52, height:52, borderRadius:16, backgroundColor:avatarColor(selected.id), display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:900, fontSize:20, flexShrink:0 }}>{initials(selected.name)}</div>
+                    <div>
+                      <div style={{ fontSize:16, fontWeight:800, color:"var(--text-1)" }}>{selected.name}</div>
+                      <div style={{ fontSize:12, color:"var(--text-3)", marginTop:2 }}>{maskEmail(selected.email)}</div>
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", flexDirection:"column", gap:0, background:"var(--surface-2)", borderRadius:"var(--r-lg)", border:"1px solid var(--border)", overflow:"hidden" }}>
+                    {[
+                      { label:"Phone",      value: selected.phone || "—" },
+                      { label:"Barangay",   value: selected.barangay || "—" },
+                      { label:"ID Type",    value: selected.id_type || "Not submitted" },
+                      { label:"ID No.",     value: selected.id_number || "—" },
+                      { label:"Submitted",  value: fmtDateShort(selected.submitted_at) },
+                      { label:"Registered", value: fmtDateShort(selected.created_at) },
+                    ].map((x,i,arr) => (
+                      <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 14px", borderBottom: i < arr.length-1 ? "1px solid var(--border)" : "none", fontSize:13 }}>
+                        <span style={{ color:"var(--text-3)" }}>{x.label}</span>
+                        <span style={{ color:"var(--text-1)", fontWeight:500 }}>{x.value}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ) : (
-                <div style={{ padding:24, textAlign:"center", background:"var(--surface-2)", borderRadius:"var(--r-md)", border:"1px dashed var(--border)" }}>
-                  <div style={{ fontSize:32, marginBottom:8, opacity:0.4 }}>📂</div>
-                  <p style={{ color:"var(--text-3)", fontSize:13, margin:0 }}>{selected.verification_status === "unverified" ? "Citizen has not submitted an ID yet" : "No ID photo available"}</p>
+
+                {/* ID Photo */}
+                <div style={{ padding:"14px 18px", borderBottom:"1px solid var(--border)" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:"var(--text-3)", textTransform:"uppercase", letterSpacing:"0.5px" }}>Submitted ID Photo</span>
+                    {selected.id_image_url && <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`} onClick={() => setLightboxImg(resolveImageUrl(selected.id_image_url))}>Expand ↗</button>}
+                  </div>
+                  {selected.id_image_url ? (
+                    <div style={{ position:"relative", borderRadius:"var(--r-md)", overflow:"hidden", cursor:"zoom-in" }} onClick={() => setLightboxImg(resolveImageUrl(selected.id_image_url))}>
+                      <img src={resolveImageUrl(selected.id_image_url)} alt="ID" style={{ width:"100%", maxHeight:200, objectFit:"cover", display:"block" }} />
+                    </div>
+                  ) : (
+                    <div style={{ padding:24, textAlign:"center", background:"var(--surface-2)", borderRadius:"var(--r-md)", border:"1px dashed var(--border)" }}>
+                      <div style={{ fontSize:32, marginBottom:8, opacity:0.4 }}>📂</div>
+                      <p style={{ color:"var(--text-3)", fontSize:13, margin:0 }}>{selected.verification_status === "unverified" ? "Citizen has not submitted an ID yet" : "No ID photo available"}</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
             {/* Actions */}
             <div style={{ padding:"16px 18px" }}>
-              {feedback === "approved" && <div style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 14px", background:"rgba(16,185,129,0.1)", border:"1px solid rgba(16,185,129,0.25)", borderRadius:"var(--r-md)", marginBottom:14 }}><span style={{ fontSize:20 }}>✅</span><div><div style={{ color:"#10B981", fontWeight:700 }}>Verification Approved</div><div style={{ color:"var(--text-3)", fontSize:12 }}>Citizen has been verified</div></div></div>}
-              {feedback === "rejected" && <div style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 14px", background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:"var(--r-md)", marginBottom:14 }}><span style={{ fontSize:20 }}>❌</span><div><div style={{ color:"#EF4444", fontWeight:700 }}>Verification Rejected</div><div style={{ color:"var(--text-3)", fontSize:12 }}>Citizen has been notified</div></div></div>}
-
-              {!feedback && currentStatus !== "verified" && (
+              {currentStatus !== "verified" && (
                 <>
                   <label style={{ fontSize:11, fontWeight:700, color:"var(--text-3)", textTransform:"uppercase", letterSpacing:"0.5px", display:"block", marginBottom:8 }}>Rejection Reason (required to reject)</label>
+                  <div style={{ marginBottom: 8 }}>
+                    {REJECTION_REASONS.map(r => (
+                      <span key={r} className={s.quickChip} onClick={() => setReason(prev => prev ? `${prev}, ${r}` : r)}>{r}</span>
+                    ))}
+                  </div>
                   <textarea className={s.textarea} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. ID photo is blurry or does not match" rows={3} style={{ marginBottom:12 }} />
                   <div style={{ display:"flex", gap:8 }}>
                     <button className={`${s.btn} ${s.btnPrimary}`} style={{ flex:1, justifyContent:"center", opacity:saving?0.5:1 }} onClick={handleApprove} disabled={saving}>✓ Approve</button>
@@ -277,13 +299,32 @@ export default function Verification() {
                   </div>
                 </>
               )}
-              {!feedback && currentStatus === "verified" && (
+              {currentStatus === "verified" && (
                 <button className={`${s.btn}`} style={{ width:"100%", justifyContent:"center", background:"rgba(239,68,68,0.12)", border:"1px solid rgba(239,68,68,0.25)", color:"#EF4444" }} onClick={handleRevoke} disabled={saving}>Revoke Verification</button>
               )}
             </div>
           </div>
+        </div>
+      </>
         )}
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={s.toastContainer}>
+          <div className={s.toast} style={{ background: toast.type === "success" ? "#10B981" : "#EF4444" }}>
+            {toast.message}
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxImg && (
+        <div className={s.lightboxOverlay} onClick={() => setLightboxImg(null)}>
+          <button className={s.lightboxClose} onClick={() => setLightboxImg(null)}>✕</button>
+          <img src={lightboxImg} className={s.lightboxImage} alt="Full ID" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </div>
   );
 }
