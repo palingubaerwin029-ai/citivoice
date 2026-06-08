@@ -13,6 +13,7 @@ const STATUS_COLORS = {
   Rejected: '#FF4444',
 };
 const PRIORITY_COLORS = { High: '#FF4444', Medium: '#FFB800', Low: '#00D4AA' };
+const SENTIMENT_EMOJI = { urgent: '🔴', frustrated: '😤', concerned: '😟', neutral: '😐' };
 const STATUSES = ['All', 'Pending', 'In Progress', 'Resolved', 'Rejected'];
 const PRIORITIES = ['All', 'High', 'Medium', 'Low'];
 
@@ -103,6 +104,7 @@ export default function Concerns() {
           ({ High: 3, Medium: 2, Low: 1 }[b.priority] || 0) -
           ({ High: 3, Medium: 2, Low: 1 }[a.priority] || 0)
         );
+      if (sortBy === 'urgency') return (b.urgency_score || 50) - (a.urgency_score || 50);
       return 0;
     });
 
@@ -185,6 +187,7 @@ export default function Concerns() {
               <option value="oldest">Oldest First</option>
               <option value="upvotes">Most Upvoted</option>
               <option value="priority">Highest Priority</option>
+              <option value="urgency">🎯 Highest Urgency</option>
             </select>
           )}
         </div>
@@ -319,7 +322,7 @@ export default function Concerns() {
             <>
               <thead className={s.thead}>
                 <tr>
-                  {['Concern', ...(!selectedCitizen ? ['Citizen'] : []), 'Category', 'Priority', 'Status', 'Upvotes', 'Date', 'Action'].map(
+                  {['Concern', ...(!selectedCitizen ? ['Citizen'] : []), 'Category', 'Priority', 'Status', 'Urgency', 'Date', 'Action'].map(
                     (h) => (
                       <th key={h} className={s.th}>
                         {h}
@@ -388,8 +391,14 @@ export default function Concerns() {
                         {c.status}
                       </span>
                     </td>
-                    <td className={s.td} style={{ color: '#00D4AA', fontWeight: 700 }}>
-                      👍 {c.upvotes || 0}
+                    <td className={s.td}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 12 }}>{SENTIMENT_EMOJI[c.sentiment] || '😐'}</span>
+                        <div style={{ width: 40, height: 5, background: 'var(--surface-3)', borderRadius: 99, overflow: 'hidden' }}>
+                          <div style={{ height: 5, borderRadius: 99, width: `${c.urgency_score || 50}%`, background: (c.urgency_score || 50) >= 80 ? '#FF4444' : (c.urgency_score || 50) >= 60 ? '#FFB800' : '#00D4AA' }} />
+                        </div>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: (c.urgency_score || 50) >= 80 ? '#FF4444' : (c.urgency_score || 50) >= 60 ? '#FFB800' : '#00D4AA' }}>{c.urgency_score || 50}</span>
+                      </div>
                     </td>
                     <td className={s.td} style={{ fontSize: 12 }}>
                       {fmtDateShort(c.created_at)}
@@ -421,7 +430,6 @@ export default function Concerns() {
           onPageChange={!selectedCitizen && viewMode === 'citizens' ? setCitizenPage : setConcernPage}
           totalItems={!selectedCitizen && viewMode === 'citizens' ? citizensList.length : filteredConcerns.length}
           itemsPerPage={itemsPerPage}
-          onItemsPerPage={(n) => { setItemsPerPage(n); setCitizenPage(1); setConcernPage(1); }}
         />
       </div>
     </div>

@@ -79,6 +79,10 @@ function Routing({ selected }) {
         L.latLng(parseFloat(selected.location_lat), parseFloat(selected.location_lng)),
       ],
       show: false,
+      fitSelectedRoutes: false,
+      addWaypoints: false,
+      routeWhileDragging: false,
+      createMarker: () => null,
     }).addTo(map);
 
     return () => {
@@ -94,7 +98,7 @@ function FlyToMarker({ selected }) {
 
   useEffect(() => {
     if (!selected) return;
-    map.flyTo([parseFloat(selected.location_lat), parseFloat(selected.location_lng)], 16, { duration: 1.5 });
+    map.setView([parseFloat(selected.location_lat), parseFloat(selected.location_lng)], 16, { animate: true, duration: 1 });
   }, [selected]);
 
   return null;
@@ -104,7 +108,7 @@ function FlyToLocation({ coords }) {
   const map = useMap();
   useEffect(() => {
     if (!coords) return;
-    map.flyTo(coords, 16, { duration: 1.5 });
+    map.setView(coords, 16, { animate: true, duration: 1 });
   }, [coords]);
   return null;
 }
@@ -222,7 +226,7 @@ export function MapView() {
                 icon={c.status === "In Progress" ? pulseIcon : createIcon(color)}
                 eventHandlers={{ click: () => setSelected(c) }}
               >
-                <Popup className="premium-popup">
+                <Popup className="premium-popup" autoPan={false}>
                   <div style={{ color: "#000" }}>
                     <strong>{c.title}</strong><br />
                     <span style={{ color: color }}>● {c.status}</span>

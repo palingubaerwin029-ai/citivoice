@@ -27,6 +27,12 @@ citivoice/
 
 ## 🚀 Key Features
 
+### 🤖 Artificial Intelligence (Google Gemini)
+- **Smart Categorization & Routing** — Automatically classifies reports into appropriate categories (e.g., Electrical, Flood) using natural language processing.
+- **Context-Aware Sentiment Analysis** — Detects urgency and user frustration levels to prioritize concerns.
+- **Localized Understanding** — Trained to understand local dialects and terminology (e.g., Hiligaynon words like 'baha', 'ilog hilabangan' for Kabankalan City).
+- **Personalized Notifications** — AI-generated empathy-driven notification emails and SMS to keep citizens informed in a humanized tone.
+
 ### 🏢 Admin Dashboard (Web)
 - **Analytics Dashboard** — Real-time charts and statistics powered by Recharts with concern breakdowns by status, category, and barangay.
 - **Concerns Management** — Review, update status, and track citizen-reported concerns with full detail views.
@@ -60,6 +66,7 @@ citivoice/
 | express-validator | Request validation |
 | Nodemailer | Email notifications |
 | Twilio | SMS notifications |
+| @google/genai | Gemini AI Integration |
 | Nodemon | Development hot-reload |
 
 ### Admin Dashboard (Web)

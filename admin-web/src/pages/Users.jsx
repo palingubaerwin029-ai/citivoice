@@ -231,7 +231,6 @@ export default function Users() {
             onPageChange={(p) => { setPage(p); setSelected(null); }}
             totalItems={filtered.length}
             itemsPerPage={itemsPerPage}
-            onItemsPerPage={(n) => { setItemsPerPage(n); setPage(1); }}
           />
         </div>
 

@@ -220,7 +220,6 @@ export default function Verification() {
             onPageChange={(p) => { setPage(p); setSelected(null); }}
             totalItems={filtered.length}
             itemsPerPage={itemsPerPage}
-            onItemsPerPage={(n) => { setItemsPerPage(n); setPage(1); }}
           />
         </div>
 
@@ -263,6 +262,30 @@ export default function Verification() {
                     ))}
                   </div>
                 </div>
+
+                {/* Feature 6: AI Verification Status */}
+                {(selected.verification_status === 'verified' && selected.verified_at && selected.submitted_at) && (
+                  <div style={{ padding: "10px 18px", borderBottom: "1px solid var(--border)", background: "rgba(16,185,129,0.04)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: "var(--r-md)", background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                      <span style={{ fontSize: 16 }}>🤖</span>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#10B981" }}>AI Auto-Verified</div>
+                        <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>OCR matched the citizen's name on their submitted ID</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {(selected.verification_status === 'pending' && selected.id_image_url) && (
+                  <div style={{ padding: "10px 18px", borderBottom: "1px solid var(--border)", background: "rgba(245,158,11,0.04)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: "var(--r-md)", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                      <span style={{ fontSize: 16 }}>🔍</span>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#F59E0B" }}>AI Needs Manual Review</div>
+                        <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>OCR could not confidently match the name — please verify manually</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* ID Photo */}
                 <div style={{ padding:"14px 18px", borderBottom:"1px solid var(--border)" }}>

@@ -30,7 +30,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [concerns, setConcerns] = useState([]);
   const [loading,  setLoading]  = useState(true);
-  
+
   const getLocalDate = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -155,6 +155,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+
 
       {/* Stats */}
       <div className={`${s.statsRow} stagger-1`}>

@@ -51,6 +51,9 @@ CREATE TABLE IF NOT EXISTS concerns (
   user_barangay    VARCHAR(255)                            DEFAULT NULL,
   admin_note       TEXT                                    DEFAULT NULL,
   upvotes          INT                                     NOT NULL DEFAULT 0,
+  sentiment        VARCHAR(20)                             DEFAULT 'neutral',
+  urgency_score    INT                                     DEFAULT 50,
+  department       VARCHAR(100)                            DEFAULT NULL,
   created_at       DATETIME                                NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at       DATETIME                                NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
@@ -65,6 +68,19 @@ CREATE TABLE IF NOT EXISTS concern_upvotes (
   UNIQUE KEY unique_upvote (concern_id, user_id),
   FOREIGN KEY (concern_id) REFERENCES concerns(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- ─── Concern Links (AI duplicate/similar tracking) ──────────────────────────
+CREATE TABLE IF NOT EXISTS concern_links (
+  id                  INT AUTO_INCREMENT PRIMARY KEY,
+  source_concern_id   INT NOT NULL,
+  target_concern_id   INT NOT NULL,
+  link_type           ENUM('duplicate','related') NOT NULL DEFAULT 'related',
+  similarity_score    DECIMAL(5,2) DEFAULT NULL,
+  created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_link (source_concern_id, target_concern_id),
+  FOREIGN KEY (source_concern_id) REFERENCES concerns(id) ON DELETE CASCADE,
+  FOREIGN KEY (target_concern_id) REFERENCES concerns(id) ON DELETE CASCADE
 );
 
 -- ─── Notifications ───────────────────────────────────────────────────────────

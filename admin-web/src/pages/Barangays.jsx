@@ -158,7 +158,6 @@ export default function Barangays() {
               onPageChange={setPage}
               totalItems={barangays.length}
               itemsPerPage={itemsPerPage}
-              onItemsPerPage={(n) => { setItemsPerPage(n); setPage(1); }}
             />
           </div>
         </div>

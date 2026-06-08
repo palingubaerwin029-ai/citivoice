@@ -11,7 +11,10 @@ const {
   editConcern,
   removeConcern,
   toggleUpvote,
-  uploadIdImage
+  uploadIdImage,
+  generateAiResponse,
+  getSimilarConcerns,
+  linkConcerns,
 } = require('../controllers/concerns.controller');
 
 // ─── List all concerns (auth required, cached 60s) ────────────────────────────
@@ -31,6 +34,15 @@ router.delete('/:id', auth, validateIdParam, removeConcern);
 
 // ─── Toggle upvote ────────────────────────────────────────────────────────────
 router.post('/:id/upvote', auth, validateIdParam, toggleUpvote);
+
+// ─── AI: Generate admin response draft ────────────────────────────────────────
+router.post('/:id/ai-response', auth, requireRole('admin'), validateIdParam, generateAiResponse);
+
+// ─── AI: Get similar/duplicate concerns ───────────────────────────────────────
+router.get('/:id/similar', auth, requireRole('admin'), validateIdParam, getSimilarConcerns);
+
+// ─── AI: Link two concerns as duplicate/related ──────────────────────────────
+router.post('/:id/link', auth, requireRole('admin'), validateIdParam, linkConcerns);
 
 // ─── Upload ID image (mobile verification) ────────────────────────────────────
 router.post('/upload/id-image', upload.single('image'), uploadIdImage);

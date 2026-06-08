@@ -22,18 +22,22 @@ const insertConcern = async (data) => {
   const {
     title, description, category, priority, image_url,
     location_address, location_lat, location_lng,
-    user_id, user_name, user_barangay
+    user_id, user_name, user_barangay,
+    sentiment, urgency_score, department
   } = data;
   const [result] = await pool.query(
     `INSERT INTO concerns
        (title, description, category, priority, status, image_url,
         location_address, location_lat, location_lng,
-        user_id, user_name, user_barangay, admin_note, upvotes, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?, NULL, 0, NOW(), NOW())`,
+        user_id, user_name, user_barangay, admin_note, upvotes,
+        sentiment, urgency_score, department,
+        created_at, updated_at)
+     VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?, NULL, 0, ?, ?, ?, NOW(), NOW())`,
     [
       title, description, category, priority || 'Medium', image_url,
       location_address || null, location_lat || null, location_lng || null,
       user_id, user_name || null, user_barangay || null,
+      sentiment || 'neutral', urgency_score || 50, department || null,
     ]
   );
   return result.insertId;
@@ -82,6 +86,42 @@ const insertNotification = async (userId, title, message) => {
   );
 };
 
+// ─── AI Feature: Concern Links (duplicate/similar tracking) ─────────────────
+
+const insertConcernLink = async (sourceId, targetId, linkType, similarityScore) => {
+  try {
+    await pool.query(
+      `INSERT INTO concern_links (source_concern_id, target_concern_id, link_type, similarity_score)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE link_type = VALUES(link_type), similarity_score = VALUES(similarity_score)`,
+      [sourceId, targetId, linkType, similarityScore]
+    );
+  } catch (err) {
+    // Silently ignore if table doesn't exist yet (migration not run)
+    if (err.code === 'ER_NO_SUCH_TABLE') return;
+    throw err;
+  }
+};
+
+const selectLinkedConcerns = async (concernId) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT c.id, c.title, c.status, c.category, c.priority, c.user_barangay, c.created_at,
+             cl.link_type, cl.similarity_score
+      FROM concern_links cl
+      JOIN concerns c ON (
+        CASE WHEN cl.source_concern_id = ? THEN cl.target_concern_id ELSE cl.source_concern_id END
+      ) = c.id
+      WHERE cl.source_concern_id = ? OR cl.target_concern_id = ?
+      ORDER BY cl.similarity_score DESC
+    `, [concernId, concernId, concernId]);
+    return rows;
+  } catch (err) {
+    if (err.code === 'ER_NO_SUCH_TABLE') return [];
+    throw err;
+  }
+};
+
 module.exports = {
   selectAllConcerns,
   selectConcernById,
@@ -93,5 +133,7 @@ module.exports = {
   deleteConcernAndUpvotes,
   removeUpvote,
   addUpvote,
-  insertNotification
+  insertNotification,
+  insertConcernLink,
+  selectLinkedConcerns,
 };

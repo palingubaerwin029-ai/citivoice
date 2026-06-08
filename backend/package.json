@@ -9,6 +9,7 @@
     "tunnel": "lt --port 5000"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@tensorflow-models/mobilenet": "^2.1.1",
     "@tensorflow/tfjs": "^4.22.0",
     "bcryptjs": "^2.4.3",

@@ -82,7 +82,12 @@ const updateUser = async (req, res) => {
                 '✅ Account Auto-Verified!', 
                 'Your ID was scanned and automatically verified by our system. You can now log into the app.'
               );
-              notifyUser(contactInfo, "Account Auto-Verified!", "Your ID was automatically verified by our system. You can now log into the app.");
+              notifyUser(
+                contactInfo, 
+                "Account Auto-Verified!", 
+                "Your ID was automatically verified by our system. You can now log into the app.",
+                "The citizen just submitted their ID and our system automatically verified it with 100% confidence. Welcome them to the app."
+              );
             }
           } else {
             // No match found, ensure status is 'pending' for manual review
@@ -120,7 +125,12 @@ const verifyUser = async (req, res) => {
         '✅ Account Verified!', 
         'Great news! Your CitiVoice account has been successfully verified. You can now log into the app.'
       );
-      notifyUser(contactInfo, "Account Verified!", "Great news! Your CitiVoice account has been successfully verified. You can now log into the app.");
+      notifyUser(
+        contactInfo, 
+        "Account Verified!", 
+        "Great news! Your CitiVoice account has been successfully verified. You can now log into the app.",
+        "An admin just manually reviewed and approved the citizen's ID. Their account is now fully verified. Welcome them to the platform."
+      );
     }
 
     res.json({ success: true });
@@ -140,7 +150,12 @@ const rejectUser = async (req, res) => {
     await deleteUser(req.params.id);
 
     if (contactInfo) {
-      notifyUser(contactInfo, "Account Verification Failed", `Unfortunately, your identity verification was rejected for the following reason:\n"${reason}"\nPlease register again with a valid ID.`);
+      notifyUser(
+        contactInfo, 
+        "Account Verification Failed", 
+        `Unfortunately, your identity verification was rejected for the following reason:\n"${reason}"\nPlease register again with a valid ID.`,
+        `The citizen's ID verification was rejected by an admin for the following reason: "${reason}". Kindly ask them to submit a clearer or more valid ID.`
+      );
     }
 
     res.json({ success: true });
