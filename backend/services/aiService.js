@@ -75,16 +75,13 @@ categoryClassifier.addDocument(
 ); // Visual
 
 // Public Safety (English, Tagalog, Hiligaynon, Visual Tags)
-categoryClassifier.addDocument('someone is breaking in', 'Public Safety');
-categoryClassifier.addDocument('assault robbery theft', 'Public Safety');
-categoryClassifier.addDocument('stray dogs biting', 'Public Safety');
-categoryClassifier.addDocument('may magnanakaw nag aaway', 'Public Safety'); // Tagalog
+categoryClassifier.addDocument('aggressive stray dogs biting', 'Public Safety');
+categoryClassifier.addDocument('vandalism property damage', 'Public Safety');
 categoryClassifier.addDocument('asong ulol nangangagat', 'Public Safety'); // Tagalog
-categoryClassifier.addDocument('may kawatan naga away', 'Public Safety'); // Hiligaynon
 categoryClassifier.addDocument('buang nga ido nagapangagat', 'Public Safety'); // Hiligaynon
-categoryClassifier.addDocument('may sunog aksidente', 'Public Safety'); // Hiligaynon
+categoryClassifier.addDocument('guba nga pader graffiti', 'Public Safety'); // Hiligaynon
 categoryClassifier.addDocument(
-  'police cruiser fire engine ambulance patrol car weapon dog',
+  'dog fence wall gate sign',
   'Public Safety',
 ); // Visual
 
@@ -108,10 +105,10 @@ categoryClassifier.train();
 
 // ─── Train Priority Classifier ────────────────────────────────────────────────
 // High (English, Tagalog, Hiligaynon)
-priorityClassifier.addDocument('water pipe burst flooding massive sinkhole fire', 'High');
-priorityClassifier.addDocument('someone is breaking in robbery assault', 'High');
-priorityClassifier.addDocument('baha magnanakaw patay sunog', 'High'); // Tagalog
-priorityClassifier.addDocument('kawatan baha sunog patay', 'High'); // Hiligaynon
+priorityClassifier.addDocument('water pipe burst severe flooding sinkhole', 'High');
+priorityClassifier.addDocument('impassable road live wire fallen post', 'High');
+priorityClassifier.addDocument('malalim na baha harang sa kalsada', 'High'); // Tagalog
+priorityClassifier.addDocument('naglapaw tubig nd maagyan dalan', 'High'); // Hiligaynon
 
 // Medium (English, Tagalog, Hiligaynon)
 priorityClassifier.addDocument('garbage not collected pothole damaged sidewalk', 'Medium');
@@ -150,62 +147,45 @@ const analyzeConcern = (text, imageTags = []) => {
 
 // ─── Feature 2: Sentiment & Urgency Detection ───────────────────────────────
 
-// Urgency keywords (English, Tagalog, Hiligaynon)
+// Urgency keywords (English, Tagalog, Hiligaynon) for NON-EMERGENCY municipal context
 const URGENCY_KEYWORDS = {
   critical: {
     weight: 30,
     words: [
       // English
-      'emergency',
-      'urgent',
-      'danger',
-      'critical',
-      'life-threatening',
-      'death',
-      'dying',
-      'dead',
-      'collapse',
+      'sinkhole',
+      'impassable',
+      'blocked',
+      'hazardous',
+      'toxic',
+      'citywide',
+      'outage',
+      'no water for days',
+      'completely dark',
+      'live wire',
+      'sparks',
       'collapsed',
-      'fire',
-      'flood',
-      'trapped',
-      'drowning',
-      'explosion',
-      'injury',
-      'injured',
-      'help us',
-      'please help',
-      'need immediate',
-      'save us',
-      'children sick',
-      'kids are sick',
+      'severe flooding',
+      'overflowing',
       // Tagalog
-      'emerhensya',
-      'tulong',
-      'namatay',
-      'patay',
-      'sunog',
-      'baha',
-      'nasugatan',
-      'naaksidente',
-      'nanganganib',
+      'hindi madaanan',
+      'harang',
       'delikado',
-      'tulungan nyo kami',
-      'saklolo',
+      'walang tubig ilang araw',
+      'walang kuryente',
+      'grounded',
+      'bumagsak',
+      'baha hanggang binti',
+      'umaapaw',
       // Hiligaynon / Kabankalan local
-      'bulig',
-      'napatay',
-      'kalayo',
-      'grabe',
-      'peligro',
-      'naguba',
-      'nasamad',
-      'buligan kami',
-      'makahahadlok',
-      'dali',
-      'apura',
+      'nd maagyan',
+      'delikado',
+      'wala gid tubig',
+      'grabe nga brownout',
+      'naguba gid',
       'naglapaw ang tubig',
-      'anod',
+      'baha katama',
+      'grabe',
     ],
   },
   frustrated: {
@@ -435,9 +415,14 @@ const analyzeFullConcern = async (text, imageTags = []) => {
 
     Output a strictly valid JSON object with these keys:
     - "category": Must be exactly one of: "Road & Infrastructure", "Electricity", "Water & Drainage", "Waste & Sanitation", "Public Safety", "Other".
-    - "priority": Must be exactly one of: "Low", "Medium", "High". Use High for flooding, critical danger, or severe infrastructure collapse.
+    - "priority": Must be exactly one of: "Low", "Medium", "High". Use High for severe infrastructure damage, health hazards, or widespread disruption.
     - "sentiment": Must be exactly one of: "neutral", "concerned", "frustrated", "urgent".
-    - "urgencyScore": A number from 0 to 100 based on the danger level. 85+ is High priority.
+    - "urgencyScore": A number from 0 to 100 representing the absolute urgency within a NON-EMERGENCY municipal context. Use this Advanced Evaluation Matrix:
+        * 90-100: Severe Infrastructure / Health Hazard (e.g., massive sinkholes, exposed live wires in public, week-long citywide water/power loss).
+        * 75-89: High Impact / Widespread Disruption (e.g., completely impassable local road, severe localized flooding, hazardous illegal dumping).
+        * 50-74: Moderate / Localized Nuisance (e.g., deep potholes, broken streetlights, aggressive stray dogs, uncollected garbage).
+        * 20-49: Low / Minor Nuisance (e.g., mild noise complaints, graffiti, minor sidewalk cracks, scattered trash).
+        * AI MODIFIER: Factor in the user's text sentiment. If the user expresses extreme frustration (e.g., reported multiple times, fed up) or emphasizes severity in ALL CAPS, ADD +10 to +15 to the base score. Cap at 100.
     
     Return ONLY JSON. No markdown.
     `;
