@@ -15,6 +15,7 @@ const {
   generateAiResponse,
   getSimilarConcerns,
   linkConcerns,
+  analyzeConcernDraft,
 } = require('../controllers/concerns.controller');
 
 // ─── List all concerns (auth required, cached 60s) ────────────────────────────
@@ -25,6 +26,9 @@ router.get('/:id', auth, validateIdParam, cacheMiddleware('concern_detail', 60),
 
 // ─── Submit new concern ───────────────────────────────────────────────────────
 router.post('/', auth, upload.single('image'), validateConcern, createConcern);
+
+// ─── AI Pre-submission Check ──────────────────────────────────────────────────
+router.post('/analyze', auth, analyzeConcernDraft);
 
 // ─── Update concern (admin only: status, admin_note) ──────────────────────────
 router.put('/:id', auth, requireRole('admin'), validateIdParam, editConcern);

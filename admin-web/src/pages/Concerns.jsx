@@ -3,6 +3,7 @@ import { api, fmtDateShort } from '../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import s from '../styles/Admin.module.css';
+import cStyles from '../styles/Concerns.module.css';
 import Pagination, { useFitPagination } from '../components/Pagination';
 import Skeleton from '../components/Skeleton';
 
@@ -81,13 +82,15 @@ export default function Concerns() {
     })
     .sort((a, b) => new Date(b.latest) - new Date(a.latest));
 
-  const filteredConcerns = (viewMode === 'tickets' ? concerns : (selectedCitizen?.concerns || []))
+  const filteredConcerns = (viewMode === 'tickets' ? concerns : selectedCitizen?.concerns || [])
     .filter((c) => {
       const s = search.toLowerCase();
-      const matchesSearch = !s || 
-        c.title?.toLowerCase().includes(s) || 
+      const matchesSearch =
+        !s ||
+        c.title?.toLowerCase().includes(s) ||
         c.category?.toLowerCase().includes(s) ||
-        (viewMode === 'tickets' && (c.user_name?.toLowerCase().includes(s) || c.user_barangay?.toLowerCase().includes(s)));
+        (viewMode === 'tickets' &&
+          (c.user_name?.toLowerCase().includes(s) || c.user_barangay?.toLowerCase().includes(s)));
 
       return (
         matchesSearch &&
@@ -134,14 +137,32 @@ export default function Concerns() {
           <p className={s.pageSubtitle}>
             {selectedCitizen
               ? `${filteredConcerns.length} concerns found for this citizen`
-              : viewMode === 'tickets' ? `${filteredConcerns.length} concerns city-wide` : `${citizensList.length} citizens with active concerns`}
+              : viewMode === 'tickets'
+                ? `${filteredConcerns.length} concerns city-wide`
+                : `${citizensList.length} citizens with active concerns`}
           </p>
         </div>
-        
+
         {!selectedCitizen && (
-          <div style={{ display: 'flex', background: 'var(--surface-2)', padding: 4, borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
-            <button className={`${s.btn} ${viewMode === 'tickets' ? s.btnPrimary : s.btnGhost}`} style={{ padding: '6px 16px', border: 'none', minWidth: 100 }} onClick={() => { setViewMode('tickets'); setConcernPage(1); }}>All Tickets</button>
-            <button className={`${s.btn} ${viewMode === 'citizens' ? s.btnPrimary : s.btnGhost}`} style={{ padding: '6px 16px', border: 'none', minWidth: 100 }} onClick={() => { setViewMode('citizens'); setCitizenPage(1); }}>By Citizen</button>
+          <div className={cStyles.viewToggle}>
+            <button
+              className={`${s.btn} ${viewMode === 'tickets' ? s.btnPrimary : s.btnGhost} ${cStyles.toggleBtn}`}
+              onClick={() => {
+                setViewMode('tickets');
+                setConcernPage(1);
+              }}
+            >
+              All Tickets
+            </button>
+            <button
+              className={`${s.btn} ${viewMode === 'citizens' ? s.btnPrimary : s.btnGhost} ${cStyles.toggleBtn}`}
+              onClick={() => {
+                setViewMode('citizens');
+                setCitizenPage(1);
+              }}
+            >
+              By Citizen
+            </button>
           </div>
         )}
 
@@ -166,7 +187,9 @@ export default function Concerns() {
             <input
               className={s.searchInput}
               placeholder={
-                viewMode === 'tickets' || selectedCitizen ? 'Search concerns or citizens...' : 'Search citizens or barangay...'
+                viewMode === 'tickets' || selectedCitizen
+                  ? 'Search concerns or citizens...'
+                  : 'Search citizens or barangay...'
               }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -177,12 +200,8 @@ export default function Concerns() {
               </button>
             )}
           </div>
-          { (selectedCitizen || viewMode === 'tickets') && (
-            <select
-              className={s.select}
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
+          {(selectedCitizen || viewMode === 'tickets') && (
+            <select className={s.select} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
               <option value="upvotes">Most Upvoted</option>
@@ -192,7 +211,7 @@ export default function Concerns() {
           )}
         </div>
 
-        { (selectedCitizen || viewMode === 'tickets') && (
+        {(selectedCitizen || viewMode === 'tickets') && (
           <>
             <div className={s.filterGroup}>
               <span className={s.filterGroupLabel}>Status:</span>
@@ -258,161 +277,237 @@ export default function Concerns() {
                     'Latest',
                     'Action',
                   ].map((h) => (
-                    <th key={h} className={s.th} style={['High', 'Medium', 'Low', 'Total', 'Resolved'].includes(h) ? { textAlign: 'center' } : {}}>
+                    <th
+                      key={h}
+                      className={`${s.th} ${['High', 'Medium', 'Low', 'Total', 'Resolved'].includes(h) ? cStyles.thCenter : ''}`}
+                    >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {loading ? (
-                  [1,2,3,4,5,6].map(i => (
-                    <tr key={i} className={s.tr}>
-                      <td className={s.td}><Skeleton height="20px" /></td>
-                      <td className={s.td}><Skeleton height="20px" /></td>
-                      <td className={s.td}><Skeleton height="20px" /></td>
-                      <td className={s.td}><Skeleton height="20px" /></td>
-                      <td className={s.td}><Skeleton height="20px" /></td>
-                      <td className={s.td}><Skeleton height="20px" /></td>
-                      <td className={s.td}><Skeleton height="20px" /></td>
-                      <td className={s.td}><Skeleton height="20px" /></td>
-                      <td className={s.td}><Skeleton height="32px" /></td>
-                    </tr>
-                  ))
-                ) : displayedCitizens.map((c) => (
-                  <tr
-                    key={c.id || c.name}
-                    className={s.tr}
-                    onClick={() => {
-                      setSelectedCitizen(c);
-                      setSearch('');
-                      setConcernPage(1);
-                    }}
-                  >
-                    <td className={s.td} style={{ color: 'var(--text-1)', fontWeight: 600 }}>
-                      {c.name}
-                    </td>
-                    <td className={s.td}>{c.barangay}</td>
-                    <td className={s.td} style={{ textAlign: 'center' }}>
-                      <span style={{ color: PRIORITY_COLORS.High }}>🔴 {c.High}</span>
-                    </td>
-                    <td className={s.td} style={{ textAlign: 'center' }}>
-                      <span style={{ color: PRIORITY_COLORS.Medium }}>🟡 {c.Medium}</span>
-                    </td>
-                    <td className={s.td} style={{ textAlign: 'center' }}>
-                      <span style={{ color: PRIORITY_COLORS.Low }}>🟢 {c.Low}</span>
-                    </td>
-                    <td className={s.td} style={{ fontWeight: 700, textAlign: 'center' }}>
-                      {c.total - c.Resolved}
-                    </td>
-                    <td className={s.td} style={{ fontWeight: 700, color: '#00D4AA', textAlign: 'center' }}>
-                      {c.Resolved}
-                    </td>
-                    <td className={s.td} style={{ fontSize: 12 }}>
-                      {fmtDateShort(c.latest)}
-                    </td>
-                    <td className={s.td}>
-                      <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}>View Concerns →</button>
-                    </td>
-                  </tr>
-                ))}
+                {loading
+                  ? [1, 2, 3, 4, 5, 6].map((i) => (
+                      <tr key={i} className={s.tr}>
+                        <td className={s.td}>
+                          <Skeleton height="20px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton height="20px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton height="20px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton height="20px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton height="20px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton height="20px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton height="20px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton height="20px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton height="32px" />
+                        </td>
+                      </tr>
+                    ))
+                  : displayedCitizens.map((c) => (
+                      <tr
+                        key={c.id || c.name}
+                        className={s.tr}
+                        onClick={() => {
+                          setSelectedCitizen(c);
+                          setSearch('');
+                          setConcernPage(1);
+                        }}
+                      >
+                        <td className={s.td}>
+                          <span className={cStyles.ticketUser}>{c.name}</span>
+                        </td>
+                        <td className={s.td}>{c.barangay}</td>
+                        <td className={`${s.td} ${cStyles.tdCenter}`}>
+                          <span style={{ color: PRIORITY_COLORS.High }}>🔴 {c.High}</span>
+                        </td>
+                        <td className={`${s.td} ${cStyles.tdCenter}`}>
+                          <span style={{ color: PRIORITY_COLORS.Medium }}>🟡 {c.Medium}</span>
+                        </td>
+                        <td className={`${s.td} ${cStyles.tdCenter}`}>
+                          <span style={{ color: PRIORITY_COLORS.Low }}>🟢 {c.Low}</span>
+                        </td>
+                        <td className={`${s.td} ${cStyles.tdCenter} ${cStyles.tdValue}`}>
+                          {c.total - c.Resolved}
+                        </td>
+                        <td
+                          className={`${s.td} ${cStyles.tdCenter} ${cStyles.tdValue}`}
+                          style={{ color: '#00D4AA' }}
+                        >
+                          {c.Resolved}
+                        </td>
+                        <td className={s.td} style={{ fontSize: 12 }}>
+                          {fmtDateShort(c.latest)}
+                        </td>
+                        <td className={s.td}>
+                          <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}>
+                            View Concerns →
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
               </tbody>
             </>
           ) : (
             <>
               <thead className={s.thead}>
                 <tr>
-                  {['Concern', ...(!selectedCitizen ? ['Citizen'] : []), 'Category', 'Priority', 'Status', 'Urgency', 'Date', 'Action'].map(
-                    (h) => (
-                      <th key={h} className={s.th}>
-                        {h}
-                      </th>
-                    ),
-                  )}
+                  {[
+                    'Concern',
+                    ...(!selectedCitizen ? ['Citizen'] : []),
+                    'Category',
+                    'Priority',
+                    'Status',
+                    'Urgency',
+                    'Date',
+                    'Action',
+                  ].map((h) => (
+                    <th key={h} className={s.th}>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {loading ? (
-                  [1,2,3,4,5,6].map(i => (
-                    <tr key={i} className={s.tr}>
-                      <td className={s.td}><Skeleton height="36px" /></td>
-                      {!selectedCitizen && <td className={s.td}><Skeleton height="36px" /></td>}
-                      <td className={s.td}><Skeleton height="24px" width="60px" /></td>
-                      <td className={s.td}><Skeleton height="24px" width="80px" /></td>
-                      <td className={s.td}><Skeleton height="24px" width="70px" /></td>
-                      <td className={s.td}><Skeleton height="20px" width="40px" /></td>
-                      <td className={s.td}><Skeleton height="20px" width="80px" /></td>
-                      <td className={s.td}><Skeleton height="32px" width="90px" /></td>
-                    </tr>
-                  ))
-                ) : displayedConcerns.map((c) => (
-                  <tr
-                    key={c.id}
-                    className={s.tr}
-                    onClick={() => navigate(`/concerns/${c.id}`)}
-                  >
-                    <td className={s.td}>
-                      <div style={{ color: 'var(--text-1)', fontWeight: 600, marginBottom: 2 }}>
-                        {c.title}
-                      </div>
-                      <div style={{ color: 'var(--text-3)', fontSize: 11 }}>
-                        {c.description?.slice(0, 55)}...
-                      </div>
-                    </td>
-                    {!selectedCitizen && (
-                      <td className={s.td}>
-                        <div style={{ fontWeight: 500, color: 'var(--text-1)' }}>{c.user_name || 'Anonymous'}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{c.user_barangay}</div>
-                      </td>
-                    )}
-                    <td className={s.td}>
-                      <span className={s.badge} style={{ background: "rgba(26,107,255,0.13)", color: "var(--primary-light)" }}>{c.category?.split(' ')[0]}</span>
-                    </td>
-                    <td className={s.td}>
-                      <span
-                        className={s.badge}
-                        style={{
-                          color: PRIORITY_COLORS[c.priority],
-                          backgroundColor: (PRIORITY_COLORS[c.priority] || '#8899BB') + '22',
-                        }}
-                      >
-                        {c.priority === 'High' ? '🔴' : c.priority === 'Medium' ? '🟡' : '🟢'}{' '}
-                        {c.priority}
-                      </span>
-                    </td>
-                    <td className={s.td}>
-                      <span
-                        className={s.badge}
-                        style={{
-                          color: STATUS_COLORS[c.status],
-                          backgroundColor: (STATUS_COLORS[c.status] || '#8899BB') + '22',
-                        }}
-                      >
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className={s.td}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 12 }}>{SENTIMENT_EMOJI[c.sentiment] || '😐'}</span>
-                        <div style={{ width: 40, height: 5, background: 'var(--surface-3)', borderRadius: 99, overflow: 'hidden' }}>
-                          <div style={{ height: 5, borderRadius: 99, width: `${c.urgency_score || 50}%`, background: (c.urgency_score || 50) >= 80 ? '#FF4444' : (c.urgency_score || 50) >= 60 ? '#FFB800' : '#00D4AA' }} />
-                        </div>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: (c.urgency_score || 50) >= 80 ? '#FF4444' : (c.urgency_score || 50) >= 60 ? '#FFB800' : '#00D4AA' }}>{c.urgency_score || 50}</span>
-                      </div>
-                    </td>
-                    <td className={s.td} style={{ fontSize: 12 }}>
-                      {fmtDateShort(c.created_at)}
-                    </td>
-                    <td className={s.td}>
-                      <button
-                        className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
-                        onClick={() => navigate(`/concerns/${c.id}`)}
-                      >
-                        Review →
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {loading
+                  ? [1, 2, 3, 4, 5, 6].map((i) => (
+                      <tr key={i} className={s.tr}>
+                        <td className={s.td}>
+                          <Skeleton height="36px" />
+                        </td>
+                        {!selectedCitizen && (
+                          <td className={s.td}>
+                            <Skeleton height="36px" />
+                          </td>
+                        )}
+                        <td className={s.td}>
+                          <Skeleton height="24px" width="60px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton height="24px" width="80px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton height="24px" width="70px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton height="20px" width="40px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton height="20px" width="80px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton height="32px" width="90px" />
+                        </td>
+                      </tr>
+                    ))
+                  : displayedConcerns.map((c) => (
+                      <tr key={c.id} className={s.tr} onClick={() => navigate(`/concerns/${c.id}`)}>
+                        <td className={s.td}>
+                          <div className={cStyles.ticketTitle}>{c.title}</div>
+                          <div className={cStyles.ticketDesc}>{c.description?.slice(0, 55)}...</div>
+                        </td>
+                        {!selectedCitizen && (
+                          <td className={s.td}>
+                            <div className={cStyles.ticketUser}>{c.user_name || 'Anonymous'}</div>
+                            <div className={cStyles.ticketBarangay}>{c.user_barangay}</div>
+                          </td>
+                        )}
+                        <td className={s.td}>
+                          <span
+                            className={s.badge}
+                            style={{
+                              background: 'rgba(26,107,255,0.13)',
+                              color: 'var(--primary-light)',
+                            }}
+                          >
+                            {c.category?.split(' ')[0]}
+                          </span>
+                        </td>
+                        <td className={s.td}>
+                          <span
+                            className={s.badge}
+                            style={{
+                              color: PRIORITY_COLORS[c.priority],
+                              backgroundColor: (PRIORITY_COLORS[c.priority] || '#8899BB') + '22',
+                            }}
+                          >
+                            {c.priority === 'High' ? '🔴' : c.priority === 'Medium' ? '🟡' : '🟢'}{' '}
+                            {c.priority}
+                          </span>
+                        </td>
+                        <td className={s.td}>
+                          <span
+                            className={s.badge}
+                            style={{
+                              color: STATUS_COLORS[c.status],
+                              backgroundColor: (STATUS_COLORS[c.status] || '#8899BB') + '22',
+                            }}
+                          >
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className={s.td}>
+                          <div className={cStyles.sentimentWrap}>
+                            <span className={cStyles.sentimentEmoji}>
+                              {SENTIMENT_EMOJI[c.sentiment] || '😐'}
+                            </span>
+                            <div className={cStyles.urgencyTrack}>
+                              <div
+                                className={cStyles.urgencyFill}
+                                style={{
+                                  width: `${c.urgency_score || 50}%`,
+                                  background:
+                                    (c.urgency_score || 50) >= 80
+                                      ? '#FF4444'
+                                      : (c.urgency_score || 50) >= 60
+                                        ? '#FFB800'
+                                        : '#00D4AA',
+                                }}
+                              />
+                            </div>
+                            <span
+                              className={cStyles.urgencyScore}
+                              style={{
+                                color:
+                                  (c.urgency_score || 50) >= 80
+                                    ? '#FF4444'
+                                    : (c.urgency_score || 50) >= 60
+                                      ? '#FFB800'
+                                      : '#00D4AA',
+                              }}
+                            >
+                              {c.urgency_score || 50}
+                            </span>
+                          </div>
+                        </td>
+                        <td className={s.td} style={{ fontSize: 12 }}>
+                          {fmtDateShort(c.created_at)}
+                        </td>
+                        <td className={s.td}>
+                          <button
+                            className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
+                            onClick={() => navigate(`/concerns/${c.id}`)}
+                          >
+                            Review →
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
               </tbody>
             </>
           )}
@@ -426,9 +521,17 @@ export default function Concerns() {
 
         <Pagination
           page={!selectedCitizen && viewMode === 'citizens' ? citizenPage : concernPage}
-          totalPages={!selectedCitizen && viewMode === 'citizens' ? totalCitizenPages : totalConcernPages}
-          onPageChange={!selectedCitizen && viewMode === 'citizens' ? setCitizenPage : setConcernPage}
-          totalItems={!selectedCitizen && viewMode === 'citizens' ? citizensList.length : filteredConcerns.length}
+          totalPages={
+            !selectedCitizen && viewMode === 'citizens' ? totalCitizenPages : totalConcernPages
+          }
+          onPageChange={
+            !selectedCitizen && viewMode === 'citizens' ? setCitizenPage : setConcernPage
+          }
+          totalItems={
+            !selectedCitizen && viewMode === 'citizens'
+              ? citizensList.length
+              : filteredConcerns.length
+          }
           itemsPerPage={itemsPerPage}
         />
       </div>

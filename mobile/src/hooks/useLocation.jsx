@@ -37,7 +37,8 @@ export function useLocation() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        if (showErrors) Alert.alert(t('error') || 'Permission required', 'Please allow location access.');
+        if (showErrors)
+          Alert.alert(t('error') || 'Permission required', 'Please allow location access.');
         return null;
       }
       const loc = await Location.getCurrentPositionAsync({

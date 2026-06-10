@@ -1,0 +1,107 @@
+.statRow {
+  display: flex;
+  gap: 10px;
+}
+
+.tableAvatarWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tableAvatarInfo {
+  font-weight: 600;
+  color: var(--text-1);
+  font-size: 13px;
+}
+
+.tableAvatarEmail {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 1px;
+}
+
+.sidePanelHeader {
+  padding: 16px 16px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.sidePanelNameWrap {
+  padding: 0 16px 14px;
+}
+
+.sidePanelName {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 16px 14px;
+}
+
+.metricCard {
+  background: var(--surface-3);
+  border-radius: var(--r-md);
+  padding: 12px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+.metricValue {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.metricLabel {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 3px;
+}
+
+.recentSection {
+  padding: 0 16px 16px;
+}
+
+.recentTitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.recentItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+}
+
+.recentItemTitle {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.recentItemMeta {
+  font-size: 10px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+.recentEmpty {
+  color: var(--text-3);
+  font-size: 12px;
+  text-align: center;
+  padding: 12px;
+}

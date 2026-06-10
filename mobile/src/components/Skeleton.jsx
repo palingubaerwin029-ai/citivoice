@@ -20,7 +20,7 @@ export default function Skeleton({ width, height, borderRadius = RADIUS.md, styl
           duration: 1000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
   }, [animatedValue]);
 

@@ -3,7 +3,8 @@ export const translations = {
     // App
     appName: 'CitiVoice',
     tagline: 'Your voice. Your community.',
-    cityDescription: 'Inspired by the golden sun of our democracy and the green growth of the Bangkal tree, CitiVoice connects Kabankalanons to unity, progress, and sustainable civic action.',
+    cityDescription:
+      'Inspired by the golden sun of our democracy and the green growth of the Bangkal tree, CitiVoice connects Kabankalanons to unity, progress, and sustainable civic action.',
 
     // Auth
     login: 'Sign In',
@@ -56,7 +57,8 @@ export const translations = {
     category: 'Category',
     priority: 'Priority',
     description: 'Description',
-    descriptionPlaceholder: 'Describe the issue in detail. Include when it started, how it affects residents, etc.',
+    descriptionPlaceholder:
+      'Describe the issue in detail. Include when it started, how it affects residents, etc.',
     attachPhoto: 'Attach Photo',
     tapToAddPhoto: 'Tap to add photo',
     location: 'Location',
@@ -166,13 +168,15 @@ export const translations = {
     // New Keys
     joinCommunity: 'Join CitiVoice — Kabankalan City',
     verificationRequired: 'Verification Required',
-    verificationNotice: "Your uploaded ID will be automatically scanned. Ensure the name on your ID matches your registered name for instant verification. Manual review is required if the automatic scan fails.",
+    verificationNotice:
+      'Your uploaded ID will be automatically scanned. Ensure the name on your ID matches your registered name for instant verification. Manual review is required if the automatic scan fails.',
   },
 
   fil: {
     appName: 'CitiVoice',
     tagline: 'Ang iyong boses. Ang iyong komunidad.',
-    cityDescription: 'Dinasig ng gintong araw ng ating demokrasya at luntiang paglago ng puno ng Bangkal, pinag-uugnay ng CitiVoice ang mga Kabankalanon tungo sa pagkakaisa, pag-unlad, at napapanatiling pagkilos.',
+    cityDescription:
+      'Dinasig ng gintong araw ng ating demokrasya at luntiang paglago ng puno ng Bangkal, pinag-uugnay ng CitiVoice ang mga Kabankalanon tungo sa pagkakaisa, pag-unlad, at napapanatiling pagkilos.',
 
     login: 'Mag-sign In',
     register: 'Gumawa ng Account',
@@ -188,7 +192,8 @@ export const translations = {
     signOutConfirm: 'Sigurado ka bang gusto mong mag-sign out?',
     welcomeBack: 'Maligayang pagbabalik',
     signInSubtitle: 'Mag-sign in sa iyong account',
-    adminVerificationNote: 'Kailangan ng pagpapatunay ng admin sa mga bagong account bago ma-access.',
+    adminVerificationNote:
+      'Kailangan ng pagpapatunay ng admin sa mga bagong account bago ma-access.',
 
     goodMorning: 'Magandang umaga',
     goodAfternoon: 'Magandang hapon',
@@ -323,13 +328,15 @@ export const translations = {
 
     joinCommunity: 'Sumali sa CitiVoice — Kabankalan City',
     verificationRequired: 'Kinakailangan ang Pag-verify',
-    verificationNotice: 'Ang iyong na-upload na ID ay awtomatikong i-scan. Tiyaking ang pangalan sa ID ay tugma sa iyong rehistradong pangalan para sa mabilis na pag-verify.',
+    verificationNotice:
+      'Ang iyong na-upload na ID ay awtomatikong i-scan. Tiyaking ang pangalan sa ID ay tugma sa iyong rehistradong pangalan para sa mabilis na pag-verify.',
   },
 
   hil: {
     appName: 'CitiVoice',
     tagline: 'Ang imo tingog. Ang imo komunidad.',
-    cityDescription: 'Ginhimo ang CitiVoice para i-konek ang mga Kabankalanon. Tuyo sini nga magbinuligay ang tanan para sa pag-asenso sang aton syudad.',
+    cityDescription:
+      'Ginhimo ang CitiVoice para i-konek ang mga Kabankalanon. Tuyo sini nga magbinuligay ang tanan para sa pag-asenso sang aton syudad.',
 
     login: 'Mag-login',
     register: 'Himo Account',
@@ -480,7 +487,8 @@ export const translations = {
 
     joinCommunity: 'Sali na sa CitiVoice — Kabankalan City',
     verificationRequired: 'Kailangan i-verify',
-    verificationNotice: 'Awtomatiko nga i-scan ang imo ID. Siguraduha nga nagapareho ang imo ngalan sa ID kag ang imo gin-register nga ngalan para sa madasig nga pag-verify.',
+    verificationNotice:
+      'Awtomatiko nga i-scan ang imo ID. Siguraduha nga nagapareho ang imo ngalan sa ID kag ang imo gin-register nga ngalan para sa madasig nga pag-verify.',
   },
 };
 

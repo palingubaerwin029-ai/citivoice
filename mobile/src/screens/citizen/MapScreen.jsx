@@ -1,7 +1,13 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  Dimensions, ActivityIndicator, Platform,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Dimensions,
+  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -37,8 +43,8 @@ const getJitteredCoord = (lat, lng, id) => {
   const angle = id * 2.39996; // 137.5 degrees (Golden Angle) in radians
   const radius = 0.0015; // Increased to 150m so it's visible even when zoomed out
   return {
-    lat: lat + (Math.sin(angle) * radius),
-    lng: lng + (Math.cos(angle) * radius)
+    lat: lat + Math.sin(angle) * radius,
+    lng: lng + Math.cos(angle) * radius,
   };
 };
 
@@ -51,7 +57,7 @@ const STATUS_FILTER_KEYS = [
 
 export default function MapScreen({ navigation }) {
   const { colors, theme } = useTheme();
-  
+
   const PIN_COLORS = {
     Pending: colors.statusPending,
     'In Progress': colors.statusInProgress,
@@ -91,17 +97,20 @@ export default function MapScreen({ navigation }) {
   const goToMyLocation = async () => {
     const loc = await getCurrentLocation(true);
     if (!loc) return;
-    
-    mapRef.current?.animateToRegion({
-      latitude: loc.coords.latitude,
-      longitude: loc.coords.longitude,
-      latitudeDelta: 0.005,
-      longitudeDelta: 0.005,
-    }, 800);
+
+    mapRef.current?.animateToRegion(
+      {
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      },
+      800,
+    );
   };
 
   // Filter and validate concerns that have valid coordinates
-  const pinnable = concerns.filter(c => {
+  const pinnable = concerns.filter((c) => {
     const lat = safeCoord(c.location_lat);
     const lng = safeCoord(c.location_lng);
     if (lat === null || lng === null) return false;
@@ -114,12 +123,15 @@ export default function MapScreen({ navigation }) {
     const rawLat = safeCoord(concern.location_lat);
     const rawLng = safeCoord(concern.location_lng);
     if (rawLat !== null && rawLng !== null) {
-      mapRef.current?.animateToRegion({
-        latitude: rawLat,
-        longitude: rawLng,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      }, 400);
+      mapRef.current?.animateToRegion(
+        {
+          latitude: rawLat,
+          longitude: rawLng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        },
+        400,
+      );
     }
   }, []);
 
@@ -159,36 +171,42 @@ export default function MapScreen({ navigation }) {
               }}
               onPress={onPress}
             >
-              <View style={[styles.clusterMarker, { backgroundColor: colors.primary, borderColor: colors.primaryLight }]}>
-                <Text style={styles.clusterText}>
-                  {points}
-                </Text>
+              <View
+                style={[
+                  styles.clusterMarker,
+                  { backgroundColor: colors.primary, borderColor: colors.primaryLight },
+                ]}
+              >
+                <Text style={styles.clusterText}>{points}</Text>
               </View>
             </Marker>
           );
         }}
       >
-        {mapReady && pinnable.map(c => {
-          const rawLat = safeCoord(c.location_lat);
-          const rawLng = safeCoord(c.location_lng);
-          if (rawLat === null || rawLng === null) return null;
-          const { lat, lng } = getJitteredCoord(rawLat, rawLng, c.id);
-          return (
-            <Marker
-              key={c.id}
-              coordinate={{ latitude: lat, longitude: lng }}
-              onPress={() => handleMarkerPress(c)}
-            >
-              <View style={[styles.markerPin, { backgroundColor: PIN_COLORS[c.status] || '#8899BB' }]}>
-                <Ionicons
-                  name={getCategoryConfig(colors)[c.category]?.icon || 'alert-circle'}
-                  size={14}
-                  color="#fff"
-                />
-              </View>
-            </Marker>
-          );
-        })}
+        {mapReady &&
+          pinnable.map((c) => {
+            const rawLat = safeCoord(c.location_lat);
+            const rawLng = safeCoord(c.location_lng);
+            if (rawLat === null || rawLng === null) return null;
+            const { lat, lng } = getJitteredCoord(rawLat, rawLng, c.id);
+            return (
+              <Marker
+                key={c.id}
+                coordinate={{ latitude: lat, longitude: lng }}
+                onPress={() => handleMarkerPress(c)}
+              >
+                <View
+                  style={[styles.markerPin, { backgroundColor: PIN_COLORS[c.status] || '#8899BB' }]}
+                >
+                  <Ionicons
+                    name={getCategoryConfig(colors)[c.category]?.icon || 'alert-circle'}
+                    size={14}
+                    color="#fff"
+                  />
+                </View>
+              </Marker>
+            );
+          })}
 
         {/* The Exact True Location of the Selected Concern */}
         {selectedConcern && safeCoord(selectedConcern.location_lat) !== null && (
@@ -209,7 +227,11 @@ export default function MapScreen({ navigation }) {
 
       {/* ── Status Bar Background Gradient ── */}
       <LinearGradient
-        colors={theme === 'dark' ? ['rgba(10,22,40,0.8)', 'transparent'] : ['rgba(255,255,255,0.8)', 'transparent']}
+        colors={
+          theme === 'dark'
+            ? ['rgba(10,22,40,0.8)', 'transparent']
+            : ['rgba(255,255,255,0.8)', 'transparent']
+        }
         style={styles.statusBarGradient}
         pointerEvents="none"
       />
@@ -218,24 +240,54 @@ export default function MapScreen({ navigation }) {
       <SafeAreaView style={styles.headerOverlay} edges={['top']} pointerEvents="box-none">
         {/* Filter Pills */}
         <View style={styles.filterContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-            {STATUS_FILTER_KEYS.map(f => {
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterRow}
+          >
+            {STATUS_FILTER_KEYS.map((f) => {
               const active = statusFilter === f.key;
               const color = getStatusConfig(colors)[f.key]?.color || colors.primary;
-              const count = f.key === 'All'
-                ? concerns.length
-                : concerns.filter(c => c.status === f.key).length;
+              const count =
+                f.key === 'All'
+                  ? concerns.length
+                  : concerns.filter((c) => c.status === f.key).length;
               return (
                 <TouchableOpacity
                   key={f.key}
-                  style={[styles.filterChip, { backgroundColor: colors.bgCard + 'F0', borderColor: colors.border }, active && { backgroundColor: color, borderColor: color }]}
-                  onPress={() => { setStatusFilter(f.key); setSelectedConcern(null); }}
+                  style={[
+                    styles.filterChip,
+                    { backgroundColor: colors.bgCard + 'F0', borderColor: colors.border },
+                    active && { backgroundColor: color, borderColor: color },
+                  ]}
+                  onPress={() => {
+                    setStatusFilter(f.key);
+                    setSelectedConcern(null);
+                  }}
                 >
-                  <Text style={[styles.filterText, { color: colors.textPrimary }, active && { color: '#fff' }]}>
+                  <Text
+                    style={[
+                      styles.filterText,
+                      { color: colors.textPrimary },
+                      active && { color: '#fff' },
+                    ]}
+                  >
                     {t(f.tKey)}
                   </Text>
-                  <View style={[styles.filterCount, { backgroundColor: colors.bgCardAlt }, active && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-                    <Text style={[styles.filterCountText, { color: colors.textMuted }, active && { color: '#fff' }]}>
+                  <View
+                    style={[
+                      styles.filterCount,
+                      { backgroundColor: colors.bgCardAlt },
+                      active && { backgroundColor: 'rgba(255,255,255,0.25)' },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterCountText,
+                        { color: colors.textMuted },
+                        active && { color: '#fff' },
+                      ]}
+                    >
                       {count}
                     </Text>
                   </View>
@@ -246,7 +298,12 @@ export default function MapScreen({ navigation }) {
         </View>
 
         {/* Pinnable Count Badge */}
-        <View style={[styles.countBadge, { backgroundColor: colors.bgCard + 'F0', borderColor: colors.border }]}>
+        <View
+          style={[
+            styles.countBadge,
+            { backgroundColor: colors.bgCard + 'F0', borderColor: colors.border },
+          ]}
+        >
           <Ionicons name="location" size={14} color={colors.primary} />
           <Text style={[styles.countText, { color: colors.textPrimary }]}>
             {pinnable.length} {t('reports')}
@@ -256,10 +313,17 @@ export default function MapScreen({ navigation }) {
 
       {/* 🗺️ Map Type Toggle */}
       <TouchableOpacity
-        style={[styles.mapTypeToggle, { backgroundColor: colors.bgCard + 'F0', borderColor: colors.border }]}
+        style={[
+          styles.mapTypeToggle,
+          { backgroundColor: colors.bgCard + 'F0', borderColor: colors.border },
+        ]}
         onPress={toggleMapType}
       >
-        <Ionicons name={mapType === 'standard' ? 'earth' : 'map'} size={22} color={colors.primary} />
+        <Ionicons
+          name={mapType === 'standard' ? 'earth' : 'map'}
+          size={22}
+          color={colors.primary}
+        />
         <Text style={[styles.mapTypeToggleText, { color: colors.primary }]}>
           {mapType === 'standard' ? t('satellite') : t('standard')}
         </Text>
@@ -267,46 +331,76 @@ export default function MapScreen({ navigation }) {
 
       {/* 📍 Pinpoint Location Button */}
       <TouchableOpacity
-        style={[styles.myLocationBtn, { backgroundColor: colors.bgCard + 'F0', borderColor: colors.border }]}
+        style={[
+          styles.myLocationBtn,
+          { backgroundColor: colors.bgCard + 'F0', borderColor: colors.border },
+        ]}
         onPress={goToMyLocation}
         disabled={loadingLocation}
       >
-        {loadingLocation
-          ? <ActivityIndicator color={colors.primary} size="small" />
-          : <Ionicons name="locate" size={22} color={colors.primary} />
-        }
+        {loadingLocation ? (
+          <ActivityIndicator color={colors.primary} size="small" />
+        ) : (
+          <Ionicons name="locate" size={22} color={colors.primary} />
+        )}
       </TouchableOpacity>
 
       {/* Legend */}
-      <View style={[styles.legend, { backgroundColor: colors.bgCard + 'F5', borderColor: colors.border }]}>
-        {Object.entries(PIN_COLORS).slice(0, 3).map(([status, color]) => (
-          <View key={status} style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: color }]} />
-            <Text style={[styles.legendText, { color: colors.textPrimary }]}>
-              {status === 'In Progress' ? t('inProgress') : t(status.toLowerCase())}
-            </Text>
-          </View>
-        ))}
+      <View
+        style={[
+          styles.legend,
+          { backgroundColor: colors.bgCard + 'F5', borderColor: colors.border },
+        ]}
+      >
+        {Object.entries(PIN_COLORS)
+          .slice(0, 3)
+          .map(([status, color]) => (
+            <View key={status} style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: color }]} />
+              <Text style={[styles.legendText, { color: colors.textPrimary }]}>
+                {status === 'In Progress' ? t('inProgress') : t(status.toLowerCase())}
+              </Text>
+            </View>
+          ))}
       </View>
 
       {/* Selected Concern Bottom Sheet */}
       {selectedConcern && (
-        <View style={[styles.bottomSheet, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+        <View
+          style={[
+            styles.bottomSheet,
+            { backgroundColor: colors.bgCard, borderColor: colors.border },
+          ]}
+        >
           <View style={[styles.bottomSheetHandle, { backgroundColor: colors.border }]} />
           <View style={styles.bottomSheetContent}>
             <View style={styles.bsLeft}>
-              <View style={[styles.bsIcon, { backgroundColor: (getCategoryConfig(colors)[selectedConcern.category]?.bg || colors.bgCard) }]}>
+              <View
+                style={[
+                  styles.bsIcon,
+                  {
+                    backgroundColor:
+                      getCategoryConfig(colors)[selectedConcern.category]?.bg || colors.bgCard,
+                  },
+                ]}
+              >
                 <Ionicons
                   name={getCategoryConfig(colors)[selectedConcern.category]?.icon || 'alert-circle'}
                   size={22}
-                  color={getCategoryConfig(colors)[selectedConcern.category]?.color || colors.primary}
+                  color={
+                    getCategoryConfig(colors)[selectedConcern.category]?.color || colors.primary
+                  }
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.bsTitle, { color: colors.textPrimary }]} numberOfLines={2}>{selectedConcern.title}</Text>
+                <Text style={[styles.bsTitle, { color: colors.textPrimary }]} numberOfLines={2}>
+                  {selectedConcern.title}
+                </Text>
                 <View style={styles.bsMeta}>
                   <StatusBadge status={selectedConcern.status} />
-                  <Text style={[styles.bsVotes, { color: colors.textMuted }]}>👍 {selectedConcern.upvotes || 0}</Text>
+                  <Text style={[styles.bsVotes, { color: colors.textMuted }]}>
+                    👍 {selectedConcern.upvotes || 0}
+                  </Text>
                 </View>
                 {selectedConcern.location_address ? (
                   <Text style={[styles.bsLocation, { color: colors.textMuted }]} numberOfLines={1}>
@@ -314,7 +408,10 @@ export default function MapScreen({ navigation }) {
                   </Text>
                 ) : null}
                 {selectedConcern.user_barangay ? (
-                  <Text style={[styles.bsBarangay, { color: colors.textSecondary }]} numberOfLines={1}>
+                  <Text
+                    style={[styles.bsBarangay, { color: colors.textSecondary }]}
+                    numberOfLines={1}
+                  >
                     🏘️ {selectedConcern.user_barangay}
                   </Text>
                 ) : null}
@@ -322,10 +419,19 @@ export default function MapScreen({ navigation }) {
             </View>
 
             <View style={styles.bsActions}>
-              <TouchableOpacity style={[styles.viewBtn, { backgroundColor: colors.primary }]} onPress={handleViewDetail}>
+              <TouchableOpacity
+                style={[styles.viewBtn, { backgroundColor: colors.primary }]}
+                onPress={handleViewDetail}
+              >
                 <Ionicons name="arrow-forward" size={16} color="#fff" />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.closeBtn, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]} onPress={handleDismiss}>
+              <TouchableOpacity
+                style={[
+                  styles.closeBtn,
+                  { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                ]}
+                onPress={handleDismiss}
+              >
                 <Ionicons name="close" size={16} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
@@ -348,33 +454,54 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
 
   statusBarGradient: {
-    position: 'absolute', top: 0, left: 0, right: 0,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     height: verticalScale(100),
     zIndex: 1,
   },
 
   markerPin: {
-    width: scale(32), height: scale(32), borderRadius: scale(16),
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2.5, borderColor: '#fff',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3, shadowRadius: 4, elevation: 5,
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2.5,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  
+
   clusterMarker: {
-    width: scale(40), height: scale(40), borderRadius: scale(20),
-    alignItems: 'center', justifyContent: 'center',
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(20),
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 3,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4, shadowRadius: 5, elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    elevation: 6,
   },
   clusterText: {
-    color: '#fff', fontSize: rf(14), fontWeight: '800',
+    color: '#fff',
+    fontSize: rf(14),
+    fontWeight: '800',
   },
 
   // ── Header overlay ──
   headerOverlay: {
-    position: 'absolute', top: 0, left: 0, right: 0,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     pointerEvents: 'box-none',
     zIndex: 2,
   },
@@ -384,132 +511,220 @@ const styles = StyleSheet.create({
   },
   filterRow: { flexDirection: 'row', gap: scale(8), paddingRight: scale(12) },
   filterChip: {
-    flexDirection: 'row', alignItems: 'center', gap: scale(6),
-    paddingHorizontal: scale(14), paddingVertical: verticalScale(9), borderRadius: moderateScale(22),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(9),
+    borderRadius: moderateScale(22),
     borderWidth: 1,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4 },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+      },
       android: { elevation: 4 },
     }),
   },
   filterText: { fontSize: rf(12), fontWeight: '700' },
-  filterCount: { borderRadius: moderateScale(10), paddingHorizontal: scale(7), paddingVertical: verticalScale(1) },
+  filterCount: {
+    borderRadius: moderateScale(10),
+    paddingHorizontal: scale(7),
+    paddingVertical: verticalScale(1),
+  },
   filterCountText: { fontSize: rf(10), fontWeight: '800' },
 
   countBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: scale(5),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(5),
     alignSelf: 'flex-start',
-    marginLeft: scale(14), marginTop: verticalScale(10),
+    marginLeft: scale(14),
+    marginTop: verticalScale(10),
     borderRadius: moderateScale(16),
-    paddingHorizontal: scale(12), paddingVertical: verticalScale(6),
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(6),
     borderWidth: 1,
   },
   countText: { fontSize: rf(12), fontWeight: '700' },
 
   // ── Controls ──
   mapTypeToggle: {
-    position: 'absolute', top: verticalScale(140), right: scale(12),
+    position: 'absolute',
+    top: verticalScale(140),
+    right: scale(12),
     borderRadius: moderateScale(14),
-    padding: scale(10), alignItems: 'center', justifyContent: 'center',
+    padding: scale(10),
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     gap: verticalScale(3),
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4 },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+      },
       android: { elevation: 4 },
     }),
   },
   mapTypeToggleText: {
-    fontSize: rf(9), fontWeight: '800', textTransform: 'uppercase',
+    fontSize: rf(9),
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
 
   myLocationBtn: {
-    position: 'absolute', top: verticalScale(200), right: scale(12),
+    position: 'absolute',
+    top: verticalScale(200),
+    right: scale(12),
     borderRadius: moderateScale(14),
-    width: moderateScale(46), height: moderateScale(46),
-    alignItems: 'center', justifyContent: 'center',
+    width: moderateScale(46),
+    height: moderateScale(46),
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4 },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+      },
       android: { elevation: 4 },
     }),
   },
 
   // ── Legend ──
   legend: {
-    position: 'absolute', bottom: verticalScale(24), left: scale(12),
+    position: 'absolute',
+    bottom: verticalScale(24),
+    left: scale(12),
     borderRadius: moderateScale(14),
-    paddingHorizontal: scale(12), paddingVertical: scale(10), gap: scale(6),
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(10),
+    gap: scale(6),
     borderWidth: 1,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
       android: { elevation: 5 },
     }),
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: scale(6) },
   legendDot: {
-    width: scale(10), height: scale(10), borderRadius: scale(5),
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)',
+    width: scale(10),
+    height: scale(10),
+    borderRadius: scale(5),
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   legendText: { fontSize: rf(11), fontWeight: '600' },
 
   // ── Bottom Sheet ──
   bottomSheet: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    borderTopLeftRadius: moderateScale(20), borderTopRightRadius: moderateScale(20),
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: moderateScale(20),
+    borderTopRightRadius: moderateScale(20),
     borderTopWidth: 1,
-    paddingBottom: verticalScale(36), paddingTop: verticalScale(12),
+    paddingBottom: verticalScale(36),
+    paddingTop: verticalScale(12),
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 8 },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
       android: { elevation: 10 },
     }),
   },
   bottomSheetHandle: {
-    width: scale(36), height: verticalScale(4),
-    borderRadius: scale(2), alignSelf: 'center', marginBottom: verticalScale(14),
+    width: scale(36),
+    height: verticalScale(4),
+    borderRadius: scale(2),
+    alignSelf: 'center',
+    marginBottom: verticalScale(14),
   },
   bottomSheetContent: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: scale(16), gap: scale(12),
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: scale(16),
+    gap: scale(12),
   },
   bsLeft: { flex: 1, flexDirection: 'row', gap: scale(12), alignItems: 'flex-start' },
   bsIcon: {
-    width: scale(44), height: scale(44), borderRadius: moderateScale(12),
-    alignItems: 'center', justifyContent: 'center',
+    width: scale(44),
+    height: scale(44),
+    borderRadius: moderateScale(12),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bsTitle: { fontSize: rf(15), fontWeight: '700', marginBottom: verticalScale(5) },
-  bsMeta: { flexDirection: 'row', alignItems: 'center', gap: scale(8), marginBottom: verticalScale(4) },
+  bsMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+    marginBottom: verticalScale(4),
+  },
   bsVotes: { fontSize: rf(12) },
   bsLocation: { fontSize: rf(11), marginBottom: verticalScale(2) },
   bsBarangay: { fontSize: rf(11) },
   bsActions: { gap: verticalScale(8) },
   viewBtn: {
-    width: scale(38), height: scale(38), borderRadius: moderateScale(10),
-    alignItems: 'center', justifyContent: 'center',
+    width: scale(38),
+    height: scale(38),
+    borderRadius: moderateScale(10),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   closeBtn: {
-    width: scale(38), height: scale(38), borderRadius: moderateScale(10),
-    alignItems: 'center', justifyContent: 'center',
+    width: scale(38),
+    height: scale(38),
+    borderRadius: moderateScale(10),
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
   },
 
   // ── Exact Location Pin ──
   exactLocationPulse: {
-    width: scale(36), height: scale(36), borderRadius: scale(18),
+    width: scale(36),
+    height: scale(36),
+    borderRadius: scale(18),
     backgroundColor: 'rgba(239, 68, 68, 0.25)', // Red pulse
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   exactLocationDot: {
-    width: scale(12), height: scale(12), borderRadius: scale(6),
+    width: scale(12),
+    height: scale(12),
+    borderRadius: scale(6),
     backgroundColor: '#EF4444',
-    borderWidth: 2, borderColor: '#fff',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4, shadowRadius: 3, elevation: 5,
+    borderWidth: 2,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 3,
+    elevation: 5,
   },
 
   // ── Loading ──
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(10,22,40,0.4)',
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

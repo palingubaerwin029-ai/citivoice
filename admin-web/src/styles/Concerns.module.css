@@ -1,0 +1,74 @@
+.viewToggle {
+  display: flex;
+  background: var(--surface-2);
+  padding: 4px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+}
+
+.toggleBtn {
+  padding: 6px 16px !important;
+  border: none !important;
+  min-width: 100px;
+}
+
+.sentimentWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sentimentEmoji {
+  font-size: 12px;
+}
+
+.urgencyTrack {
+  width: 40px;
+  height: 5px;
+  background: var(--surface-3);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.urgencyFill {
+  height: 5px;
+  border-radius: 99px;
+}
+
+.urgencyScore {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.thCenter {
+  text-align: center;
+}
+
+.tdCenter {
+  text-align: center;
+}
+
+.tdValue {
+  font-weight: 700;
+}
+
+.ticketTitle {
+  color: var(--text-1);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.ticketDesc {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.ticketUser {
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.ticketBarangay {
+  font-size: 11px;
+  color: var(--text-3);
+}

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 require('dotenv').config({ path: __dirname + '/../.env' });
 const readline = require('readline');
-const bcrypt   = require('bcryptjs');
-const pool     = require('../db');
+const bcrypt = require('bcryptjs');
+const pool = require('../db');
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 const ask = (q) => new Promise((resolve) => rl.question(q, resolve));
@@ -11,8 +11,8 @@ const ask = (q) => new Promise((resolve) => rl.question(q, resolve));
   try {
     console.log('\n🔧 CitiVoice — Admin Account Setup\n');
 
-    const name     = (await ask('Admin name  [Admin]: ')) || 'Admin';
-    const email    = (await ask('Admin email [admin@citivoice.gov.ph]: ')) || 'admin@citivoice.gov.ph';
+    const name = (await ask('Admin name  [Admin]: ')) || 'Admin';
+    const email = (await ask('Admin email [admin@citivoice.gov.ph]: ')) || 'admin@citivoice.gov.ph';
     const password = await ask('Admin password (min 8 chars): ');
 
     if (!password || password.length < 8) {
@@ -26,14 +26,14 @@ const ask = (q) => new Promise((resolve) => rl.question(q, resolve));
     if (existing.length) {
       await pool.query(
         'UPDATE users SET name = ?, password_hash = ?, role = ?, verification_status = ?, is_verified = 1, updated_at = NOW() WHERE email = ?',
-        [name, hash, 'admin', 'verified', email]
+        [name, hash, 'admin', 'verified', email],
       );
       console.log(`\n✅ Admin account updated: ${email}`);
     } else {
       await pool.query(
         `INSERT INTO users (name, email, password_hash, role, verification_status, is_verified, created_at, updated_at)
          VALUES (?, ?, ?, 'admin', 'verified', 1, NOW(), NOW())`,
-        [name, email, hash]
+        [name, email, hash],
       );
       console.log(`\n✅ Admin account created: ${email}`);
     }

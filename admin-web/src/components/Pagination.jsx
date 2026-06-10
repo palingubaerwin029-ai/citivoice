@@ -54,7 +54,7 @@ export default function Pagination({
     pages.push(1);
     if (page > 4) pages.push('…left');
     const start = Math.max(2, page - 1);
-    const end   = Math.min(totalPages - 1, page + 1);
+    const end = Math.min(totalPages - 1, page + 1);
     for (let i = start; i <= end; i++) pages.push(i);
     if (page < totalPages - 3) pages.push('…right');
     pages.push(totalPages);
@@ -62,28 +62,30 @@ export default function Pagination({
   };
 
   const from = Math.min((page - 1) * itemsPerPage + 1, totalItems);
-  const to   = Math.min(page * itemsPerPage, totalItems);
+  const to = Math.min(page * itemsPerPage, totalItems);
 
   return (
     <div className={s.pagination}>
       {/* Left: record range */}
       <span className={s.info}>
-        Showing <strong>{from}–{to}</strong> of <strong>{totalItems}</strong>
+        Showing{' '}
+        <strong>
+          {from}–{to}
+        </strong>{' '}
+        of <strong>{totalItems}</strong>
       </span>
 
       {/* Centre: page controls */}
       <div className={s.controls}>
-        <button
-          className={s.btn}
-          onClick={() => onPageChange(page - 1)}
-          disabled={page === 1}
-        >
+        <button className={s.btn} onClick={() => onPageChange(page - 1)} disabled={page === 1}>
           ← Prev
         </button>
 
         {getPages().map((p, i) =>
           typeof p === 'string' ? (
-            <span key={p + i} className={s.ellipsis}>…</span>
+            <span key={p + i} className={s.ellipsis}>
+              …
+            </span>
           ) : (
             <button
               key={p}
@@ -92,7 +94,7 @@ export default function Pagination({
             >
               {p}
             </button>
-          )
+          ),
         )}
 
         <button
@@ -117,7 +119,9 @@ export default function Pagination({
             }}
           >
             {perPageOptions.map((n) => (
-              <option key={n} value={n}>{n}</option>
+              <option key={n} value={n}>
+                {n}
+              </option>
             ))}
           </select>
         </div>

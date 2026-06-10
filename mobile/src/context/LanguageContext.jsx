@@ -8,7 +8,7 @@ export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState('en');
 
   useEffect(() => {
-    AsyncStorage.getItem('@citivoice_lang').then(lang => {
+    AsyncStorage.getItem('@citivoice_lang').then((lang) => {
       if (lang) setLanguage(lang);
     });
   }, []);

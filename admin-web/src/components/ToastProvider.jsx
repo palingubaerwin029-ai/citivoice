@@ -39,9 +39,7 @@ export default function ToastProvider({ children }) {
             }}
             onClick={() => removeToast(toast.id)}
           >
-            <span style={{ marginRight: 8 }}>
-              {toast.type === 'error' ? '⚠' : '✓'}
-            </span>
+            <span style={{ marginRight: 8 }}>{toast.type === 'error' ? '⚠' : '✓'}</span>
             {toast.message}
           </div>
         ))}

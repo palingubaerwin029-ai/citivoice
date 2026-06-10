@@ -10,7 +10,7 @@ const {
   updateUserVerification,
   selectUserContactInfo,
   updateUserFcmToken,
-  deleteUser
+  deleteUser,
 } = require('../models/user.model');
 
 const safe = (user) => {
@@ -45,7 +45,7 @@ const getUser = async (req, res) => {
 
 const updateUser = async (req, res) => {
   const { name, phone, barangay, id_type, id_number, id_image_url, submitted_at } = req.body;
-  
+
   if (req.user.id !== parseInt(req.params.id)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -53,11 +53,23 @@ const updateUser = async (req, res) => {
   try {
     if (id_number) {
       const exists = await checkExistingIdNumber(id_number, req.params.id);
-      if (exists) return res.status(400).json({ error: 'This ID number is already linked to another account.' });
+      if (exists)
+        return res
+          .status(400)
+          .json({ error: 'This ID number is already linked to another account.' });
     }
 
-    await updateUserDetails(req.params.id, name, phone, barangay, id_type, id_number, id_image_url, submitted_at);
-    
+    await updateUserDetails(
+      req.params.id,
+      name,
+      phone,
+      barangay,
+      id_type,
+      id_number,
+      id_image_url,
+      submitted_at,
+    );
+
     let updatedUser = await selectById(req.params.id);
 
     // OCR Auto-verification Logic
@@ -69,24 +81,24 @@ const updateUser = async (req, res) => {
           const result = await Tesseract.recognize(filePath, 'eng');
           const text = result.data.text.toLowerCase();
           const searchName = updatedUser.name.toLowerCase();
-          
+
           if (text.includes(searchName)) {
             // Match found! Auto-verify
             await updateUserVerification(req.params.id, 'verified', 1, null, 'NOW()');
             updatedUser = await selectById(req.params.id); // refresh user object
-            
+
             const contactInfo = await selectUserContactInfo(req.params.id);
             if (contactInfo) {
               await insertNotification(
-                req.params.id, 
-                '✅ Account Auto-Verified!', 
-                'Your ID was scanned and automatically verified by our system. You can now log into the app.'
+                req.params.id,
+                '✅ Account Auto-Verified!',
+                'Your ID was scanned and automatically verified by our system. You can now log into the app.',
               );
               notifyUser(
-                contactInfo, 
-                "Account Auto-Verified!", 
-                "Your ID was automatically verified by our system. You can now log into the app.",
-                "The citizen just submitted their ID and our system automatically verified it with 100% confidence. Welcome them to the app."
+                contactInfo,
+                'Account Auto-Verified!',
+                'Your ID was automatically verified by our system. You can now log into the app.',
+                'The citizen just submitted their ID and our system automatically verified it with 100% confidence. Welcome them to the app.',
               );
             }
           } else {
@@ -96,7 +108,7 @@ const updateUser = async (req, res) => {
           }
         }
       } catch (e) {
-        console.error("OCR Auto-verification error:", e);
+        console.error('OCR Auto-verification error:', e);
         // Fallback to manual review if OCR fails
         await updateUserVerification(req.params.id, 'pending', 0, null, 'NULL');
         updatedUser = await selectById(req.params.id); // refresh user object
@@ -121,15 +133,15 @@ const verifyUser = async (req, res) => {
     const contactInfo = await selectUserContactInfo(req.params.id);
     if (contactInfo) {
       await insertNotification(
-        req.params.id, 
-        '✅ Account Verified!', 
-        'Great news! Your CitiVoice account has been successfully verified. You can now log into the app.'
+        req.params.id,
+        '✅ Account Verified!',
+        'Great news! Your CitiVoice account has been successfully verified. You can now log into the app.',
       );
       notifyUser(
-        contactInfo, 
-        "Account Verified!", 
-        "Great news! Your CitiVoice account has been successfully verified. You can now log into the app.",
-        "An admin just manually reviewed and approved the citizen's ID. Their account is now fully verified. Welcome them to the platform."
+        contactInfo,
+        'Account Verified!',
+        'Great news! Your CitiVoice account has been successfully verified. You can now log into the app.',
+        "An admin just manually reviewed and approved the citizen's ID. Their account is now fully verified. Welcome them to the platform.",
       );
     }
 
@@ -145,16 +157,16 @@ const rejectUser = async (req, res) => {
   if (!reason) return res.status(400).json({ error: 'Rejection reason required' });
   try {
     const contactInfo = await selectUserContactInfo(req.params.id);
-    
+
     // Delete the user instead of just marking them rejected
     await deleteUser(req.params.id);
 
     if (contactInfo) {
       notifyUser(
-        contactInfo, 
-        "Account Verification Failed", 
+        contactInfo,
+        'Account Verification Failed',
         `Unfortunately, your identity verification was rejected for the following reason:\n"${reason}"\nPlease register again with a valid ID.`,
-        `The citizen's ID verification was rejected by an admin for the following reason: "${reason}". Kindly ask them to submit a clearer or more valid ID.`
+        `The citizen's ID verification was rejected by an admin for the following reason: "${reason}". Kindly ask them to submit a clearer or more valid ID.`,
       );
     }
 
@@ -196,5 +208,5 @@ module.exports = {
   verifyUser,
   rejectUser,
   revokeUser,
-  updateFcmToken
+  updateFcmToken,
 };

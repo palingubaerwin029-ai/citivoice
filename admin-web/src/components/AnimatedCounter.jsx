@@ -6,7 +6,7 @@ export default function AnimatedCounter({ value, duration = 1500, suffix = '' })
   useEffect(() => {
     let startTimestamp = null;
     const endValue = parseInt(value, 10);
-    
+
     if (isNaN(endValue)) {
       setCount(value);
       return;
@@ -15,21 +15,26 @@ export default function AnimatedCounter({ value, duration = 1500, suffix = '' })
     const step = (timestamp) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      
+
       // easeOutExpo
       const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-      
+
       setCount(Math.floor(easeProgress * endValue));
-      
+
       if (progress < 1) {
         window.requestAnimationFrame(step);
       } else {
         setCount(endValue);
       }
     };
-    
+
     window.requestAnimationFrame(step);
   }, [value, duration]);
 
-  return <span>{count}{suffix}</span>;
+  return (
+    <span>
+      {count}
+      {suffix}
+    </span>
+  );
 }

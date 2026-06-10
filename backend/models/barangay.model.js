@@ -24,7 +24,7 @@ const insertBarangay = async (name) => {
   try {
     const [result] = await pool.query(
       'INSERT INTO barangays (name, created_at, updated_at) VALUES (?, NOW(), NOW())',
-      [name]
+      [name],
     );
     return result.insertId;
   } catch (err) {
@@ -35,10 +35,10 @@ const insertBarangay = async (name) => {
 
 const updateBarangay = async (id, name) => {
   try {
-    const [result] = await pool.query(
-      'UPDATE barangays SET name=?, updated_at=NOW() WHERE id=?',
-      [name, id]
-    );
+    const [result] = await pool.query('UPDATE barangays SET name=?, updated_at=NOW() WHERE id=?', [
+      name,
+      id,
+    ]);
     return result.affectedRows;
   } catch (err) {
     console.error('Error updating barangay:', err);

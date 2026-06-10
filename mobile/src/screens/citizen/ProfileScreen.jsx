@@ -1,23 +1,15 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  StyleSheet,
-  Modal,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useAuth } from "../../context/AuthContext";
-import { useConcerns } from "../../context/ConcernContext";
-import { useLanguage } from "../../context/LanguageContext";
-import { RADIUS, SHADOWS, STATUS_CONFIG } from "../../utils/theme";
-import { useTheme } from "../../context/ThemeContext";
-import { scale, verticalScale, rf, moderateScale } from "../../utils/responsive";
-import { LANGUAGES } from "../../i18n/translations";
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '../../context/AuthContext';
+import { useConcerns } from '../../context/ConcernContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { RADIUS, SHADOWS, STATUS_CONFIG } from '../../utils/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
+import { LANGUAGES } from '../../i18n/translations';
 
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useTheme();
@@ -27,70 +19,65 @@ export default function ProfileScreen() {
   const [showLang, setShowLang] = useState(false);
   const initials =
     user?.name
-      ?.split(" ")
+      ?.split(' ')
       .map((n) => n[0])
-      .join("")
+      .join('')
       .toUpperCase()
-      .slice(0, 2) || "?";
+      .slice(0, 2) || '?';
   const stats = {
     total: myConcerns.length,
-    pending: myConcerns.filter((c) => c.status === "Pending").length,
-    inProgress: myConcerns.filter((c) => c.status === "In Progress").length,
-    resolved: myConcerns.filter((c) => c.status === "Resolved").length,
+    pending: myConcerns.filter((c) => c.status === 'Pending').length,
+    inProgress: myConcerns.filter((c) => c.status === 'In Progress').length,
+    resolved: myConcerns.filter((c) => c.status === 'Resolved').length,
   };
-  const memberSince =
-    (user?.created_at ? new Date(user.created_at) : null)
-      ?.toLocaleDateString("en-PH", { year: "numeric", month: "long" })
-      ;
+  const memberSince = (user?.created_at ? new Date(user.created_at) : null)?.toLocaleDateString(
+    'en-PH',
+    { year: 'numeric', month: 'long' },
+  );
   const handleLogout = () =>
     Alert.alert(t('signOut'), t('signOutConfirm'), [
-      { text: t('cancel'), style: "cancel" },
-      { text: t('signOut'), style: "destructive", onPress: logout },
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('signOut'), style: 'destructive', onPress: logout },
     ]);
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.bgDark }}
-      edges={["top"]}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgDark }} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: verticalScale(48) }}
       >
         <LinearGradient
-          colors={[colors.primary + "22", colors.bgDark]}
+          colors={[colors.primary + '22', colors.bgDark]}
           style={{
-            alignItems: "center",
+            alignItems: 'center',
             paddingHorizontal: scale(24),
             paddingTop: verticalScale(20),
             paddingBottom: verticalScale(28),
           }}
         >
-          <View style={{ position: "relative", marginBottom: verticalScale(14) }}>
+          <View style={{ position: 'relative', marginBottom: verticalScale(14) }}>
             <LinearGradient
-              colors={[colors.primary, colors.purple || "#8B5CF6"]}
+              colors={[colors.primary, colors.purple || '#8B5CF6']}
               style={{
                 width: scale(80),
                 height: scale(80),
                 borderRadius: moderateScale(24),
-                alignItems: "center",
-                justifyContent: "center",
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              <Text style={{ color: "#fff", fontSize: rf(30), fontWeight: "900" }}>
-                {initials}
-              </Text>
+              <Text style={{ color: '#fff', fontSize: rf(30), fontWeight: '900' }}>{initials}</Text>
             </LinearGradient>
             <View
               style={{
-                position: "absolute",
+                position: 'absolute',
                 bottom: scale(-2),
                 right: scale(-2),
                 width: scale(22),
                 height: scale(22),
                 borderRadius: scale(11),
                 backgroundColor: colors.accent,
-                alignItems: "center",
-                justifyContent: "center",
+                alignItems: 'center',
+                justifyContent: 'center',
                 borderWidth: 2,
                 borderColor: colors.bgDark,
               }}
@@ -102,7 +89,7 @@ export default function ProfileScreen() {
             style={{
               color: colors.textPrimary,
               fontSize: rf(22),
-              fontWeight: "800",
+              fontWeight: '800',
               letterSpacing: -0.4,
               marginBottom: verticalScale(3),
             }}
@@ -120,8 +107,8 @@ export default function ProfileScreen() {
           </Text>
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
+              flexDirection: 'row',
+              alignItems: 'center',
               gap: scale(5),
               backgroundColor: colors.bgCard,
               borderRadius: RADIUS.full,
@@ -132,16 +119,12 @@ export default function ProfileScreen() {
               marginBottom: verticalScale(8),
             }}
           >
-            <Ionicons
-              name="location-outline"
-              size={12}
-              color={colors.primaryLight}
-            />
+            <Ionicons name="location-outline" size={12} color={colors.primaryLight} />
             <Text
               style={{
                 color: colors.primaryLight,
                 fontSize: rf(12),
-                fontWeight: "600",
+                fontWeight: '600',
               }}
             >
               {user?.barangay}
@@ -158,8 +141,8 @@ export default function ProfileScreen() {
               style={{
                 color: colors.textSecondary,
                 fontSize: rf(11),
-                fontWeight: "700",
-                textTransform: "uppercase",
+                fontWeight: '700',
+                textTransform: 'uppercase',
                 letterSpacing: 0.6,
                 marginBottom: verticalScale(10),
               }}
@@ -167,13 +150,13 @@ export default function ProfileScreen() {
               {t('myRecentReports')}
             </Text>
             {myConcerns.slice(0, 3).map((c) => {
-              const cfg = STATUS_CONFIG[c.status] || STATUS_CONFIG["Pending"];
+              const cfg = STATUS_CONFIG[c.status] || STATUS_CONFIG['Pending'];
               return (
                 <View
                   key={c.id}
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
+                    flexDirection: 'row',
+                    alignItems: 'center',
                     gap: scale(10),
                     backgroundColor: colors.bgCard,
                     borderRadius: RADIUS.lg,
@@ -197,7 +180,7 @@ export default function ProfileScreen() {
                       style={{
                         color: colors.textPrimary,
                         fontSize: rf(13),
-                        fontWeight: "600",
+                        fontWeight: '600',
                       }}
                       numberOfLines={1}
                     >
@@ -210,7 +193,7 @@ export default function ProfileScreen() {
                         marginTop: verticalScale(2),
                       }}
                     >
-                      {c.category?.split(" ")[0]} · {c.userBarangay}
+                      {c.category?.split(' ')[0]} · {c.userBarangay}
                     </Text>
                   </View>
                   <View
@@ -226,7 +209,7 @@ export default function ProfileScreen() {
                     <Text
                       style={{
                         fontSize: rf(10),
-                        fontWeight: "700",
+                        fontWeight: '700',
                         color: cfg.color,
                       }}
                     >
@@ -243,8 +226,8 @@ export default function ProfileScreen() {
             style={{
               color: colors.textSecondary,
               fontSize: rf(11),
-              fontWeight: "700",
-              textTransform: "uppercase",
+              fontWeight: '700',
+              textTransform: 'uppercase',
               letterSpacing: 0.6,
               marginBottom: verticalScale(10),
             }}
@@ -257,19 +240,19 @@ export default function ProfileScreen() {
               borderRadius: RADIUS.xl,
               borderWidth: 1,
               borderColor: colors.border,
-              overflow: "hidden",
+              overflow: 'hidden',
             }}
           >
             {[
-              { icon: "person-outline", label: t('fullName'), value: user?.name },
-              { icon: "mail-outline", label: t('email'), value: user?.email },
+              { icon: 'person-outline', label: t('fullName'), value: user?.name },
+              { icon: 'mail-outline', label: t('email'), value: user?.email },
               {
-                icon: "call-outline",
+                icon: 'call-outline',
                 label: t('phone'),
-                value: user?.phone || "—",
+                value: user?.phone || '—',
               },
               {
-                icon: "location-outline",
+                icon: 'location-outline',
                 label: t('barangay'),
                 value: user?.barangay,
               },
@@ -277,9 +260,9 @@ export default function ProfileScreen() {
               <View
                 key={i}
                 style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                   padding: scale(14),
                   borderBottomWidth: i < arr.length - 1 ? 1 : 0,
                   borderBottomColor: colors.border,
@@ -287,8 +270,8 @@ export default function ProfileScreen() {
               >
                 <View
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
+                    flexDirection: 'row',
+                    alignItems: 'center',
                     gap: scale(10),
                   }}
                 >
@@ -298,15 +281,11 @@ export default function ProfileScreen() {
                       height: scale(30),
                       borderRadius: moderateScale(8),
                       backgroundColor: colors.bgCardAlt,
-                      alignItems: "center",
-                      justifyContent: "center",
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
-                    <Ionicons
-                      name={item.icon}
-                      size={15}
-                      color={colors.textSecondary}
-                    />
+                    <Ionicons name={item.icon} size={15} color={colors.textSecondary} />
                   </View>
                   <Text style={{ color: colors.textSecondary, fontSize: rf(14) }}>
                     {item.label}
@@ -316,7 +295,7 @@ export default function ProfileScreen() {
                   style={{
                     color: colors.textPrimary,
                     fontSize: rf(13),
-                    fontWeight: "600",
+                    fontWeight: '600',
                     maxWidth: scale(180),
                   }}
                   numberOfLines={1}
@@ -332,8 +311,8 @@ export default function ProfileScreen() {
             style={{
               color: colors.textSecondary,
               fontSize: rf(11),
-              fontWeight: "700",
-              textTransform: "uppercase",
+              fontWeight: '700',
+              textTransform: 'uppercase',
               letterSpacing: 0.6,
               marginBottom: verticalScale(10),
             }}
@@ -346,150 +325,121 @@ export default function ProfileScreen() {
               borderRadius: RADIUS.xl,
               borderWidth: 1,
               borderColor: colors.border,
-              overflow: "hidden",
+              overflow: 'hidden',
             }}
           >
             <TouchableOpacity
               style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 padding: scale(14),
                 borderBottomWidth: 1,
                 borderBottomColor: colors.border,
               }}
               onPress={() => setShowLang(true)}
             >
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: scale(10) }}
-              >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(10) }}>
                 <View
                   style={{
                     width: scale(30),
                     height: scale(30),
                     borderRadius: moderateScale(8),
                     backgroundColor: colors.bgCardAlt,
-                    alignItems: "center",
-                    justifyContent: "center",
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
-                  <Ionicons
-                    name="language-outline"
-                    size={15}
-                    color={colors.textSecondary}
-                  />
+                  <Ionicons name="language-outline" size={15} color={colors.textSecondary} />
                 </View>
                 <Text style={{ color: colors.textSecondary, fontSize: rf(14) }}>
                   {t('language')}
                 </Text>
               </View>
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: scale(6) }}
-              >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6) }}>
                 <Text
                   style={{
                     color: colors.primaryLight,
                     fontSize: rf(13),
-                    fontWeight: "600",
+                    fontWeight: '600',
                   }}
                 >
-                  {LANGUAGES.find((l) => l.code === language)?.label ||
-                    "English"}
+                  {LANGUAGES.find((l) => l.code === language)?.label || 'English'}
                 </Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={14}
-                  color={colors.textMuted}
-                />
+                <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
               </View>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 padding: scale(14),
               }}
               onPress={toggleTheme}
             >
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: scale(10) }}
-              >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(10) }}>
                 <View
                   style={{
                     width: scale(30),
                     height: scale(30),
                     borderRadius: moderateScale(8),
                     backgroundColor: colors.bgCardAlt,
-                    alignItems: "center",
-                    justifyContent: "center",
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
                   <Ionicons
-                    name={theme === 'dark' ? "moon-outline" : "sunny-outline"}
+                    name={theme === 'dark' ? 'moon-outline' : 'sunny-outline'}
                     size={15}
                     color={colors.textSecondary}
                   />
                 </View>
-                <Text style={{ color: colors.textSecondary, fontSize: rf(14) }}>
-                  {t('theme')}
-                </Text>
+                <Text style={{ color: colors.textSecondary, fontSize: rf(14) }}>{t('theme')}</Text>
               </View>
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: scale(6) }}
-              >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6) }}>
                 <Text
                   style={{
                     color: colors.primaryLight,
                     fontSize: rf(13),
-                    fontWeight: "600",
+                    fontWeight: '600',
                   }}
                 >
                   {theme === 'dark' ? t('darkMode') : t('lightMode')}
                 </Text>
-                <Ionicons
-                  name="repeat-outline"
-                  size={14}
-                  color={colors.textMuted}
-                />
+                <Ionicons name="repeat-outline" size={14} color={colors.textMuted} />
               </View>
             </TouchableOpacity>
           </View>
         </View>
         <TouchableOpacity
           style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
             gap: scale(8),
             marginHorizontal: scale(16),
             padding: scale(14),
             borderWidth: 1,
-            borderColor: "rgba(239,68,68,0.2)",
+            borderColor: 'rgba(239,68,68,0.2)',
             borderRadius: RADIUS.xl,
             marginBottom: verticalScale(16),
-            backgroundColor: "rgba(239,68,68,0.06)",
+            backgroundColor: 'rgba(239,68,68,0.06)',
           }}
           onPress={handleLogout}
         >
-          <Ionicons
-            name="log-out-outline"
-            size={18}
-            color={colors.danger || "#EF4444"}
-          />
+          <Ionicons name="log-out-outline" size={18} color={colors.danger || '#EF4444'} />
           <Text
             style={{
-              color: colors.danger || "#EF4444",
+              color: colors.danger || '#EF4444',
               fontSize: rf(15),
-              fontWeight: "700",
+              fontWeight: '700',
             }}
           >
             {t('signOut')}
           </Text>
         </TouchableOpacity>
-        <Text
-          style={{ color: colors.textMuted, fontSize: rf(11), textAlign: "center" }}
-        >
+        <Text style={{ color: colors.textMuted, fontSize: rf(11), textAlign: 'center' }}>
           CitiVoice v2.0 · Kabankalan City
         </Text>
       </ScrollView>
@@ -502,8 +452,8 @@ export default function ProfileScreen() {
         <View
           style={{
             flex: 1,
-            backgroundColor: "rgba(0,0,0,0.65)",
-            justifyContent: "flex-end",
+            backgroundColor: 'rgba(0,0,0,0.65)',
+            justifyContent: 'flex-end',
           }}
         >
           <View
@@ -523,7 +473,7 @@ export default function ProfileScreen() {
                 height: verticalScale(4),
                 backgroundColor: colors.border,
                 borderRadius: scale(2),
-                alignSelf: "center",
+                alignSelf: 'center',
                 marginBottom: verticalScale(16),
               }}
             />
@@ -531,8 +481,8 @@ export default function ProfileScreen() {
               style={{
                 color: colors.textPrimary,
                 fontSize: rf(18),
-                fontWeight: "800",
-                textAlign: "center",
+                fontWeight: '800',
+                textAlign: 'center',
                 marginBottom: verticalScale(16),
               }}
             >
@@ -542,16 +492,13 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 key={lang.code}
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
+                  flexDirection: 'row',
+                  alignItems: 'center',
                   gap: scale(14),
                   padding: scale(14),
                   borderRadius: RADIUS.lg,
                   marginBottom: verticalScale(8),
-                  backgroundColor:
-                    language === lang.code
-                      ? colors.primary + "1A"
-                      : "transparent",
+                  backgroundColor: language === lang.code ? colors.primary + '1A' : 'transparent',
                 }}
                 onPress={() => {
                   changeLanguage(lang.code);
@@ -561,12 +508,9 @@ export default function ProfileScreen() {
                 <Text style={{ fontSize: rf(22) }}>{lang.flag}</Text>
                 <Text
                   style={{
-                    color:
-                      language === lang.code
-                        ? colors.primaryLight
-                        : colors.textPrimary,
+                    color: language === lang.code ? colors.primaryLight : colors.textPrimary,
                     fontSize: rf(16),
-                    fontWeight: "600",
+                    fontWeight: '600',
                   }}
                 >
                   {lang.label}
@@ -576,18 +520,16 @@ export default function ProfileScreen() {
                     name="checkmark-circle"
                     size={20}
                     color={colors.primaryLight}
-                    style={{ marginLeft: "auto" }}
+                    style={{ marginLeft: 'auto' }}
                   />
                 )}
               </TouchableOpacity>
             ))}
             <TouchableOpacity
-              style={{ padding: scale(14), alignItems: "center", marginTop: verticalScale(4) }}
+              style={{ padding: scale(14), alignItems: 'center', marginTop: verticalScale(4) }}
               onPress={() => setShowLang(false)}
             >
-              <Text style={{ color: colors.textMuted, fontSize: rf(15) }}>
-                {t('cancel')}
-              </Text>
+              <Text style={{ color: colors.textMuted, fontSize: rf(15) }}>{t('cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>

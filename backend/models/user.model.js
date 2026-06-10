@@ -2,10 +2,7 @@ const pool = require('../db');
 
 const selectByEmail = async (email) => {
   try {
-    const [row] = await pool.query(
-      'SELECT * FROM users WHERE email = ?',
-      [email],
-    );
+    const [row] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
     return row[0];
   } catch (err) {
     console.error('Error fetching user by email:', err);
@@ -48,16 +45,30 @@ const insertUser = async (name, email, hash, phone, barangay, idType, idNumber, 
 };
 
 const selectAllCitizens = async () => {
-  const [rows] = await pool.query("SELECT * FROM users WHERE role = 'citizen' ORDER BY created_at DESC");
+  const [rows] = await pool.query(
+    "SELECT * FROM users WHERE role = 'citizen' ORDER BY created_at DESC",
+  );
   return rows;
 };
 
 const checkExistingIdNumber = async (idNumber, excludeId) => {
-  const [rows] = await pool.query('SELECT id FROM users WHERE id_number = ? AND id != ?', [idNumber, excludeId]);
+  const [rows] = await pool.query('SELECT id FROM users WHERE id_number = ? AND id != ?', [
+    idNumber,
+    excludeId,
+  ]);
   return rows.length > 0;
 };
 
-const updateUserDetails = async (id, name, phone, barangay, id_type, id_number, id_image_url, submitted_at) => {
+const updateUserDetails = async (
+  id,
+  name,
+  phone,
+  barangay,
+  id_type,
+  id_number,
+  id_image_url,
+  submitted_at,
+) => {
   await pool.query(
     `UPDATE users SET
       name                = COALESCE(?, name),
@@ -69,7 +80,7 @@ const updateUserDetails = async (id, name, phone, barangay, id_type, id_number, 
       submitted_at        = COALESCE(?, submitted_at),
       updated_at          = NOW()
      WHERE id = ?`,
-    [name, phone, barangay, id_type, id_number, id_image_url, submitted_at, id]
+    [name, phone, barangay, id_type, id_number, id_image_url, submitted_at, id],
   );
 };
 
@@ -77,7 +88,7 @@ const updateUserVerification = async (id, status, isVerified, rejectionReason, v
   await pool.query(
     `UPDATE users SET verification_status=?, is_verified=?,
      rejection_reason=?, verified_at=${verifiedAtStr}, updated_at=NOW() WHERE id=?`,
-    [status, isVerified, rejectionReason, id]
+    [status, isVerified, rejectionReason, id],
   );
 };
 
@@ -105,5 +116,5 @@ module.exports = {
   updateUserVerification,
   selectUserContactInfo,
   updateUserFcmToken,
-  deleteUser
+  deleteUser,
 };

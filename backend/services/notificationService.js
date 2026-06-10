@@ -5,7 +5,11 @@ const geminiService = require('./geminiService');
 // ── Gmail (Nodemailer) Setup ──────────────────────────────────────────────────
 // Ensure valid credentials before creating transporter or it will error
 const isEmailEnabled = !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
-const isTwilioEnabled = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER);
+const isTwilioEnabled = !!(
+  process.env.TWILIO_ACCOUNT_SID &&
+  process.env.TWILIO_AUTH_TOKEN &&
+  process.env.TWILIO_PHONE_NUMBER
+);
 
 let mailTransporter = null;
 if (isEmailEnabled) {
@@ -35,7 +39,7 @@ const sendEmail = async (to, subject, htmlContent) => {
     console.log(`CONTENT: ${htmlContent} \n`);
     return;
   }
-  
+
   try {
     const info = await mailTransporter.sendMail({
       from: `"CitiVoice Admin" <${process.env.GMAIL_USER}>`,
@@ -84,7 +88,7 @@ const sendSMS = async (to, messageBody) => {
     console.log(`MESSAGE: ${messageBody} \n`);
     return;
   }
-  
+
   try {
     const message = await twilioClient.messages.create({
       body: messageBody,
@@ -97,35 +101,38 @@ const sendSMS = async (to, messageBody) => {
   }
 };
 
-
 /**
  * Simple HTML escaping to prevent injection in emails
  */
 const escapeHTML = (str) => {
   if (!str) return '';
-  return str.replace(/[&<>"']/g, (m) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[m]));
+  return str.replace(
+    /[&<>"']/g,
+    (m) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[m],
+  );
 };
 
 /**
  * Unified command to fire both Email and SMS to a user's known contacts
- * @param {Object} user 
- * @param {String} subject 
+ * @param {Object} user
+ * @param {String} subject
  * @param {String} defaultMessage - The standard message (used as fallback or context)
  * @param {String} notificationContext - Context for the AI to generate a better message
  */
 const notifyUser = async (user, subject, defaultMessage, notificationContext) => {
   if (!user) return;
-  
+
   const safeName = escapeHTML(user.name || 'Citizen');
-  
+
   let finalMessage = defaultMessage;
-  
+
   // 1. Generate an empathetic personalized message using Gemini
   if (geminiService.isAvailable() && notificationContext) {
     const prompt = `
@@ -135,8 +142,11 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext) =>
       
       Keep it very brief (2-3 sentences max). Use a warm, encouraging tone. No need for a greeting or sign-off since it goes into a template.
     `;
-    
-    const aiGenerated = await geminiService.generateText(prompt, { temperature: 0.6, maxTokens: 200 });
+
+    const aiGenerated = await geminiService.generateText(prompt, {
+      temperature: 0.6,
+      maxTokens: 200,
+    });
     if (aiGenerated) {
       finalMessage = aiGenerated.trim();
     }
@@ -173,9 +183,11 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext) =>
 
   // Determine user contacts (handling cases where they might be empty)
   const emailPromise = user.email ? sendEmail(user.email, subject, htmlBody) : Promise.resolve();
-  
+
   // Keep SMS short
-  const smsPromise = user.phone ? sendSMS(user.phone, `CitiVoice: ${finalMessage.substring(0, 140)}`) : Promise.resolve();
+  const smsPromise = user.phone
+    ? sendSMS(user.phone, `CitiVoice: ${finalMessage.substring(0, 140)}`)
+    : Promise.resolve();
 
   // Run efficiently in parallel
   await Promise.all([emailPromise, smsPromise]);
@@ -184,5 +196,5 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext) =>
 module.exports = {
   sendEmail,
   sendSMS,
-  notifyUser
+  notifyUser,
 };

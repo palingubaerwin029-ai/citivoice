@@ -35,8 +35,7 @@ const register = async (req, res) => {
 
     if (phone) {
       const existingPhone = await selectByPhone(phone);
-      if (existingPhone)
-        return res.status(400).json({ error: 'Phone number already registered' });
+      if (existingPhone) return res.status(400).json({ error: 'Phone number already registered' });
     }
 
     // Password complexity check
@@ -49,7 +48,16 @@ const register = async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 12);
-    const insertId = await insertUser(name, email, hash, phone, barangay, idType, idNumber, idImageUrl);
+    const insertId = await insertUser(
+      name,
+      email,
+      hash,
+      phone,
+      barangay,
+      idType,
+      idNumber,
+      idImageUrl,
+    );
     const newUser = await selectById(insertId);
     const token = sign({ id: newUser.id, role: newUser.role });
     res.status(201).json({ token, user: safe(newUser) });

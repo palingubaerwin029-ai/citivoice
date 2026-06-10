@@ -6,7 +6,7 @@ const {
   getNotifications,
   getUnreadCount,
   markRead,
-  markAllRead
+  markAllRead,
 } = require('../controllers/notifications.controller');
 
 // GET /api/notifications - Get all notifications for current user

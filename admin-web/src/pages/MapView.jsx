@@ -1,29 +1,37 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { api, resolveImageUrl } from "../services/api";
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api, resolveImageUrl } from '../services/api';
 
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 // 🔌 Plugins (must come after leaflet)
-import "leaflet-routing-machine";
-import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
-import { OpenStreetMapProvider } from "leaflet-geosearch";
+import 'leaflet-routing-machine';
+import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+import { OpenStreetMapProvider } from 'leaflet-geosearch';
 
-import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl, LayerGroup } from "react-leaflet";
-import MarkerClusterGroup from "react-leaflet-cluster";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+  LayersControl,
+  LayerGroup,
+} from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 
 // 📦 Cluster CSS
-import "leaflet.markercluster/dist/MarkerCluster.css";
-import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 // 🎨 MapView styles
-import s from "../styles/MapView.module.css";
+import s from '../styles/MapView.module.css';
 
 // 🔧 Fix blank/broken marker icons in CRA + Leaflet
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -32,18 +40,16 @@ L.Icon.Default.mergeOptions({
 });
 
 const STATUS_COLORS = {
-  Pending: "#FFB800",
-  "In Progress": "#1A6BFF",
-  Resolved: "#00D4AA",
-  Rejected: "#FF4444",
+  Pending: '#FFB800',
+  'In Progress': '#1A6BFF',
+  Resolved: '#00D4AA',
+  Rejected: '#FF4444',
 };
-
-
 
 // --- ICONS ---
 const createIcon = (color) =>
   new L.DivIcon({
-    className: "custom-pin",
+    className: 'custom-pin',
     iconSize: [28, 36],
     iconAnchor: [14, 36],
     html: `
@@ -56,7 +62,7 @@ const createIcon = (color) =>
   });
 
 const pulseIcon = new L.DivIcon({
-  className: "custom-pin",
+  className: 'custom-pin',
   iconSize: [24, 24],
   iconAnchor: [12, 24],
   html: `
@@ -75,7 +81,7 @@ function Routing({ selected }) {
 
     const route = L.Routing.control({
       waypoints: [
-        L.latLng(9.9868, 122.8130),
+        L.latLng(9.9868, 122.813),
         L.latLng(parseFloat(selected.location_lat), parseFloat(selected.location_lng)),
       ],
       show: false,
@@ -86,7 +92,15 @@ function Routing({ selected }) {
     }).addTo(map);
 
     return () => {
-      try { map.removeControl(route); } catch (_) { /* map already destroyed */ }
+      try {
+        // Prevent async callback from crashing if it resolves after component unmounts
+        if (route) {
+          route._clearLines = () => {};
+          map.removeControl(route);
+        }
+      } catch (_) {
+        /* map already destroyed */
+      }
     };
   }, [selected]);
 
@@ -98,7 +112,10 @@ function FlyToMarker({ selected }) {
 
   useEffect(() => {
     if (!selected) return;
-    map.setView([parseFloat(selected.location_lat), parseFloat(selected.location_lng)], 16, { animate: true, duration: 1 });
+    map.setView([parseFloat(selected.location_lat), parseFloat(selected.location_lng)], 16, {
+      animate: true,
+      duration: 1,
+    });
   }, [selected]);
 
   return null;
@@ -135,39 +152,45 @@ export function MapView() {
   const navigate = useNavigate();
   const [concerns, setConcerns] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [filter, setFilter] = useState(localStorage.getItem("mv_filter") || "All");
-  const [mapType, setMapType] = useState(localStorage.getItem("mv_layer") || "Dark Matter");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState(localStorage.getItem('mv_filter') || 'All');
+  const [mapType, setMapType] = useState(localStorage.getItem('mv_layer') || 'Dark Matter');
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [flyCoords, setFlyCoords] = useState(null);
   const provider = new OpenStreetMapProvider();
 
   useEffect(() => {
-    localStorage.setItem("mv_filter", filter);
+    localStorage.setItem('mv_filter', filter);
   }, [filter]);
 
   useEffect(() => {
-    localStorage.setItem("mv_layer", mapType);
+    localStorage.setItem('mv_layer', mapType);
   }, [mapType]);
 
   useEffect(() => {
-    api.get("/concerns").then(setConcerns).catch(console.error);
+    api.get('/concerns').then(setConcerns).catch(console.error);
   }, []);
 
   const filtered = concerns.filter(
-    (c) => c.location_lat && (filter === "All" || c.status === filter),
+    (c) => c.location_lat && (filter === 'All' || c.status === filter),
   );
 
   const handleSearch = async (e) => {
     const q = e.target.value;
     setSearchQuery(q);
-    if (q.length < 3) { setSearchResults([]); return; }
+    if (q.length < 3) {
+      setSearchResults([]);
+      return;
+    }
     const results = await provider.search({ query: q });
     setSearchResults(results.slice(0, 5));
   };
 
   const triggerSearch = async () => {
-    if (searchQuery.length < 3) { setSearchResults([]); return; }
+    if (searchQuery.length < 3) {
+      setSearchResults([]);
+      return;
+    }
     const results = await provider.search({ query: searchQuery });
     setSearchResults(results.slice(0, 5));
   };
@@ -182,31 +205,31 @@ export function MapView() {
     <div className={s.container}>
       {/* 🔥 FULLSCREEN MAP */}
       <MapContainer
-        center={[9.9868, 122.8130]}
+        center={[9.9868, 122.813]}
         zoom={13}
         zoomControl={false}
-        style={{ height: "100%", width: "100%" }}
+        className={s.mapWrapper}
       >
         <LayersControl position="topright">
-          <LayersControl.BaseLayer checked={mapType === "Dark Matter"} name="Dark Matter">
-            <TileLayer 
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" 
+          <LayersControl.BaseLayer checked={mapType === 'Dark Matter'} name="Dark Matter">
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              eventHandlers={{ add: () => setMapType("Dark Matter") }}
+              eventHandlers={{ add: () => setMapType('Dark Matter') }}
             />
           </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer checked={mapType === "Positron (Light)"} name="Positron (Light)">
-            <TileLayer 
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" 
+          <LayersControl.BaseLayer checked={mapType === 'Positron (Light)'} name="Positron (Light)">
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              eventHandlers={{ add: () => setMapType("Positron (Light)") }}
+              eventHandlers={{ add: () => setMapType('Positron (Light)') }}
             />
           </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer checked={mapType === "Satellite"} name="Satellite">
-            <TileLayer 
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" 
-              attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
-              eventHandlers={{ add: () => setMapType("Satellite") }}
+          <LayersControl.BaseLayer checked={mapType === 'Satellite'} name="Satellite">
+            <TileLayer
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community"
+              eventHandlers={{ add: () => setMapType('Satellite') }}
             />
           </LayersControl.BaseLayer>
         </LayersControl>
@@ -218,17 +241,18 @@ export function MapView() {
 
         <MarkerClusterGroup chunkedLoading>
           {filtered.map((c) => {
-            const color = STATUS_COLORS[c.status] || "#8899BB";
+            const color = STATUS_COLORS[c.status] || '#8899BB';
             return (
               <Marker
                 key={c.id}
                 position={[parseFloat(c.location_lat), parseFloat(c.location_lng)]}
-                icon={c.status === "In Progress" ? pulseIcon : createIcon(color)}
+                icon={c.status === 'In Progress' ? pulseIcon : createIcon(color)}
                 eventHandlers={{ click: () => setSelected(c) }}
               >
                 <Popup className="premium-popup" autoPan={false}>
-                  <div style={{ color: "#000" }}>
-                    <strong>{c.title}</strong><br />
+                  <div style={{ color: '#000' }}>
+                    <strong>{c.title}</strong>
+                    <br />
                     <span style={{ color: color }}>● {c.status}</span>
                   </div>
                 </Popup>
@@ -249,77 +273,54 @@ export function MapView() {
         </div>
 
         {/* 🎯 Recenter Button */}
-        <div style={{ position: "absolute", bottom: 24, right: 24, zIndex: 1000, pointerEvents: "all" }}>
-           <button 
-             onClick={() => setFlyCoords([9.9868, 122.8130])}
-             className={s.recenterBtn}
-             title="Recenter Map"
-           >
-             🎯
-           </button>
+        <div className={s.recenterWrap}>
+          <button
+            onClick={() => setFlyCoords([9.9868, 122.813])}
+            className={s.recenterBtn}
+            title="Recenter Map"
+          >
+            🎯
+          </button>
         </div>
       </MapContainer>
 
       {/* 🧭 FLOATING CONTROLS: Search + Chips */}
       <div className={s.floatingControls}>
-        {/* Custom Search Bar — needs pointer-events re-enabled */}
-        <div style={{ position: "relative", pointerEvents: "all" }}>
-          <div className={s.glass} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px" }}>
-            <button 
-              onClick={triggerSearch}
-              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, opacity: 0.8, padding: 0 }}
-              title="Search"
-            >
+        {/* Custom Search Bar */}
+        <div className={s.searchWrap}>
+          <div className={`${s.glass} ${s.searchGlass}`}>
+            <button onClick={triggerSearch} className={s.searchIconBtn} title="Search">
               🔍
             </button>
             <input
-              className={s.searchInput}
+              className={s.searchInputField}
               value={searchQuery}
               onChange={handleSearch}
               onKeyDown={(e) => e.key === 'Enter' && triggerSearch()}
               placeholder="Search address..."
-              style={{
-                flex: 1,
-                background: "transparent",
-                border: "none",
-                color: "#fff",
-                fontSize: 15,
-                fontWeight: 600,
-                fontFamily: "inherit",
-              }}
             />
             {searchQuery && (
               <button
-                onClick={() => { setSearchQuery(""); setSearchResults([]); }}
-                style={{ background: "none", border: "none", color: "#8899BB", cursor: "pointer", fontSize: 18, lineHeight: 1 }}
-              >✕</button>
+                onClick={() => {
+                  setSearchQuery('');
+                  setSearchResults([]);
+                }}
+                className={s.searchClearBtn}
+              >
+                ✕
+              </button>
             )}
           </div>
           {/* Results Dropdown */}
           {searchResults.length > 0 && (
-            <div className={s.glass} style={{
-              position: "absolute",
-              top: "calc(100% + 8px)",
-              left: 0,
-              right: 0,
-              zIndex: 2000,
-              padding: 0,
-              overflow: "hidden",
-            }}>
+            <div className={`${s.glass} ${s.dropdownWrap}`}>
               {searchResults.map((r, i) => (
                 <div
                   key={i}
-                  className={s.searchResultItem}
+                  className={`${s.searchResultItem} ${s.dropdownItem} ${i < searchResults.length - 1 ? s.dropdownItemNotLast : ''}`}
                   onClick={() => handleSelectResult(r)}
-                  style={{
-                    padding: "12px 16px",
-                    cursor: "pointer",
-                    color: "#fff",
-                    fontSize: 14,
-                    borderBottom: i < searchResults.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
-                  }}
                 >
-                  <span style={{ marginRight: 10, opacity: 0.5 }}>📍</span>
+                  <span className={s.dropdownIcon}>📍</span>
                   {r.label}
                 </div>
               ))}
@@ -327,129 +328,91 @@ export function MapView() {
           )}
         </div>
 
-        {/* Status Filter Chips — needs pointer-events re-enabled */}
-        <div style={{
-          display: "flex",
-          gap: 8,
-          overflowX: "auto",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-          pointerEvents: "all",
-        }} className={s.chipRow}>
+        {/* Status Filter Chips */}
+        <div className={s.chipRow}>
           {[
-            { label: "All",         color: "#1A6BFF" },
-            { label: "Pending",     color: "#FFB800" },
-            { label: "In Progress", color: "#1A6BFF" },
-            { label: "Resolved",    color: "#00D4AA" },
-            { label: "Rejected",    color: "#FF4444" },
+            { label: 'All', color: '#1A6BFF' },
+            { label: 'Pending', color: '#FFB800' },
+            { label: 'In Progress', color: '#1A6BFF' },
+            { label: 'Resolved', color: '#00D4AA' },
+            { label: 'Rejected', color: '#FF4444' },
           ].map(({ label, color }) => {
             const isActive = filter === label;
             return (
               <button
                 key={label}
                 onClick={() => setFilter(label)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "8px 16px",
-                  borderRadius: 999,
-                  cursor: "pointer",
-                  fontSize: 12,
-                  whiteSpace: "nowrap",
-                  fontWeight: 700,
-                  flexShrink: 0,
-                  background: isActive ? color : "rgba(13, 25, 48, 0.75)",
-                  color: isActive ? "#fff" : "#8899BB",
-                  border: isActive ? `1px solid ${color}` : "1px solid rgba(255,255,255,0.12)",
-                  backdropFilter: "blur(12px)",
-                  WebkitBackdropFilter: "blur(12px)",
-                  boxShadow: isActive ? `0 0 12px ${color}55` : "0 4px 12px rgba(0,0,0,0.3)",
-                  transition: "all 0.2s",
-                }}
+                className={`${s.chipBtn} ${isActive ? s.chipBtnActive : s.chipBtnInactive}`}
+                style={
+                  isActive
+                    ? { background: color, borderColor: color, boxShadow: `0 0 12px ${color}55` }
+                    : {}
+                }
               >
-                {label !== "All" && (
-                  <span style={{
-                    width: 7, height: 7, borderRadius: "50%",
-                    background: isActive ? "#fff" : color,
-                    display: "inline-block", flexShrink: 0,
-                  }} />
+                {label !== 'All' && (
+                  <span className={s.chipDot} style={{ background: isActive ? '#fff' : color }} />
                 )}
                 {label}
               </button>
             );
           })}
         </div>
-
       </div>
 
       {/* 📋 SIDE PANEL */}
       <div
         className={`${s.sidePanel} ${s.glass}`}
         style={{
-          transform: selected ? "translateX(24px) translateY(24px) scale(1)" : "translateX(-110%)",
-          height: "calc(100% - 48px)",
-          borderRadius: 24,
+          transform: selected ? 'translateX(24px) translateY(24px) scale(1)' : 'translateX(-110%)',
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ color: "#fff", fontSize: 22, fontWeight: 800 }}>Problem Details</h2>
-          <button
-            onClick={() => setSelected(null)}
-            style={{
-              background: "rgba(255,255,255,0.1)",
-              border: "none",
-              color: "#fff",
-              borderRadius: "50%",
-              width: 32,
-              height: 32,
-              cursor: "pointer",
-            }}
-          >
+        <div className={s.sideHeader}>
+          <h2 className={s.sideTitle}>Problem Details</h2>
+          <button onClick={() => setSelected(null)} className={s.sideClose}>
             ✕
           </button>
         </div>
 
         {selected && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className={s.sideContent}>
             {selected.image_url ? (
-              <img 
-                src={resolveImageUrl(selected.image_url)} 
-                alt="Problem" 
-                style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 16 }} 
+              <img
+                src={resolveImageUrl(selected.image_url)}
+                alt="Problem"
+                className={s.sideImage}
               />
             ) : (
-              <div style={{ width: "100%", height: 180, backgroundColor: "#162B4D", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>
-                🖼️
-              </div>
+              <div className={s.sideImagePlaceholder}>🖼️</div>
             )}
 
             <div>
-              <span style={{ backgroundColor: STATUS_COLORS[selected.status] + "20", color: STATUS_COLORS[selected.status], padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>
+              <span
+                className={s.statusBadge}
+                style={{
+                  backgroundColor: STATUS_COLORS[selected.status] + '20',
+                  color: STATUS_COLORS[selected.status],
+                }}
+              >
                 {selected.status}
               </span>
-              <h3 style={{ color: "#fff", fontSize: 24, marginTop: 12, lineHeight: 1.2 }}>
-                {selected.title}
-              </h3>
+              <h3 className={s.concernTitle}>{selected.title}</h3>
             </div>
 
-            <p style={{ color: "#8899BB", fontSize: 15, lineHeight: 1.6 }}>
-              {selected.description}
-            </p>
+            <p className={s.concernDesc}>{selected.description}</p>
 
-            <div style={{ padding: 16, borderTop: "1px solid rgba(255,255,255,0.1)", marginTop: "auto" }}>
-              <div style={{ display: "flex", gap: 10, color: "#fff", alignItems: "flex-start" }}>
-                <span style={{ fontSize: 20 }}>📍</span>
+            <div className={s.locationWrap}>
+              <div className={s.locationInner}>
+                <span className={s.locationIcon}>📍</span>
                 <div>
-                  <div style={{ fontWeight: 600 }}>Location</div>
-                  <div style={{ color: "#8899BB", fontSize: 14 }}>{selected.location_address}</div>
+                  <div className={s.locationLabel}>Location</div>
+                  <div className={s.locationText}>{selected.location_address}</div>
                 </div>
               </div>
             </div>
 
             <button
               onClick={() => navigate(`/concerns/${selected.id}`)}
-              style={{ width: "100%", padding: "16px", borderRadius: 14, border: "none", backgroundColor: "#1A6BFF", color: "#fff", fontWeight: 700, fontSize: 16, cursor: "pointer" }}
+              className={s.viewDetailsBtn}
             >
               View More Details
             </button>

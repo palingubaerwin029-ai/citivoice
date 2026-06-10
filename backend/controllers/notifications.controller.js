@@ -2,7 +2,7 @@ const {
   selectNotificationsByUser,
   selectUnreadCount,
   updateNotificationRead,
-  updateAllNotificationsRead
+  updateAllNotificationsRead,
 } = require('../models/notification.model');
 
 const getNotifications = async (req, res) => {
@@ -50,5 +50,5 @@ module.exports = {
   getNotifications,
   getUnreadCount,
   markRead,
-  markAllRead
+  markAllRead,
 };

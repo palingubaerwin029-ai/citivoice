@@ -1,28 +1,28 @@
-import React, { useState } from "react";
-import { api } from "../services/api";
-import { IoMailOutline, IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from "react-icons/io5";
-import s from "../styles/Login.module.css";
+import React, { useState } from 'react';
+import { api } from '../services/api';
+import { IoMailOutline, IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from 'react-icons/io5';
+import s from '../styles/Login.module.css';
 
 export default function Login({ onLogin }) {
-  const [email,   setEmail]   = useState("");
-  const [password, setPassword] = useState("");
-  const [showPw,  setShowPw]  = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState("");
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setError('');
     try {
-      const { token, user } = await api.post("/auth/login", { email, password });
-      if (user.role !== "admin") {
-        setError("Access denied. Administrator accounts only.");
+      const { token, user } = await api.post('/auth/login', { email, password });
+      if (user.role !== 'admin') {
+        setError('Access denied. Administrator accounts only.');
         return;
       }
       onLogin(user, token);
     } catch (err) {
-      setError(err.message || "Invalid email or password. Please try again.");
+      setError(err.message || 'Invalid email or password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -38,7 +38,8 @@ export default function Login({ onLogin }) {
           <h1 className={s.title}>CitiVoice</h1>
           <p className={s.subtitle}>Kabankalan City — Admin Console</p>
           <p className={s.description}>
-            Inspired by the golden sun of our democracy and the green growth of the Bangkal tree, CitiVoice connects Kabankalanons to unity, progress, and sustainable civic action.
+            Inspired by the golden sun of our democracy and the green growth of the Bangkal tree,
+            CitiVoice connects Kabankalanons to unity, progress, and sustainable civic action.
           </p>
         </div>
 
@@ -77,7 +78,7 @@ export default function Login({ onLogin }) {
                 <IoLockClosedOutline className={s.reactIcon} />
                 <input
                   className={s.input}
-                  type={showPw ? "text" : "password"}
+                  type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -91,7 +92,7 @@ export default function Login({ onLogin }) {
             </div>
 
             <button type="submit" className={s.submit} disabled={loading}>
-              {loading ? "Signing in…" : "Sign In →"}
+              {loading ? 'Signing in…' : 'Sign In →'}
             </button>
           </form>
         </div>

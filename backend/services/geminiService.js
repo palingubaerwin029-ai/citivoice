@@ -1,6 +1,6 @@
 /**
  * geminiService.js — Google Gemini AI wrapper for CitiVoice
- * 
+ *
  * Provides a unified interface for calling the Gemini API.
  * Gracefully degrades if no GEMINI_API_KEY is set in .env
  */
@@ -41,7 +41,7 @@ const isAvailable = () => {
 /**
  * Generate text content from a prompt using Gemini.
  * Returns null if Gemini is not available.
- * 
+ *
  * @param {string} prompt - The prompt to send to Gemini
  * @param {object} [options] - Optional generation config
  * @returns {Promise<string|null>} - Generated text or null
@@ -72,7 +72,7 @@ const generateText = async (prompt, options = {}) => {
 /**
  * Generate a structured JSON response from Gemini.
  * Parses the result as JSON, returns null on failure.
- * 
+ *
  * @param {string} prompt - The prompt (should instruct JSON output)
  * @returns {Promise<object|null>}
  */
@@ -82,7 +82,10 @@ const generateJSON = async (prompt, options = {}) => {
 
   try {
     // Strip markdown code fences if present
-    const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const cleaned = text
+      .replace(/```json\s*/gi, '')
+      .replace(/```\s*/g, '')
+      .trim();
     return JSON.parse(cleaned);
   } catch (err) {
     console.error('[AI] Failed to parse Gemini JSON response:', err.message);

@@ -641,6 +641,37 @@
   to { transform: translateX(0); }
 }
 
+/* ── Utility Classes ── */
+.avatar { width: 34px; height: 34px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+.avatarLg { width: 52px; height: 52px; border-radius: var(--r-xl); font-weight: 900; font-size: 20px; }
+
+.flexRow { display: flex; align-items: center; gap: 10px; }
+.flexCol { display: flex; flex-direction: column; }
+.flexBetween { display: flex; justify-content: space-between; align-items: center; }
+
+.progressTrack { height: 6px; background: var(--surface-3); border-radius: 99px; overflow: hidden; }
+.progressFill { height: 6px; border-radius: 99px; transition: width 0.8s ease; }
+
+.textPrimary { color: var(--text-1); font-weight: 600; }
+.textMuted { color: var(--text-3); font-size: 11px; }
+.textSm { font-size: 12px; }
+.sectionLabel { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+
+.statusDot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid3 { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 14px; }
+.twoColDetail { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+
+.miniStat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 10px 16px; text-align: center; min-width: 80px; }
+.miniStatValue { font-size: 20px; font-weight: 800; }
+.miniStatLabel { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+.breadcrumb { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+.breadcrumbSep { color: var(--text-3); font-size: 13px; }
+
+.alertBanner { display: flex; align-items: center; gap: 10px; border-radius: var(--r-lg); padding: 10px 16px; }
+
 /* ── Print Styles ── */
 .printOnly { display: none; }
 

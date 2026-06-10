@@ -125,7 +125,7 @@ export default function Barangays() {
                   {displayedBarangays.map((b) => (
                     <tr key={b.id} className={s.tr}>
                       <td className={`${s.td} ${s.tdPrimary}`}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className={styles.tableRowName}>
                           <div className={styles.iconBox}>
                             <IoLocationOutline size={16} color="#1A6BFF" />
                           </div>
@@ -201,14 +201,12 @@ export default function Barangays() {
       {deleteConfirm && (
         <div className={styles.dialogOverlay}>
           <div className={styles.dialog}>
-            <div style={{ fontSize: 40, marginBottom: 12, color: '#FF4444' }}>
+            <div className={styles.dialogIcon}>
               <IoTrashOutline />
             </div>
-            <h3 style={{ color: 'var(--text-1)', margin: '0 0 8px' }}>Delete this?</h3>
-            <p style={{ color: 'var(--text-2)', fontSize: 14, marginBottom: 24 }}>
-              "{deleteConfirm.name}" will be permanently deleted.
-            </p>
-            <div style={{ display: 'flex', gap: 10 }}>
+            <h3 className={styles.dialogTitle}>Delete this?</h3>
+            <p className={styles.dialogText}>"{deleteConfirm.name}" will be permanently deleted.</p>
+            <div className={styles.dialogButtons}>
               <button className={styles.dialogCancel} onClick={() => setDeleteConfirm(null)}>
                 Cancel
               </button>

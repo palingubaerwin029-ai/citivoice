@@ -1,33 +1,33 @@
-import React from "react";
-import { View, ActivityIndicator, Text } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "../context/AuthContext";
-import { useLanguage } from "../context/LanguageContext";
-import { RADIUS } from "../utils/theme";
-import { useTheme } from "../context/ThemeContext";
+import React from 'react';
+import { View, ActivityIndicator, Text } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { RADIUS } from '../utils/theme';
+import { useTheme } from '../context/ThemeContext';
 
 // ── Auth ───────────────────────────────────────────────────────────────────
-import LoginScreen from "../screens/auth/LoginScreen";
-import RegisterScreen from "../screens/auth/RegisterScreen";
-import VerifyIdentityScreen from "../screens/auth/VerifyIdentityScreen";
+import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
+import VerifyIdentityScreen from '../screens/auth/VerifyIdentityScreen';
 
 // ── Citizen ────────────────────────────────────────────────────────────────
-import HomeScreen from "../screens/citizen/HomeScreen";
-import SubmitConcernScreen from "../screens/citizen/SubmitConcernScreen";
-import ConcernDetailScreen from "../screens/citizen/ConcernDetailScreen";
-import MyConcernsScreen from "../screens/citizen/MyConcernsScreen";
-import MapScreen from "../screens/citizen/MapScreen";
-import ProfileScreen from "../screens/citizen/ProfileScreen";
-import NotificationsScreen from "../screens/citizen/NotificationsScreen";
+import HomeScreen from '../screens/citizen/HomeScreen';
+import SubmitConcernScreen from '../screens/citizen/SubmitConcernScreen';
+import ConcernDetailScreen from '../screens/citizen/ConcernDetailScreen';
+import MyConcernsScreen from '../screens/citizen/MyConcernsScreen';
+import MapScreen from '../screens/citizen/MapScreen';
+import ProfileScreen from '../screens/citizen/ProfileScreen';
+import NotificationsScreen from '../screens/citizen/NotificationsScreen';
 
 // ── Admin ──────────────────────────────────────────────────────────────────
-import AdminDashboardScreen from "../screens/admin/AdminDashboardScreen";
-import AdminConcernsScreen from "../screens/admin/AdminConcernsScreen";
-import AdminConcernDetailScreen from "../screens/admin/AdminConcernDetailScreen";
-import AdminProfileScreen from "../screens/admin/AdminProfileScreen";
+import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
+import AdminConcernsScreen from '../screens/admin/AdminConcernsScreen';
+import AdminConcernDetailScreen from '../screens/admin/AdminConcernDetailScreen';
+import AdminProfileScreen from '../screens/admin/AdminProfileScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -36,8 +36,8 @@ const Tab = createBottomTabNavigator();
 const getHeaderOptions = (colors) => ({
   headerStyle: { backgroundColor: colors.bgCard },
   headerTintColor: colors.textPrimary,
-  headerTitleStyle: { fontWeight: "700", fontSize: 16 },
-  headerTitleAlign: "left",
+  headerTitleStyle: { fontWeight: '700', fontSize: 16 },
+  headerTitleAlign: 'left',
   headerShadowVisible: false,
   contentStyle: { backgroundColor: colors.bgDark },
 });
@@ -51,7 +51,7 @@ const getTabBarOptions = (colors) => ({
     paddingBottom: 8,
     paddingTop: 4,
   },
-  tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
+  tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
   tabBarActiveTintColor: colors.primary,
   tabBarInactiveTintColor: colors.textMuted,
 });
@@ -71,7 +71,7 @@ function AuthStack() {
         options={{
           headerShown: true,
           ...headerOptions,
-          title: "Verify Identity",
+          title: 'Verify Identity',
         }}
       />
     </Stack.Navigator>
@@ -85,11 +85,7 @@ function HomeStack() {
 
   return (
     <Stack.Navigator screenOptions={headerOptions}>
-      <Stack.Screen
-        name="Feed"
-        component={HomeScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="Feed" component={HomeScreen} options={{ headerShown: false }} />
       <Stack.Screen
         name="ConcernDetail"
         component={ConcernDetailScreen}
@@ -121,23 +117,17 @@ function CitizenTabs() {
         ...tabBarOptions,
         headerStyle: { backgroundColor: colors.bgCard },
         headerTintColor: colors.textPrimary,
-        headerTitleStyle: { fontWeight: "700", fontSize: 16 },
-        headerTitleAlign: "left",
+        headerTitleStyle: { fontWeight: '700', fontSize: 16 },
+        headerTitleAlign: 'left',
         headerShadowVisible: false,
         tabBarIcon: ({ focused, color, size }) => {
           const icons = {
-            Home: focused ? "home" : "home-outline",
-            MyConcerns: focused ? "list" : "list-outline",
-            Map: focused ? "map" : "map-outline",
-            Profile: focused ? "person" : "person-outline",
+            Home: focused ? 'home' : 'home-outline',
+            MyConcerns: focused ? 'list' : 'list-outline',
+            Map: focused ? 'map' : 'map-outline',
+            Profile: focused ? 'person' : 'person-outline',
           };
-          return (
-            <Ionicons
-              name={icons[route.name] || "ellipse"}
-              size={size}
-              color={color}
-            />
-          );
+          return <Ionicons name={icons[route.name] || 'ellipse'} size={size} color={color} />;
         },
       })}
     >
@@ -175,7 +165,7 @@ function AdminHomeStack() {
       <Stack.Screen
         name="AdminDashboard"
         component={AdminDashboardScreen}
-        options={{ title: "Dashboard" }}
+        options={{ title: 'Dashboard' }}
       />
     </Stack.Navigator>
   );
@@ -194,22 +184,16 @@ function AdminTabs() {
         tabBarActiveTintColor: colors.accent,
         headerStyle: { backgroundColor: colors.bgCard },
         headerTintColor: colors.textPrimary,
-        headerTitleStyle: { fontWeight: "700", fontSize: 16 },
-        headerTitleAlign: "left",
+        headerTitleStyle: { fontWeight: '700', fontSize: 16 },
+        headerTitleAlign: 'left',
         headerShadowVisible: false,
         tabBarIcon: ({ focused, color, size }) => {
           const icons = {
-            AdminHome: focused ? "grid" : "grid-outline",
-            AdminConcerns: focused ? "clipboard" : "clipboard-outline",
-            AdminProfile: focused ? "person" : "person-outline",
+            AdminHome: focused ? 'grid' : 'grid-outline',
+            AdminConcerns: focused ? 'clipboard' : 'clipboard-outline',
+            AdminProfile: focused ? 'person' : 'person-outline',
           };
-          return (
-            <Ionicons
-              name={icons[route.name] || "ellipse"}
-              size={size}
-              color={color}
-            />
-          );
+          return <Ionicons name={icons[route.name] || 'ellipse'} size={size} color={color} />;
         },
       })}
     >
@@ -239,15 +223,11 @@ function AdminStack() {
 
   return (
     <Stack.Navigator screenOptions={headerOptions}>
-      <Stack.Screen
-        name="AdminTabs"
-        component={AdminTabs}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="AdminTabs" component={AdminTabs} options={{ headerShown: false }} />
       <Stack.Screen
         name="AdminConcernDetail"
         component={AdminConcernDetailScreen}
-        options={{ title: "Review Concern" }}
+        options={{ title: 'Review Concern' }}
       />
     </Stack.Navigator>
   );
@@ -264,14 +244,12 @@ export default function AppNavigator() {
         style={{
           flex: 1,
           backgroundColor: colors.bgDark,
-          alignItems: "center",
-          justifyContent: "center",
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
         <ActivityIndicator color={colors.primary} size="large" />
-        <Text style={{ color: colors.textMuted, marginTop: 12, fontSize: 13 }}>
-          Loading…
-        </Text>
+        <Text style={{ color: colors.textMuted, marginTop: 12, fontSize: 13 }}>Loading…</Text>
       </View>
     );
   }
@@ -283,7 +261,7 @@ export default function AppNavigator() {
           <AuthStack /> // Not logged in
         ) : user._blocked ? (
           <AuthStack /> // Logged in but NOT verified
-        ) : user.role === "admin" ? (
+        ) : user.role === 'admin' ? (
           <AdminStack /> // Admin
         ) : (
           <CitizenTabs />

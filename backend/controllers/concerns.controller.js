@@ -19,7 +19,7 @@ const {
   addUpvote,
   insertNotification,
   insertConcernLink,
-  selectLinkedConcerns
+  selectLinkedConcerns,
 } = require('../models/concern.model');
 
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:5000';
@@ -33,14 +33,14 @@ const deleteImageFile = (imageUrl) => {
       const filePath = path.join(__dirname, '..', 'uploads', filename);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
-  } catch (_) { }
+  } catch (_) {}
 };
 
 const listConcerns = async (req, res) => {
   try {
     const rows = await selectAllConcerns();
     if (req.user.role !== 'admin') {
-      const sanitized = rows.map(r => {
+      const sanitized = rows.map((r) => {
         if (r.user_id === req.user.id) return r;
         const { user_id, user_name, user_barangay, ...rest } = r;
         return rest;
@@ -79,9 +79,15 @@ const getConcern = async (req, res) => {
 
 const createConcern = async (req, res) => {
   const {
-    title, description, category, priority,
-    location_address, location_lat, location_lng,
-    user_name, user_barangay,
+    title,
+    description,
+    category,
+    priority,
+    location_address,
+    location_lat,
+    location_lng,
+    user_name,
+    user_barangay,
   } = req.body;
 
   const image_url = req.file ? `${BASE_URL()}/uploads/${req.file.filename}` : null;
@@ -98,8 +104,9 @@ const createConcern = async (req, res) => {
       imageTags = await analyzeImage(filePath);
     }
 
-    // New unified Gemini AI call
-    const aiResult = await analyzeFullConcern(`${title} ${description}`, imageTags);
+    // Feature 1: AI Auto-Classification
+    const textInput = `Title: ${title}\nDescription: ${description}`;
+    const aiResult = await analyzeFullConcern(textInput, imageTags);
     if (aiResult) {
       finalCategory = aiResult.category || finalCategory;
       finalPriority = aiResult.priority || finalPriority;
@@ -107,7 +114,7 @@ const createConcern = async (req, res) => {
       urgencyScore = aiResult.urgencyScore || urgencyScore;
     }
   } catch (e) {
-    console.error("AI Categorization Error:", e);
+    console.error('AI Categorization Error:', e);
   }
 
   // Auto-escalate priority if urgency is very high
@@ -122,15 +129,25 @@ const createConcern = async (req, res) => {
     const routing = routeToDepartment(finalCategory, finalPriority);
     department = `${routing.department} — ${routing.team}`;
   } catch (e) {
-    console.error("AI Routing Error:", e);
+    console.error('AI Routing Error:', e);
   }
 
   try {
     const insertId = await insertConcern({
-      title, description, category: finalCategory, priority: finalPriority, image_url,
-      location_address, location_lat, location_lng,
-      user_id: req.user.id, user_name, user_barangay,
-      sentiment, urgency_score: urgencyScore, department
+      title,
+      description,
+      category: finalCategory,
+      priority: finalPriority,
+      image_url,
+      location_address,
+      location_lat,
+      location_lng,
+      user_id: req.user.id,
+      user_name,
+      user_barangay,
+      sentiment,
+      urgency_score: urgencyScore,
+      department,
     });
     invalidate('concerns', 'concern_detail');
 
@@ -169,10 +186,22 @@ const editConcern = async (req, res) => {
 
     const fields = [];
     const values = [];
-    if (status !== undefined) { fields.push('status = ?'); values.push(status); }
-    if (admin_note !== undefined) { fields.push('admin_note = ?'); values.push(admin_note || null); }
-    if (category !== undefined) { fields.push('category = ?'); values.push(category); }
-    if (priority !== undefined) { fields.push('priority = ?'); values.push(priority); }
+    if (status !== undefined) {
+      fields.push('status = ?');
+      values.push(status);
+    }
+    if (admin_note !== undefined) {
+      fields.push('admin_note = ?');
+      values.push(admin_note || null);
+    }
+    if (category !== undefined) {
+      fields.push('category = ?');
+      values.push(category);
+    }
+    if (priority !== undefined) {
+      fields.push('priority = ?');
+      values.push(priority);
+    }
 
     // Auto-update department when category or priority changes
     if (category !== undefined || priority !== undefined) {
@@ -184,7 +213,7 @@ const editConcern = async (req, res) => {
         fields.push('department = ?');
         values.push(`${routing.department} — ${routing.team}`);
       } catch (e) {
-        console.error("AI Routing Error on edit:", e);
+        console.error('AI Routing Error on edit:', e);
       }
     }
 
@@ -196,21 +225,29 @@ const editConcern = async (req, res) => {
 
     if (concern.user_id) {
       if (status && status !== concern.status) {
-        await insertNotification(concern.user_id, 'Concern Updated', `Your concern "${concern.title}" was updated to ${status}.`);
+        await insertNotification(
+          concern.user_id,
+          'Concern Updated',
+          `Your concern "${concern.title}" was updated to ${status}.`,
+        );
         notifyUser(
-          concern, 
-          "Concern Updated", 
+          concern,
+          'Concern Updated',
           `Your concern "${concern.title}" has been updated to ${status}. Check the app for details.`,
-          `The citizen's concern titled "${concern.title}" just had its status changed to "${status}".`
+          `The citizen's concern titled "${concern.title}" just had its status changed to "${status}".`,
         );
       }
       if (admin_note) {
-        await insertNotification(concern.user_id, 'New Official Response', `An admin replied to your concern: "${concern.title}".`);
+        await insertNotification(
+          concern.user_id,
+          'New Official Response',
+          `An admin replied to your concern: "${concern.title}".`,
+        );
         notifyUser(
-          concern, 
-          "New Official Response", 
+          concern,
+          'New Official Response',
           `An admin has officially responded to your concern: "${concern.title}". Check the app to view the update.`,
-          `An official city admin has just written a new response to the citizen's concern titled "${concern.title}". The response is: "${admin_note}"`
+          `An official city admin has just written a new response to the citizen's concern titled "${concern.title}". The response is: "${admin_note}"`,
         );
       }
     }
@@ -308,11 +345,11 @@ Write 2-4 sentences maximum. Be professional but warm. Do not use markdown forma
     // Fallback: template-based response
     const templates = {
       'Road & Infrastructure': `Thank you for reporting this issue regarding ${concern.title.toLowerCase()}. Our City Engineering Office has been notified and a team will be dispatched to assess the situation. We expect to begin work within the next 3-5 business days. We appreciate your help in keeping our roads safe.`,
-      'Electricity': `We have received your report about ${concern.title.toLowerCase()}. This has been forwarded to our electric utility team for immediate attention. A repair crew will be scheduled within 24-48 hours. Thank you for helping us maintain our community's infrastructure.`,
+      Electricity: `We have received your report about ${concern.title.toLowerCase()}. This has been forwarded to our electric utility team for immediate attention. A repair crew will be scheduled within 24-48 hours. Thank you for helping us maintain our community's infrastructure.`,
       'Water & Drainage': `Thank you for reporting this concern. The City Water District has been alerted about ${concern.title.toLowerCase()} and will send a team to inspect the area. Expected response time is within 2-3 business days. Your vigilance helps keep our community safe.`,
       'Waste & Sanitation': `We acknowledge your report regarding ${concern.title.toLowerCase()}. Our Sanitation Division has been notified and collection/cleanup will be prioritized. Please expect action within 1-3 business days. Thank you for helping maintain our community's cleanliness.`,
       'Public Safety': `Your safety report has been received and forwarded to the appropriate authorities. A patrol unit will be dispatched to assess the situation. For immediate emergencies, please also contact the local police station directly. Thank you for your vigilance.`,
-      'Other': `Thank you for bringing ${concern.title.toLowerCase()} to our attention. This has been logged and assigned to the appropriate department for review. We will provide updates as the situation progresses. Your feedback helps improve our community.`,
+      Other: `Thank you for bringing ${concern.title.toLowerCase()} to our attention. This has been logged and assigned to the appropriate department for review. We will provide updates as the situation progresses. Your feedback helps improve our community.`,
     };
 
     const template = templates[concern.category] || templates['Other'];
@@ -320,6 +357,31 @@ Write 2-4 sentences maximum. Be professional but warm. Do not use markdown forma
   } catch (err) {
     console.error('AI Response generation error:', err);
     res.status(500).json({ error: 'Failed to generate response' });
+  }
+};
+
+// ─── Feature 1.5: AI Pre-submission Check ──────────────────────────────────
+
+const analyzeConcernDraft = async (req, res) => {
+  const { title, description } = req.body;
+
+  if (!title || !description) {
+    return res.status(400).json({ error: 'Title and description are required' });
+  }
+
+  try {
+    const textInput = `Title: ${title}\nDescription: ${description}`;
+    const aiResult = await analyzeFullConcern(textInput, []);
+
+    // Auto-escalate priority if urgency is very high (same as createConcern logic)
+    if (aiResult && aiResult.urgencyScore >= 85 && aiResult.priority !== 'High') {
+      aiResult.priority = 'High';
+    }
+
+    res.json(aiResult);
+  } catch (err) {
+    console.error('AI Draft Analysis error:', err);
+    res.status(500).json({ error: 'Failed to analyze draft' });
   }
 };
 
@@ -339,7 +401,7 @@ const getSimilarConcerns = async (req, res) => {
       const similar = findSimilarConcerns(concern, allConcerns);
       return res.json({
         linked: [],
-        computed: similar.map(s => ({
+        computed: similar.map((s) => ({
           id: s.concern.id,
           title: s.concern.title,
           status: s.concern.status,
@@ -371,7 +433,7 @@ const linkConcerns = async (req, res) => {
       parseInt(req.params.id),
       parseInt(target_id),
       link_type || 'related',
-      req.body.similarity_score || null
+      req.body.similarity_score || null,
     );
     res.json({ success: true });
   } catch (err) {
@@ -379,10 +441,6 @@ const linkConcerns = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
-
-
-
-
 
 module.exports = {
   listConcerns,
@@ -395,4 +453,5 @@ module.exports = {
   generateAiResponse,
   getSimilarConcerns,
   linkConcerns,
+  analyzeConcernDraft,
 };

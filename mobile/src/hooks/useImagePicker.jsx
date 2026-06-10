@@ -5,10 +5,7 @@ export function useImagePicker() {
   const pickImage = async (options = {}) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Permission Required',
-        'Please allow access to your photos.'
-      );
+      Alert.alert('Permission Required', 'Please allow access to your photos.');
       return null;
     }
 

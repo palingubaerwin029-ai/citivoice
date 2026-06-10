@@ -41,7 +41,7 @@ export default function NotificationsScreen({ navigation }) {
   const handleMarkAsRead = async (id) => {
     try {
       await mobileApi.put(`/notifications/${id}/read`);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1 } : n));
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: 1 } : n)));
       fetchUnreadCount();
     } catch (err) {
       console.log('Error marking as read', err);
@@ -51,14 +51,14 @@ export default function NotificationsScreen({ navigation }) {
   const handleMarkAllRead = async () => {
     try {
       await mobileApi.put(`/notifications/read-all`);
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
       fetchUnreadCount();
     } catch (err) {
       console.log('Error marking all as read', err);
     }
   };
 
-  const hasUnread = notifications.some(n => !n.is_read);
+  const hasUnread = notifications.some((n) => !n.is_read);
 
   const timeAgo = (dateStr) => {
     if (!dateStr) return '';
@@ -72,22 +72,38 @@ export default function NotificationsScreen({ navigation }) {
 
   const getNotificationIcon = (title, isRead) => {
     const tLower = title?.toLowerCase() || '';
-    let icon = "notifications";
+    let icon = 'notifications';
     let color = isRead ? colors.textMuted : colors.primary;
     let bg = isRead ? colors.border : colors.primary + '22';
 
     if (tLower.includes('resolved') || tLower.includes('completed')) {
-      icon = "checkmark-circle";
-      if (!isRead) { color = colors.statusResolved; bg = colors.statusResolved + '22'; }
-    } else if (tLower.includes('progress') || tLower.includes('assigned') || tLower.includes('update')) {
-      icon = "construct";
-      if (!isRead) { color = colors.statusInProgress; bg = colors.statusInProgress + '22'; }
+      icon = 'checkmark-circle';
+      if (!isRead) {
+        color = colors.statusResolved;
+        bg = colors.statusResolved + '22';
+      }
+    } else if (
+      tLower.includes('progress') ||
+      tLower.includes('assigned') ||
+      tLower.includes('update')
+    ) {
+      icon = 'construct';
+      if (!isRead) {
+        color = colors.statusInProgress;
+        bg = colors.statusInProgress + '22';
+      }
     } else if (tLower.includes('rejected') || tLower.includes('declined')) {
-      icon = "close-circle";
-      if (!isRead) { color = colors.statusRejected; bg = colors.statusRejected + '22'; }
+      icon = 'close-circle';
+      if (!isRead) {
+        color = colors.statusRejected;
+        bg = colors.statusRejected + '22';
+      }
     } else if (tLower.includes('comment') || tLower.includes('message')) {
-      icon = "chatbubble-ellipses";
-      if (!isRead) { color = colors.info; bg = colors.info + '22'; }
+      icon = 'chatbubble-ellipses';
+      if (!isRead) {
+        color = colors.info;
+        bg = colors.info + '22';
+      }
     }
 
     return { icon, color, bg };
@@ -114,21 +130,27 @@ export default function NotificationsScreen({ navigation }) {
         data={notifications}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={S.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
         ListEmptyComponent={
           !refreshing && (
-            <EmptyState
-              icon="📭"
-              title={t('allCaughtUp')}
-              subtitle={t('noNotifications')}
-            />
+            <EmptyState icon="📭" title={t('allCaughtUp')} subtitle={t('noNotifications')} />
           )
         }
         renderItem={({ item }) => {
           const { icon, color, bg } = getNotificationIcon(item.title, item.is_read);
           return (
-            <TouchableOpacity 
-              style={[S.card, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, !item.is_read && { backgroundColor: colors.bgCard, borderColor: color + '44' }]}
+            <TouchableOpacity
+              style={[
+                S.card,
+                { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                !item.is_read && { backgroundColor: colors.bgCard, borderColor: color + '44' },
+              ]}
               onPress={() => !item.is_read && handleMarkAsRead(item.id)}
               activeOpacity={0.8}
             >
@@ -137,10 +159,30 @@ export default function NotificationsScreen({ navigation }) {
               </View>
               <View style={S.content}>
                 <View style={S.titleRow}>
-                  <Text style={[S.title, { color: colors.textSecondary }, !item.is_read && { color: colors.textPrimary, fontWeight: '800' }]} numberOfLines={1}>{item.title}</Text>
-                  <Text style={[S.time, { color: colors.textMuted }]}>{timeAgo(item.created_at)}</Text>
+                  <Text
+                    style={[
+                      S.title,
+                      { color: colors.textSecondary },
+                      !item.is_read && { color: colors.textPrimary, fontWeight: '800' },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {item.title}
+                  </Text>
+                  <Text style={[S.time, { color: colors.textMuted }]}>
+                    {timeAgo(item.created_at)}
+                  </Text>
                 </View>
-                <Text style={[S.message, { color: colors.textPrimary }, item.is_read && { color: colors.textSecondary }]} numberOfLines={3}>{item.message}</Text>
+                <Text
+                  style={[
+                    S.message,
+                    { color: colors.textPrimary },
+                    item.is_read && { color: colors.textSecondary },
+                  ]}
+                  numberOfLines={3}
+                >
+                  {item.message}
+                </Text>
               </View>
               {!item.is_read && <View style={[S.unreadDot, { backgroundColor: color }]} />}
             </TouchableOpacity>
@@ -154,31 +196,55 @@ export default function NotificationsScreen({ navigation }) {
 const S = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: scale(16), paddingVertical: verticalScale(12),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(12),
     borderBottomWidth: 1,
   },
   backBtn: { padding: scale(4) },
   headerTitle: { fontSize: rf(18), fontWeight: '800' },
   markAllText: { fontSize: rf(13), fontWeight: '600' },
-  
-  list: { paddingHorizontal: scale(16), paddingTop: verticalScale(16), paddingBottom: verticalScale(40), gap: verticalScale(10) },
+
+  list: {
+    paddingHorizontal: scale(16),
+    paddingTop: verticalScale(16),
+    paddingBottom: verticalScale(40),
+    gap: verticalScale(10),
+  },
 
   card: {
-    flexDirection: 'row', gap: scale(12), padding: scale(14),
+    flexDirection: 'row',
+    gap: scale(12),
+    padding: scale(14),
     borderRadius: moderateScale(14),
     borderWidth: 1,
   },
   cardUnread: {},
   iconBox: {
-    width: scale(36), height: scale(36), borderRadius: scale(18),
-    alignItems: 'center', justifyContent: 'center'
+    width: scale(36),
+    height: scale(36),
+    borderRadius: scale(18),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: { flex: 1 },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: verticalScale(4) },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: verticalScale(4),
+  },
   title: { fontSize: rf(14), fontWeight: '600', flex: 1, marginRight: scale(8) },
   titleUnread: {},
   time: { fontSize: rf(11) },
   message: { fontSize: rf(13), lineHeight: rf(19) },
-  unreadDot: { width: scale(8), height: scale(8), borderRadius: scale(4), alignSelf: 'center', marginLeft: scale(8) }
+  unreadDot: {
+    width: scale(8),
+    height: scale(8),
+    borderRadius: scale(4),
+    alignSelf: 'center',
+    marginLeft: scale(8),
+  },
 });

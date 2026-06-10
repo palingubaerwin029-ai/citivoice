@@ -1,5 +1,5 @@
-import React from "react";
-import Skeleton from "./Skeleton";
+import React from 'react';
+import Skeleton from './Skeleton';
 import {
   View,
   Text,
@@ -7,16 +7,11 @@ import {
   TextInput,
   ActivityIndicator,
   StyleSheet,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import {
-  RADIUS,
-  SHADOWS,
-  getStatusConfig,
-  getCategoryConfig,
-} from "../utils/theme";
-import { useTheme } from "../context/ThemeContext";
-import { scale, verticalScale, rf } from "../utils/responsive";
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { RADIUS, SHADOWS, getStatusConfig, getCategoryConfig } from '../utils/theme';
+import { useTheme } from '../context/ThemeContext';
+import { scale, verticalScale, rf } from '../utils/responsive';
 
 export function PrimaryButton({
   title,
@@ -24,23 +19,23 @@ export function PrimaryButton({
   loading,
   disabled,
   style,
-  variant = "primary",
-  size = "md",
+  variant = 'primary',
+  size = 'md',
 }) {
   const { colors } = useTheme();
   const V = {
-    primary: { bg: colors.primary, text: "#fff" },
+    primary: { bg: colors.primary, text: '#fff' },
     ghost: {
-      bg: "transparent",
+      bg: 'transparent',
       text: colors.textSecondary,
       borderWidth: 1,
       borderColor: colors.border,
     },
     danger: {
-      bg: colors.statusRejected + "11",
+      bg: colors.statusRejected + '11',
       text: colors.statusRejected,
       borderWidth: 1,
-      borderColor: colors.statusRejected + "22",
+      borderColor: colors.statusRejected + '22',
     },
   };
   const SZ = {
@@ -56,9 +51,9 @@ export function PrimaryButton({
         {
           height: sz.h,
           borderRadius: RADIUS.md,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
           gap: scale(8),
           paddingHorizontal: scale(20),
           backgroundColor: v.bg,
@@ -77,7 +72,7 @@ export function PrimaryButton({
         <Text
           style={{
             fontSize: sz.fs,
-            fontWeight: "600",
+            fontWeight: '600',
             color: v.text,
             letterSpacing: 0.2,
           }}
@@ -89,20 +84,18 @@ export function PrimaryButton({
   );
 }
 
-export function InputField({
-  label,
-  error,
-  style,
-  inputStyle,
-  leftIcon,
-  rightElement,
-  ...props
-}) {
+export function InputField({ label, error, style, inputStyle, leftIcon, rightElement, ...props }) {
   const { colors } = useTheme();
   return (
     <View style={[{ marginBottom: verticalScale(14) }, style]}>
       {label && <Text style={[S.inputLabel, { color: colors.textSecondary }]}>{label}</Text>}
-      <View style={[S.inputRow, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, error && { borderColor: colors.statusRejected }]}>
+      <View
+        style={[
+          S.inputRow,
+          { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+          error && { borderColor: colors.statusRejected },
+        ]}
+      >
         {leftIcon && (
           <Ionicons
             name={leftIcon}
@@ -121,8 +114,8 @@ export function InputField({
       {error && (
         <View
           style={{
-            flexDirection: "row",
-            alignItems: "center",
+            flexDirection: 'row',
+            alignItems: 'center',
             gap: scale(5),
             marginTop: verticalScale(5),
           }}
@@ -137,14 +130,10 @@ export function InputField({
 
 export function StatusBadge({ status, style }) {
   const { colors } = useTheme();
-  const cfg = getStatusConfig(colors)[status] || getStatusConfig(colors)["Pending"];
+  const cfg = getStatusConfig(colors)[status] || getStatusConfig(colors)['Pending'];
   return (
     <View
-      style={[
-        S.badge,
-        { backgroundColor: cfg.bg, borderWidth: 1, borderColor: cfg.border },
-        style,
-      ]}
+      style={[S.badge, { backgroundColor: cfg.bg, borderWidth: 1, borderColor: cfg.border }, style]}
     >
       <View
         style={{
@@ -154,7 +143,7 @@ export function StatusBadge({ status, style }) {
           backgroundColor: cfg.color,
         }}
       />
-      <Text style={{ fontSize: rf(11), fontWeight: "600", color: cfg.color }}>
+      <Text style={{ fontSize: rf(11), fontWeight: '600', color: cfg.color }}>
         {cfg.label || status}
       </Text>
     </View>
@@ -163,12 +152,12 @@ export function StatusBadge({ status, style }) {
 
 export function CategoryBadge({ category, style }) {
   const { colors } = useTheme();
-  const cfg = getCategoryConfig(colors)[category] || getCategoryConfig(colors)["Other"];
+  const cfg = getCategoryConfig(colors)[category] || getCategoryConfig(colors)['Other'];
   return (
     <View style={[S.badge, { backgroundColor: cfg.bg }, style]}>
       <Ionicons name={cfg.icon} size={11} color={cfg.color} />
-      <Text style={{ fontSize: rf(11), fontWeight: "600", color: cfg.color }}>
-        {cfg.label || category.split(" ")[0]}
+      <Text style={{ fontSize: rf(11), fontWeight: '600', color: cfg.color }}>
+        {cfg.label || category.split(' ')[0]}
       </Text>
     </View>
   );
@@ -177,12 +166,14 @@ export function CategoryBadge({ category, style }) {
 export function StatCard({ icon, value, label, color, style }) {
   const { colors } = useTheme();
   return (
-    <View style={[S.statCard, { backgroundColor: colors.bgCard, borderColor: colors.border }, style]}>
+    <View
+      style={[S.statCard, { backgroundColor: colors.bgCard, borderColor: colors.border }, style]}
+    >
       <Text style={{ fontSize: rf(20), marginBottom: verticalScale(6) }}>{icon}</Text>
       <Text
         style={{
           fontSize: rf(22),
-          fontWeight: "800",
+          fontWeight: '800',
           color: color || colors.primary,
           letterSpacing: -0.5,
         }}
@@ -201,14 +192,14 @@ export function EmptyState({ icon, title, subtitle, action, actionLabel }) {
   return (
     <View style={S.empty}>
       <Text style={{ fontSize: rf(44), marginBottom: verticalScale(14), opacity: 0.65 }}>
-        {icon || "📭"}
+        {icon || '📭'}
       </Text>
       <Text
         style={{
           color: colors.textPrimary,
           fontSize: rf(17),
-          fontWeight: "700",
-          textAlign: "center",
+          fontWeight: '700',
+          textAlign: 'center',
         }}
       >
         {title}
@@ -218,7 +209,7 @@ export function EmptyState({ icon, title, subtitle, action, actionLabel }) {
           style={{
             color: colors.textSecondary,
             fontSize: rf(13),
-            textAlign: "center",
+            textAlign: 'center',
             marginTop: verticalScale(8),
             lineHeight: rf(20),
           }}
@@ -227,10 +218,11 @@ export function EmptyState({ icon, title, subtitle, action, actionLabel }) {
         </Text>
       )}
       {action && (
-        <TouchableOpacity style={[S.emptyAction, { backgroundColor: colors.primary }]} onPress={action}>
-          <Text style={{ color: "#fff", fontWeight: "700", fontSize: rf(14) }}>
-            {actionLabel}
-          </Text>
+        <TouchableOpacity
+          style={[S.emptyAction, { backgroundColor: colors.primary }]}
+          onPress={action}
+        >
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: rf(14) }}>{actionLabel}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -244,9 +236,9 @@ export function SectionHeader({ title, right }) {
   return (
     <View
       style={{
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: verticalScale(10),
       }}
     >
@@ -254,7 +246,7 @@ export function SectionHeader({ title, right }) {
         style={{
           color: colors.textPrimary,
           fontSize: rf(15),
-          fontWeight: "700",
+          fontWeight: '700',
           letterSpacing: -0.2,
         }}
       >
@@ -268,14 +260,14 @@ export function SectionHeader({ title, right }) {
 const S = StyleSheet.create({
   inputLabel: {
     fontSize: rf(11),
-    fontWeight: "700",
-    textTransform: "uppercase",
+    fontWeight: '700',
+    textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: verticalScale(8),
   },
   inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: RADIUS.md,
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(12),
@@ -284,26 +276,26 @@ const S = StyleSheet.create({
   inputRowError: {},
   input: { flex: 1, fontSize: rf(14) },
   badge: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: scale(5),
     paddingHorizontal: scale(9),
     paddingVertical: verticalScale(4),
     borderRadius: RADIUS.full,
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
   },
   statCard: {
     flex: 1,
     minWidth: '45%',
     borderRadius: RADIUS.lg,
     padding: scale(14),
-    alignItems: "center",
+    alignItems: 'center',
     borderWidth: 1,
   },
   empty: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: scale(40),
   },
   emptyAction: {

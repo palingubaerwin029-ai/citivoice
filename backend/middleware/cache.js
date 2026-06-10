@@ -2,9 +2,9 @@ const NodeCache = require('node-cache');
 
 // ─── In-memory TTL cache (single-process, zero config) ───────────────────────
 const cache = new NodeCache({
-  stdTTL:      300,   // default: 5 minutes
-  checkperiod: 60,    // purge expired keys every 60 s
-  useClones:   false, // return references (faster for read-only JSON)
+  stdTTL: 300, // default: 5 minutes
+  checkperiod: 60, // purge expired keys every 60 s
+  useClones: false, // return references (faster for read-only JSON)
 });
 
 /**

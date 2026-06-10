@@ -19,7 +19,7 @@ export const scale = (size) => (width / guidelineBaseWidth) * size;
 export const verticalScale = (size) => (height / guidelineBaseHeight) * size;
 
 /**
- * Moderate scale factor for nuanced responsiveness. 
+ * Moderate scale factor for nuanced responsiveness.
  * Prevents extreme scaling on large tablets or very small devices.
  * Use this for fonts, radiuses, and elements that shouldn't blow up too heavily.
  */

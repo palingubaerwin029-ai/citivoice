@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from "react";
-import { AppState } from "react-native";
-import { ConcernService } from "../services/concernService";
-import { useAuth } from "./AuthContext";
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
+import { ConcernService } from '../services/concernService';
+import { useAuth } from './AuthContext';
 
 const ConcernContext = createContext(null);
 
@@ -17,21 +17,24 @@ export function ConcernProvider({ children }) {
   // ── Core data loader ───────────────────────────────────────────────────
   // silent = true → background poll (no loading spinner)
   // silent = false → initial load or manual refresh (shows spinner)
-  const loadData = React.useCallback(async (silent = false) => {
-    if (!user?.id) return;
-    if (!silent) setLoading(true);
-    try {
-      const all = await ConcernService.getConcerns();
-      setConcerns(all);
-      const mine = all.filter(c => c.user_id === user.id);
-      setMyConcerns(mine);
-    } catch (err) {
-      // Silently ignore polling errors to avoid spamming the user
-      if (!silent) console.log('Failed to load concerns', err);
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, [user?.id]);
+  const loadData = React.useCallback(
+    async (silent = false) => {
+      if (!user?.id) return;
+      if (!silent) setLoading(true);
+      try {
+        const all = await ConcernService.getConcerns();
+        setConcerns(all);
+        const mine = all.filter((c) => c.user_id === user.id);
+        setMyConcerns(mine);
+      } catch (err) {
+        // Silently ignore polling errors to avoid spamming the user
+        if (!silent) console.log('Failed to load concerns', err);
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [user?.id],
+  );
 
   // ── Initial load ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -98,6 +101,10 @@ export function ConcernProvider({ children }) {
     loadData(true);
   };
 
+  const analyzeDraft = async (title, description) => {
+    return await ConcernService.analyzeDraft(title, description);
+  };
+
   return (
     <ConcernContext.Provider
       value={{
@@ -109,6 +116,7 @@ export function ConcernProvider({ children }) {
         deleteConcern,
         toggleUpvote,
         refreshConcerns,
+        analyzeDraft,
       }}
     >
       {children}
@@ -117,4 +125,3 @@ export function ConcernProvider({ children }) {
 }
 
 export const useConcerns = () => useContext(ConcernContext);
-

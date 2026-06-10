@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api, fmtDateShort, maskEmail } from '../services/api';
 import s from '../styles/Admin.module.css';
+import u from '../styles/Users.module.css';
 import Pagination, { useFitPagination } from '../components/Pagination';
 
 const AVATARS = ['#3B82F6', '#10B981', '#F97316', '#F59E0B', '#EF4444', '#8B5CF6'];
@@ -49,7 +50,7 @@ export default function Users() {
   });
 
   // Pagination
-  const totalPages    = Math.ceil(filtered.length / itemsPerPage);
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const displayedUsers = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   const count = (uid) => concerns.filter((c) => c.user_id === uid).length;
@@ -63,25 +64,17 @@ export default function Users() {
           <h1 className={s.pageTitle}>Citizens</h1>
           <p className={s.pageSubtitle}>{users.length} registered users</p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div className={u.statRow}>
           {[
             { l: 'Total', v: users.length, c: 'var(--blue-light)' },
             { l: 'Barangays', v: barangays.length - 1, c: 'var(--green)' },
             { l: 'Reports', v: concerns.length, c: 'var(--amber)' },
           ].map((x) => (
-            <div
-              key={x.l}
-              style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--r-lg)',
-                padding: '10px 16px',
-                textAlign: 'center',
-                minWidth: 80,
-              }}
-            >
-              <div style={{ fontSize: 20, fontWeight: 800, color: x.c }}>{x.v}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{x.l}</div>
+            <div key={x.l} className={s.miniStat}>
+              <div className={s.miniStatValue} style={{ color: x.c }}>
+                {x.v}
+              </div>
+              <div className={s.miniStatLabel}>{x.l}</div>
             </div>
           ))}
         </div>
@@ -159,31 +152,16 @@ export default function Users() {
                       onClick={() => setSelected(isSel ? null : u)}
                     >
                       <td className={s.td}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className={u.tableAvatarWrap}>
                           <div
-                            style={{
-                              width: 34,
-                              height: 34,
-                              borderRadius: 'var(--r-md)',
-                              background: AC(u.id),
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#fff',
-                              fontWeight: 700,
-                              fontSize: 12,
-                              flexShrink: 0,
-                            }}
+                            className={`${s.avatar} ${s.avatarSm}`}
+                            style={{ background: AC(u.id) }}
                           >
                             {initials(u.name)}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 600, color: 'var(--text-1)', fontSize: 13 }}>
-                              {u.name}
-                            </div>
-                            <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
-                              {maskEmail(u.email)}
-                            </div>
+                            <div className={u.tableAvatarInfo}>{u.name}</div>
+                            <div className={u.tableAvatarEmail}>{maskEmail(u.email)}</div>
                           </div>
                         </div>
                       </td>
@@ -228,7 +206,10 @@ export default function Users() {
           <Pagination
             page={page}
             totalPages={totalPages}
-            onPageChange={(p) => { setPage(p); setSelected(null); }}
+            onPageChange={(p) => {
+              setPage(p);
+              setSelected(null);
+            }}
             totalItems={filtered.length}
             itemsPerPage={itemsPerPage}
           />
@@ -237,27 +218,10 @@ export default function Users() {
         {/* Side panel */}
         {selected && (
           <div className={s.card} style={{ alignSelf: 'start' }}>
-            <div
-              style={{
-                padding: '16px 16px 12px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-              }}
-            >
+            <div className={u.sidePanelHeader}>
               <div
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 'var(--r-xl)',
-                  background: AC(selected.id),
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                  fontWeight: 800,
-                  fontSize: 20,
-                }}
+                className={`${s.avatar} ${s.avatarLg}`}
+                style={{ background: AC(selected.id), borderRadius: 'var(--r-xl)' }}
               >
                 {initials(selected.name)}
               </div>
@@ -268,12 +232,8 @@ export default function Users() {
                 ✕
               </button>
             </div>
-            <div style={{ padding: '0 16px 14px' }}>
-              <div
-                style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-1)', marginBottom: 4 }}
-              >
-                {selected.name}
-              </div>
+            <div className={u.sidePanelNameWrap}>
+              <div className={u.sidePanelName}>{selected.name}</div>
               <span
                 className={s.badge}
                 style={{
@@ -285,30 +245,16 @@ export default function Users() {
                 🏙 Citizen
               </span>
             </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 8,
-                padding: '0 16px 14px',
-              }}
-            >
+            <div className={u.metricsGrid}>
               {[
                 { l: 'Reports', v: count(selected.id), c: 'var(--blue-light)' },
                 { l: 'Resolved', v: resCount(selected.id), c: 'var(--green)' },
               ].map((x) => (
-                <div
-                  key={x.l}
-                  style={{
-                    background: 'var(--surface-3)',
-                    borderRadius: 'var(--r-md)',
-                    padding: 12,
-                    textAlign: 'center',
-                    border: '1px solid var(--border)',
-                  }}
-                >
-                  <div style={{ fontSize: 22, fontWeight: 800, color: x.c }}>{x.v}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 3 }}>{x.l}</div>
+                <div key={x.l} className={u.metricCard}>
+                  <div className={u.metricValue} style={{ color: x.c }}>
+                    {x.v}
+                  </div>
+                  <div className={u.metricLabel}>{x.l}</div>
                 </div>
               ))}
             </div>
@@ -332,42 +278,16 @@ export default function Users() {
                 </div>
               ))}
             </div>
-            <div style={{ padding: '0 16px 16px' }}>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: 'var(--text-3)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  marginBottom: 10,
-                }}
-              >
-                Recent Concerns
-              </div>
+            <div className={u.recentSection}>
+              <div className={u.recentTitle}>Recent Concerns</div>
               {concerns
                 .filter((c) => c.user_id === selected.id)
                 .slice(0, 5)
                 .map((c) => (
-                  <a
-                    key={c.id}
-                    href={`/concerns/${c.id}`}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '8px 0',
-                      borderBottom: '1px solid var(--border)',
-                      textDecoration: 'none',
-                    }}
-                  >
+                  <a key={c.id} href={`/concerns/${c.id}`} className={u.recentItem}>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-1)' }}>
-                        {c.title?.slice(0, 35)}…
-                      </div>
-                      <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 2 }}>
-                        {c.category?.split(' ')[0]}
-                      </div>
+                      <div className={u.recentItemTitle}>{c.title?.slice(0, 35)}…</div>
+                      <div className={u.recentItemMeta}>{c.category?.split(' ')[0]}</div>
                     </div>
                     <span
                       className={s.badge}
@@ -381,13 +301,7 @@ export default function Users() {
                     </span>
                   </a>
                 ))}
-              {count(selected.id) === 0 && (
-                <p
-                  style={{ color: 'var(--text-3)', fontSize: 12, textAlign: 'center', padding: 12 }}
-                >
-                  No concerns yet
-                </p>
-              )}
+              {count(selected.id) === 0 && <p className={u.recentEmpty}>No concerns yet</p>}
             </div>
           </div>
         )}

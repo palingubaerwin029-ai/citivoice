@@ -11,12 +11,14 @@ const fs = require('fs');
 const app = express();
 
 // ─── Security Headers (enhanced) ────────────────────────────────────────────
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: false,        // CSP left to front-end meta tags
-  referrerPolicy: { policy: 'same-origin' },
-  frameguard: { action: 'deny' },      // prevent click-jacking
-}));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false, // CSP left to front-end meta tags
+    referrerPolicy: { policy: 'same-origin' },
+    frameguard: { action: 'deny' }, // prevent click-jacking
+  }),
+);
 
 // ─── Request ID for traceability ─────────────────────────────────────────────
 app.use((req, res, next) => {
@@ -32,10 +34,10 @@ app.use(hpp());
 // Global limiter for all API routes
 const globalLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
-  max:      parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
-  message:  { error: 'Too many requests. Please slow down.' },
+  max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
+  message: { error: 'Too many requests. Please slow down.' },
   standardHeaders: true,
-  legacyHeaders:   false,
+  legacyHeaders: false,
 });
 
 // Stricter limiter for auth routes
@@ -51,14 +53,16 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 // CORS Configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',') 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:3000', 'http://localhost:5173']; // Common dev ports
 
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  }),
+);
 
 // Body Limits
 app.use(express.json({ limit: '1mb' }));
@@ -72,10 +76,10 @@ app.use('/uploads', cors({ origin: '*' }), express.static(uploadsDir));
 app.use('/api', globalLimiter);
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
-app.use('/api/auth',          authLimiter, require('./routes/auth'));
-app.use('/api/users',         require('./routes/users'));
-app.use('/api/concerns',      require('./routes/concerns'));
-app.use('/api/barangays',     require('./routes/barangays'));
+app.use('/api/auth', authLimiter, require('./routes/auth'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/concerns', require('./routes/concerns'));
+app.use('/api/barangays', require('./routes/barangays'));
 app.use('/api/notifications', require('./routes/notifications'));
 
 // ─── Health check ────────────────────────────────────────────────────────────

@@ -6,20 +6,38 @@ const priorityClassifier = new natural.BayesClassifier();
 
 // ─── Train Category Classifier ────────────────────────────────────────────────
 // Road & Infrastructure (English, Tagalog, Hiligaynon, Visual Tags)
-categoryClassifier.addDocument('pothole on the road is huge', 'Road & Infrastructure');
-categoryClassifier.addDocument('damaged sidewalk pavement', 'Road & Infrastructure');
-categoryClassifier.addDocument('butas ang kalsada baha', 'Road & Infrastructure'); // Tagalog
-categoryClassifier.addDocument('guba ang karsada buslot', 'Road & Infrastructure'); // Hiligaynon
-categoryClassifier.addDocument('guba nga dalan damo buslot', 'Road & Infrastructure'); // Hiligaynon
-categoryClassifier.addDocument('damo mga bato sa dalan nd kaagi truck', 'Road & Infrastructure'); // Hiligaynon - rocks on road
-categoryClassifier.addDocument('bato harang sa kalsada sakyanan', 'Road & Infrastructure'); // Tagalog/Hiligaynon - road blockage
-categoryClassifier.addDocument('guba nga taytay lubak nga dalan sa bukid', 'Road & Infrastructure'); // Kabankalan farm-to-market roads
-categoryClassifier.addDocument('street sign traffic light parking meter crater trench stone wall pole', 'Road & Infrastructure'); // Visual
+categoryClassifier.addDocument(
+  'pothole on the road is huge broken sira guba',
+  'Road & Infrastructure',
+);
+categoryClassifier.addDocument('damaged sidewalk pavement broken', 'Road & Infrastructure');
+categoryClassifier.addDocument('butas ang kalsada baha sira kalsada', 'Road & Infrastructure'); // Tagalog
+categoryClassifier.addDocument('guba ang karsada buslot sira broken', 'Road & Infrastructure'); // Hiligaynon
+categoryClassifier.addDocument('guba nga dalan damo buslot lubak', 'Road & Infrastructure'); // Hiligaynon
+categoryClassifier.addDocument(
+  'damo mga bato sa dalan nd kaagi truck harang',
+  'Road & Infrastructure',
+); // Hiligaynon - rocks on road
+categoryClassifier.addDocument('bato harang sa kalsada sakyanan trapik', 'Road & Infrastructure'); // Tagalog/Hiligaynon - road blockage
+categoryClassifier.addDocument(
+  'guba nga taytay lubak nga dalan sa bukid tulay',
+  'Road & Infrastructure',
+); // Kabankalan farm-to-market roads
+categoryClassifier.addDocument(
+  'street sign traffic light parking meter crater trench stone wall pole',
+  'Road & Infrastructure',
+); // Visual
+categoryClassifier.addDocument(
+  'karsada dalan alagyan taytay tulay guba buslot lubak',
+  'Road & Infrastructure',
+); // Hiligaynon keywords
 
 // Electricity (English, Tagalog, Hiligaynon, Visual Tags)
 categoryClassifier.addDocument('broken street light', 'Electricity');
 categoryClassifier.addDocument('sira ang ilaw sa poste', 'Electricity'); // Tagalog
 categoryClassifier.addDocument('guba ang suga sa dalan streetlight', 'Electricity'); // Hiligaynon
+categoryClassifier.addDocument('brownout wala kuryente patay suga', 'Electricity'); // Hiligaynon
+categoryClassifier.addDocument('naglapaw kuryente poste wiring', 'Electricity'); // Hiligaynon
 categoryClassifier.addDocument('pole spotlight street lamp electric wire', 'Electricity'); // Visual
 
 // Water & Drainage (English, Tagalog, Hiligaynon, Visual Tags)
@@ -27,9 +45,20 @@ categoryClassifier.addDocument('water pipe burst flooding', 'Water & Drainage');
 categoryClassifier.addDocument('clogged drainage', 'Water & Drainage');
 categoryClassifier.addDocument('baradong kanal', 'Water & Drainage'); // Tagalog
 categoryClassifier.addDocument('baha butas kalsada', 'Water & Drainage'); // Tagalog
-categoryClassifier.addDocument('gabaha ang dalan budlay magtabok dalom ang tubig', 'Water & Drainage'); // Hiligaynon
-categoryClassifier.addDocument('naglapaw ang suba baha sa balay ilog hilabangan', 'Water & Drainage'); // Kabankalan flooding
-categoryClassifier.addDocument('puddle lake river water bucket manhole cover drain', 'Water & Drainage'); // Visual
+categoryClassifier.addDocument(
+  'gabaha ang dalan budlay magtabok dalom ang tubig',
+  'Water & Drainage',
+); // Hiligaynon
+categoryClassifier.addDocument(
+  'naglapaw ang suba baha sa balay ilog hilabangan',
+  'Water & Drainage',
+); // Kabankalan flooding
+categoryClassifier.addDocument('barado ang kanal damo tubig', 'Water & Drainage'); // Hiligaynon
+categoryClassifier.addDocument('guba ang tubo sang tubig wala tubig', 'Water & Drainage'); // Hiligaynon
+categoryClassifier.addDocument(
+  'puddle lake river water bucket manhole cover drain',
+  'Water & Drainage',
+); // Visual
 
 // Waste & Sanitation (English, Tagalog, Hiligaynon, Visual Tags)
 categoryClassifier.addDocument('garbage not collected', 'Waste & Sanitation');
@@ -39,7 +68,11 @@ categoryClassifier.addDocument('mabaho ang basura hindi kinuha', 'Waste & Sanita
 categoryClassifier.addDocument('patay na hayop sa kalsada', 'Waste & Sanitation'); // Tagalog
 categoryClassifier.addDocument('baho ang basura wala nakolekta', 'Waste & Sanitation'); // Hiligaynon
 categoryClassifier.addDocument('patay nga sapat damo sagbot', 'Waste & Sanitation'); // Hiligaynon
-categoryClassifier.addDocument('garbage truck ashcan trash can garbage can wastebin plastic bag fly', 'Waste & Sanitation'); // Visual
+categoryClassifier.addDocument('damo basura sa kilid dalan', 'Waste & Sanitation'); // Hiligaynon
+categoryClassifier.addDocument(
+  'garbage truck ashcan trash can garbage can wastebin plastic bag fly',
+  'Waste & Sanitation',
+); // Visual
 
 // Public Safety (English, Tagalog, Hiligaynon, Visual Tags)
 categoryClassifier.addDocument('someone is breaking in', 'Public Safety');
@@ -49,7 +82,11 @@ categoryClassifier.addDocument('may magnanakaw nag aaway', 'Public Safety'); // 
 categoryClassifier.addDocument('asong ulol nangangagat', 'Public Safety'); // Tagalog
 categoryClassifier.addDocument('may kawatan naga away', 'Public Safety'); // Hiligaynon
 categoryClassifier.addDocument('buang nga ido nagapangagat', 'Public Safety'); // Hiligaynon
-categoryClassifier.addDocument('police cruiser fire engine ambulance patrol car weapon dog', 'Public Safety'); // Visual
+categoryClassifier.addDocument('may sunog aksidente', 'Public Safety'); // Hiligaynon
+categoryClassifier.addDocument(
+  'police cruiser fire engine ambulance patrol car weapon dog',
+  'Public Safety',
+); // Visual
 
 // Other / Agriculture (English, Tagalog, Hiligaynon, Visual Noise)
 categoryClassifier.addDocument('loud music party next door', 'Other');
@@ -59,9 +96,13 @@ categoryClassifier.addDocument('tahol ng aso magdamag', 'Other'); // Tagalog
 categoryClassifier.addDocument('gahod nga videoke kag pamalay', 'Other'); // Hiligaynon
 categoryClassifier.addDocument('paghot sang ido bilog nga gab-i', 'Other'); // Hiligaynon
 categoryClassifier.addDocument('patay ang humay uga ang talamnan el nino', 'Other'); // Kabankalan Agriculture
-categoryClassifier.addDocument('na damage ang tubo sang bagyo', 'Other'); // Kabankalan Agriculture (Sugarcane)
+categoryClassifier.addDocument('na damage ang tubo sang bagyo sira broken', 'Other'); // Kabankalan Agriculture (Sugarcane)
+categoryClassifier.addDocument('wala lang testing lang sira broken guba test', 'Other'); // Generic fallback
 // IMPORTANT: Visual noise (when users take random photos of computers, screens, faces, rooms)
-categoryClassifier.addDocument('laptop computer monitor screen keyboard television cellphone phone table chair person face room wall paper pen', 'Other');
+categoryClassifier.addDocument(
+  'laptop computer monitor screen keyboard television cellphone phone table chair person face room wall paper pen',
+  'Other',
+);
 
 categoryClassifier.train();
 
@@ -115,44 +156,139 @@ const URGENCY_KEYWORDS = {
     weight: 30,
     words: [
       // English
-      'emergency', 'urgent', 'danger', 'critical', 'life-threatening', 'death', 'dying', 'dead',
-      'collapse', 'collapsed', 'fire', 'flood', 'trapped', 'drowning', 'explosion', 'injury', 'injured',
-      'help us', 'please help', 'need immediate', 'save us', 'children sick', 'kids are sick',
+      'emergency',
+      'urgent',
+      'danger',
+      'critical',
+      'life-threatening',
+      'death',
+      'dying',
+      'dead',
+      'collapse',
+      'collapsed',
+      'fire',
+      'flood',
+      'trapped',
+      'drowning',
+      'explosion',
+      'injury',
+      'injured',
+      'help us',
+      'please help',
+      'need immediate',
+      'save us',
+      'children sick',
+      'kids are sick',
       // Tagalog
-      'emerhensya', 'tulong', 'namatay', 'patay', 'sunog', 'baha', 'nasugatan',
-      'naaksidente', 'nanganganib', 'delikado', 'tulungan nyo kami', 'saklolo',
+      'emerhensya',
+      'tulong',
+      'namatay',
+      'patay',
+      'sunog',
+      'baha',
+      'nasugatan',
+      'naaksidente',
+      'nanganganib',
+      'delikado',
+      'tulungan nyo kami',
+      'saklolo',
       // Hiligaynon / Kabankalan local
-      'bulig', 'napatay', 'kalayo', 'grabe', 'peligro', 'naguba', 'nasamad',
-      'buligan kami', 'makahahadlok', 'dali', 'apura', 'naglapaw ang tubig', 'anod',
+      'bulig',
+      'napatay',
+      'kalayo',
+      'grabe',
+      'peligro',
+      'naguba',
+      'nasamad',
+      'buligan kami',
+      'makahahadlok',
+      'dali',
+      'apura',
+      'naglapaw ang tubig',
+      'anod',
     ],
   },
   frustrated: {
     weight: 20,
     words: [
       // English
-      'again', 'still', 'nothing happened', 'no action', 'ignored', 'useless', 'incompetent',
-      'reported before', 'reported already', 'reported multiple', 'how many times', 'tired of',
-      'fed up', 'sick of', 'waiting for months', 'months already', 'nobody cares',
+      'again',
+      'still',
+      'nothing happened',
+      'no action',
+      'ignored',
+      'useless',
+      'incompetent',
+      'reported before',
+      'reported already',
+      'reported multiple',
+      'how many times',
+      'tired of',
+      'fed up',
+      'sick of',
+      'waiting for months',
+      'months already',
+      'nobody cares',
       // Tagalog
-      'wala pa rin', 'paulit ulit', 'hindi pa', 'napabayaan', 'walang aksyon',
-      'ilang beses na', 'nagsawa na', 'hindi na kayo', 'kapabayaan',
+      'wala pa rin',
+      'paulit ulit',
+      'hindi pa',
+      'napabayaan',
+      'walang aksyon',
+      'ilang beses na',
+      'nagsawa na',
+      'hindi na kayo',
+      'kapabayaan',
       // Hiligaynon
-      'wala pa gihapon', 'balik balik', 'wala aksyon', 'pabaya', 'kapila na',
-      'indi na kami', 'natak-an na', 'wala kamo',
+      'wala pa gihapon',
+      'balik balik',
+      'wala aksyon',
+      'pabaya',
+      'kapila na',
+      'indi na kami',
+      'natak-an na',
+      'wala kamo',
     ],
   },
   emotional: {
     weight: 15,
     words: [
       // English
-      'please', 'begging', 'scared', 'afraid', 'worried', 'desperate', 'suffering',
-      'children', 'kids', 'elderly', 'senior', 'baby', 'pregnant', 'disabled', 'sick',
+      'please',
+      'begging',
+      'scared',
+      'afraid',
+      'worried',
+      'desperate',
+      'suffering',
+      'children',
+      'kids',
+      'elderly',
+      'senior',
+      'baby',
+      'pregnant',
+      'disabled',
+      'sick',
       // Tagalog
-      'pakiusap', 'takot', 'natatakot', 'nag-aalala', 'kawawa', 'nahihirapan',
-      'mga bata', 'matanda', 'buntis', 'may sakit',
+      'pakiusap',
+      'takot',
+      'natatakot',
+      'nag-aalala',
+      'kawawa',
+      'nahihirapan',
+      'mga bata',
+      'matanda',
+      'buntis',
+      'may sakit',
       // Hiligaynon
-      'palihog', 'mahadlok', 'nagakabalaka', 'kaluoy', 'nagalisud',
-      'mga bata', 'tigulang', 'nagamasakit',
+      'palihog',
+      'mahadlok',
+      'nagakabalaka',
+      'kaluoy',
+      'nagalisud',
+      'mga bata',
+      'tigulang',
+      'nagamasakit',
     ],
   },
 };
@@ -174,7 +310,7 @@ const analyzeSentiment = (text) => {
   let emotionalHits = 0;
 
   // Check critical urgency keywords
-  URGENCY_KEYWORDS.critical.words.forEach(keyword => {
+  URGENCY_KEYWORDS.critical.words.forEach((keyword) => {
     if (lower.includes(keyword)) {
       totalScore += URGENCY_KEYWORDS.critical.weight;
       criticalHits++;
@@ -182,7 +318,7 @@ const analyzeSentiment = (text) => {
   });
 
   // Check frustration keywords
-  URGENCY_KEYWORDS.frustrated.words.forEach(keyword => {
+  URGENCY_KEYWORDS.frustrated.words.forEach((keyword) => {
     if (lower.includes(keyword)) {
       totalScore += URGENCY_KEYWORDS.frustrated.weight;
       frustratedHits++;
@@ -190,7 +326,7 @@ const analyzeSentiment = (text) => {
   });
 
   // Check emotional keywords
-  URGENCY_KEYWORDS.emotional.words.forEach(keyword => {
+  URGENCY_KEYWORDS.emotional.words.forEach((keyword) => {
     if (lower.includes(keyword)) {
       totalScore += URGENCY_KEYWORDS.emotional.weight;
       emotionalHits++;
@@ -229,7 +365,7 @@ const DEPARTMENT_MAP = {
     Medium: { department: 'City Engineering Office', team: 'Maintenance Division' },
     Low: { department: 'City Engineering Office', team: 'General Queue' },
   },
-  'Electricity': {
+  Electricity: {
     High: { department: 'NOCECO / Electric Utility', team: 'Emergency Crew' },
     Medium: { department: 'NOCECO / Electric Utility', team: 'Repair Division' },
     Low: { department: 'NOCECO / Electric Utility', team: 'General Queue' },
@@ -249,7 +385,7 @@ const DEPARTMENT_MAP = {
     Medium: { department: 'PNP / Barangay Tanod', team: 'Patrol Unit' },
     Low: { department: 'Barangay Hall', team: 'Community Affairs' },
   },
-  'Other': {
+  Other: {
     High: { department: 'City Admin Office', team: 'Urgent Cases' },
     Medium: { department: 'City Admin Office', team: 'General Affairs' },
     Low: { department: 'Barangay Hall', team: 'Community Affairs' },
@@ -258,8 +394,8 @@ const DEPARTMENT_MAP = {
 
 /**
  * Route a concern to the appropriate department based on category and priority.
- * @param {string} category 
- * @param {string} priority 
+ * @param {string} category
+ * @param {string} priority
  * @returns {Object} { department, team }
  */
 const routeToDepartment = (category, priority) => {
@@ -281,11 +417,24 @@ const analyzeFullConcern = async (text, imageTags = []) => {
   // 1. Try Gemini first for max accuracy
   if (geminiService.isAvailable()) {
     const prompt = `
-    You are an expert city dispatcher for Kabankalan City.
-    Analyze this citizen report: "${fullContext}"
+    You are an expert city dispatcher for Kabankalan City and a native Hiligaynon speaker.
+    Carefully analyze this citizen report to categorize it accurately:
     
+    REPORT DETAILS:
+    ${fullContext}
+    
+    CRITICAL LANGUAGE INSTRUCTION: The report is likely written in Hiligaynon (Ilonggo), Tagalog, English, or a mix of these. You MUST understand ANY Hiligaynon term flawlessly using your internal knowledge of the language. Translate the context in your head if necessary. For specific local context: "dalan" means road, "bato" means stone, "taytay" means bridge, "humay" or "tubo" means agriculture (Other), "gahod" means noise, "baha" or "naglapaw" means flood, "aso" or "ido" means dog.
+    
+    Categorization Rules:
+    - "Road & Infrastructure": Potholes, broken roads, damaged bridges, obstructions.
+    - "Electricity": Power outages, broken streetlights, dangling wires.
+    - "Water & Drainage": Flooding, broken water pipes, clogged canals.
+    - "Waste & Sanitation": Uncollected garbage, dead animals, sewage leaks.
+    - "Public Safety": Crime, accidents, aggressive stray dogs, fires.
+    - "Other": Noise complaints, agriculture issues, or anything else.
+
     Output a strictly valid JSON object with these keys:
-    - "category": Must be exactly one of: "Road & Infrastructure", "Electricity", "Water & Drainage", "Waste & Sanitation", "Public Safety", "Other". Note: "dalan" means road, "bato" means stone, "taytay" means bridge, "humay" or "tubo" means agriculture (Other).
+    - "category": Must be exactly one of: "Road & Infrastructure", "Electricity", "Water & Drainage", "Waste & Sanitation", "Public Safety", "Other".
     - "priority": Must be exactly one of: "Low", "Medium", "High". Use High for flooding, critical danger, or severe infrastructure collapse.
     - "sentiment": Must be exactly one of: "neutral", "concerned", "frustrated", "urgent".
     - "urgencyScore": A number from 0 to 100 based on the danger level. 85+ is High priority.

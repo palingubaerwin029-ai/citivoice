@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,29 +10,29 @@ import {
   StyleSheet,
   Image,
   Animated,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "../../context/AuthContext";
-import { useLanguage } from "../../context/LanguageContext";
-import { InputField, PrimaryButton } from "../../components/UI";
-import { RADIUS, SHADOWS } from "../../utils/theme";
-import { useTheme } from "../../context/ThemeContext";
-import { mobileApi } from "../../context/AuthContext";
-import { scale, verticalScale, rf } from "../../utils/responsive";
-import { useImagePicker } from "../../hooks/useImagePicker";
-import { ConcernService } from "../../services/concernService";
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { InputField, PrimaryButton } from '../../components/UI';
+import { RADIUS, SHADOWS } from '../../utils/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { mobileApi } from '../../context/AuthContext';
+import { scale, verticalScale, rf } from '../../utils/responsive';
+import { useImagePicker } from '../../hooks/useImagePicker';
+import { ConcernService } from '../../services/concernService';
 
 const ID_TYPES = [
-  "PhilSys (National ID)",
+  'PhilSys (National ID)',
   "Driver's License",
-  "Philippine Passport",
-  "SSS ID",
-  "GSIS ID",
-  "Postal ID",
+  'Philippine Passport',
+  'SSS ID',
+  'GSIS ID',
+  'Postal ID',
   "Voter's ID",
-  "PRC ID",
-  "Barangay ID",
+  'PRC ID',
+  'Barangay ID',
 ];
 
 export default function RegisterScreen({ navigation }) {
@@ -41,13 +41,13 @@ export default function RegisterScreen({ navigation }) {
   const { t, language, changeLanguage } = useLanguage();
 
   const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    phone: "",
-    barangay: "",
-    idType: "",
-    idNumber: "",
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    barangay: '',
+    idType: '',
+    idNumber: '',
     idImage: null,
   });
   const [showPw, setShowPw] = useState(false);
@@ -57,17 +57,17 @@ export default function RegisterScreen({ navigation }) {
   const [errors, setErrors] = useState({});
   const [pwFocused, setPwFocused] = useState(false);
   const strengthAnim = useRef(new Animated.Value(0)).current;
-  const [availableBarangays, setAvailableBarangays] = useState(["Other"]);
+  const [availableBarangays, setAvailableBarangays] = useState(['Other']);
 
   useEffect(() => {
     const fetchBarangays = async () => {
       try {
-        const rows = await mobileApi.get("/barangays");
-        const list = rows.map(r => r.name);
+        const rows = await mobileApi.get('/barangays');
+        const list = rows.map((r) => r.name);
         list.sort((a, b) => a.localeCompare(b));
-        setAvailableBarangays([...list, "Other"]);
+        setAvailableBarangays([...list, 'Other']);
       } catch (err) {
-        console.log("Error fetching barangays", err);
+        console.log('Error fetching barangays', err);
       }
     };
     fetchBarangays();
@@ -79,12 +79,12 @@ export default function RegisterScreen({ navigation }) {
 
   const pickPhoto = async () => {
     const uri = await launchImagePicker();
-    if (uri) set("idImage", uri);
+    if (uri) set('idImage', uri);
   };
 
   const takePhoto = async () => {
     const uri = await launchCamera();
-    if (uri) set("idImage", uri);
+    if (uri) set('idImage', uri);
   };
 
   // Password strength analysis
@@ -99,18 +99,34 @@ export default function RegisterScreen({ navigation }) {
     };
     const passed = Object.values(checks).filter(Boolean).length;
     let level, label, color;
-    if (passed <= 1) { level = 0; label = 'Weak'; color = colors.danger; }
-    else if (passed <= 2) { level = 1; label = 'Fair'; color = colors.warning; }
-    else if (passed <= 3) { level = 2; label = 'Good'; color = colors.accentWarm; }
-    else if (passed <= 4) { level = 3; label = 'Strong'; color = colors.accent; }
-    else { level = 4; label = 'Excellent'; color = colors.success; }
+    if (passed <= 1) {
+      level = 0;
+      label = 'Weak';
+      color = colors.danger;
+    } else if (passed <= 2) {
+      level = 1;
+      label = 'Fair';
+      color = colors.warning;
+    } else if (passed <= 3) {
+      level = 2;
+      label = 'Good';
+      color = colors.accentWarm;
+    } else if (passed <= 4) {
+      level = 3;
+      label = 'Strong';
+      color = colors.accent;
+    } else {
+      level = 4;
+      label = 'Excellent';
+      color = colors.success;
+    }
     return { checks, passed, level, label, color };
   }, [form.password, colors]);
 
   // Animate strength bar
   useEffect(() => {
     Animated.spring(strengthAnim, {
-      toValue: form.password.length > 0 ? (passwordAnalysis.passed / 5) : 0,
+      toValue: form.password.length > 0 ? passwordAnalysis.passed / 5 : 0,
       friction: 8,
       tension: 60,
       useNativeDriver: false,
@@ -123,14 +139,16 @@ export default function RegisterScreen({ navigation }) {
     if (!form.email.trim()) e.email = t('required');
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = t('invalidEmail');
     if (!form.password) e.password = t('required');
-    else if (form.password.length < 8) e.password = "Password must be at least 8 characters.";
-    else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(form.password)) {
-      e.password = "Must include uppercase, lowercase, numbers, and symbols.";
+    else if (form.password.length < 8) e.password = 'Password must be at least 8 characters.';
+    else if (
+      !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(form.password)
+    ) {
+      e.password = 'Must include uppercase, lowercase, numbers, and symbols.';
     }
     if (!form.barangay) e.barangay = t('selectBarangay');
-    if (!form.idType) e.idType = "Please select an ID type";
-    if (!form.idNumber.trim()) e.idNumber = "Enter your ID number";
-    if (!form.idImage) e.idImage = "Please upload a photo of your ID";
+    if (!form.idType) e.idType = 'Please select an ID type';
+    if (!form.idNumber.trim()) e.idNumber = 'Enter your ID number';
+    if (!form.idImage) e.idImage = 'Please upload a photo of your ID';
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -141,32 +159,26 @@ export default function RegisterScreen({ navigation }) {
     try {
       const idImageUrl = await ConcernService.uploadImage(form.idImage);
       await register({ ...form, idImageUrl });
-      navigation.navigate("VerifyIdentity");
+      navigation.navigate('VerifyIdentity');
     } catch (err) {
       const map = {
-        "auth/email-already-in-use": "This email is already registered.",
-        "auth/invalid-email": "Invalid email address.",
-        "auth/weak-password": "Password is too weak.",
+        'auth/email-already-in-use': 'This email is already registered.',
+        'auth/invalid-email': 'Invalid email address.',
+        'auth/weak-password': 'Password is too weak.',
       };
-      Alert.alert(
-        t('registrationFailed'),
-        map[err.code] || err.message || t('error'),
-      );
+      Alert.alert(t('registrationFailed'), map[err.code] || err.message || t('error'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <LinearGradient
-      colors={[colors.bgDeep, colors.bgDark]}
-      style={{ flex: 1 }}
-    >
+    <LinearGradient colors={[colors.bgDeep, colors.bgDark]} style={{ flex: 1 }}>
       <View style={[S.glowBlob, { backgroundColor: colors.primary }]} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -177,17 +189,28 @@ export default function RegisterScreen({ navigation }) {
           {/* Language switcher */}
           <View style={S.langRow}>
             {[
-              { code: "en", label: "EN" },
-              { code: "fil", label: "FIL" },
-              { code: "hil", label: "HIL" },
+              { code: 'en', label: 'EN' },
+              { code: 'fil', label: 'FIL' },
+              { code: 'hil', label: 'HIL' },
             ].map((l) => (
               <TouchableOpacity
                 key={l.code}
-                style={[S.langChip, { borderColor: colors.border }, language === l.code && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                style={[
+                  S.langChip,
+                  { borderColor: colors.border },
+                  language === l.code && {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.primary,
+                  },
+                ]}
                 onPress={() => changeLanguage(l.code)}
               >
                 <Text
-                  style={[S.langText, { color: colors.textMuted }, language === l.code && { color: "#fff" }]}
+                  style={[
+                    S.langText,
+                    { color: colors.textMuted },
+                    language === l.code && { color: '#fff' },
+                  ]}
                 >
                   {l.label}
                 </Text>
@@ -201,31 +224,32 @@ export default function RegisterScreen({ navigation }) {
               style={[S.backBtn, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color={colors.textSecondary}
-              />
+              <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
             <Image
-              source={require("../../../assets/logo.png")}
+              source={require('../../../assets/logo.png')}
               style={S.logoSmallImage}
               resizeMode="contain"
             />
           </View>
 
           <Text style={[S.pageTitle, { color: colors.textPrimary }]}>{t('register')}</Text>
-          <Text style={[S.pageSubtitle, { color: colors.textSecondary }]}>{t('joinCommunity')}</Text>
+          <Text style={[S.pageSubtitle, { color: colors.textSecondary }]}>
+            {t('joinCommunity')}
+          </Text>
 
           {/* Verification notice */}
-          <View style={[S.noticeBox, { backgroundColor: colors.primary + '14', borderColor: colors.primary + '33' }]}>
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={18}
-              color={colors.primaryLight}
-            />
+          <View
+            style={[
+              S.noticeBox,
+              { backgroundColor: colors.primary + '14', borderColor: colors.primary + '33' },
+            ]}
+          >
+            <Ionicons name="shield-checkmark-outline" size={18} color={colors.primaryLight} />
             <View style={{ flex: 1 }}>
-              <Text style={[S.noticeTitle, { color: colors.primaryLight }]}>{t('verificationRequired')}</Text>
+              <Text style={[S.noticeTitle, { color: colors.primaryLight }]}>
+                {t('verificationRequired')}
+              </Text>
               <Text style={[S.noticeText, { color: colors.textSecondary }]}>
                 {t('verificationNotice')}
               </Text>
@@ -237,7 +261,7 @@ export default function RegisterScreen({ navigation }) {
             <InputField
               label={t('fullName').toUpperCase()}
               value={form.name}
-              onChangeText={(v) => set("name", v)}
+              onChangeText={(v) => set('name', v)}
               placeholder="Juan dela Cruz"
               autoCapitalize="words"
               leftIcon="person-outline"
@@ -247,7 +271,7 @@ export default function RegisterScreen({ navigation }) {
             <InputField
               label={t('email').toUpperCase()}
               value={form.email}
-              onChangeText={(v) => set("email", v)}
+              onChangeText={(v) => set('email', v)}
               placeholder="you@example.com"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -258,17 +282,17 @@ export default function RegisterScreen({ navigation }) {
             <InputField
               label={t('password').toUpperCase()}
               value={form.password}
-              onChangeText={(v) => set("password", v)}
+              onChangeText={(v) => set('password', v)}
               placeholder={t('passwordMin')}
               secureTextEntry={!showPw}
               leftIcon="lock-closed-outline"
               rightElement={
                 <TouchableOpacity
                   onPress={() => setShowPw((p) => !p)}
-                  style={{ position: "absolute", right: 14 }}
+                  style={{ position: 'absolute', right: 14 }}
                 >
                   <Ionicons
-                    name={showPw ? "eye-off-outline" : "eye-outline"}
+                    name={showPw ? 'eye-off-outline' : 'eye-outline'}
                     size={18}
                     color={colors.textMuted}
                   />
@@ -281,7 +305,12 @@ export default function RegisterScreen({ navigation }) {
 
             {/* Password Strength Checker */}
             {(form.password.length > 0 || pwFocused) && (
-              <View style={[S.pwChecker, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}>
+              <View
+                style={[
+                  S.pwChecker,
+                  { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                ]}
+              >
                 {/* Strength bar */}
                 <View style={S.strengthBarRow}>
                   <View style={[S.strengthBarTrack, { backgroundColor: colors.border }]}>
@@ -339,7 +368,7 @@ export default function RegisterScreen({ navigation }) {
             <InputField
               label={t('phone').toUpperCase()}
               value={form.phone}
-              onChangeText={(v) => set("phone", v)}
+              onChangeText={(v) => set('phone', v)}
               placeholder="09XXXXXXXXX"
               keyboardType="phone-pad"
               maxLength={11}
@@ -348,16 +377,18 @@ export default function RegisterScreen({ navigation }) {
 
             {/* Barangay picker */}
             <View style={{ marginBottom: 14 }}>
-              <Text style={[S.fieldLabel, { color: colors.textMuted }]}>{t('barangay').toUpperCase()}</Text>
+              <Text style={[S.fieldLabel, { color: colors.textMuted }]}>
+                {t('barangay').toUpperCase()}
+              </Text>
               <TouchableOpacity
-                style={[S.picker, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, errors.barangay && { borderColor: colors.danger }]}
+                style={[
+                  S.picker,
+                  { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                  errors.barangay && { borderColor: colors.danger },
+                ]}
                 onPress={() => setShowPicker((p) => !p)}
               >
-                <Ionicons
-                  name="location-outline"
-                  size={16}
-                  color={colors.textMuted}
-                />
+                <Ionicons name="location-outline" size={16} color={colors.textMuted} />
                 <Text
                   style={[
                     S.pickerText,
@@ -368,7 +399,7 @@ export default function RegisterScreen({ navigation }) {
                   {form.barangay || t('selectBarangay')}
                 </Text>
                 <Ionicons
-                  name={showPicker ? "chevron-up" : "chevron-down"}
+                  name={showPicker ? 'chevron-up' : 'chevron-down'}
                   size={16}
                   color={colors.textMuted}
                 />
@@ -376,24 +407,23 @@ export default function RegisterScreen({ navigation }) {
               {errors.barangay && (
                 <View
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
+                    flexDirection: 'row',
+                    alignItems: 'center',
                     gap: scale(5),
                     marginTop: verticalScale(5),
                   }}
                 >
-                  <Ionicons
-                    name="alert-circle"
-                    size={12}
-                    color={colors.danger}
-                  />
-                  <Text style={{ color: colors.danger, fontSize: rf(11) }}>
-                    {errors.barangay}
-                  </Text>
+                  <Ionicons name="alert-circle" size={12} color={colors.danger} />
+                  <Text style={{ color: colors.danger, fontSize: rf(11) }}>{errors.barangay}</Text>
                 </View>
               )}
               {showPicker && (
-                <View style={[S.dropdown, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}>
+                <View
+                  style={[
+                    S.dropdown,
+                    { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                  ]}
+                >
                   <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
                     {availableBarangays.map((b) => (
                       <TouchableOpacity
@@ -404,7 +434,7 @@ export default function RegisterScreen({ navigation }) {
                           form.barangay === b && { backgroundColor: colors.primary + '18' },
                         ]}
                         onPress={() => {
-                          set("barangay", b);
+                          set('barangay', b);
                           setShowPicker(false);
                         }}
                       >
@@ -414,18 +444,14 @@ export default function RegisterScreen({ navigation }) {
                             { color: colors.textSecondary },
                             form.barangay === b && {
                               color: colors.primaryLight,
-                              fontWeight: "700",
+                              fontWeight: '700',
                             },
                           ]}
                         >
                           {b}
                         </Text>
                         {form.barangay === b && (
-                          <Ionicons
-                            name="checkmark-circle"
-                            size={16}
-                            color={colors.primaryLight}
-                          />
+                          <Ionicons name="checkmark-circle" size={16} color={colors.primaryLight} />
                         )}
                       </TouchableOpacity>
                     ))}
@@ -438,34 +464,78 @@ export default function RegisterScreen({ navigation }) {
             <View style={{ marginBottom: 14 }}>
               <Text style={[S.fieldLabel, { color: colors.textMuted }]}>ID TYPE *</Text>
               <TouchableOpacity
-                style={[S.picker, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, errors.idType && { borderColor: colors.danger }]}
+                style={[
+                  S.picker,
+                  { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                  errors.idType && { borderColor: colors.danger },
+                ]}
                 onPress={() => setShowIdPicker((p) => !p)}
               >
                 <Ionicons name="card-outline" size={16} color={colors.textMuted} />
-                <Text style={[S.pickerText, { color: colors.textPrimary }, !form.idType && { color: colors.textMuted }]}>
-                  {form.idType || "Select government ID type…"}
+                <Text
+                  style={[
+                    S.pickerText,
+                    { color: colors.textPrimary },
+                    !form.idType && { color: colors.textMuted },
+                  ]}
+                >
+                  {form.idType || 'Select government ID type…'}
                 </Text>
-                <Ionicons name={showIdPicker ? "chevron-up" : "chevron-down"} size={16} color={colors.textMuted} />
+                <Ionicons
+                  name={showIdPicker ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color={colors.textMuted}
+                />
               </TouchableOpacity>
               {errors.idType && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: scale(5), marginTop: verticalScale(5) }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: scale(5),
+                    marginTop: verticalScale(5),
+                  }}
+                >
                   <Ionicons name="alert-circle" size={12} color={colors.danger} />
                   <Text style={{ color: colors.danger, fontSize: rf(11) }}>{errors.idType}</Text>
                 </View>
               )}
               {showIdPicker && (
-                <View style={[S.dropdown, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}>
+                <View
+                  style={[
+                    S.dropdown,
+                    { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                  ]}
+                >
                   <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
                     {ID_TYPES.map((tItem) => (
                       <TouchableOpacity
                         key={tItem}
-                        style={[S.dropdownItem, { borderBottomColor: colors.border }, form.idType === tItem && { backgroundColor: colors.primary + '18' }]}
-                        onPress={() => { set("idType", tItem); setShowIdPicker(false); }}
+                        style={[
+                          S.dropdownItem,
+                          { borderBottomColor: colors.border },
+                          form.idType === tItem && { backgroundColor: colors.primary + '18' },
+                        ]}
+                        onPress={() => {
+                          set('idType', tItem);
+                          setShowIdPicker(false);
+                        }}
                       >
-                        <Text style={[S.dropdownText, { color: colors.textSecondary }, form.idType === tItem && { color: colors.primaryLight, fontWeight: "700" }]}>
+                        <Text
+                          style={[
+                            S.dropdownText,
+                            { color: colors.textSecondary },
+                            form.idType === tItem && {
+                              color: colors.primaryLight,
+                              fontWeight: '700',
+                            },
+                          ]}
+                        >
                           {tItem}
                         </Text>
-                        {form.idType === tItem && <Ionicons name="checkmark-circle" size={16} color={colors.primaryLight} />}
+                        {form.idType === tItem && (
+                          <Ionicons name="checkmark-circle" size={16} color={colors.primaryLight} />
+                        )}
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -478,13 +548,13 @@ export default function RegisterScreen({ navigation }) {
               label="ID NUMBER *"
               value={form.idNumber}
               onChangeText={(v) => {
-                const cleaned = v.replace(/[^A-Z0-9]/gi, "").toUpperCase();
-                let formatted = "";
+                const cleaned = v.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+                let formatted = '';
                 for (let i = 0; i < cleaned.length; i++) {
-                  if (i > 0 && i % 4 === 0) formatted += "-";
+                  if (i > 0 && i % 4 === 0) formatted += '-';
                   formatted += cleaned[i];
                 }
-                set("idNumber", formatted);
+                set('idNumber', formatted);
               }}
               placeholder="XXXX-XXXX-XXXX"
               maxLength={25}
@@ -497,26 +567,74 @@ export default function RegisterScreen({ navigation }) {
               <Text style={[S.fieldLabel, { color: colors.textMuted }]}>ID PHOTO *</Text>
               {form.idImage ? (
                 <View style={{ width: '100%', marginBottom: 16 }}>
-                  <Image source={{ uri: form.idImage }} style={{ width: '100%', height: 200, borderRadius: 16 }} resizeMode="cover" />
-                  <TouchableOpacity 
-                    style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 4 }} 
-                    onPress={() => set("idImage", null)}
+                  <Image
+                    source={{ uri: form.idImage }}
+                    style={{ width: '100%', height: 200, borderRadius: 16 }}
+                    resizeMode="cover"
+                  />
+                  <TouchableOpacity
+                    style={{
+                      position: 'absolute',
+                      top: 10,
+                      right: 10,
+                      backgroundColor: 'rgba(0,0,0,0.6)',
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 20,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                    onPress={() => set('idImage', null)}
                   >
                     <Ionicons name="refresh-outline" size={16} color="#fff" />
-                    <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>Retake</Text>
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Retake</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={[S.photoBox, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, errors.idImage && { borderColor: colors.danger }]}>
-                  <Ionicons name="id-card-outline" size={rf(40)} color={colors.textSecondary} style={{ marginBottom: verticalScale(10), opacity: 0.6 }} />
-                  <Text style={[S.photoBoxTitle, { color: colors.textSecondary }]}>Upload your ID photo</Text>
-                  <Text style={[S.photoBoxSub, { color: colors.textMuted }]}>Make sure the photo is clear and well-lit</Text>
+                <View
+                  style={[
+                    S.photoBox,
+                    { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                    errors.idImage && { borderColor: colors.danger },
+                  ]}
+                >
+                  <Ionicons
+                    name="id-card-outline"
+                    size={rf(40)}
+                    color={colors.textSecondary}
+                    style={{ marginBottom: verticalScale(10), opacity: 0.6 }}
+                  />
+                  <Text style={[S.photoBoxTitle, { color: colors.textSecondary }]}>
+                    Upload your ID photo
+                  </Text>
+                  <Text style={[S.photoBoxSub, { color: colors.textMuted }]}>
+                    Make sure the photo is clear and well-lit
+                  </Text>
                   <View style={S.photoActions}>
-                    <TouchableOpacity style={[S.photoBtn, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '44' }]} onPress={pickPhoto}>
+                    <TouchableOpacity
+                      style={[
+                        S.photoBtn,
+                        {
+                          backgroundColor: colors.primary + '18',
+                          borderColor: colors.primary + '44',
+                        },
+                      ]}
+                      onPress={pickPhoto}
+                    >
                       <Ionicons name="images-outline" size={18} color={colors.primaryLight} />
                       <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>Gallery</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[S.photoBtn, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '44' }]} onPress={takePhoto}>
+                    <TouchableOpacity
+                      style={[
+                        S.photoBtn,
+                        {
+                          backgroundColor: colors.primary + '18',
+                          borderColor: colors.primary + '44',
+                        },
+                      ]}
+                      onPress={takePhoto}
+                    >
                       <Ionicons name="camera-outline" size={18} color={colors.primaryLight} />
                       <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>Camera</Text>
                     </TouchableOpacity>
@@ -524,7 +642,14 @@ export default function RegisterScreen({ navigation }) {
                 </View>
               )}
               {errors.idImage && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: scale(5), marginTop: verticalScale(5) }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: scale(5),
+                    marginTop: verticalScale(5),
+                  }}
+                >
                   <Ionicons name="alert-circle" size={12} color={colors.danger} />
                   <Text style={{ color: colors.danger, fontSize: rf(11) }}>{errors.idImage}</Text>
                 </View>
@@ -540,14 +665,14 @@ export default function RegisterScreen({ navigation }) {
 
             <View style={S.loginRow}>
               <Text style={{ color: colors.textSecondary, fontSize: rf(14) }}>
-                {t('hasAccount')}{" "}
+                {t('hasAccount')}{' '}
               </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
                 <Text
                   style={{
                     color: colors.primaryLight,
                     fontSize: rf(14),
-                    fontWeight: "700",
+                    fontWeight: '700',
                   }}
                 >
                   {t('login')}
@@ -570,9 +695,9 @@ const S = StyleSheet.create({
   },
 
   glowBlob: {
-    position: "absolute",
+    position: 'absolute',
     top: verticalScale(-80),
-    left: "50%",
+    left: '50%',
     marginLeft: scale(-140),
     width: scale(280),
     height: scale(280),
@@ -581,8 +706,8 @@ const S = StyleSheet.create({
   },
 
   langRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
     gap: scale(6),
     marginBottom: verticalScale(16),
   },
@@ -593,8 +718,8 @@ const S = StyleSheet.create({
     borderWidth: 1,
   },
   topRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: scale(12),
     marginBottom: verticalScale(16),
   },
@@ -603,8 +728,8 @@ const S = StyleSheet.create({
     height: scale(36),
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logoSmallImage: {
     width: scale(36),
@@ -614,15 +739,15 @@ const S = StyleSheet.create({
 
   pageTitle: {
     fontSize: rf(26),
-    fontWeight: "800",
+    fontWeight: '800',
     letterSpacing: -0.4,
     marginBottom: verticalScale(4),
   },
   pageSubtitle: { fontSize: rf(13), marginBottom: verticalScale(20) },
 
   noticeBox: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: scale(12),
     borderRadius: RADIUS.lg,
     padding: scale(14),
@@ -631,13 +756,13 @@ const S = StyleSheet.create({
   },
   noticeTitle: {
     fontSize: rf(13),
-    fontWeight: "700",
+    fontWeight: '700',
     marginBottom: verticalScale(4),
   },
   noticeText: { fontSize: rf(12), lineHeight: rf(18) },
 
   card: {
-    borderRadius: RADIUS["2xl"],
+    borderRadius: RADIUS['2xl'],
     padding: scale(24),
     borderWidth: 1,
     ...SHADOWS.card,
@@ -645,14 +770,14 @@ const S = StyleSheet.create({
 
   fieldLabel: {
     fontSize: rf(10),
-    fontWeight: "700",
+    fontWeight: '700',
     letterSpacing: 0.8,
     marginBottom: verticalScale(8),
   },
 
   picker: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: scale(10),
     borderRadius: RADIUS.md,
     paddingHorizontal: scale(14),
@@ -665,18 +790,18 @@ const S = StyleSheet.create({
     borderRadius: RADIUS.md,
     borderWidth: 1,
     marginTop: verticalScale(4),
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   dropdownItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: scale(14),
     borderBottomWidth: 1,
   },
   dropdownText: { fontSize: rf(14) },
 
-  loginRow: { flexDirection: "row", justifyContent: "center", marginTop: verticalScale(20) },
+  loginRow: { flexDirection: 'row', justifyContent: 'center', marginTop: verticalScale(20) },
 
   // Password strength checker
   pwChecker: {
@@ -724,41 +849,41 @@ const S = StyleSheet.create({
   photoBox: {
     borderRadius: RADIUS.xl,
     borderWidth: 2,
-    borderStyle: "solid",
-    backgroundColor: "rgba(0,0,0,0.05)",
+    borderStyle: 'solid',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     padding: scale(28),
-    alignItems: "center",
+    alignItems: 'center',
     marginBottom: verticalScale(4),
   },
   photoBoxTitle: {
     fontSize: rf(14),
-    fontWeight: "600",
+    fontWeight: '600',
     marginBottom: verticalScale(4),
   },
   photoBoxSub: {
     fontSize: rf(12),
     marginBottom: verticalScale(16),
-    textAlign: "center",
+    textAlign: 'center',
   },
-  photoActions: { flexDirection: "row", gap: scale(12) },
+  photoActions: { flexDirection: 'row', gap: scale(12) },
   photoBtn: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: scale(7),
     paddingHorizontal: scale(16),
     paddingVertical: verticalScale(10),
     borderRadius: RADIUS.md,
     borderWidth: 1,
   },
-  photoBtnText: { fontSize: rf(13), fontWeight: "600" },
+  photoBtnText: { fontSize: rf(13), fontWeight: '600' },
 
   retakeBtn: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: scale(6),
     paddingHorizontal: scale(12),
     paddingVertical: verticalScale(6),
     borderRadius: RADIUS.md,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
 });

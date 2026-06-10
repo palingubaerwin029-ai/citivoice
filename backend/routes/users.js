@@ -9,7 +9,7 @@ const {
   verifyUser,
   rejectUser,
   revokeUser,
-  updateFcmToken
+  updateFcmToken,
 } = require('../controllers/users.controller');
 
 // ─── List all non-admin users (admin only) ────────────────────────────────────

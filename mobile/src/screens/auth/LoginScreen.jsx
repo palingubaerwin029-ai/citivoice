@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,19 +12,19 @@ import {
   Platform,
   Image,
   Animated,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
-import { useAuth, VERIFICATION_STATUS } from "../../context/AuthContext";
-import { useLanguage } from "../../context/LanguageContext";
-import { RADIUS, SHADOWS } from "../../utils/theme";
-import { useTheme } from "../../context/ThemeContext";
-import { scale, verticalScale, rf } from "../../utils/responsive";
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth, VERIFICATION_STATUS } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { RADIUS, SHADOWS } from '../../utils/theme';
+import { useTheme } from '../../context/ThemeContext';
+import { scale, verticalScale, rf } from '../../utils/responsive';
 
 const LANGS = [
-  { code: "en", label: "EN" },
-  { code: "fil", label: "FIL" },
-  { code: "hil", label: "HIL" },
+  { code: 'en', label: 'EN' },
+  { code: 'fil', label: 'FIL' },
+  { code: 'hil', label: 'HIL' },
 ];
 
 // ── Blocked status screen ─────────────────────────────────────────────────
@@ -34,34 +34,34 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
 
   const CONFIG = {
     [VERIFICATION_STATUS.UNVERIFIED]: {
-      icon: "📋",
-      color: "#94A3B8",
-      title: "Identity Verification Required",
+      icon: '📋',
+      color: '#94A3B8',
+      title: 'Identity Verification Required',
       message:
-        "To protect the community, we require all citizens to verify their identity before accessing CitiVoice.",
-      action: "Submit My ID",
+        'To protect the community, we require all citizens to verify their identity before accessing CitiVoice.',
+      action: 'Submit My ID',
       actionFn: onGoVerify,
       actionColor: colors.primary,
     },
     [VERIFICATION_STATUS.PENDING]: {
-      icon: "⏳",
-      color: "#F59E0B",
-      title: "Account Under Review",
+      icon: '⏳',
+      color: '#F59E0B',
+      title: 'Account Under Review',
       message:
-        "Your ID has been submitted and is currently being reviewed by the administrator. This usually takes 1–2 business days.",
+        'Your ID has been submitted and is currently being reviewed by the administrator. This usually takes 1–2 business days.',
       action: null, // no action — must wait
       actionColor: null,
     },
     [VERIFICATION_STATUS.REJECTED]: {
-      icon: "❌",
-      color: "#EF4444",
-      title: "Verification Rejected",
+      icon: '❌',
+      color: '#EF4444',
+      title: 'Verification Rejected',
       message: user?.rejectionReason
         ? `Reason: ${user.rejectionReason}`
-        : "Your verification was rejected by the administrator. Please resubmit with a valid government ID.",
-      action: "Resubmit ID",
+        : 'Your verification was rejected by the administrator. Please resubmit with a valid government ID.',
+      action: 'Resubmit ID',
       actionFn: onGoVerify,
-      actionColor: "#EF4444",
+      actionColor: '#EF4444',
     },
   };
 
@@ -78,8 +78,8 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
           style={[
             G.iconWrap,
             {
-              borderColor: cfg.color + "44",
-              backgroundColor: cfg.color + "12",
+              borderColor: cfg.color + '44',
+              backgroundColor: cfg.color + '12',
             },
           ]}
         >
@@ -91,18 +91,18 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
           style={[
             G.statusBadge,
             {
-              backgroundColor: cfg.color + "1A",
-              borderColor: cfg.color + "44",
+              backgroundColor: cfg.color + '1A',
+              borderColor: cfg.color + '44',
             },
           ]}
         >
           <View style={[G.statusDot, { backgroundColor: cfg.color }]} />
           <Text style={[G.statusText, { color: cfg.color }]}>
             {status === VERIFICATION_STATUS.UNVERIFIED
-              ? "Not Verified"
+              ? 'Not Verified'
               : status === VERIFICATION_STATUS.PENDING
-                ? "Pending Review"
-                : "Rejected"}
+                ? 'Pending Review'
+                : 'Rejected'}
           </Text>
         </View>
 
@@ -111,14 +111,21 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
 
         {/* Steps for unverified */}
         {status === VERIFICATION_STATUS.UNVERIFIED && (
-          <View style={[G.stepsBox, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}>
+          <View
+            style={[G.stepsBox, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}
+          >
             {[
-              { n: "1", text: "Submit a valid government ID" },
-              { n: "2", text: "Admin reviews your submission" },
-              { n: "3", text: "Get verified and access CitiVoice" },
+              { n: '1', text: 'Submit a valid government ID' },
+              { n: '2', text: 'Admin reviews your submission' },
+              { n: '3', text: 'Get verified and access CitiVoice' },
             ].map((step) => (
               <View key={step.n} style={G.step}>
-                <View style={[G.stepNum, { backgroundColor: colors.primary + '22', borderColor: colors.primary + '44' }]}>
+                <View
+                  style={[
+                    G.stepNum,
+                    { backgroundColor: colors.primary + '22', borderColor: colors.primary + '44' },
+                  ]}
+                >
                   <Text style={[G.stepNumText, { color: colors.primaryLight }]}>{step.n}</Text>
                 </View>
                 <Text style={[G.stepText, { color: colors.textSecondary }]}>{step.text}</Text>
@@ -129,15 +136,18 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
 
         {/* Pending info box */}
         {status === VERIFICATION_STATUS.PENDING && (
-          <View style={[G.pendingBox, { backgroundColor: colors.statusPending + '14', borderColor: colors.statusPending + '33' }]}>
-            <Ionicons
-              name="information-circle-outline"
-              size={18}
-              color={colors.statusPending}
-            />
+          <View
+            style={[
+              G.pendingBox,
+              {
+                backgroundColor: colors.statusPending + '14',
+                borderColor: colors.statusPending + '33',
+              },
+            ]}
+          >
+            <Ionicons name="information-circle-outline" size={18} color={colors.statusPending} />
             <Text style={[G.pendingText, { color: colors.statusPending }]}>
-              You will be notified once your account is approved. You may check
-              back later.
+              You will be notified once your account is approved. You may check back later.
             </Text>
           </View>
         )}
@@ -163,11 +173,7 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
 
       {/* Account info pill */}
       <View style={[G.accountPill, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
-        <Ionicons
-          name="person-circle-outline"
-          size={14}
-          color={colors.textMuted}
-        />
+        <Ionicons name="person-circle-outline" size={14} color={colors.textMuted} />
         <Text style={[G.accountEmail, { color: colors.textSecondary }]} numberOfLines={1}>
           {user?.email}
         </Text>
@@ -182,8 +188,8 @@ export default function LoginScreen({ navigation }) {
   const { login, logout, user } = useAuth();
   const { t, language, changeLanguage } = useLanguage();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -206,7 +212,7 @@ export default function LoginScreen({ navigation }) {
       <VerificationGate
         user={user}
         onLogout={logout}
-        onGoVerify={() => navigation.navigate("VerifyIdentity")}
+        onGoVerify={() => navigation.navigate('VerifyIdentity')}
       />
     );
   }
@@ -240,7 +246,7 @@ export default function LoginScreen({ navigation }) {
       // which will trigger the VerificationGate above.
       // But we also handle it here for immediate feedback.
 
-      if (userData.role !== "admin") {
+      if (userData.role !== 'admin') {
         const st = userData.verification_status;
 
         if (st === VERIFICATION_STATUS.UNVERIFIED) {
@@ -261,21 +267,24 @@ export default function LoginScreen({ navigation }) {
 
       // Map error codes to user-friendly messages
       const messageMap = {
-        "auth/invalid-credential": "Wrong email or password.",
-        "auth/user-not-found": "No account with this email.",
-        "auth/wrong-password": "Incorrect password.",
-        "auth/invalid-email": "Invalid email address.",
-        "auth/too-many-requests": "Too many attempts. Try again later.",
-        "auth/network-request-failed": "No internet connection.",
-        "NO_PROFILE": "Account not set up. Please register.",
+        'auth/invalid-credential': 'Wrong email or password.',
+        'auth/user-not-found': 'No account with this email.',
+        'auth/wrong-password': 'Incorrect password.',
+        'auth/invalid-email': 'Invalid email address.',
+        'auth/too-many-requests': 'Too many attempts. Try again later.',
+        'auth/network-request-failed': 'No internet connection.',
+        NO_PROFILE: 'Account not set up. Please register.',
       };
 
       // Map certain errors to specific fields for inline display
       const fieldMap = {
-        "auth/user-not-found": { email: "No account found with this email." },
-        "auth/invalid-email": { email: "Please enter a valid email address." },
-        "auth/wrong-password": { password: "Incorrect password. Try again." },
-        "auth/invalid-credential": { email: "Wrong email or password.", password: "Wrong email or password." },
+        'auth/user-not-found': { email: 'No account found with this email.' },
+        'auth/invalid-email': { email: 'Please enter a valid email address.' },
+        'auth/wrong-password': { password: 'Incorrect password. Try again.' },
+        'auth/invalid-credential': {
+          email: 'Wrong email or password.',
+          password: 'Wrong email or password.',
+        },
       };
 
       // Set field-specific inline errors if applicable
@@ -285,7 +294,8 @@ export default function LoginScreen({ navigation }) {
       }
 
       // Set the server error banner message
-      const errorText = messageMap[errKey] || err?.response?.data?.message || err?.message || t('error');
+      const errorText =
+        messageMap[errKey] || err?.response?.data?.message || err?.message || t('error');
       setServerError(typeof err === 'string' ? err : errorText);
     } finally {
       setLoading(false);
@@ -293,15 +303,12 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <LinearGradient
-      colors={[colors.bgDeep, colors.bgDark]}
-      style={{ flex: 1 }}
-    >
+    <LinearGradient colors={[colors.bgDeep, colors.bgDark]} style={{ flex: 1 }}>
       <View style={[S.glowBlob, { backgroundColor: colors.primary }]} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -314,11 +321,22 @@ export default function LoginScreen({ navigation }) {
             {LANGS.map((l) => (
               <TouchableOpacity
                 key={l.code}
-                style={[S.langChip, { borderColor: colors.border }, language === l.code && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                style={[
+                  S.langChip,
+                  { borderColor: colors.border },
+                  language === l.code && {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.primary,
+                  },
+                ]}
                 onPress={() => changeLanguage(l.code)}
               >
                 <Text
-                  style={[S.langText, { color: colors.textMuted }, language === l.code && { color: '#fff' }]}
+                  style={[
+                    S.langText,
+                    { color: colors.textMuted },
+                    language === l.code && { color: '#fff' },
+                  ]}
                 >
                   {l.label}
                 </Text>
@@ -329,7 +347,7 @@ export default function LoginScreen({ navigation }) {
           {/* Logo */}
           <View style={S.logoSection}>
             <Image
-              source={require("../../../assets/logo.png")}
+              source={require('../../../assets/logo.png')}
               style={S.logoImage}
               resizeMode="contain"
             />
@@ -343,7 +361,9 @@ export default function LoginScreen({ navigation }) {
           {/* Form card */}
           <View style={[S.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
             <Text style={[S.cardTitle, { color: colors.textPrimary }]}>{t('welcomeBack')}</Text>
-            <Text style={[S.cardSubtitle, { color: colors.textSecondary }]}>{t('signInSubtitle')}</Text>
+            <Text style={[S.cardSubtitle, { color: colors.textSecondary }]}>
+              {t('signInSubtitle')}
+            </Text>
 
             {/* Server error banner */}
             {serverError && (
@@ -354,18 +374,23 @@ export default function LoginScreen({ navigation }) {
                     backgroundColor: colors.danger + '14',
                     borderColor: colors.danger + '33',
                     opacity: errorBannerAnim,
-                    transform: [{
-                      translateY: errorBannerAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-8, 0],
-                      }),
-                    }],
+                    transform: [
+                      {
+                        translateY: errorBannerAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [-8, 0],
+                        }),
+                      },
+                    ],
                   },
                 ]}
               >
                 <Ionicons name="alert-circle" size={18} color={colors.danger} />
                 <Text style={[S.errorBannerText, { color: colors.danger }]}>{serverError}</Text>
-                <TouchableOpacity onPress={() => setServerError(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <TouchableOpacity
+                  onPress={() => setServerError(null)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
                   <Ionicons name="close" size={16} color={colors.danger} />
                 </TouchableOpacity>
               </Animated.View>
@@ -374,12 +399,14 @@ export default function LoginScreen({ navigation }) {
             {/* Email */}
             <View style={S.field}>
               <Text style={[S.label, { color: colors.textMuted }]}>{t('email').toUpperCase()}</Text>
-              <View style={[S.inputWrap, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, errors.email && { borderColor: colors.danger }]}>
-                <Ionicons
-                  name="mail-outline"
-                  size={17}
-                  color={colors.textMuted}
-                />
+              <View
+                style={[
+                  S.inputWrap,
+                  { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                  errors.email && { borderColor: colors.danger },
+                ]}
+              >
+                <Ionicons name="mail-outline" size={17} color={colors.textMuted} />
                 <TextInput
                   style={[S.input, { color: colors.textPrimary }]}
                   value={email}
@@ -396,18 +423,24 @@ export default function LoginScreen({ navigation }) {
                   autoCorrect={false}
                 />
               </View>
-              {errors.email && <Text style={[S.errText, { color: colors.danger }]}>⚠ {errors.email}</Text>}
+              {errors.email && (
+                <Text style={[S.errText, { color: colors.danger }]}>⚠ {errors.email}</Text>
+              )}
             </View>
 
             {/* Password */}
             <View style={S.field}>
-              <Text style={[S.label, { color: colors.textMuted }]}>{t('password').toUpperCase()}</Text>
-              <View style={[S.inputWrap, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }, errors.password && { borderColor: colors.danger }]}>
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={17}
-                  color={colors.textMuted}
-                />
+              <Text style={[S.label, { color: colors.textMuted }]}>
+                {t('password').toUpperCase()}
+              </Text>
+              <View
+                style={[
+                  S.inputWrap,
+                  { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                  errors.password && { borderColor: colors.danger },
+                ]}
+              >
+                <Ionicons name="lock-closed-outline" size={17} color={colors.textMuted} />
                 <TextInput
                   style={[S.input, { color: colors.textPrimary, paddingRight: 40 }]}
                   value={password}
@@ -421,12 +454,9 @@ export default function LoginScreen({ navigation }) {
                   placeholderTextColor={colors.textMuted}
                   secureTextEntry={!showPw}
                 />
-                <TouchableOpacity
-                  style={S.eyeBtn}
-                  onPress={() => setShowPw((p) => !p)}
-                >
+                <TouchableOpacity style={S.eyeBtn} onPress={() => setShowPw((p) => !p)}>
                   <Ionicons
-                    name={showPw ? "eye-off-outline" : "eye-outline"}
+                    name={showPw ? 'eye-off-outline' : 'eye-outline'}
                     size={18}
                     color={colors.textMuted}
                   />
@@ -439,7 +469,11 @@ export default function LoginScreen({ navigation }) {
 
             {/* Submit */}
             <TouchableOpacity
-              style={[S.submitBtn, { backgroundColor: colors.primary }, loading && { opacity: 0.65 }]}
+              style={[
+                S.submitBtn,
+                { backgroundColor: colors.primary },
+                loading && { opacity: 0.65 },
+              ]}
               onPress={handleLogin}
               disabled={loading}
               activeOpacity={0.85}
@@ -456,20 +490,20 @@ export default function LoginScreen({ navigation }) {
 
             {/* Register link */}
             <View style={S.registerRow}>
-              <Text style={[S.registerText, { color: colors.textSecondary }]}>{t('noAccount')} </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-                <Text style={[S.registerLink, { color: colors.primaryLight }]}>{t('register')}</Text>
+              <Text style={[S.registerText, { color: colors.textSecondary }]}>
+                {t('noAccount')}{' '}
+              </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                <Text style={[S.registerLink, { color: colors.primaryLight }]}>
+                  {t('register')}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Info note */}
           <View style={S.noteBox}>
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={14}
-              color={colors.textMuted}
-            />
+            <Ionicons name="shield-checkmark-outline" size={14} color={colors.textMuted} />
             <Text style={[S.noteText, { color: colors.textMuted }]}>
               {t('adminVerificationNote')}
             </Text>
@@ -490,9 +524,9 @@ const S = StyleSheet.create({
   },
 
   glowBlob: {
-    position: "absolute",
+    position: 'absolute',
     top: verticalScale(-100),
-    left: "50%",
+    left: '50%',
     marginLeft: scale(-150),
     width: scale(300),
     height: scale(300),
@@ -501,8 +535,8 @@ const S = StyleSheet.create({
   },
 
   langRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
     gap: scale(6),
     marginBottom: verticalScale(24),
   },
@@ -512,7 +546,7 @@ const S = StyleSheet.create({
     borderRadius: RADIUS.full,
     borderWidth: 1,
   },
-  logoSection: { alignItems: "center", marginBottom: verticalScale(30) },
+  logoSection: { alignItems: 'center', marginBottom: verticalScale(30) },
   logoImage: {
     width: scale(96),
     height: scale(96),
@@ -521,31 +555,31 @@ const S = StyleSheet.create({
   },
   appName: {
     fontSize: rf(28),
-    fontWeight: "800",
+    fontWeight: '800',
     letterSpacing: -0.5,
   },
   appTagline: {
     fontSize: rf(13),
-    fontWeight: "700",
-    marginTop: verticalScale(4)
+    fontWeight: '700',
+    marginTop: verticalScale(4),
   },
   cityDescText: {
     fontSize: rf(12.5),
-    textAlign: "center",
+    textAlign: 'center',
     lineHeight: rf(18.5),
     marginTop: verticalScale(8),
     paddingHorizontal: scale(16),
   },
 
   card: {
-    borderRadius: RADIUS["2xl"],
+    borderRadius: RADIUS['2xl'],
     padding: scale(24),
     borderWidth: 1,
     ...SHADOWS.card,
   },
   cardTitle: {
     fontSize: rf(20),
-    fontWeight: "700",
+    fontWeight: '700',
     letterSpacing: -0.3,
     marginBottom: verticalScale(4),
   },
@@ -554,13 +588,13 @@ const S = StyleSheet.create({
   field: { marginBottom: verticalScale(16) },
   label: {
     fontSize: rf(10),
-    fontWeight: "700",
+    fontWeight: '700',
     letterSpacing: 0.8,
     marginBottom: verticalScale(8),
   },
   inputWrap: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: scale(10),
     borderRadius: RADIUS.md,
     paddingHorizontal: scale(14),
@@ -568,7 +602,7 @@ const S = StyleSheet.create({
     borderWidth: 1,
   },
   input: { flex: 1, fontSize: rf(14) },
-  eyeBtn: { position: "absolute", right: scale(14) },
+  eyeBtn: { position: 'absolute', right: scale(14) },
   errText: { fontSize: rf(11), marginTop: verticalScale(5) },
 
   errorBanner: {
@@ -588,29 +622,29 @@ const S = StyleSheet.create({
   },
 
   submitBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: scale(8),
     borderRadius: RADIUS.md,
     height: verticalScale(52),
     marginTop: verticalScale(8),
     ...SHADOWS.button,
   },
-  submitText: { color: "#fff", fontSize: rf(15), fontWeight: "700" },
+  submitText: { color: '#fff', fontSize: rf(15), fontWeight: '700' },
 
   registerRow: {
-    flexDirection: "row",
-    justifyContent: "center",
+    flexDirection: 'row',
+    justifyContent: 'center',
     marginTop: verticalScale(20),
   },
   registerText: { fontSize: rf(14) },
-  registerLink: { fontSize: rf(14), fontWeight: "700" },
+  registerLink: { fontSize: rf(14), fontWeight: '700' },
 
   noteBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: scale(7),
     marginTop: verticalScale(20),
   },
@@ -621,13 +655,13 @@ const S = StyleSheet.create({
 const G = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: scale(24),
   },
 
   glow: {
-    position: "absolute",
+    position: 'absolute',
     top: verticalScale(-80),
     width: scale(280),
     height: scale(280),
@@ -636,28 +670,28 @@ const G = StyleSheet.create({
   },
 
   card: {
-    width: "100%",
-    borderRadius: RADIUS["2xl"],
+    width: '100%',
+    borderRadius: RADIUS['2xl'],
     padding: scale(24),
     borderWidth: 1,
-    alignItems: "center",
+    alignItems: 'center',
     ...SHADOWS.card,
   },
 
   iconWrap: {
     width: scale(80),
     height: scale(80),
-    borderRadius: RADIUS["2xl"],
+    borderRadius: RADIUS['2xl'],
     borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: verticalScale(16),
   },
   icon: { fontSize: rf(36) },
 
   statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: scale(7),
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(6),
@@ -666,79 +700,79 @@ const G = StyleSheet.create({
     marginBottom: verticalScale(16),
   },
   statusDot: { width: scale(7), height: scale(7), borderRadius: scale(4) },
-  statusText: { fontSize: rf(12), fontWeight: "700" },
+  statusText: { fontSize: rf(12), fontWeight: '700' },
 
   title: {
     fontSize: rf(19),
-    fontWeight: "800",
-    textAlign: "center",
+    fontWeight: '800',
+    textAlign: 'center',
     letterSpacing: -0.3,
     marginBottom: verticalScale(10),
   },
   message: {
     fontSize: rf(14),
-    textAlign: "center",
+    textAlign: 'center',
     lineHeight: rf(22),
     marginBottom: verticalScale(20),
   },
 
   stepsBox: {
-    width: "100%",
+    width: '100%',
     borderRadius: RADIUS.lg,
     padding: scale(16),
     borderWidth: 1,
     marginBottom: verticalScale(20),
     gap: verticalScale(12),
   },
-  step: { flexDirection: "row", alignItems: "center", gap: scale(12) },
+  step: { flexDirection: 'row', alignItems: 'center', gap: scale(12) },
   stepNum: {
     width: scale(26),
     height: scale(26),
     borderRadius: RADIUS.sm,
     borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     flexShrink: 0,
   },
-  stepNumText: { fontSize: rf(12), fontWeight: "800" },
+  stepNumText: { fontSize: rf(12), fontWeight: '800' },
   stepText: { fontSize: rf(13), flex: 1 },
 
   pendingBox: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: scale(10),
     borderRadius: RADIUS.lg,
     padding: scale(14),
     borderWidth: 1,
     marginBottom: verticalScale(20),
-    width: "100%",
+    width: '100%',
   },
   pendingText: { fontSize: rf(13), lineHeight: rf(20), flex: 1 },
 
   actionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: scale(8),
-    width: "100%",
+    width: '100%',
     height: verticalScale(50),
     borderRadius: RADIUS.md,
     marginBottom: verticalScale(12),
     ...SHADOWS.button,
   },
-  actionBtnText: { color: "#fff", fontSize: rf(15), fontWeight: "700" },
+  actionBtnText: { color: '#fff', fontSize: rf(15), fontWeight: '700' },
 
   signOutBtn: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: scale(7),
     paddingVertical: verticalScale(10),
   },
   signOutText: { fontSize: rf(14) },
 
   accountPill: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: scale(6),
     marginTop: verticalScale(16),
     borderRadius: RADIUS.full,

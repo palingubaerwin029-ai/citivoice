@@ -26,7 +26,7 @@ export const NotificationProvider = ({ children }) => {
 
   useEffect(() => {
     fetchUnreadCount();
-    
+
     // Poll every 30 seconds for new notifications
     let interval;
     if (user) {
