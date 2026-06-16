@@ -52,11 +52,19 @@ export default function Dashboard() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
   const todayStr = getLocalDate();
-  const [filterMode, setFilterMode] = useState('daily');
-  const [singleDate, setSingleDate] = useState(todayStr);
-  const [singleMonth, setSingleMonth] = useState(todayStr.slice(0, 7));
-  const [startDate, setStartDate] = useState(todayStr);
-  const [endDate, setEndDate] = useState(todayStr);
+  const [filterMode, setFilterMode] = useState(() => localStorage.getItem('dashboardFilterMode') || 'daily');
+  const [singleDate, setSingleDate] = useState(() => localStorage.getItem('dashboardSingleDate') || todayStr);
+  const [singleMonth, setSingleMonth] = useState(() => localStorage.getItem('dashboardSingleMonth') || todayStr.slice(0, 7));
+  const [startDate, setStartDate] = useState(() => localStorage.getItem('dashboardStartDate') || todayStr);
+  const [endDate, setEndDate] = useState(() => localStorage.getItem('dashboardEndDate') || todayStr);
+
+  useEffect(() => {
+    localStorage.setItem('dashboardFilterMode', filterMode);
+    localStorage.setItem('dashboardSingleDate', singleDate);
+    localStorage.setItem('dashboardSingleMonth', singleMonth);
+    localStorage.setItem('dashboardStartDate', startDate);
+    localStorage.setItem('dashboardEndDate', endDate);
+  }, [filterMode, singleDate, singleMonth, startDate, endDate]);
 
   // Auto-reset date filters when the day changes (e.g., app left open overnight)
   useEffect(() => {

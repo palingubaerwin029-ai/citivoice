@@ -62,6 +62,18 @@ const SMART_CHIPS = [
     title: 'Aggressive Stray Dogs',
     description: '',
   },
+  {
+    id: 'tree',
+    label: '🌳 Fallen Tree',
+    title: 'Fallen Tree Blocking Road',
+    description: '',
+  },
+  {
+    id: 'fire',
+    label: '🔥 Fire',
+    title: 'Fire / Sunog',
+    description: '',
+  },
 ];
 
 export default function SubmitConcernScreen({ navigation }) {

@@ -28,13 +28,6 @@ const CATEGORIES = [
 ];
 const PRIORITIES = ['High', 'Medium', 'Low'];
 
-const SENTIMENT_CONFIG = {
-  urgent: { emoji: '🔴', label: 'Urgent', color: '#EF4444', bg: 'rgba(239,68,68,0.12)' },
-  frustrated: { emoji: '😤', label: 'Frustrated', color: '#F97316', bg: 'rgba(249,115,22,0.12)' },
-  concerned: { emoji: '😟', label: 'Concerned', color: '#F59E0B', bg: 'rgba(245,158,11,0.12)' },
-  neutral: { emoji: '😐', label: 'Neutral', color: '#64748B', bg: 'rgba(100,116,139,0.12)' },
-};
-
 export default function ConcernDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -123,9 +116,6 @@ export default function ConcernDetail() {
     selPriority !== concern.priority ||
     note !== (concern.admin_note || '');
 
-  const sentimentCfg = SENTIMENT_CONFIG[concern.sentiment] || SENTIMENT_CONFIG.neutral;
-  const urgencyScore = concern.urgency_score || 50;
-
   const buildTimeline = (c) => {
     const steps = [{ event: 'Concern submitted', date: fmtDateShort(c.created_at) }];
     if (['In Progress', 'Resolved', 'Rejected'].includes(c.status))
@@ -208,18 +198,6 @@ export default function ConcernDetail() {
                 >
                   {concern.category}
                 </span>
-                {/* Feature 2: Sentiment Badge */}
-                <span
-                  className={s.badge}
-                  style={{
-                    background: sentimentCfg.bg,
-                    color: sentimentCfg.color,
-                    fontSize: 12,
-                    border: `1px solid ${sentimentCfg.color}25`,
-                  }}
-                >
-                  {sentimentCfg.emoji} {sentimentCfg.label}
-                </span>
               </div>
               <h2
                 style={{
@@ -257,46 +235,17 @@ export default function ConcernDetail() {
             ))}
           </div>
 
-          {/* Feature 2: Urgency Score + Feature 4: Department Routing */}
-          <div className={s.grid2}>
+          {/* Feature 4: Department Routing */}
+          {concern.department && (
             <div className={s.card} style={{ padding: '12px 14px' }}>
               <div className={s.sectionLabel} style={{ marginBottom: 8 }}>
-                🎯 AI Urgency Score
+                🏢 Auto-Routed To
               </div>
-              <div className={s.flexRow}>
-                <div className={s.progressTrack} style={{ flex: 1 }}>
-                  <div
-                    className={s.progressFill}
-                    style={{
-                      width: `${urgencyScore}%`,
-                      background:
-                        urgencyScore >= 80 ? '#EF4444' : urgencyScore >= 60 ? '#F59E0B' : '#10B981',
-                    }}
-                  />
-                </div>
-                <span
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 800,
-                    color:
-                      urgencyScore >= 80 ? '#EF4444' : urgencyScore >= 60 ? '#F59E0B' : '#10B981',
-                  }}
-                >
-                  {urgencyScore}
-                </span>
+              <div className={s.textPrimary} style={{ fontSize: 12, lineHeight: 1.5 }}>
+                {concern.department}
               </div>
             </div>
-            {concern.department && (
-              <div className={s.card} style={{ padding: '12px 14px' }}>
-                <div className={s.sectionLabel} style={{ marginBottom: 8 }}>
-                  🏢 Auto-Routed To
-                </div>
-                <div className={s.textPrimary} style={{ fontSize: 12, lineHeight: 1.5 }}>
-                  {concern.department}
-                </div>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Description */}
           <div className={s.card}>

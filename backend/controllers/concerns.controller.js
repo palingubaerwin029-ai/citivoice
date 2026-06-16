@@ -110,7 +110,6 @@ const createConcern = async (req, res) => {
     if (aiResult) {
       finalCategory = aiResult.category || finalCategory;
       finalPriority = aiResult.priority || finalPriority;
-      sentiment = aiResult.sentiment || sentiment;
       urgencyScore = aiResult.urgencyScore || urgencyScore;
     }
   } catch (e) {

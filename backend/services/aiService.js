@@ -80,8 +80,10 @@ categoryClassifier.addDocument('vandalism property damage', 'Public Safety');
 categoryClassifier.addDocument('asong ulol nangangagat', 'Public Safety'); // Tagalog
 categoryClassifier.addDocument('buang nga ido nagapangagat', 'Public Safety'); // Hiligaynon
 categoryClassifier.addDocument('guba nga pader graffiti', 'Public Safety'); // Hiligaynon
+categoryClassifier.addDocument('fallen tree collapsed branches blocking', 'Public Safety'); // Fallen Trees
+categoryClassifier.addDocument('sunog fire burning building', 'Public Safety'); // Fire
 categoryClassifier.addDocument(
-  'dog fence wall gate sign',
+  'dog fence wall gate sign fire flame tree',
   'Public Safety',
 ); // Visual
 
@@ -109,6 +111,7 @@ priorityClassifier.addDocument('water pipe burst severe flooding sinkhole', 'Hig
 priorityClassifier.addDocument('impassable road live wire fallen post', 'High');
 priorityClassifier.addDocument('malalim na baha harang sa kalsada', 'High'); // Tagalog
 priorityClassifier.addDocument('naglapaw tubig nd maagyan dalan', 'High'); // Hiligaynon
+priorityClassifier.addDocument('fallen tree blocking road emergency sunog fire', 'High'); // Emergencies
 
 // Medium (English, Tagalog, Hiligaynon)
 priorityClassifier.addDocument('garbage not collected pothole damaged sidewalk', 'Medium');
@@ -145,197 +148,7 @@ const analyzeConcern = (text, imageTags = []) => {
   return { category, priority };
 };
 
-// ─── Feature 2: Sentiment & Urgency Detection ───────────────────────────────
-
-// Urgency keywords (English, Tagalog, Hiligaynon) for NON-EMERGENCY municipal context
-const URGENCY_KEYWORDS = {
-  critical: {
-    weight: 30,
-    words: [
-      // English
-      'sinkhole',
-      'impassable',
-      'blocked',
-      'hazardous',
-      'toxic',
-      'citywide',
-      'outage',
-      'no water for days',
-      'completely dark',
-      'live wire',
-      'sparks',
-      'collapsed',
-      'severe flooding',
-      'overflowing',
-      // Tagalog
-      'hindi madaanan',
-      'harang',
-      'delikado',
-      'walang tubig ilang araw',
-      'walang kuryente',
-      'grounded',
-      'bumagsak',
-      'baha hanggang binti',
-      'umaapaw',
-      // Hiligaynon / Kabankalan local
-      'nd maagyan',
-      'delikado',
-      'wala gid tubig',
-      'grabe nga brownout',
-      'naguba gid',
-      'naglapaw ang tubig',
-      'baha katama',
-      'grabe',
-    ],
-  },
-  frustrated: {
-    weight: 20,
-    words: [
-      // English
-      'again',
-      'still',
-      'nothing happened',
-      'no action',
-      'ignored',
-      'useless',
-      'incompetent',
-      'reported before',
-      'reported already',
-      'reported multiple',
-      'how many times',
-      'tired of',
-      'fed up',
-      'sick of',
-      'waiting for months',
-      'months already',
-      'nobody cares',
-      // Tagalog
-      'wala pa rin',
-      'paulit ulit',
-      'hindi pa',
-      'napabayaan',
-      'walang aksyon',
-      'ilang beses na',
-      'nagsawa na',
-      'hindi na kayo',
-      'kapabayaan',
-      // Hiligaynon
-      'wala pa gihapon',
-      'balik balik',
-      'wala aksyon',
-      'pabaya',
-      'kapila na',
-      'indi na kami',
-      'natak-an na',
-      'wala kamo',
-    ],
-  },
-  emotional: {
-    weight: 15,
-    words: [
-      // English
-      'please',
-      'begging',
-      'scared',
-      'afraid',
-      'worried',
-      'desperate',
-      'suffering',
-      'children',
-      'kids',
-      'elderly',
-      'senior',
-      'baby',
-      'pregnant',
-      'disabled',
-      'sick',
-      // Tagalog
-      'pakiusap',
-      'takot',
-      'natatakot',
-      'nag-aalala',
-      'kawawa',
-      'nahihirapan',
-      'mga bata',
-      'matanda',
-      'buntis',
-      'may sakit',
-      // Hiligaynon
-      'palihog',
-      'mahadlok',
-      'nagakabalaka',
-      'kaluoy',
-      'nagalisud',
-      'mga bata',
-      'tigulang',
-      'nagamasakit',
-    ],
-  },
-};
-
-/**
- * Analyze sentiment and urgency from concern text.
- * @param {string} text - Combined title + description
- * @returns {Object} { sentiment, urgencyScore }
- */
-const analyzeSentiment = (text) => {
-  if (!text || text.trim().length === 0) {
-    return { sentiment: 'neutral', urgencyScore: 50 };
-  }
-
-  const lower = text.toLowerCase();
-  let totalScore = 50; // Base score
-  let criticalHits = 0;
-  let frustratedHits = 0;
-  let emotionalHits = 0;
-
-  // Check critical urgency keywords
-  URGENCY_KEYWORDS.critical.words.forEach((keyword) => {
-    if (lower.includes(keyword)) {
-      totalScore += URGENCY_KEYWORDS.critical.weight;
-      criticalHits++;
-    }
-  });
-
-  // Check frustration keywords
-  URGENCY_KEYWORDS.frustrated.words.forEach((keyword) => {
-    if (lower.includes(keyword)) {
-      totalScore += URGENCY_KEYWORDS.frustrated.weight;
-      frustratedHits++;
-    }
-  });
-
-  // Check emotional keywords
-  URGENCY_KEYWORDS.emotional.words.forEach((keyword) => {
-    if (lower.includes(keyword)) {
-      totalScore += URGENCY_KEYWORDS.emotional.weight;
-      emotionalHits++;
-    }
-  });
-
-  // Exclamation marks and ALL CAPS add urgency
-  const exclamationCount = (text.match(/!/g) || []).length;
-  if (exclamationCount >= 3) totalScore += 10;
-
-  const capsWords = (text.match(/\b[A-Z]{3,}\b/g) || []).length;
-  if (capsWords >= 2) totalScore += 10;
-
-  // Cap at 100
-  totalScore = Math.min(totalScore, 100);
-
-  // Determine sentiment label
-  let sentiment = 'neutral';
-  if (criticalHits >= 2) sentiment = 'urgent';
-  else if (criticalHits >= 1) sentiment = 'concerned';
-  else if (frustratedHits >= 2) sentiment = 'frustrated';
-  else if (frustratedHits >= 1 || emotionalHits >= 2) sentiment = 'concerned';
-  else if (emotionalHits >= 1) sentiment = 'concerned';
-
-  // Override: very high score always = urgent
-  if (totalScore >= 85) sentiment = 'urgent';
-
-  return { sentiment, urgencyScore: totalScore };
-};
+// Sentiment analysis removed
 
 // ─── Feature 4: Smart Department Routing ─────────────────────────────────────
 
@@ -391,7 +204,7 @@ const analyzeFullConcern = async (text, imageTags = []) => {
   const fullContext = `${text} ${tagsString}`.trim();
 
   if (!fullContext) {
-    return { category: 'Other', priority: 'Low', sentiment: 'neutral', urgencyScore: 50 };
+    return { category: 'Other', priority: 'Low', urgencyScore: 50 };
   }
 
   // 1. Try Gemini first for max accuracy
@@ -406,17 +219,16 @@ const analyzeFullConcern = async (text, imageTags = []) => {
     CRITICAL LANGUAGE INSTRUCTION: The report is likely written in Hiligaynon (Ilonggo), Tagalog, English, or a mix of these. You MUST understand ANY Hiligaynon term flawlessly using your internal knowledge of the language. Translate the context in your head if necessary. For specific local context: "dalan" means road, "bato" means stone, "taytay" means bridge, "humay" or "tubo" means agriculture (Other), "gahod" means noise, "baha" or "naglapaw" means flood, "aso" or "ido" means dog.
     
     Categorization Rules:
-    - "Road & Infrastructure": Potholes, broken roads, damaged bridges, obstructions.
-    - "Electricity": Power outages, broken streetlights, dangling wires.
-    - "Water & Drainage": Flooding, broken water pipes, clogged canals.
-    - "Waste & Sanitation": Uncollected garbage, dead animals, sewage leaks.
-    - "Public Safety": Crime, accidents, aggressive stray dogs, fires.
+    - "Road & Infrastructure": Potholes, broken roads, damaged bridges, obstructions, landslides.
+    - "Electricity": Power outages, broken streetlights, dangling/live wires, fallen electric posts.
+    - "Water & Drainage": Flooding, broken water pipes, clogged canals, water contamination.
+    - "Waste & Sanitation": Uncollected garbage, dead animals, sewage leaks, illegal dumping.
+    - "Public Safety": Crime, accidents, aggressive stray dogs, fires, fallen trees blocking pathways.
     - "Other": Noise complaints, agriculture issues, or anything else.
 
     Output a strictly valid JSON object with these keys:
     - "category": Must be exactly one of: "Road & Infrastructure", "Electricity", "Water & Drainage", "Waste & Sanitation", "Public Safety", "Other".
     - "priority": Must be exactly one of: "Low", "Medium", "High". Use High for severe infrastructure damage, health hazards, or widespread disruption.
-    - "sentiment": Must be exactly one of: "neutral", "concerned", "frustrated", "urgent".
     - "urgencyScore": A number from 0 to 100 representing the absolute urgency within a NON-EMERGENCY municipal context. Use this Advanced Evaluation Matrix:
         * 90-100: Severe Infrastructure / Health Hazard (e.g., massive sinkholes, exposed live wires in public, week-long citywide water/power loss).
         * 75-89: High Impact / Widespread Disruption (e.g., completely impassable local road, severe localized flooding, hazardous illegal dumping).
@@ -437,17 +249,14 @@ const analyzeFullConcern = async (text, imageTags = []) => {
   // 2. Fallback to local NLP
   console.log('[AI] Falling back to local keyword NLP classification.');
   const baseClassification = analyzeConcern(text, imageTags);
-  const sentimentClassification = analyzeSentiment(text);
 
   return {
     ...baseClassification,
-    ...sentimentClassification,
   };
 };
 
 module.exports = {
   analyzeConcern,
-  analyzeSentiment,
   analyzeFullConcern,
   routeToDepartment,
 };

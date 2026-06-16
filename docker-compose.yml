@@ -12,5 +12,31 @@ services:
       - mysql_data:/var/lib/mysql
       - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
 
+  backend:
+    build:
+      context: ./backend
+    container_name: citivoice-backend
+    restart: always
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: database
+    ports:
+      - "5000:5000"
+    depends_on:
+      - database
+
+  admin-web:
+    build:
+      context: ./admin-web
+      args:
+        REACT_APP_API_URL: http://localhost:5000/api
+    container_name: citivoice-admin
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
 volumes:
   mysql_data:
