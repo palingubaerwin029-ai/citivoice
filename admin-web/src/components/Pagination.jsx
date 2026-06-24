@@ -13,7 +13,7 @@ export function useFitPagination(defaultItems = 10, rowHeight = 55, offset = 350
   useEffect(() => {
     const calculate = () => {
       const availableHeight = window.innerHeight - offset;
-      const count = Math.max(5, Math.floor(availableHeight / rowHeight));
+      const count = Math.max(10, Math.floor(availableHeight / rowHeight));
       setItemsPerPage(count);
     };
     calculate();

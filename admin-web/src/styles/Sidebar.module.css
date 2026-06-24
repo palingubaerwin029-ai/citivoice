@@ -1,4 +1,3 @@
-
 .sidebar {
   width: 248px;
   min-height: 100vh;
@@ -12,7 +11,9 @@
   flex-shrink: 0;
 }
 
-.sidebarCollapsed { width: 68px; }
+.sidebarCollapsed {
+  width: 68px;
+}
 
 /* ── Brand ── */
 .brand {
@@ -31,22 +32,43 @@
   object-fit: contain;
 }
 
-.brandText { flex: 1; min-width: 0; }
-.brandName { font-size: 15px; font-weight: 700; color: var(--text-1); letter-spacing: -0.3px; }
-.brandSub  { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+.brandText {
+  flex: 1;
+  min-width: 0;
+}
+
+.brandName {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -0.3px;
+}
+
+.brandSub {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 1px;
+}
 
 .collapseBtn {
-  width: 24px; height: 24px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--r-sm);
   border: 1px solid var(--border-md);
   background: transparent;
   color: var(--text-3);
   font-size: 12px;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all var(--t);
   flex-shrink: 0;
 }
-.collapseBtn:hover { background: var(--surface-3); color: var(--text-1); }
+
+.collapseBtn:hover {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
 
 /* ── User card ── */
 .userCard {
@@ -61,26 +83,42 @@
 }
 
 .avatar {
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--r-md);
   background: linear-gradient(135deg, var(--blue), var(--purple));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
   flex-shrink: 0;
 }
 
-.userName  { font-size: 13px; font-weight: 600; color: var(--text-1); }
-.userRole  {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 10px; font-weight: 600;
+.userName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.userRole {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
   color: var(--green);
-  background: rgba(16,185,129,0.12);
-  padding: 1px 6px; border-radius: 99px;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 1px 6px;
+  border-radius: 99px;
   margin-top: 2px;
 }
 
 /* ── Nav ── */
-.navSection { padding: 8px 10px; }
+.navSection {
+  padding: 8px 10px;
+}
 
 .navLabel {
   font-size: 10px;
@@ -113,7 +151,7 @@
 }
 
 .navItemActive {
-  background: rgba(37,99,235,0.15);
+  background: rgba(37, 99, 235, 0.15);
   color: var(--blue-light);
   font-weight: 600;
 }
@@ -121,7 +159,9 @@
 .navItemActive::before {
   content: '';
   position: absolute;
-  left: 0; top: 6px; bottom: 6px;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
   width: 3px;
   background: var(--blue);
   border-radius: 0 3px 3px 0;
@@ -136,7 +176,7 @@
 
 .navBadge {
   margin-left: auto;
-  background: rgba(37,99,235,0.25);
+  background: rgba(37, 99, 235, 0.25);
   color: var(--blue-light);
   font-size: 10px;
   font-weight: 700;
@@ -145,7 +185,11 @@
 }
 
 /* ── Footer ── */
-.navFooter { margin-top: auto; padding: 8px 10px 12px; border-top: 1px solid var(--border); }
+.navFooter {
+  margin-top: auto;
+  padding: 8px 10px 12px;
+  border-top: 1px solid var(--border);
+}
 
 .logoutBtn {
   display: flex;
@@ -163,8 +207,10 @@
 }
 
 .logoutBtn:hover {
-  background: rgba(239,68,68,0.1);
+  background: rgba(239, 68, 68, 0.1);
   color: var(--red);
 }
 
-.collapsed { justify-content: center; }
+.collapsed {
+  justify-content: center;
+}
