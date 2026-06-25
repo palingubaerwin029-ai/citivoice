@@ -54,6 +54,7 @@ export default function RegisterScreen({ navigation }) {
   const [showPicker, setShowPicker] = useState(false);
   const [showIdPicker, setShowIdPicker] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [errors, setErrors] = useState({});
   const [pwFocused, setPwFocused] = useState(false);
   const strengthAnim = useRef(new Animated.Value(0)).current;
@@ -134,6 +135,7 @@ export default function RegisterScreen({ navigation }) {
   }, [passwordAnalysis.passed, form.password.length]);
 
   const validate = () => {
+    setError(null);
     const e = {};
     if (!form.name.trim()) e.name = t('required');
     if (!form.email.trim()) e.email = t('required');
@@ -166,7 +168,7 @@ export default function RegisterScreen({ navigation }) {
         'auth/invalid-email': 'Invalid email address.',
         'auth/weak-password': 'Password is too weak.',
       };
-      Alert.alert(t('registrationFailed'), map[err.code] || err.message || t('error'));
+      setError(map[err.code] || err.message || t('error'));
     } finally {
       setLoading(false);
     }
@@ -255,6 +257,33 @@ export default function RegisterScreen({ navigation }) {
               </Text>
             </View>
           </View>
+
+          {/* Error Banner */}
+          {error && (
+            <View
+              style={[
+                S.noticeBox,
+                {
+                  backgroundColor: colors.danger + '14',
+                  borderColor: colors.danger + '33',
+                  alignItems: 'center',
+                },
+              ]}
+            >
+              <Ionicons name="alert-circle" size={18} color={colors.danger} />
+              <View style={{ flex: 1 }}>
+                <Text style={[S.noticeTitle, { color: colors.danger, marginBottom: 0 }]}>
+                  {error}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setError(null)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close" size={18} color={colors.danger} />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Form */}
           <View style={[S.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>

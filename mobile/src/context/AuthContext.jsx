@@ -142,6 +142,12 @@ export function AuthProvider({ children }) {
     setUser({ ...updated, _blocked: true });
   };
 
+  // ── Update local user data ─────────────────────────────────────────────
+  const updateUserLocal = async (newUserData) => {
+    await AsyncStorage.setItem('cv_user', JSON.stringify(newUserData));
+    setUser(newUserData);
+  };
+
   // ── Logout ─────────────────────────────────────────────────────────────
   const logout = async () => {
     await AsyncStorage.multiRemove(['cv_token', 'cv_user']);
@@ -157,6 +163,7 @@ export function AuthProvider({ children }) {
         register,
         logout,
         submitVerification,
+        updateUserLocal,
         VERIFICATION_STATUS,
         apiRequest,
         BASE_URL,

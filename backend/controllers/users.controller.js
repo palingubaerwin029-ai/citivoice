@@ -11,6 +11,7 @@ const {
   selectUserContactInfo,
   updateUserFcmToken,
   deleteUser,
+  updateUserAvatar,
 } = require('../models/user.model');
 
 const safe = (user) => {
@@ -201,6 +202,25 @@ const updateFcmToken = async (req, res) => {
   }
 };
 
+const uploadAvatar = async (req, res) => {
+  if (req.user.id !== parseInt(req.params.id)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  if (!req.file) {
+    return res.status(400).json({ error: 'No image file uploaded' });
+  }
+
+  try {
+    const avatarUrl = `/uploads/${req.file.filename}`;
+    await updateUserAvatar(req.params.id, avatarUrl);
+    const updatedUser = await selectById(req.params.id);
+    res.json(safe(updatedUser));
+  } catch (err) {
+    console.error('Upload avatar error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 module.exports = {
   listCitizens,
   getUser,
@@ -209,4 +229,5 @@ module.exports = {
   rejectUser,
   revokeUser,
   updateFcmToken,
+  uploadAvatar,
 };

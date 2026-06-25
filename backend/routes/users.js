@@ -10,7 +10,9 @@ const {
   rejectUser,
   revokeUser,
   updateFcmToken,
+  uploadAvatar,
 } = require('../controllers/users.controller');
+const upload = require('../middleware/upload');
 
 // ─── List all non-admin users (admin only) ────────────────────────────────────
 router.get('/', auth, requireRole('admin'), listCitizens);
@@ -32,5 +34,8 @@ router.patch('/:id/revoke', auth, requireRole('admin'), validateIdParam, revokeU
 
 // ─── Update FCM token (auth required, ownership check) ────────────────────────
 router.put('/:id/fcm-token', auth, validateIdParam, updateFcmToken);
+
+// ─── Upload profile avatar (auth required, ownership check) ───────────────────
+router.post('/:id/avatar', auth, validateIdParam, upload.single('avatar'), uploadAvatar);
 
 module.exports = router;

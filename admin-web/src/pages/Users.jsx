@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api, fmtDateShort, maskEmail } from '../services/api';
+import { api, fmtDateShort, maskEmail, resolveImageUrl } from '../services/api';
 import s from '../styles/Admin.module.css';
 import u from '../styles/Users.module.css';
 import Pagination, { useFitPagination } from '../components/Pagination';
@@ -80,7 +80,16 @@ export default function Users() {
         </div>
       </div>
 
-      <div className={s.toolbar}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 10,
+          marginBottom: 16,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}
+      >
         <div className={s.search}>
           <span className={s.searchIcon}>🔍</span>
           <input
@@ -116,9 +125,7 @@ export default function Users() {
         </select>
       </div>
 
-      <div
-        style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 320px' : '1fr', gap: 16 }}
-      >
+      <div className={selected ? s.mainLayoutWithSide : s.mainLayout}>
         {/* Table */}
         <div className={s.tableWrap}>
           {loading ? (
@@ -134,7 +141,7 @@ export default function Users() {
                     'Reports',
                     'Resolved',
                     'Member Since',
-                    '',
+                    'Actions',
                   ].map((h) => (
                     <th key={h} className={s.th}>
                       {h}
@@ -155,9 +162,13 @@ export default function Users() {
                         <div className={u.tableAvatarWrap}>
                           <div
                             className={`${s.avatar} ${s.avatarSm}`}
-                            style={{ background: AC(u.id) }}
+                            style={{ background: AC(u.id), overflow: 'hidden' }}
                           >
-                            {initials(u.name)}
+                            {u.avatar_url ? (
+                              <img src={resolveImageUrl(u.avatar_url)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              initials(u.name)
+                            )}
                           </div>
                           <div>
                             <div className={u.tableAvatarInfo}>{u.name}</div>
@@ -217,13 +228,20 @@ export default function Users() {
 
         {/* Side panel */}
         {selected && (
-          <div className={s.card} style={{ alignSelf: 'start' }}>
+          <>
+            <div className={s.sidePanelOverlay} onClick={() => setSelected(null)} />
+            <div className={s.sidePanelWrapper}>
+              <div className={s.card} style={{ alignSelf: 'start' }}>
             <div className={u.sidePanelHeader}>
               <div
                 className={`${s.avatar} ${s.avatarLg}`}
-                style={{ background: AC(selected.id), borderRadius: 'var(--r-xl)' }}
+                style={{ background: AC(selected.id), borderRadius: 'var(--r-xl)', overflow: 'hidden' }}
               >
-                {initials(selected.name)}
+                {selected.avatar_url ? (
+                  <img src={resolveImageUrl(selected.avatar_url)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  initials(selected.name)
+                )}
               </div>
               <button
                 className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
@@ -304,8 +322,10 @@ export default function Users() {
               {count(selected.id) === 0 && <p className={u.recentEmpty}>No concerns yet</p>}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      </>
+    )}
+  </div>
     </div>
   );
 }

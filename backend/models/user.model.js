@@ -10,6 +10,16 @@ const selectByEmail = async (email) => {
   }
 };
 
+const selectByName = async (name) => {
+  try {
+    const [row] = await pool.query('SELECT id FROM users WHERE LOWER(name) = LOWER(?)', [name]);
+    return row[0];
+  } catch (err) {
+    console.error('Error fetching user by name:', err);
+    throw err;
+  }
+};
+
 const selectByPhone = async (phone) => {
   try {
     const [row] = await pool.query('SELECT id FROM users WHERE phone = ?', [phone]);
@@ -105,8 +115,39 @@ const deleteUser = async (id) => {
   await pool.query('DELETE FROM users WHERE id = ?', [id]);
 };
 
+// ── Password Reset OTP helpers ────────────────────────────────────────────────
+const updateResetOtp = async (email, hashedOtp, expiresAt) => {
+  await pool.query(
+    'UPDATE users SET reset_otp = ?, reset_otp_expires = ?, updated_at = NOW() WHERE email = ?',
+    [hashedOtp, expiresAt, email],
+  );
+};
+
+const clearResetOtp = async (email) => {
+  await pool.query(
+    'UPDATE users SET reset_otp = NULL, reset_otp_expires = NULL, updated_at = NOW() WHERE email = ?',
+    [email],
+  );
+};
+
+const updatePasswordByEmail = async (email, newHash) => {
+  await pool.query(
+    'UPDATE users SET password_hash = ?, reset_otp = NULL, reset_otp_expires = NULL, updated_at = NOW() WHERE email = ?',
+    [newHash, email],
+  );
+};
+
+// ── Profile Picture ───────────────────────────────────────────────────────────
+const updateUserAvatar = async (id, avatarUrl) => {
+  await pool.query('UPDATE users SET avatar_url = ?, updated_at = NOW() WHERE id = ?', [
+    avatarUrl,
+    id,
+  ]);
+};
+
 module.exports = {
   selectByEmail,
+  selectByName,
   selectByPhone,
   selectById,
   insertUser,
@@ -117,4 +158,8 @@ module.exports = {
   selectUserContactInfo,
   updateUserFcmToken,
   deleteUser,
+  updateResetOtp,
+  clearResetOtp,
+  updatePasswordByEmail,
+  updateUserAvatar,
 };

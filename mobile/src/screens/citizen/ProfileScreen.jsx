@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet, Modal, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAuth } from '../../context/AuthContext';
+import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth, resolveImageUrl, BASE_URL } from '../../context/AuthContext';
 import { useConcerns } from '../../context/ConcernContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { RADIUS, SHADOWS, STATUS_CONFIG } from '../../utils/theme';
@@ -13,10 +15,12 @@ import { LANGUAGES } from '../../i18n/translations';
 
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUserLocal } = useAuth();
   const { myConcerns } = useConcerns();
   const { t, language, changeLanguage } = useLanguage();
   const [showLang, setShowLang] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
   const initials =
     user?.name
       ?.split(' ')
@@ -24,6 +28,65 @@ export default function ProfileScreen() {
       .join('')
       .toUpperCase()
       .slice(0, 2) || '?';
+
+  const handlePickAvatar = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t('error') || 'Error', 'Permission to access gallery is required.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        uploadAvatar(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.error('Image picker error:', err);
+      Alert.alert(t('error') || 'Error', 'Failed to pick image');
+    }
+  };
+
+  const uploadAvatar = async (uri) => {
+    setUploadingAvatar(true);
+    try {
+      const token = await AsyncStorage.getItem('cv_token');
+      const formData = new FormData();
+      const filename = uri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+      formData.append('avatar', {
+        uri,
+        name: filename || 'avatar.jpg',
+        type,
+      });
+
+      const res = await fetch(`${BASE_URL}/users/${user.id}/avatar`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to upload avatar');
+
+      await updateUserLocal(data);
+    } catch (err) {
+      console.error('Avatar upload error:', err);
+      Alert.alert(t('error') || 'Error', err.message);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
   const stats = {
     total: myConcerns.length,
     pending: myConcerns.filter((c) => c.status === 'Pending').length,
@@ -55,35 +118,52 @@ export default function ProfileScreen() {
           }}
         >
           <View style={{ position: 'relative', marginBottom: verticalScale(14) }}>
-            <LinearGradient
-              colors={[colors.primary, colors.purple || '#8B5CF6']}
-              style={{
-                width: scale(80),
-                height: scale(80),
-                borderRadius: moderateScale(24),
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ color: '#fff', fontSize: rf(30), fontWeight: '900' }}>{initials}</Text>
-            </LinearGradient>
-            <View
-              style={{
-                position: 'absolute',
-                bottom: scale(-2),
-                right: scale(-2),
-                width: scale(22),
-                height: scale(22),
-                borderRadius: scale(11),
-                backgroundColor: colors.accent,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 2,
-                borderColor: colors.bgDark,
-              }}
-            >
-              <Ionicons name="checkmark" size={10} color="#fff" />
-            </View>
+            <TouchableOpacity onPress={handlePickAvatar} disabled={uploadingAvatar} activeOpacity={0.8}>
+              <LinearGradient
+                colors={[colors.primary, colors.purple || '#8B5CF6']}
+                style={{
+                  width: scale(80),
+                  height: scale(80),
+                  borderRadius: moderateScale(24),
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                }}
+              >
+                {user?.avatar_url ? (
+                  <Image
+                    source={{ uri: resolveImageUrl(user.avatar_url) }}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text style={{ color: '#fff', fontSize: rf(30), fontWeight: '900' }}>{initials}</Text>
+                )}
+                
+                {uploadingAvatar && (
+                  <View style={{ position: 'absolute', backgroundColor: 'rgba(0,0,0,0.5)', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                    <ActivityIndicator color="#fff" />
+                  </View>
+                )}
+              </LinearGradient>
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: scale(-2),
+                  right: scale(-2),
+                  width: scale(26),
+                  height: scale(26),
+                  borderRadius: scale(13),
+                  backgroundColor: colors.bgCard,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 2,
+                  borderColor: colors.bgDark,
+                }}
+              >
+                <Ionicons name="camera" size={12} color={colors.primary} />
+              </View>
+            </TouchableOpacity>
           </View>
           <Text
             style={{

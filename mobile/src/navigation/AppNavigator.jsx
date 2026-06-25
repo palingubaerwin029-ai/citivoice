@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,8 @@ import { useTheme } from '../context/ThemeContext';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import VerifyIdentityScreen from '../screens/auth/VerifyIdentityScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 
 // ── Citizen ────────────────────────────────────────────────────────────────
 import HomeScreen from '../screens/citizen/HomeScreen';
@@ -65,6 +67,8 @@ function AuthStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       <Stack.Screen
         name="VerifyIdentity"
         component={VerifyIdentityScreen}
@@ -254,8 +258,16 @@ export default function AppNavigator() {
     );
   }
 
+  const navTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: colors.bgDark,
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
       {
         !user ? (
           <AuthStack /> // Not logged in

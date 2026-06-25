@@ -305,9 +305,13 @@ export default function Verification() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div
                             className={s.avatar}
-                            style={{ backgroundColor: avatarColor(u.id), borderRadius: 10 }}
+                            style={{ backgroundColor: avatarColor(u.id), borderRadius: 10, overflow: 'hidden' }}
                           >
-                            {initials(u.name)}
+                            {u.avatar_url ? (
+                              <img src={resolveImageUrl(u.avatar_url)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              initials(u.name)
+                            )}
                           </div>
                           <div>
                             <div style={{ fontWeight: 600, color: 'var(--text-1)', fontSize: 13 }}>
@@ -457,9 +461,13 @@ export default function Verification() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
                     <div
                       className={`${s.avatar} ${s.avatarLg}`}
-                      style={{ backgroundColor: avatarColor(selected.id), borderRadius: 16 }}
+                      style={{ backgroundColor: avatarColor(selected.id), borderRadius: 16, overflow: 'hidden' }}
                     >
-                      {initials(selected.name)}
+                      {selected.avatar_url ? (
+                        <img src={resolveImageUrl(selected.avatar_url)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        initials(selected.name)
+                      )}
                     </div>
                     <div>
                       <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-1)' }}>

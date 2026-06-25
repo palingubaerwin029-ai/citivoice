@@ -308,7 +308,6 @@ export default function LoginScreen({ navigation }) {
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -467,6 +466,17 @@ export default function LoginScreen({ navigation }) {
               )}
             </View>
 
+            {/* Forgot password */}
+            <TouchableOpacity
+              style={S.forgotRow}
+              onPress={() => navigation.navigate('ForgotPassword')}
+              activeOpacity={0.7}
+            >
+              <Text style={[S.forgotText, { color: colors.primaryLight }]}>
+                {t('forgotPassword')}
+              </Text>
+            </TouchableOpacity>
+
             {/* Submit */}
             <TouchableOpacity
               style={[
@@ -604,6 +614,15 @@ const S = StyleSheet.create({
   input: { flex: 1, fontSize: rf(14) },
   eyeBtn: { position: 'absolute', right: scale(14) },
   errText: { fontSize: rf(11), marginTop: verticalScale(5) },
+
+  forgotRow: {
+    alignItems: 'flex-end',
+    marginBottom: verticalScale(4),
+  },
+  forgotText: {
+    fontSize: rf(13),
+    fontWeight: '700',
+  },
 
   errorBanner: {
     flexDirection: 'row',

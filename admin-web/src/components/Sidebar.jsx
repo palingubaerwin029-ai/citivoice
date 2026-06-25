@@ -15,6 +15,7 @@ import {
   IoDocumentTextOutline,
 } from 'react-icons/io5';
 import s from '../styles/Sidebar.module.css';
+import { resolveImageUrl } from '../services/api';
 
 const NAV = [
   { section: 'Overview' },
@@ -59,7 +60,13 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
       {/* User */}
       {!collapsed && (
         <div className={s.userCard}>
-          <div className={s.avatar}>{initials}</div>
+          <div className={s.avatar} style={{ overflow: 'hidden' }}>
+            {user?.avatar_url ? (
+              <img src={resolveImageUrl(user.avatar_url)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              initials
+            )}
+          </div>
           <div>
             <div className={s.userName}>{user?.name || 'Admin'}</div>
             <div className={s.userRole}>● Administrator</div>
