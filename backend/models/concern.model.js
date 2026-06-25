@@ -1,7 +1,55 @@
 const pool = require('../db');
 
-const selectAllConcerns = async () => {
-  const [rows] = await pool.query('SELECT * FROM concerns ORDER BY created_at DESC');
+const selectAllConcerns = async (limit = 20, offset = 0, userId = null, status = null, category = null) => {
+  let query = 'SELECT * FROM concerns WHERE 1=1';
+  const params = [];
+
+  if (userId) {
+    query += ' AND user_id = ?';
+    params.push(userId);
+  }
+  if (status && status !== 'All') {
+    query += ' AND status = ?';
+    params.push(status);
+  }
+  if (category && category !== 'All') {
+    query += ' AND category = ?';
+    params.push(category);
+  }
+
+  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+  params.push(parseInt(limit), parseInt(offset));
+
+  const [rows] = await pool.query(query, params);
+  return rows;
+};
+
+const countConcerns = async (userId = null, status = null, category = null) => {
+  let query = 'SELECT COUNT(*) as total FROM concerns WHERE 1=1';
+  const params = [];
+
+  if (userId) {
+    query += ' AND user_id = ?';
+    params.push(userId);
+  }
+  if (status && status !== 'All') {
+    query += ' AND status = ?';
+    params.push(status);
+  }
+  if (category && category !== 'All') {
+    query += ' AND category = ?';
+    params.push(category);
+  }
+
+  const [rows] = await pool.query(query, params);
+  return rows[0].total;
+};
+
+const selectMapConcerns = async () => {
+  // Only lightweight data for map markers
+  const [rows] = await pool.query(
+    'SELECT id, title, location_lat as lat, location_lng as lng, status, category FROM concerns WHERE location_lat IS NOT NULL'
+  );
   return rows;
 };
 
@@ -159,6 +207,8 @@ const selectLinkedConcerns = async (concernId) => {
 
 module.exports = {
   selectAllConcerns,
+  countConcerns,
+  selectMapConcerns,
   selectConcernById,
   checkUpvote,
   insertConcern,

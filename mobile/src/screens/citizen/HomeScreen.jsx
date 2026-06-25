@@ -25,7 +25,7 @@ import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive'
 
 export default function HomeScreen({ navigation }) {
   const { colors, theme } = useTheme();
-  const { concerns, loading, toggleUpvote, refreshConcerns } = useConcerns();
+  const { concerns, loading, toggleUpvote, loadFeed } = useConcerns();
 
   const FILTER_COLOR = {
     all: colors.primaryLight,
@@ -40,6 +40,8 @@ export default function HomeScreen({ navigation }) {
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const firstName = user?.name?.split(' ')[0] || 'there';
 
@@ -60,6 +62,24 @@ export default function HomeScreen({ navigation }) {
     [concerns],
   );
 
+  const fetchPage = async (p, isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoadingMore(true);
+    
+    await loadFeed(p, 10, isRefresh);
+    
+    if (isRefresh) setRefreshing(false);
+    else setLoadingMore(false);
+  };
+
+  const handleLoadMore = () => {
+    if (!loading && !loadingMore && !refreshing) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchPage(nextPage, false);
+    }
+  };
+
   const filtered = useMemo(
     () =>
       concerns.filter((c) => {
@@ -75,15 +95,10 @@ export default function HomeScreen({ navigation }) {
     [concerns, activeFilter, search],
   );
 
-  const onRefresh = async () => {
-    setRefreshing(true);
+  const onRefresh = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try {
-      await refreshConcerns();
-    } catch {
-    } finally {
-      setRefreshing(false);
-    }
+    setPage(1);
+    fetchPage(1, true);
   };
 
   const renderSkeletons = () => (
@@ -125,6 +140,9 @@ export default function HomeScreen({ navigation }) {
             tintColor={colors.primary}
           />
         }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={loadingMore ? <Text style={{ textAlign: 'center', padding: 10, color: colors.textMuted }}>Loading more...</Text> : null}
         ListHeaderComponent={
           <>
             {/* ── Top bar ── */}

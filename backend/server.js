@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const slowDown = require('express-slow-down');
 const hpp = require('hpp');
 const crypto = require('crypto');
 const path = require('path');
@@ -47,6 +48,14 @@ const authLimiter = rateLimit({
   message: { error: 'Too many authentication attempts. Please try again later.' },
 });
 
+// ─── Slow Down ───────────────────────────────────────────────────────────────
+const speedLimiter = slowDown({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  delayAfter: 50, // allow 50 requests per 15 minutes, then...
+  delayMs: (hits) => (hits - 50) * 500, // begin adding 500ms of delay per request above 50
+  maxDelayMs: 5000, // max delay of 5 seconds
+});
+
 // ─── Ensure uploads directory exists ─────────────────────────────────────────
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -73,6 +82,7 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use('/uploads', cors({ origin: '*' }), express.static(uploadsDir));
 
 // ─── Apply global rate limiter to all /api/ routes ───────────────────────────
+app.use('/api', speedLimiter);
 app.use('/api', globalLimiter);
 
 // ─── Routes ──────────────────────────────────────────────────────────────────

@@ -168,7 +168,7 @@ export function MapView() {
   }, [mapType]);
 
   useEffect(() => {
-    api.get('/concerns').then(setConcerns).catch(console.error);
+    api.get('/concerns?limit=1000').then((res) => setConcerns(res.data || [])).catch(console.error);
   }, []);
 
   const filtered = concerns.filter(

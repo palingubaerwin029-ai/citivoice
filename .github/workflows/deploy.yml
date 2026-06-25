@@ -1,0 +1,34 @@
+name: Deploy to Production VPS
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Deploy via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        script: |
+          # 1. Navigate to the project directory
+          cd /var/www/citivoice || exit 1
+          
+          # 2. Pull latest code from GitHub
+          echo "Pulling latest main branch..."
+          git fetch origin main
+          git reset --hard origin/main
+          
+          # 3. Make deployment script executable
+          chmod +x deploy.sh
+          
+          # 4. Execute deployment script
+          ./deploy.sh

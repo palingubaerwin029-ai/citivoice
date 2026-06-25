@@ -54,11 +54,55 @@ const insertUser = async (name, email, hash, phone, barangay, idType, idNumber, 
   }
 };
 
-const selectAllCitizens = async () => {
-  const [rows] = await pool.query(
-    "SELECT * FROM users WHERE role = 'citizen' ORDER BY created_at DESC",
-  );
+const selectAllCitizens = async (limit = 20, offset = 0, search = '', barangay = '', status = '') => {
+  let query = `
+    SELECT u.*, 
+      (SELECT COUNT(*) FROM concerns c WHERE c.user_id = u.id) as reports_count,
+      (SELECT COUNT(*) FROM concerns c WHERE c.user_id = u.id AND c.status = 'Resolved') as resolved_count
+    FROM users u 
+    WHERE u.role = 'citizen'
+  `;
+  const params = [];
+
+  if (search) {
+    query += " AND (u.name LIKE ? OR u.email LIKE ?)";
+    params.push(`%${search}%`, `%${search}%`);
+  }
+  if (barangay && barangay !== 'All') {
+    query += " AND u.barangay = ?";
+    params.push(barangay);
+  }
+  if (status) {
+    query += " AND u.verification_status = ?";
+    params.push(status);
+  }
+
+  query += " ORDER BY u.created_at DESC LIMIT ? OFFSET ?";
+  params.push(parseInt(limit), parseInt(offset));
+
+  const [rows] = await pool.query(query, params);
   return rows;
+};
+
+const countCitizens = async (search = '', barangay = '', status = '') => {
+  let query = "SELECT COUNT(*) as total FROM users u WHERE u.role = 'citizen'";
+  const params = [];
+
+  if (search) {
+    query += " AND (u.name LIKE ? OR u.email LIKE ?)";
+    params.push(`%${search}%`, `%${search}%`);
+  }
+  if (barangay && barangay !== 'All') {
+    query += " AND u.barangay = ?";
+    params.push(barangay);
+  }
+  if (status) {
+    query += " AND u.verification_status = ?";
+    params.push(status);
+  }
+
+  const [rows] = await pool.query(query, params);
+  return rows[0].total;
 };
 
 const checkExistingIdNumber = async (idNumber, excludeId) => {
@@ -152,6 +196,7 @@ module.exports = {
   selectById,
   insertUser,
   selectAllCitizens,
+  countCitizens,
   checkExistingIdNumber,
   updateUserDetails,
   updateUserVerification,

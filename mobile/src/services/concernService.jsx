@@ -12,7 +12,14 @@ const apiRequest = async (path, options = {}) => {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...options.headers,
   };
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  
+  let finalPath = path;
+  if (options.params) {
+    const qs = new URLSearchParams(options.params).toString();
+    if (qs) finalPath = `${path}?${qs}`;
+  }
+
+  const res = await fetch(`${BASE_URL}${finalPath}`, { ...options, headers });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
@@ -79,9 +86,14 @@ export const ConcernService = {
     return data;
   },
 
-  // ── Get all concerns ────────────────────────────────────────────────────
-  async getConcerns() {
-    return apiRequest('/concerns');
+  // ── Get concerns (paginated) ─────────────────────────────────────────────
+  async getConcerns(params = {}) {
+    return apiRequest('/concerns', { params });
+  },
+
+  // ── Get map concerns ─────────────────────────────────────────────────────
+  async getMapConcerns() {
+    return apiRequest('/concerns/map');
   },
 
   // ── Get a single concern ────────────────────────────────────────────────
@@ -89,10 +101,9 @@ export const ConcernService = {
     return apiRequest(`/concerns/${id}`);
   },
 
-  // ── Get concerns for a specific user ───────────────────────────────────
-  async getUserConcerns(userId) {
-    const all = await apiRequest('/concerns');
-    return all.filter((c) => c.user_id === parseInt(userId, 10));
+  // ── Get concerns for a specific user (paginated) ───────────────────────
+  async getUserConcerns(userId, params = {}) {
+    return apiRequest('/concerns', { params: { ...params, userId } });
   },
 
   // ── Toggle upvote ───────────────────────────────────────────────────────

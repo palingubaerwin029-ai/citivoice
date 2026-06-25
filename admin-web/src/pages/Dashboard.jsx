@@ -86,7 +86,7 @@ export default function Dashboard() {
     const fetchData = () => {
       api
         .get('/concerns')
-        .then(setConcerns)
+        .then((res) => setConcerns(res.data || []))
         .catch(console.error)
         .finally(() => setLoading(false));
     };

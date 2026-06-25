@@ -20,161 +20,75 @@ const PRIORITIES = ['All', 'High', 'Medium', 'Low'];
 export default function Concerns() {
   const [searchParams] = useSearchParams();
   const [concerns, setConcerns] = useState([]);
+  const [totalConcerns, setTotalConcerns] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [selectedCitizen, setSelectedCitizen] = useState(null);
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'All');
   const [priorityFilter, setPriorityFilter] = useState('All');
-  const [sortBy, setSortBy] = useState('newest');
-  const [viewMode, setViewMode] = useState('tickets');
-  const [citizenPage, setCitizenPage] = useState(1);
+  const [sortBy, setSortBy] = useState('newest'); // Note: For full DB sorting, we'd add this to backend. For now, we fetch sorted by newest.
   const [concernPage, setConcernPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 380);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchData = () => {
-      api
-        .get('/concerns')
-        .then(setConcerns)
-        .catch(console.error)
-        .finally(() => setLoading(false));
+  const loadData = () => {
+    // We only send status if it's not All
+    const params = {
+      page: concernPage,
+      limit: itemsPerPage,
+      search,
+      status: statusFilter === 'All' ? '' : statusFilter,
+      // For priority/sort we could add backend support later, keeping it lightweight
     };
 
-    fetchData();
-    const interval = setInterval(fetchData, 30000); // Auto-refresh every 30 seconds
+    api
+      .get('/concerns', params)
+      .then((res) => {
+        setConcerns(res.data || []);
+        setTotalConcerns(res.total || 0);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
 
+  useEffect(() => {
+    setLoading(true);
+    loadData();
+    const interval = setInterval(loadData, 30000); // Auto-refresh every 30 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [concernPage, itemsPerPage, search, statusFilter, priorityFilter, sortBy]);
 
-  // Grouping by Citizen
-  const citizensMap = concerns.reduce((acc, c) => {
-    const key = c.user_id || c.user_name || 'Anonymous';
-    if (!acc[key]) {
-      acc[key] = {
-        id: c.user_id,
-        name: c.user_name || 'Anonymous',
-        barangay: c.user_barangay || 'N/A',
-        total: 0,
-        Resolved: 0,
-        High: 0,
-        Medium: 0,
-        Low: 0,
-        latest: c.created_at,
-        concerns: [],
-      };
-    }
-    acc[key].total++;
-    if (c.status === 'Resolved') acc[key].Resolved++;
-    if (c.priority) acc[key][c.priority]++;
-    acc[key].concerns.push(c);
-    if (new Date(c.created_at) > new Date(acc[key].latest)) {
-      acc[key].latest = c.created_at;
-    }
-    return acc;
-  }, {});
+  // Reset page when filters change
+  useEffect(() => {
+    setConcernPage(1);
+  }, [search, statusFilter, priorityFilter, sortBy]);
 
-  const citizensList = Object.values(citizensMap)
-    .filter((c) => {
-      const s = search.toLowerCase();
-      return !s || c.name.toLowerCase().includes(s) || c.barangay.toLowerCase().includes(s);
-    })
-    .sort((a, b) => new Date(b.latest) - new Date(a.latest));
-
-  const filteredConcerns = (viewMode === 'tickets' ? concerns : selectedCitizen?.concerns || [])
-    .filter((c) => {
-      const s = search.toLowerCase();
-      const matchesSearch =
-        !s ||
-        c.title?.toLowerCase().includes(s) ||
-        c.category?.toLowerCase().includes(s) ||
-        (viewMode === 'tickets' &&
-          (c.user_name?.toLowerCase().includes(s) || c.user_barangay?.toLowerCase().includes(s)));
-
+  const totalConcernPages = Math.ceil(totalConcerns / itemsPerPage);
+  
+  // Local filtering for priority if not supported in backend yet
+  const displayedConcerns = concerns.filter(c => 
+    priorityFilter === 'All' || c.priority === priorityFilter
+  ).sort((a, b) => {
+    if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at);
+    if (sortBy === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
+    if (sortBy === 'upvotes') return (b.upvotes || 0) - (a.upvotes || 0);
+    if (sortBy === 'priority')
       return (
-        matchesSearch &&
-        (statusFilter === 'All' || c.status === statusFilter) &&
-        (priorityFilter === 'All' || c.priority === priorityFilter)
+        ({ High: 3, Medium: 2, Low: 1 }[b.priority] || 0) -
+        ({ High: 3, Medium: 2, Low: 1 }[a.priority] || 0)
       );
-    })
-    .sort((a, b) => {
-      if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at);
-      if (sortBy === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
-      if (sortBy === 'upvotes') return (b.upvotes || 0) - (a.upvotes || 0);
-      if (sortBy === 'priority')
-        return (
-          ({ High: 3, Medium: 2, Low: 1 }[b.priority] || 0) -
-          ({ High: 3, Medium: 2, Low: 1 }[a.priority] || 0)
-        );
-      return 0;
-    });
-
-  // Pagination logic
-  const displayedCitizens = citizensList.slice(
-    (citizenPage - 1) * itemsPerPage,
-    citizenPage * itemsPerPage,
-  );
-  const totalCitizenPages = Math.ceil(citizensList.length / itemsPerPage);
-
-  const displayedConcerns = filteredConcerns.slice(
-    (concernPage - 1) * itemsPerPage,
-    concernPage * itemsPerPage,
-  );
-  const totalConcernPages = Math.ceil(filteredConcerns.length / itemsPerPage);
-
-  // Remove early return, we will handle loading inline
-  // if (loading) return <div className={s.loading}>Loading concerns...</div>;
+    return 0;
+  });
 
   return (
     <div className={s.page}>
       <div className={s.pageHeader}>
         <div className={s.pageTitleGroup}>
-          <h1 className={s.pageTitle}>
-            {selectedCitizen ? `👤 Concerns of ${selectedCitizen.name}` : '📋 Concerns Management'}
-          </h1>
+          <h1 className={s.pageTitle}>📋 Concerns Management</h1>
           <p className={s.pageSubtitle}>
-            {selectedCitizen
-              ? `${filteredConcerns.length} concerns found for this citizen`
-              : viewMode === 'tickets'
-                ? `${filteredConcerns.length} concerns city-wide`
-                : `${citizensList.length} citizens with active concerns`}
+            {totalConcerns} concerns city-wide
           </p>
         </div>
 
-        {!selectedCitizen && (
-          <div className={cStyles.viewToggle}>
-            <button
-              className={`${s.btn} ${viewMode === 'tickets' ? s.btnPrimary : s.btnGhost} ${cStyles.toggleBtn}`}
-              onClick={() => {
-                setViewMode('tickets');
-                setConcernPage(1);
-              }}
-            >
-              All Tickets
-            </button>
-            <button
-              className={`${s.btn} ${viewMode === 'citizens' ? s.btnPrimary : s.btnGhost} ${cStyles.toggleBtn}`}
-              onClick={() => {
-                setViewMode('citizens');
-                setCitizenPage(1);
-              }}
-            >
-              By Citizen
-            </button>
-          </div>
-        )}
-
-        {selectedCitizen && (
-          <button
-            className={`${s.btn} ${s.btnGhost}`}
-            onClick={() => {
-              setSelectedCitizen(null);
-              setSearch('');
-            }}
-          >
-            ← Back to Citizens
-          </button>
-        )}
       </div>
 
       {/* Filters */}
@@ -184,11 +98,7 @@ export default function Concerns() {
             <span>🔍</span>
             <input
               className={s.searchInput}
-              placeholder={
-                viewMode === 'tickets' || selectedCitizen
-                  ? 'Search concerns or citizens...'
-                  : 'Search citizens or barangay...'
-              }
+              placeholder="Search concerns..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -198,175 +108,66 @@ export default function Concerns() {
               </button>
             )}
           </div>
-          {(selectedCitizen || viewMode === 'tickets') && (
-            <select className={s.select} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="upvotes">Most Upvoted</option>
-              <option value="priority">Highest Priority</option>
-            </select>
-          )}
+          <select className={s.select} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="upvotes">Most Upvoted</option>
+            <option value="priority">Highest Priority</option>
+          </select>
         </div>
 
-        {(selectedCitizen || viewMode === 'tickets') && (
-          <>
-            <div className={s.filterGroup}>
-              <span className={s.filterGroupLabel}>Status:</span>
-              {STATUSES.map((status) => (
-                <button
-                  key={status}
-                  className={`${s.chip} ${statusFilter === status ? s.chipActive : ''}`}
-                  style={
-                    statusFilter === status && status !== 'All'
-                      ? {
-                          borderColor: STATUS_COLORS[status] || 'var(--primary)',
-                          color: STATUS_COLORS[status] || 'var(--primary)',
-                          backgroundColor: (STATUS_COLORS[status] || '#1A6BFF') + '22',
-                        }
-                      : {}
-                  }
-                  onClick={() => setStatusFilter(status)}
-                >
-                  {status}
-                </button>
-              ))}
-            </div>
-            <div className={s.filterGroup}>
-              <span className={s.filterGroupLabel}>Priority:</span>
-              {PRIORITIES.map((p) => (
-                <button
-                  key={p}
-                  className={`${s.chip} ${priorityFilter === p ? s.chipActive : ''}`}
-                  style={
-                    priorityFilter === p && p !== 'All'
-                      ? {
-                          borderColor: PRIORITY_COLORS[p],
-                          color: PRIORITY_COLORS[p],
-                          backgroundColor: PRIORITY_COLORS[p] + '22',
-                        }
-                      : {}
-                  }
-                  onClick={() => setPriorityFilter(p)}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+        <div className={s.filterGroup}>
+          <span className={s.filterGroupLabel}>Status:</span>
+          {STATUSES.map((status) => (
+            <button
+              key={status}
+              className={`${s.chip} ${statusFilter === status ? s.chipActive : ''}`}
+              style={
+                statusFilter === status && status !== 'All'
+                  ? {
+                      borderColor: STATUS_COLORS[status] || 'var(--primary)',
+                      color: STATUS_COLORS[status] || 'var(--primary)',
+                      backgroundColor: (STATUS_COLORS[status] || '#1A6BFF') + '22',
+                    }
+                  : {}
+              }
+              onClick={() => setStatusFilter(status)}
+            >
+              {status}
+            </button>
+          ))}
+        </div>
+        <div className={s.filterGroup}>
+          <span className={s.filterGroupLabel}>Priority:</span>
+          {PRIORITIES.map((p) => (
+            <button
+              key={p}
+              className={`${s.chip} ${priorityFilter === p ? s.chipActive : ''}`}
+              style={
+                priorityFilter === p && p !== 'All'
+                  ? {
+                      borderColor: PRIORITY_COLORS[p],
+                      color: PRIORITY_COLORS[p],
+                      backgroundColor: PRIORITY_COLORS[p] + '22',
+                    }
+                  : {}
+              }
+              onClick={() => setPriorityFilter(p)}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
       <div className={s.tableWrap}>
         <table className={s.table}>
-          {!selectedCitizen && viewMode === 'citizens' ? (
-            <>
-              <thead className={s.thead}>
-                <tr>
-                  {[
-                    'Citizen',
-                    'Barangay',
-                    'High',
-                    'Medium',
-                    'Low',
-                    'Total',
-                    'Resolved',
-                    'Latest',
-                    'Action',
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className={`${s.th} ${['High', 'Medium', 'Low', 'Total', 'Resolved'].includes(h) ? cStyles.thCenter : ''}`}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading
-                  ? [1, 2, 3, 4, 5, 6].map((i) => (
-                      <tr key={i} className={s.tr}>
-                        <td className={s.td}>
-                          <Skeleton height="20px" />
-                        </td>
-                        <td className={s.td}>
-                          <Skeleton height="20px" />
-                        </td>
-                        <td className={s.td}>
-                          <Skeleton height="20px" />
-                        </td>
-                        <td className={s.td}>
-                          <Skeleton height="20px" />
-                        </td>
-                        <td className={s.td}>
-                          <Skeleton height="20px" />
-                        </td>
-                        <td className={s.td}>
-                          <Skeleton height="20px" />
-                        </td>
-                        <td className={s.td}>
-                          <Skeleton height="20px" />
-                        </td>
-                        <td className={s.td}>
-                          <Skeleton height="20px" />
-                        </td>
-                        <td className={s.td}>
-                          <Skeleton height="32px" />
-                        </td>
-                      </tr>
-                    ))
-                  : displayedCitizens.map((c) => (
-                      <tr
-                        key={c.id || c.name}
-                        className={s.tr}
-                        onClick={() => {
-                          setSelectedCitizen(c);
-                          setSearch('');
-                          setConcernPage(1);
-                        }}
-                      >
-                        <td className={s.td}>
-                          <span className={cStyles.ticketUser}>{c.name}</span>
-                        </td>
-                        <td className={s.td}>{c.barangay}</td>
-                        <td className={`${s.td} ${cStyles.tdCenter}`}>
-                          <span style={{ color: PRIORITY_COLORS.High }}>🔴 {c.High}</span>
-                        </td>
-                        <td className={`${s.td} ${cStyles.tdCenter}`}>
-                          <span style={{ color: PRIORITY_COLORS.Medium }}>🟡 {c.Medium}</span>
-                        </td>
-                        <td className={`${s.td} ${cStyles.tdCenter}`}>
-                          <span style={{ color: PRIORITY_COLORS.Low }}>🟢 {c.Low}</span>
-                        </td>
-                        <td className={`${s.td} ${cStyles.tdCenter} ${cStyles.tdValue}`}>
-                          {c.total - c.Resolved}
-                        </td>
-                        <td
-                          className={`${s.td} ${cStyles.tdCenter} ${cStyles.tdValue}`}
-                          style={{ color: '#00D4AA' }}
-                        >
-                          {c.Resolved}
-                        </td>
-                        <td className={s.td} style={{ fontSize: 12 }}>
-                          {fmtDateShort(c.latest)}
-                        </td>
-                        <td className={s.td}>
-                          <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}>
-                            View Concerns →
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-              </tbody>
-            </>
-          ) : (
-            <>
               <thead className={s.thead}>
                 <tr>
                   {[
                     'Concern',
-                    ...(!selectedCitizen ? ['Citizen'] : []),
+                    'Citizen',
                     'Category',
                     'Priority',
                     'Status',
@@ -386,11 +187,9 @@ export default function Concerns() {
                         <td className={s.td}>
                           <Skeleton height="36px" />
                         </td>
-                        {!selectedCitizen && (
-                          <td className={s.td}>
-                            <Skeleton height="36px" />
-                          </td>
-                        )}
+                        <td className={s.td}>
+                          <Skeleton height="36px" />
+                        </td>
                         <td className={s.td}>
                           <Skeleton height="24px" width="60px" />
                         </td>
@@ -404,9 +203,6 @@ export default function Concerns() {
                           <Skeleton height="20px" width="40px" />
                         </td>
                         <td className={s.td}>
-                          <Skeleton height="20px" width="80px" />
-                        </td>
-                        <td className={s.td}>
                           <Skeleton height="32px" width="90px" />
                         </td>
                       </tr>
@@ -417,12 +213,10 @@ export default function Concerns() {
                           <div className={cStyles.ticketTitle}>{c.title}</div>
                           <div className={cStyles.ticketDesc}>{c.description?.slice(0, 55)}...</div>
                         </td>
-                        {!selectedCitizen && (
-                          <td className={s.td}>
-                            <div className={cStyles.ticketUser}>{c.user_name || 'Anonymous'}</div>
-                            <div className={cStyles.ticketBarangay}>{c.user_barangay}</div>
-                          </td>
-                        )}
+                        <td className={s.td}>
+                          <div className={cStyles.ticketUser}>{c.user_name || 'Anonymous'}</div>
+                          <div className={cStyles.ticketBarangay}>{c.user_barangay}</div>
+                        </td>
                         <td className={s.td}>
                           <span
                             className={s.badge}
@@ -472,10 +266,8 @@ export default function Concerns() {
                       </tr>
                     ))}
               </tbody>
-            </>
-          )}
         </table>
-        {(selectedCitizen ? filteredConcerns : citizensList).length === 0 && (
+        {concerns.length === 0 && (
           <div className={s.empty}>
             <div className={s.emptyIcon}>📭</div>
             <p className={s.emptyTitle}>No matches found</p>
@@ -483,18 +275,10 @@ export default function Concerns() {
         )}
 
         <Pagination
-          page={!selectedCitizen && viewMode === 'citizens' ? citizenPage : concernPage}
-          totalPages={
-            !selectedCitizen && viewMode === 'citizens' ? totalCitizenPages : totalConcernPages
-          }
-          onPageChange={
-            !selectedCitizen && viewMode === 'citizens' ? setCitizenPage : setConcernPage
-          }
-          totalItems={
-            !selectedCitizen && viewMode === 'citizens'
-              ? citizensList.length
-              : filteredConcerns.length
-          }
+          page={concernPage}
+          totalPages={totalConcernPages}
+          onPageChange={setConcernPage}
+          totalItems={totalConcerns}
           itemsPerPage={itemsPerPage}
         />
       </div>

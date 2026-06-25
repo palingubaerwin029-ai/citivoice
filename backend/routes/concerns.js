@@ -6,6 +6,7 @@ const { cacheMiddleware } = require('../middleware/cache');
 const { validateConcern, validateIdParam } = require('../middleware/validate');
 const {
   listConcerns,
+  getMapConcerns,
   getConcern,
   createConcern,
   editConcern,
@@ -20,6 +21,9 @@ const {
 
 // ─── List all concerns (auth required, cached 60s) ────────────────────────────
 router.get('/', auth, cacheMiddleware('concerns', 60), listConcerns);
+
+// ─── Get map concerns (auth required, cached 60s) ─────────────────────────────
+router.get('/map', auth, cacheMiddleware('map_concerns', 60), getMapConcerns);
 
 // ─── Get single concern (auth required, cached 60s) ──────────────────────────
 router.get('/:id', auth, validateIdParam, cacheMiddleware('concern_detail', 60), getConcern);

@@ -8,6 +8,8 @@ const { generateText, isAvailable: isGeminiAvailable } = require('../services/ge
 const { invalidate } = require('../middleware/cache');
 const {
   selectAllConcerns,
+  countConcerns,
+  selectMapConcerns,
   selectConcernById,
   checkUpvote,
   insertConcern,
@@ -38,18 +40,46 @@ const deleteImageFile = (imageUrl) => {
 
 const listConcerns = async (req, res) => {
   try {
-    const rows = await selectAllConcerns();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    
+    // Admin sees all, Citizen sees all (but maybe filtered by userId if they want "My Concerns")
+    const { status, category, userId } = req.query;
+
+    const [rows, total] = await Promise.all([
+      selectAllConcerns(limit, offset, userId, status, category),
+      countConcerns(userId, status, category)
+    ]);
+
+    let data = rows;
     if (req.user.role !== 'admin') {
-      const sanitized = rows.map((r) => {
+      data = rows.map((r) => {
         if (r.user_id === req.user.id) return r;
         const { user_id, user_name, user_barangay, ...rest } = r;
         return rest;
       });
-      return res.json(sanitized);
     }
-    res.json(rows);
+
+    res.json({
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (err) {
     console.error('Concerns list error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const getMapConcerns = async (req, res) => {
+  try {
+    const rows = await selectMapConcerns();
+    res.json(rows);
+  } catch (err) {
+    console.error('Map concerns error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -443,6 +473,7 @@ const linkConcerns = async (req, res) => {
 
 module.exports = {
   listConcerns,
+  getMapConcerns,
   getConcern,
   createConcern,
   editConcern,

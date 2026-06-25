@@ -22,7 +22,8 @@ const SC = {
 
 export default function Users() {
   const [users, setUsers] = useState([]);
-  const [concerns, setConcerns] = useState([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [userConcerns, setUserConcerns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [brgyFilter, setBrgyFilter] = useState('All');
@@ -30,32 +31,45 @@ export default function Users() {
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 320);
 
+  // Note: we can't get ALL barangays dynamically without a separate endpoint if we paginate.
+  // For now, let's hardcode a few or rely on a static list if needed.
+  const barangays = ['All', 'Barangay 1', 'Barangay 2', 'Barangay 3', 'Barangay 4'];
+
   useEffect(() => {
-    Promise.all([api.get('/users'), api.get('/concerns')])
-      .then(([u, c]) => {
-        setUsers(u);
-        setConcerns(c);
+    setLoading(true);
+    const params = {
+      page,
+      limit: itemsPerPage,
+      search,
+      barangay: brgyFilter === 'All' ? '' : brgyFilter
+    };
+    api.get('/users', params)
+      .then((res) => {
+        setUsers(res.data || []);
+        setTotalUsers(res.total || 0);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, itemsPerPage, search, brgyFilter]);
 
-  const barangays = ['All', ...new Set(users.map((u) => u.barangay).filter(Boolean))];
-  const filtered = users.filter((u) => {
-    const q = search.toLowerCase();
-    return (
-      (!q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)) &&
-      (brgyFilter === 'All' || u.barangay === brgyFilter)
-    );
-  });
+  useEffect(() => {
+    if (selected) {
+      api.get('/concerns', { userId: selected.id, limit: 5 })
+        .then(res => setUserConcerns(res.data || []))
+        .catch(console.error);
+    } else {
+      setUserConcerns([]);
+    }
+  }, [selected]);
+
+  // Reset page when search or filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [search, brgyFilter]);
 
   // Pagination
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const displayedUsers = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-
-  const count = (uid) => concerns.filter((c) => c.user_id === uid).length;
-  const resCount = (uid) =>
-    concerns.filter((c) => c.user_id === uid && c.status === 'Resolved').length;
+  const totalPages = Math.ceil(totalUsers / itemsPerPage);
+  const displayedUsers = users;
 
   return (
     <div className={s.page}>
@@ -66,9 +80,8 @@ export default function Users() {
         </div>
         <div className={u.statRow}>
           {[
-            { l: 'Total', v: users.length, c: 'var(--blue-light)' },
+            { l: 'Total', v: totalUsers, c: 'var(--blue-light)' },
             { l: 'Barangays', v: barangays.length - 1, c: 'var(--green)' },
-            { l: 'Reports', v: concerns.length, c: 'var(--amber)' },
           ].map((x) => (
             <div key={x.l} className={s.miniStat}>
               <div className={s.miniStatValue} style={{ color: x.c }}>
@@ -188,10 +201,10 @@ export default function Users() {
                         </span>
                       </td>
                       <td className={s.td} style={{ fontWeight: 700, color: 'var(--text-1)' }}>
-                        {count(u.id)}
+                        {u.reports_count || 0}
                       </td>
                       <td className={s.td} style={{ fontWeight: 700, color: 'var(--green)' }}>
-                        {resCount(u.id)}
+                        {u.resolved_count || 0}
                       </td>
                       <td className={s.td} style={{ fontSize: 11, color: 'var(--text-3)' }}>
                         {fmtDateShort(u.created_at)}
@@ -207,7 +220,7 @@ export default function Users() {
               </tbody>
             </table>
           )}
-          {!loading && filtered.length === 0 && (
+          {!loading && users.length === 0 && (
             <div className={s.empty}>
               <div className={s.emptyIcon}>👤</div>
               <p className={s.emptyTitle}>No citizens found</p>
@@ -221,7 +234,7 @@ export default function Users() {
               setPage(p);
               setSelected(null);
             }}
-            totalItems={filtered.length}
+            totalItems={totalUsers}
             itemsPerPage={itemsPerPage}
           />
         </div>
@@ -265,8 +278,8 @@ export default function Users() {
             </div>
             <div className={u.metricsGrid}>
               {[
-                { l: 'Reports', v: count(selected.id), c: 'var(--blue-light)' },
-                { l: 'Resolved', v: resCount(selected.id), c: 'var(--green)' },
+                { l: 'Reports', v: selected.reports_count || 0, c: 'var(--blue-light)' },
+                { l: 'Resolved', v: selected.resolved_count || 0, c: 'var(--green)' },
               ].map((x) => (
                 <div key={x.l} className={u.metricCard}>
                   <div className={u.metricValue} style={{ color: x.c }}>
@@ -298,10 +311,7 @@ export default function Users() {
             </div>
             <div className={u.recentSection}>
               <div className={u.recentTitle}>Recent Concerns</div>
-              {concerns
-                .filter((c) => c.user_id === selected.id)
-                .slice(0, 5)
-                .map((c) => (
+              {userConcerns.map((c) => (
                   <a key={c.id} href={`/concerns/${c.id}`} className={u.recentItem}>
                     <div>
                       <div className={u.recentItemTitle}>{c.title?.slice(0, 35)}…</div>
@@ -319,7 +329,7 @@ export default function Users() {
                     </span>
                   </a>
                 ))}
-              {count(selected.id) === 0 && <p className={u.recentEmpty}>No concerns yet</p>}
+              {userConcerns.length === 0 && <p className={u.recentEmpty}>No concerns yet</p>}
             </div>
           </div>
         </div>

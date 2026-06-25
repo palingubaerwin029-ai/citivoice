@@ -68,6 +68,69 @@ const validateRegister = [
   handleValidationErrors,
 ];
 
+// ─── Auth: Forgot Password ───────────────────────────────────────────────────
+const validateForgotPassword = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Must be a valid email')
+    .normalizeEmail(),
+  handleValidationErrors,
+];
+
+// ─── Auth: Reset Password ────────────────────────────────────────────────────
+const validateResetPassword = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Must be a valid email')
+    .normalizeEmail(),
+  body('otp').trim().notEmpty().withMessage('OTP is required').escape(),
+  body('newPassword')
+    .notEmpty()
+    .withMessage('Password is required')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters'),
+  handleValidationErrors,
+];
+
+// ─── Users: Update User ──────────────────────────────────────────────────────
+const validateUpdateUser = [
+  body('name')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Name must be 2–100 characters')
+    .escape(),
+  body('phone')
+    .optional({ values: 'falsy' })
+    .trim()
+    .matches(/^(\+?\d{10,15}|09\d{9})$/)
+    .withMessage('Invalid phone number format'),
+  body('barangay')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Barangay must be under 100 characters'),
+  handleValidationErrors,
+];
+
+// ─── Users: Reject User ──────────────────────────────────────────────────────
+const validateRejectUser = [
+  body('rejectionReason')
+    .trim()
+    .notEmpty()
+    .withMessage('Rejection reason is required')
+    .isLength({ max: 500 })
+    .withMessage('Rejection reason must be under 500 characters')
+    .escape(),
+  handleValidationErrors,
+];
+
 // ─── Concerns: Submit ────────────────────────────────────────────────────────
 const validateConcern = [
   body('title')
@@ -139,4 +202,8 @@ module.exports = {
   validateConcern,
   validateBarangay,
   validateTemplate,
+  validateForgotPassword,
+  validateResetPassword,
+  validateUpdateUser,
+  validateRejectUser,
 };

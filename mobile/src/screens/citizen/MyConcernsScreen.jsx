@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useConcerns } from '../../context/ConcernContext';
@@ -28,9 +28,35 @@ export default function MyConcernsScreen({ navigation }) {
     Rejected: colors.statusRejected,
   };
 
-  const { myConcerns } = useConcerns();
+  const { myConcerns, loadMyConcerns, loading } = useConcerns();
   const { t } = useLanguage();
   const [activeFilter, setActiveFilter] = useState('All');
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchPage = async (p, isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoadingMore(true);
+    
+    await loadMyConcerns(p, 10, isRefresh);
+    
+    if (isRefresh) setRefreshing(false);
+    else setLoadingMore(false);
+  };
+
+  const handleLoadMore = () => {
+    if (!loading && !loadingMore && !refreshing) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchPage(nextPage, false);
+    }
+  };
+
+  const onRefresh = () => {
+    setPage(1);
+    fetchPage(1, true);
+  };
 
   const filtered =
     activeFilter === 'All' ? myConcerns : myConcerns.filter((c) => c.status === activeFilter);
@@ -46,9 +72,19 @@ export default function MyConcernsScreen({ navigation }) {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bgDark }]} edges={['top']}>
       <FlatList
         data={filtered}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={loadingMore ? <Text style={{ textAlign: 'center', padding: 10, color: colors.textMuted }}>Loading more...</Text> : null}
         ListHeaderComponent={() => (
           <>
             {/* ── Stats strip ── */}

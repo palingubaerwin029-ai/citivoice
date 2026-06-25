@@ -65,8 +65,8 @@ export default function Reports() {
   useEffect(() => {
     Promise.all([api.get('/concerns'), api.get('/users')])
       .then(([c, u]) => {
-        setConcerns(c);
-        setUsers(u);
+        setConcerns(c.data || []);
+        setUsers(u.data || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));

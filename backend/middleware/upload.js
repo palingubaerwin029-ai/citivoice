@@ -28,4 +28,41 @@ const upload = multer({
   fileFilter,
 });
 
-module.exports = upload;
+const verifyImageSignature = (req, res, next) => {
+  if (!req.file) return next();
+
+  try {
+    const filePath = req.file.path;
+    const buffer = Buffer.alloc(4);
+    const fd = fs.openSync(filePath, 'r');
+    fs.readSync(fd, buffer, 0, 4, 0);
+    fs.closeSync(fd);
+
+    const hex = buffer.toString('hex').toUpperCase();
+
+    // Valid magic numbers for JPEG, PNG, GIF, WebP
+    // JPEG: FFD8FF
+    // PNG: 89504E47
+    // GIF: 47494638
+    // WebP: 52494646 (RIFF)
+    const isValid =
+      hex.startsWith('FFD8FF') ||
+      hex.startsWith('89504E47') ||
+      hex.startsWith('47494638') ||
+      hex.startsWith('52494646');
+
+    if (!isValid) {
+      fs.unlinkSync(filePath);
+      return res.status(400).json({ error: 'Invalid file signature. File may be corrupted or malicious.' });
+    }
+
+    next();
+  } catch (err) {
+    console.error('Magic number check failed:', err);
+    return res.status(500).json({ error: 'File verification failed' });
+  }
+};
+
+module.exports = {
+  single: (field) => [upload.single(field), verifyImageSignature],
+};

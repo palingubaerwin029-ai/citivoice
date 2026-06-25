@@ -65,7 +65,7 @@ export default function MapScreen({ navigation }) {
     Rejected: colors.statusRejected,
   };
 
-  const { concerns, refreshConcerns, loading: dataLoading } = useConcerns();
+  const { loadMapData } = useConcerns();
   const { t } = useLanguage();
   const mapRef = useRef(null);
   const [statusFilter, setStatusFilter] = useState('All');
@@ -73,7 +73,21 @@ export default function MapScreen({ navigation }) {
   const [mapType, setMapType] = useState('standard');
   const { loadingLocation, getCurrentLocation } = useLocation();
   const [mapReady, setMapReady] = useState(false);
+  const [mapConcerns, setMapConcerns] = useState([]);
+  const [dataLoading, setDataLoading] = useState(true);
   const MAP_TYPE_KEY = '@map_type';
+
+  useEffect(() => {
+    let isMounted = true;
+    setDataLoading(true);
+    loadMapData().then(data => {
+      if (isMounted) {
+        setMapConcerns(data || []);
+        setDataLoading(false);
+      }
+    });
+    return () => { isMounted = false; };
+  }, []);
 
   useEffect(() => {
     const loadMapType = async () => {
@@ -110,7 +124,7 @@ export default function MapScreen({ navigation }) {
   };
 
   // Filter and validate concerns that have valid coordinates
-  const pinnable = concerns.filter((c) => {
+  const pinnable = mapConcerns.filter((c) => {
     const lat = safeCoord(c.location_lat);
     const lng = safeCoord(c.location_lng);
     if (lat === null || lng === null) return false;
@@ -250,8 +264,8 @@ export default function MapScreen({ navigation }) {
               const color = getStatusConfig(colors)[f.key]?.color || colors.primary;
               const count =
                 f.key === 'All'
-                  ? concerns.length
-                  : concerns.filter((c) => c.status === f.key).length;
+                  ? mapConcerns.length
+                  : mapConcerns.filter((c) => c.status === f.key).length;
               return (
                 <TouchableOpacity
                   key={f.key}

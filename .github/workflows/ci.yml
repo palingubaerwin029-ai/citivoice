@@ -1,0 +1,51 @@
+name: CitiVoice CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: |
+          backend/package-lock.json
+          admin-web/package-lock.json
+
+    - name: Install Backend Dependencies
+      working-directory: ./backend
+      run: npm ci
+
+    - name: Install Admin-Web Dependencies
+      working-directory: ./admin-web
+      run: npm ci
+
+    - name: Build Admin-Web
+      working-directory: ./admin-web
+      run: npm run build
+      env:
+        REACT_APP_API_URL: http://localhost:5000/api
+
+    # Optional: Run backend unit tests if available
+    # - name: Run Backend Tests
+    #   working-directory: ./backend
+    #   run: npm test
+
+    # Optional: Run admin-web tests if available
+    # - name: Run Frontend Tests
+    #   working-directory: ./admin-web
+    #   run: npm test

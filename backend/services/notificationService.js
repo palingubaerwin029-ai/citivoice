@@ -1,6 +1,10 @@
 const nodemailer = require('nodemailer');
 const twilio = require('twilio');
 const geminiService = require('./geminiService');
+const { Expo } = require('expo-server-sdk');
+
+// ── Expo Setup ────────────────────────────────────────────────────────────────
+const expo = new Expo();
 
 // ── Gmail (Nodemailer) Setup ──────────────────────────────────────────────────
 // Ensure valid credentials before creating transporter or it will error
@@ -189,8 +193,36 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext) =>
     ? sendSMS(user.phone, `CitiVoice: ${finalMessage.substring(0, 140)}`)
     : Promise.resolve();
 
+  // Push Notification via Expo
+  let pushPromise = Promise.resolve();
+  if (user.fcm_token && Expo.isExpoPushToken(user.fcm_token)) {
+    const messages = [
+      {
+        to: user.fcm_token,
+        sound: 'default',
+        title: subject,
+        body: finalMessage,
+        data: { subject },
+      },
+    ];
+
+    pushPromise = (async () => {
+      try {
+        const chunks = expo.chunkPushNotifications(messages);
+        for (let chunk of chunks) {
+          await expo.sendPushNotificationsAsync(chunk);
+        }
+        console.log(`🚀 Push Notification sent to ${user.name || 'User'}`);
+      } catch (error) {
+        console.error('❌ Failed to send Push Notification:', error);
+      }
+    })();
+  } else if (user.fcm_token) {
+    console.log(`⚠️ Push Token is invalid for user ${user.name}: ${user.fcm_token}`);
+  }
+
   // Run efficiently in parallel
-  await Promise.all([emailPromise, smsPromise]);
+  await Promise.all([emailPromise, smsPromise, pushPromise]);
 };
 
 module.exports = {

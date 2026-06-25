@@ -64,44 +64,46 @@ export default function Verification() {
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 350);
 
-  const load = () => api.get('/users').then(setUsers).catch(console.error);
-  useEffect(() => {
-    load();
-    const interval = setInterval(load, 30000); // Auto-refresh every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
+  const [counts, setCounts] = useState({ pending: 0, verified: 0, rejected: 0, unverified: 0, all: 0 });
+  const [totalUsers, setTotalUsers] = useState(0);
 
-  const counts = {
-    all: users.length,
-    pending: users.filter((u) => u.verification_status === 'pending').length,
-    verified: users.filter((u) => u.verification_status === 'verified').length,
-    rejected: users.filter((u) => u.verification_status === 'rejected').length,
-    unverified: users.filter(
-      (u) => !u.verification_status || u.verification_status === 'unverified',
-    ).length,
+  const loadData = () => {
+    // Load stats
+    api.get('/users/verification-stats').then(setCounts).catch(console.error);
+
+    // Load paginated users
+    const params = {
+      page,
+      limit: itemsPerPage,
+      search,
+      status: filter === 'all' ? '' : filter
+    };
+    api.get('/users', params)
+      .then((res) => {
+        setUsers(res.data || []);
+        setTotalUsers(res.total || 0);
+      })
+      .catch(console.error);
   };
 
-  const filtered = users
-    .filter((u) => {
-      const matchTab = filter === 'all' || (u.verification_status || 'unverified') === filter;
-      const q = search.toLowerCase();
-      const matchSearch =
-        !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q);
-      return matchTab && matchSearch;
-    })
-    .sort((a, b) => {
-      const order = { pending: 0, unverified: 1, rejected: 2, verified: 3 };
-      return (order[a.verification_status] ?? 9) - (order[b.verification_status] ?? 9);
-    });
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 30000); // Auto-refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, [page, itemsPerPage, search, filter]);
 
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const displayedUsers = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  useEffect(() => {
+    setPage(1);
+  }, [search, filter]);
+
+  const totalPages = Math.ceil(totalUsers / itemsPerPage);
+  const displayedUsers = users;
 
   const act = async (fn) => {
     setSaving(true);
     try {
       await fn();
-      await load();
+      await loadData();
     } catch (e) {
       alert(e.message);
     }
@@ -114,7 +116,7 @@ export default function Verification() {
   };
 
   const autoAdvanceOrClose = () => {
-    const pendingOnly = filtered.filter(
+    const pendingOnly = displayedUsers.filter(
       (u) => u.verification_status === 'pending' && u.id !== selected.id,
     );
     if (pendingOnly.length > 0) {
@@ -264,7 +266,7 @@ export default function Verification() {
       <div className={selected ? s.mainLayoutWithSide : s.mainLayout}>
         {/* Table */}
         <div className={s.tableWrap}>
-          {filtered.length === 0 ? (
+          {users.length === 0 ? (
             <div className={s.empty}>
               <div className={s.emptyIcon}>✅</div>
               <p className={s.emptyTitle}>No {filter === 'all' ? '' : filter} submissions</p>
@@ -402,7 +404,7 @@ export default function Verification() {
               setPage(p);
               setSelected(null);
             }}
-            totalItems={filtered.length}
+            totalItems={totalUsers}
             itemsPerPage={itemsPerPage}
           />
         </div>
