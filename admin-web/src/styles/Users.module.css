@@ -105,3 +105,14 @@
   text-align: center;
   padding: 12px;
 }
+
+.idImageWrap {
+  position: relative;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.idImageWrap:hover .idImageHoverText {
+  opacity: 1 !important;
+}

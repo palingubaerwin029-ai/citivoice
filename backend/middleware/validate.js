@@ -121,7 +121,7 @@ const validateUpdateUser = [
 
 // ─── Users: Reject User ──────────────────────────────────────────────────────
 const validateRejectUser = [
-  body('rejectionReason')
+  body('reason')
     .trim()
     .notEmpty()
     .withMessage('Rejection reason is required')

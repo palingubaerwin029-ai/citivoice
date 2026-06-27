@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
   id_type             VARCHAR(100)        DEFAULT NULL,
   id_number           VARCHAR(100)        DEFAULT NULL,
   id_image_url        TEXT                DEFAULT NULL,
+  avatar_url          TEXT                DEFAULT NULL,
   fcm_token           TEXT                DEFAULT NULL,
   rejection_reason    TEXT                DEFAULT NULL,
   submitted_at        DATETIME            DEFAULT NULL,

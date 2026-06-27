@@ -20,6 +20,37 @@ const SC = {
   Rejected: '#EF4444',
 };
 
+const STATUS = {
+  unverified: {
+    label: 'Unverified',
+    color: 'var(--text-3)',
+    bg: 'rgba(100, 116, 139, 0.12)',
+    icon: '—',
+    border: 'rgba(100, 116, 139, 0.2)',
+  },
+  pending: {
+    label: 'Pending',
+    color: 'var(--amber)',
+    bg: 'rgba(245, 158, 11, 0.12)',
+    icon: '⏳',
+    border: 'rgba(245, 158, 11, 0.25)',
+  },
+  verified: {
+    label: 'Verified',
+    color: 'var(--green)',
+    bg: 'rgba(16, 185, 129, 0.12)',
+    icon: '✓',
+    border: 'rgba(16, 185, 129, 0.25)',
+  },
+  rejected: {
+    label: 'Rejected',
+    color: 'var(--red)',
+    bg: 'rgba(239, 68, 68, 0.12)',
+    icon: '✕',
+    border: 'rgba(239, 68, 68, 0.25)',
+  },
+};
+
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -27,21 +58,37 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [brgyFilter, setBrgyFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [vStats, setVStats] = useState({ pending: 0, verified: 0, rejected: 0, unverified: 0, all: 0 });
   const [selected, setSelected] = useState(null);
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 320);
+
+  const [saving, setSaving] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [lightboxImg, setLightboxImg] = useState(null);
 
   // Note: we can't get ALL barangays dynamically without a separate endpoint if we paginate.
   // For now, let's hardcode a few or rely on a static list if needed.
   const barangays = ['All', 'Barangay 1', 'Barangay 2', 'Barangay 3', 'Barangay 4'];
 
-  useEffect(() => {
+  const loadStats = () => {
+    api.get('/users/verification-stats')
+      .then((res) => {
+        if (res) setVStats(res);
+      })
+      .catch(console.error);
+  };
+
+  const loadUsers = () => {
     setLoading(true);
     const params = {
       page,
       limit: itemsPerPage,
       search,
-      barangay: brgyFilter === 'All' ? '' : brgyFilter
+      barangay: brgyFilter === 'All' ? '' : brgyFilter,
+      status: statusFilter === 'All' ? '' : statusFilter.toLowerCase(),
     };
     api.get('/users', params)
       .then((res) => {
@@ -50,7 +97,15 @@ export default function Users() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [page, itemsPerPage, search, brgyFilter]);
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, [page, itemsPerPage, search, brgyFilter, statusFilter]);
+
+  useEffect(() => {
+    loadStats();
+  }, []);
 
   useEffect(() => {
     if (selected) {
@@ -59,13 +114,58 @@ export default function Users() {
         .catch(console.error);
     } else {
       setUserConcerns([]);
+      setRejecting(false);
+      setRejectionReason('');
     }
   }, [selected]);
 
   // Reset page when search or filter changes
   useEffect(() => {
     setPage(1);
-  }, [search, brgyFilter]);
+  }, [search, brgyFilter, statusFilter]);
+
+  const handleApprove = async () => {
+    setSaving(true);
+    try {
+      await api.patch(`/users/${selected.id}/verify`);
+      loadStats();
+      loadUsers();
+      setSelected({ ...selected, verification_status: 'verified', is_verified: 1 });
+    } catch (e) {
+      alert(e.message);
+    }
+    setSaving(false);
+  };
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) return alert('Please specify a rejection reason.');
+    setSaving(true);
+    try {
+      await api.patch(`/users/${selected.id}/reject`, { reason: rejectionReason.trim() });
+      loadStats();
+      loadUsers();
+      setSelected(null);
+      setRejecting(false);
+      setRejectionReason('');
+    } catch (e) {
+      alert(e.message);
+    }
+    setSaving(false);
+  };
+
+  const handleRevoke = async () => {
+    if (!window.confirm(`Revoke verification for ${selected.name}?`)) return;
+    setSaving(true);
+    try {
+      await api.patch(`/users/${selected.id}/revoke`);
+      loadStats();
+      loadUsers();
+      setSelected({ ...selected, verification_status: 'unverified', is_verified: 0 });
+    } catch (e) {
+      alert(e.message);
+    }
+    setSaving(false);
+  };
 
   // Pagination
   const totalPages = Math.ceil(totalUsers / itemsPerPage);
@@ -77,20 +177,21 @@ export default function Users() {
       const exportData = res.data || [];
       if (exportData.length === 0) return alert("No users to export");
 
-      const headers = ['ID', 'Name', 'Email', 'Phone', 'Barangay', 'Reports', 'Resolved', 'Joined Date'];
+      const headers = ['User ID', 'Name', 'Email', 'Phone', 'Barangay', 'Verification Status', 'Reports', 'Resolved', 'Joined Date'];
       const rows = exportData.map(u => [
-        u.id, 
-        `"${u.name || ''}"`, 
-        `"${u.email || ''}"`, 
-        `"${u.phone || ''}"`, 
-        `"${u.barangay || ''}"`, 
-        u.reports_count || 0, 
-        u.resolved_count || 0, 
+        u.id,
+        `"${u.name || ''}"`,
+        `"${u.email || ''}"`,
+        `"${u.phone || ''}"`,
+        `"${u.barangay || ''}"`,
+        `"${u.verification_status || 'unverified'}"`,
+        u.reports_count || 0,
+        u.resolved_count || 0,
         `"${fmtDateShort(u.created_at)}"`
       ]);
-      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\\n');
-      
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -111,19 +212,46 @@ export default function Users() {
           <h1 className={s.pageTitle}>Citizens</h1>
           <p className={s.pageSubtitle}>{users.length} registered users</p>
         </div>
-        <div className={u.statRow}>
-          {[
-            { l: 'Total', v: totalUsers, c: 'var(--blue-light)' },
-            { l: 'Barangays', v: barangays.length - 1, c: 'var(--green)' },
-          ].map((x) => (
-            <div key={x.l} className={s.miniStat}>
-              <div className={s.miniStatValue} style={{ color: x.c }}>
-                {x.v}
+      </div>
+
+      <div className={s.statsRow} style={{ marginBottom: 20 }}>
+        {[
+          { label: 'Total Citizens', value: vStats.all || totalUsers, color: 'var(--text-1)', key: 'All' },
+          { label: 'Verified', value: vStats.verified || 0, color: 'var(--green)', key: 'Verified' },
+          { label: 'Pending Review', value: vStats.pending || 0, color: 'var(--amber)', key: 'Pending' },
+          { label: 'Unverified', value: vStats.unverified || 0, color: 'var(--text-3)', key: 'Unverified' },
+        ].map((x, i) => {
+          const isSel = statusFilter === x.key;
+          return (
+            <div
+              key={i}
+              className={s.statCard}
+              style={{
+                '--accent-color': x.color,
+                cursor: 'pointer',
+                borderColor: isSel ? x.color : 'var(--border)',
+                borderWidth: isSel ? '2px' : '1px',
+                transform: isSel ? 'translateY(-2px)' : 'none',
+                boxShadow: isSel ? `0 4px 20px ${x.color}15` : 'none',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                transition: 'all 0.2s'
+              }}
+              onClick={() => {
+                setStatusFilter(x.key);
+                setPage(1);
+                setSelected(null);
+              }}
+            >
+              <div className={s.statValue} style={{ color: x.color }}>
+                {x.value}
               </div>
-              <div className={s.miniStatLabel}>{x.l}</div>
+              <div className={s.statLabel}>{x.label}</div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
       <div
@@ -161,6 +289,17 @@ export default function Users() {
         <div style={{ display: 'flex', gap: 10 }}>
           <select
             className={s.select}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            {['All', 'Verified', 'Pending', 'Unverified', 'Rejected'].map((st) => (
+              <option key={st} value={st}>
+                {st === 'All' ? 'All Verification' : `${st} Status`}
+              </option>
+            ))}
+          </select>
+          <select
+            className={s.select}
             value={brgyFilter}
             onChange={(e) => setBrgyFilter(e.target.value)}
           >
@@ -189,6 +328,7 @@ export default function Users() {
                     'Citizen',
                     'Contact',
                     'Barangay',
+                    'Status',
                     'Reports',
                     'Resolved',
                     'Member Since',
@@ -203,6 +343,7 @@ export default function Users() {
               <tbody>
                 {displayedUsers.map((u) => {
                   const isSel = selected?.id === u.id;
+                  const statusInfo = STATUS[u.verification_status || 'unverified'] || STATUS.unverified;
                   return (
                     <tr
                       key={u.id}
@@ -236,6 +377,19 @@ export default function Users() {
                           style={{ background: 'rgba(59,130,246,0.1)', color: 'var(--blue-light)' }}
                         >
                           {u.barangay || '—'}
+                        </span>
+                      </td>
+                      <td className={s.td}>
+                        <span
+                          className={s.badge}
+                          style={{
+                            background: statusInfo.bg,
+                            color: statusInfo.color,
+                            border: `1px solid ${statusInfo.border}`,
+                            fontSize: 11
+                          }}
+                        >
+                          {statusInfo.icon} {statusInfo.label}
                         </span>
                       </td>
                       <td className={s.td} style={{ fontWeight: 700, color: 'var(--text-1)' }}>
@@ -282,98 +436,291 @@ export default function Users() {
           <>
             <div className={s.sidePanelOverlay} onClick={() => setSelected(null)} />
             <div className={s.sidePanelWrapper}>
-              <div className={s.card} style={{ alignSelf: 'start' }}>
-            <div className={u.sidePanelHeader}>
-              <div
-                className={`${s.avatar} ${s.avatarLg}`}
-                style={{ background: AC(selected.id), borderRadius: 'var(--r-xl)', overflow: 'hidden' }}
-              >
-                {selected.avatar_url ? (
-                  <img src={resolveImageUrl(selected.avatar_url)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  initials(selected.name)
-                )}
-              </div>
-              <button
-                className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
-                onClick={() => setSelected(null)}
-              >
-                ✕
-              </button>
-            </div>
-            <div className={u.sidePanelNameWrap}>
-              <div className={u.sidePanelName}>{selected.name}</div>
-              <span
-                className={s.badge}
-                style={{
-                  background: 'rgba(59,130,246,0.1)',
-                  color: 'var(--blue-light)',
-                  fontSize: 11,
-                }}
-              >
-                🏙 Citizen
-              </span>
-            </div>
-            <div className={u.metricsGrid}>
-              {[
-                { l: 'Reports', v: selected.reports_count || 0, c: 'var(--blue-light)' },
-                { l: 'Resolved', v: selected.resolved_count || 0, c: 'var(--green)' },
-              ].map((x) => (
-                <div key={x.l} className={u.metricCard}>
-                  <div className={u.metricValue} style={{ color: x.c }}>
-                    {x.v}
+              <div className={s.card} style={{ alignSelf: 'start', maxHeight: '90vh', overflowY: 'auto' }}>
+                <div className={u.sidePanelHeader}>
+                  <div
+                    className={`${s.avatar} ${s.avatarLg}`}
+                    style={{ background: AC(selected.id), borderRadius: 'var(--r-xl)', overflow: 'hidden' }}
+                  >
+                    {selected.avatar_url ? (
+                      <img src={resolveImageUrl(selected.avatar_url)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      initials(selected.name)
+                    )}
                   </div>
-                  <div className={u.metricLabel}>{x.l}</div>
+                  <button
+                    className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
+                    onClick={() => setSelected(null)}
+                  >
+                    ✕
+                  </button>
                 </div>
-              ))}
-            </div>
-            <div
-              className={s.infoGrid}
-              style={{
-                borderTop: '1px solid var(--border)',
-                borderBottom: '1px solid var(--border)',
-                marginBottom: 12,
-              }}
-            >
-              {[
-                { l: 'Email', v: selected.email },
-                { l: 'Phone', v: selected.phone || '—' },
-                { l: 'Barangay', v: selected.barangay || '—' },
-                { l: 'Joined', v: fmtDateShort(selected.created_at) },
-              ].map((x, i) => (
-                <div key={i} className={s.infoRow}>
-                  <span className={s.infoLabel}>{x.l}</span>
-                  <span className={s.infoValue}>{x.l === 'Email' ? maskEmail(x.v) : x.v}</span>
+                <div className={u.sidePanelNameWrap}>
+                  <div className={u.sidePanelName}>{selected.name}</div>
+                  <span
+                    className={s.badge}
+                    style={{
+                      background: 'rgba(59,130,246,0.1)',
+                      color: 'var(--blue-light)',
+                      fontSize: 11,
+                    }}
+                  >
+                    🏙 Citizen
+                  </span>
                 </div>
-              ))}
-            </div>
-            <div className={u.recentSection}>
-              <div className={u.recentTitle}>Recent Concerns</div>
-              {userConcerns.map((c) => (
-                  <a key={c.id} href={`/concerns/${c.id}`} className={u.recentItem}>
-                    <div>
-                      <div className={u.recentItemTitle}>{c.title?.slice(0, 35)}…</div>
-                      <div className={u.recentItemMeta}>{c.category?.split(' ')[0]}</div>
+                <div className={u.metricsGrid}>
+                  {[
+                    { l: 'Reports', v: selected.reports_count || 0, c: 'var(--blue-light)' },
+                    { l: 'Resolved', v: selected.resolved_count || 0, c: 'var(--green)' },
+                  ].map((x) => (
+                    <div key={x.l} className={u.metricCard}>
+                      <div className={u.metricValue} style={{ color: x.c }}>
+                        {x.v}
+                      </div>
+                      <div className={u.metricLabel}>{x.l}</div>
                     </div>
-                    <span
-                      className={s.badge}
-                      style={{
-                        fontSize: 10,
-                        background: (SC[c.status] || '#475569') + '18',
-                        color: SC[c.status] || '#94A3B8',
-                      }}
-                    >
-                      {c.status}
-                    </span>
-                  </a>
-                ))}
-              {userConcerns.length === 0 && <p className={u.recentEmpty}>No concerns yet</p>}
+                  ))}
+                </div>
+                <div
+                  className={s.infoGrid}
+                  style={{
+                    borderTop: '1px solid var(--border)',
+                    borderBottom: '1px solid var(--border)',
+                    marginBottom: 12,
+                  }}
+                >
+                  {[
+                    { l: 'Email', v: selected.email },
+                    { l: 'Phone', v: selected.phone || '—' },
+                    { l: 'Barangay', v: selected.barangay || '—' },
+                    { l: 'Joined', v: fmtDateShort(selected.created_at) },
+                  ].map((x, i) => (
+                    <div key={i} className={s.infoRow}>
+                      <span className={s.infoLabel}>{x.l}</span>
+                      <span className={s.infoValue}>{x.l === 'Email' ? maskEmail(x.v) : x.v}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ padding: '0 16px 16px', borderBottom: '1px solid var(--border)', marginBottom: 12 }}>
+                  <div className={u.recentTitle} style={{ marginBottom: 8 }}>Identity & Verification</div>
+                  <div className={s.infoGrid} style={{ marginBottom: 12 }}>
+                    {[
+                      {
+                        l: 'Status',
+                        v: (
+                          <span
+                            className={s.badge}
+                            style={{
+                              background: STATUS[selected.verification_status || 'unverified']?.bg,
+                              color: STATUS[selected.verification_status || 'unverified']?.color,
+                              border: `1px solid ${STATUS[selected.verification_status || 'unverified']?.border}`,
+                              fontSize: 10
+                            }}
+                          >
+                            {STATUS[selected.verification_status || 'unverified']?.icon} {STATUS[selected.verification_status || 'unverified']?.label}
+                          </span>
+                        )
+                      },
+                      { l: 'ID Type', v: selected.id_type || '—' },
+                      { l: 'ID Number', v: selected.id_number || '—' },
+                    ].map((x, i) => (
+                      <div key={i} className={s.infoRow}>
+                        <span className={s.infoLabel}>{x.l}</span>
+                        <span className={s.infoValue}>{x.v}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {selected.id_image_url ? (
+                    <div style={{ marginBottom: 16 }}>
+                      <div className={u.recentTitle} style={{ fontSize: 10, marginBottom: 6 }}>Submitted Document</div>
+                      <div 
+                        className={u.idImageWrap} 
+                        style={{ position: 'relative', borderRadius: 'var(--r-md)', overflow: 'hidden', cursor: 'zoom-in' }}
+                        onClick={() => setLightboxImg(resolveImageUrl(selected.id_image_url))}
+                      >
+                        <img 
+                          src={resolveImageUrl(selected.id_image_url)} 
+                          alt="ID Preview" 
+                          style={{ width: '100%', maxHeight: 150, objectFit: 'cover', display: 'block' }}
+                        />
+                        <div 
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: 'rgba(0,0,0,0.4)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#fff',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                          }}
+                          className={u.idImageHoverText}
+                        >
+                          🔍 Click to preview
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ color: 'var(--text-3)', fontSize: 11, fontStyle: 'italic', marginBottom: 12 }}>
+                      No verification document submitted.
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {(selected.verification_status === 'pending' || selected.verification_status === 'unverified') && !rejecting && (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          className={`${s.btn} ${s.btnPrimary}`}
+                          style={{ background: 'var(--green)', color: '#fff', flex: 1, height: 36, fontSize: 12, padding: 0, justifyContent: 'center' }}
+                          onClick={handleApprove}
+                          disabled={saving}
+                        >
+                          Approve ID
+                        </button>
+                        <button
+                          className={`${s.btn} ${s.btnSecondary}`}
+                          style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.2)', flex: 1, height: 36, fontSize: 12, padding: 0, justifyContent: 'center' }}
+                          onClick={() => setRejecting(true)}
+                          disabled={saving}
+                        >
+                          Reject ID
+                        </button>
+                      </div>
+                    )}
+
+                    {selected.verification_status === 'verified' && (
+                      <button
+                        className={`${s.btn} ${s.btnSecondary}`}
+                        style={{ width: '100%', height: 36, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        onClick={handleRevoke}
+                        disabled={saving}
+                      >
+                        ⚠️ Revoke Verification
+                      </button>
+                    )}
+
+                    {rejecting && (
+                      <div style={{ background: 'var(--surface-2)', padding: 12, borderRadius: 'var(--r-md)', border: '1px solid var(--border)', marginTop: 8 }}>
+                        <div className={u.recentTitle} style={{ color: 'var(--red)', fontSize: 10, marginBottom: 6 }}>Rejection Reason</div>
+                        <input
+                          type="text"
+                          className={s.select}
+                          style={{ width: '100%', marginBottom: 8, height: 34, fontSize: 12, padding: '0 8px' }}
+                          placeholder="e.g. Blurry photo, mismatch..."
+                          value={rejectionReason}
+                          onChange={(e) => setRejectionReason(e.target.value)}
+                        />
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button
+                            className={`${s.btn} ${s.btnPrimary}`}
+                            style={{ background: 'var(--red)', color: '#fff', flex: 1, height: 30, fontSize: 11, padding: 0, justifyContent: 'center' }}
+                            onClick={handleReject}
+                            disabled={saving || !rejectionReason.trim()}
+                          >
+                            Confirm Reject
+                          </button>
+                          <button
+                            className={`${s.btn} ${s.btnGhost}`}
+                            style={{ flex: 1, height: 30, fontSize: 11, padding: 0, justifyContent: 'center' }}
+                            onClick={() => {
+                              setRejecting(false);
+                              setRejectionReason('');
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className={u.recentSection}>
+                  <div className={u.recentTitle}>Recent Concerns</div>
+                  {userConcerns.map((c) => (
+                    <a key={c.id} href={`/concerns/${c.id}`} className={u.recentItem}>
+                      <div>
+                        <div className={u.recentItemTitle}>{c.title?.slice(0, 35)}…</div>
+                        <div className={u.recentItemMeta}>{c.category?.split(' ')[0]}</div>
+                      </div>
+                      <span
+                        className={s.badge}
+                        style={{
+                          fontSize: 10,
+                          background: (SC[c.status] || '#475569') + '18',
+                          color: SC[c.status] || '#94A3B8',
+                        }}
+                      >
+                        {c.status}
+                      </span>
+                    </a>
+                  ))}
+                  {userConcerns.length === 0 && <p className={u.recentEmpty}>No concerns yet</p>}
+                </div>
+              </div>
             </div>
-          </div>
+          </>
+        )}
+      </div>
+
+      {/* Lightbox Modal */}
+      {lightboxImg && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.85)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'zoom-out'
+          }}
+          onClick={() => setLightboxImg(null)}
+        >
+          <img 
+            src={lightboxImg} 
+            alt="Enlarged ID Document" 
+            style={{ 
+              maxWidth: '90%', 
+              maxHeight: '90%', 
+              objectFit: 'contain',
+              borderRadius: 'var(--r-md)',
+              boxShadow: 'var(--shadow-lg)'
+            }} 
+          />
+          <button 
+            style={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              background: 'rgba(255,255,255,0.1)',
+              border: 'none',
+              borderRadius: '50%',
+              width: 44,
+              height: 44,
+              color: '#fff',
+              fontSize: 20,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onClick={() => setLightboxImg(null)}
+          >
+            ✕
+          </button>
         </div>
-      </>
-    )}
-  </div>
+      )}
     </div>
   );
 }
