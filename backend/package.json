@@ -29,8 +29,8 @@
     "natural": "^8.1.1",
     "node-cache": "^5.1.2",
     "nodemailer": "^8.0.5",
-    "tesseract.js": "^7.0.0",
-    "twilio": "^5.13.1"
+    "socket.io": "^4.8.3",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "localtunnel": "^2.0.2",

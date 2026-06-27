@@ -8,8 +8,11 @@ const hpp = require('hpp');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
+const { Server } = require('socket.io');
 
 const app = express();
+const server = http.createServer(app);
 
 // ─── Security Headers (enhanced) ────────────────────────────────────────────
 app.use(
@@ -73,6 +76,22 @@ app.use(
   }),
 );
 
+// ─── Socket.io Initialization ────────────────────────────────────────────────
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+  },
+});
+app.set('io', io);
+
+io.on('connection', (socket) => {
+  console.log(`[Socket] Client connected: ${socket.id}`);
+  socket.on('disconnect', () => {
+    console.log(`[Socket] Client disconnected: ${socket.id}`);
+  });
+});
+
 // Body Limits
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
@@ -102,7 +121,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`✅ CitiVoice API running → http://localhost:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`✅ CitiVoice API & Socket running → http://localhost:${PORT}`);
   console.log(`📁 Uploads served at   → http://localhost:${PORT}/uploads`);
 });

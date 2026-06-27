@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api, fmtDateShort } from '../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { socket } from '../services/socket';
 
 import s from '../styles/Admin.module.css';
 import cStyles from '../styles/Concerns.module.css';
@@ -53,8 +54,30 @@ export default function Concerns() {
   useEffect(() => {
     setLoading(true);
     loadData();
-    const interval = setInterval(loadData, 30000); // Auto-refresh every 30 seconds
-    return () => clearInterval(interval);
+
+    const onNewConcern = (newConcern) => {
+      // Check if new concern matches current filters before adding
+      if (statusFilter !== 'All' && newConcern.status !== statusFilter) return;
+      if (search && !newConcern.title.toLowerCase().includes(search.toLowerCase())) return;
+
+      setConcerns((prev) => {
+        const newList = [newConcern, ...prev];
+        return newList.slice(0, itemsPerPage); // keep pagination size
+      });
+      setTotalConcerns((prev) => prev + 1);
+    };
+
+    const onUpdateConcern = (updatedConcern) => {
+      setConcerns((prev) => prev.map((c) => (c.id === updatedConcern.id ? updatedConcern : c)));
+    };
+
+    socket.on('new_concern', onNewConcern);
+    socket.on('update_concern', onUpdateConcern);
+
+    return () => {
+      socket.off('new_concern', onNewConcern);
+      socket.off('update_concern', onUpdateConcern);
+    };
   }, [concernPage, itemsPerPage, search, statusFilter, priorityFilter, sortBy]);
 
   // Reset page when filters change

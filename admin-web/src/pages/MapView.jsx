@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, resolveImageUrl } from '../services/api';
+import { socket } from '../services/socket';
 
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -169,6 +170,28 @@ export function MapView() {
 
   useEffect(() => {
     api.get('/concerns?limit=1000').then((res) => setConcerns(res.data || [])).catch(console.error);
+
+    const onNewConcern = (newConcern) => {
+      setConcerns((prev) => [newConcern, ...prev]);
+    };
+
+    const onUpdateConcern = (updatedConcern) => {
+      setConcerns((prev) => prev.map((c) => (c.id === updatedConcern.id ? updatedConcern : c)));
+      setSelected((prevSelected) => {
+        if (prevSelected && prevSelected.id === updatedConcern.id) {
+          return updatedConcern;
+        }
+        return prevSelected;
+      });
+    };
+
+    socket.on('new_concern', onNewConcern);
+    socket.on('update_concern', onUpdateConcern);
+
+    return () => {
+      socket.off('new_concern', onNewConcern);
+      socket.off('update_concern', onUpdateConcern);
+    };
   }, []);
 
   const filtered = concerns.filter(

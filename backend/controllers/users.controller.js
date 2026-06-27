@@ -96,10 +96,16 @@ const updateUser = async (req, res) => {
         if (filename) {
           const filePath = path.join(__dirname, '..', 'uploads', filename);
           const result = await Tesseract.recognize(filePath, 'eng');
-          const text = result.data.text.toLowerCase();
-          const searchName = updatedUser.name.toLowerCase();
+          
+          // Strip spaces and hyphens to make OCR matching more reliable
+          const text = result.data.text.toLowerCase().replace(/[\s-]/g, '');
+          const searchName = updatedUser.name.toLowerCase().replace(/[\s-]/g, '');
+          const searchIdNumber = (updatedUser.id_number || '').toLowerCase().replace(/[\s-]/g, '');
 
-          if (text.includes(searchName)) {
+          const hasName = text.includes(searchName);
+          const hasId = searchIdNumber ? text.includes(searchIdNumber) : false;
+
+          if (hasName && hasId) {
             // Match found! Auto-verify
             await updateUserVerification(req.params.id, 'verified', 1, null, 'NOW()');
             updatedUser = await selectById(req.params.id); // refresh user object

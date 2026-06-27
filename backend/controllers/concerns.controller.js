@@ -200,6 +200,11 @@ const createConcern = async (req, res) => {
     });
 
     const newConcern = await selectConcernById(insertId);
+    
+    // Broadcast via socket
+    const io = req.app.get('io');
+    if (io) io.emit('new_concern', newConcern);
+
     res.status(201).json(newConcern);
   } catch (err) {
     console.error('Concern submit error:', err);
@@ -283,6 +288,11 @@ const editConcern = async (req, res) => {
 
     invalidate('concerns', 'concern_detail');
     const updatedConcern = await selectConcernById(req.params.id);
+    
+    // Broadcast via socket
+    const io = req.app.get('io');
+    if (io) io.emit('update_concern', updatedConcern);
+
     res.json(updatedConcern);
   } catch (err) {
     console.error('Concern update error:', err);

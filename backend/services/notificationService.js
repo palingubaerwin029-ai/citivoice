@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const twilio = require('twilio');
+
 const geminiService = require('./geminiService');
 const { Expo } = require('expo-server-sdk');
 
@@ -9,11 +9,7 @@ const expo = new Expo();
 // ── Gmail (Nodemailer) Setup ──────────────────────────────────────────────────
 // Ensure valid credentials before creating transporter or it will error
 const isEmailEnabled = !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
-const isTwilioEnabled = !!(
-  process.env.TWILIO_ACCOUNT_SID &&
-  process.env.TWILIO_AUTH_TOKEN &&
-  process.env.TWILIO_PHONE_NUMBER
-);
+
 
 let mailTransporter = null;
 if (isEmailEnabled) {
@@ -26,11 +22,7 @@ if (isEmailEnabled) {
   });
 }
 
-// ── Twilio (SMS) Setup ────────────────────────────────────────────────────────
-let twilioClient = null;
-if (isTwilioEnabled) {
-  twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-}
+
 
 /**
  * Sends an email via Gmail
@@ -57,53 +49,7 @@ const sendEmail = async (to, subject, htmlContent) => {
   }
 };
 
-/**
- * Formats a phone number to E.164 international format.
- * Converts Philippine local numbers (09XX) → +639XX
- */
-const formatPhoneE164 = (phone) => {
-  if (!phone) return null;
-  let cleaned = phone.replace(/[\s\-()]/g, ''); // strip spaces, dashes, parens
-  // Philippine local format: 09XXXXXXXXX → +639XXXXXXXXX
-  if (cleaned.startsWith('09') && cleaned.length === 11) {
-    return '+63' + cleaned.substring(1);
-  }
-  // Already has country code but missing +
-  if (cleaned.startsWith('63') && cleaned.length === 12) {
-    return '+' + cleaned;
-  }
-  // Already in E.164
-  if (cleaned.startsWith('+')) {
-    return cleaned;
-  }
-  return cleaned;
-};
 
-/**
- * Sends an SMS text message via Twilio
- */
-const sendSMS = async (to, messageBody) => {
-  if (!to) return;
-  const formattedTo = formatPhoneE164(to);
-  if (!formattedTo) return;
-
-  if (!isTwilioEnabled) {
-    console.log(`\n📱 [SIMULATION] SMS NOTIFICATION TO: ${formattedTo}`);
-    console.log(`MESSAGE: ${messageBody} \n`);
-    return;
-  }
-
-  try {
-    const message = await twilioClient.messages.create({
-      body: messageBody,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: formattedTo,
-    });
-    console.log(`📱 SMS sent to ${formattedTo}: ${message.sid}`);
-  } catch (error) {
-    console.error('❌ Failed to send SMS:', error);
-  }
-};
 
 /**
  * Simple HTML escaping to prevent injection in emails
@@ -188,10 +134,7 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext) =>
   // Determine user contacts (handling cases where they might be empty)
   const emailPromise = user.email ? sendEmail(user.email, subject, htmlBody) : Promise.resolve();
 
-  // Keep SMS short
-  const smsPromise = user.phone
-    ? sendSMS(user.phone, `CitiVoice: ${finalMessage.substring(0, 140)}`)
-    : Promise.resolve();
+
 
   // Push Notification via Expo
   let pushPromise = Promise.resolve();
@@ -222,11 +165,11 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext) =>
   }
 
   // Run efficiently in parallel
-  await Promise.all([emailPromise, smsPromise, pushPromise]);
+  await Promise.all([emailPromise, pushPromise]);
 };
 
 module.exports = {
   sendEmail,
-  sendSMS,
+
   notifyUser,
 };
