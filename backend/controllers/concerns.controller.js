@@ -124,19 +124,19 @@ const createConcern = async (req, res) => {
 
   let finalCategory = category || 'Other';
   let finalPriority = priority || 'Medium';
-  let sentiment = 'neutral';
   let urgencyScore = 50;
 
   try {
     let imageTags = [];
+    let filePath = null;
     if (req.file) {
-      const filePath = path.join(__dirname, '..', 'uploads', req.file.filename);
+      filePath = path.join(__dirname, '..', 'uploads', req.file.filename);
       imageTags = await analyzeImage(filePath);
     }
 
     // Feature 1: AI Auto-Classification
     const textInput = `Title: ${title}\nDescription: ${description}`;
-    const aiResult = await analyzeFullConcern(textInput, imageTags);
+    const aiResult = await analyzeFullConcern(textInput, imageTags, filePath);
     if (aiResult) {
       finalCategory = aiResult.category || finalCategory;
       finalPriority = aiResult.priority || finalPriority;
@@ -174,8 +174,6 @@ const createConcern = async (req, res) => {
       user_id: req.user.id,
       user_name,
       user_barangay,
-      sentiment,
-      urgency_score: urgencyScore,
       department,
     });
     invalidate('concerns', 'concern_detail');
@@ -188,9 +186,38 @@ const createConcern = async (req, res) => {
         if (!newConcern) return;
 
         const similar = findSimilarConcerns(newConcern, allConcerns);
+        let isDuplicate = false;
+        let originalConcernId = null;
+
         for (const match of similar) {
           await insertConcernLink(insertId, match.concern.id, match.matchType, match.combinedScore);
+          if (match.matchType === 'duplicate' && !isDuplicate) {
+            isDuplicate = true;
+            originalConcernId = match.concern.id;
+          }
         }
+
+        // ─── Auto-Merge Logic ───
+        if (isDuplicate && originalConcernId) {
+          const adminNote = `System Notice: This concern has been auto-identified as a duplicate of Concern #${originalConcernId} based on strict location proximity and category matching.`;
+          
+          await updateConcernFields(
+            insertId, 
+            ['status = ?', 'admin_note = ?', 'updated_at = NOW()'], 
+            ['Resolved', adminNote, insertId]
+          );
+          
+          console.log(`[AI] Auto-merged duplicate concern #${insertId} with original #${originalConcernId}`);
+          
+          if (newConcern.user_id) {
+            await insertNotification(
+              newConcern.user_id,
+              'Concern Merged',
+              `Your recent report was identified as a duplicate of an existing report (#${originalConcernId}) at the same location. It has been merged, and the city is already aware!`
+            );
+          }
+        }
+
         if (similar.length > 0) {
           console.log(`[AI] Found ${similar.length} similar concern(s) for #${insertId}`);
         }

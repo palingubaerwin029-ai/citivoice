@@ -25,56 +25,7 @@ import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 
-const SMART_CHIPS = [
-  {
-    id: 'pothole',
-    label: '🕳️ Pothole',
-    title: 'Damaged Road / Pothole',
-    description: '',
-  },
-  {
-    id: 'flood',
-    label: '🌊 Flooding',
-    title: 'Severe Flooding',
-    description: '',
-  },
-  {
-    id: 'power',
-    label: '⚡ Brownout',
-    title: 'Power Outage',
-    description: '',
-  },
-  {
-    id: 'water',
-    label: '💧 No Water',
-    title: 'Water Supply Issue',
-    description: '',
-  },
-  {
-    id: 'garbage',
-    label: '🗑️ Garbage',
-    title: 'Uncollected Garbage',
-    description: '',
-  },
-  {
-    id: 'stray',
-    label: '🐕 Stray Dogs',
-    title: 'Aggressive Stray Dogs',
-    description: '',
-  },
-  {
-    id: 'tree',
-    label: '🌳 Fallen Tree',
-    title: 'Fallen Tree Blocking Road',
-    description: '',
-  },
-  {
-    id: 'fire',
-    label: '🔥 Fire',
-    title: 'Fire / Sunog',
-    description: '',
-  },
-];
+
 
 export default function SubmitConcernScreen({ navigation }) {
   const { colors } = useTheme();
@@ -403,33 +354,6 @@ export default function SubmitConcernScreen({ navigation }) {
                 Provide a title and describe the details
               </Text>
 
-              <Text style={[styles.smartChipHeader, { color: colors.textSecondary }]}>
-                Quick Select Template
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.chipScrollView}
-                contentContainerStyle={{ paddingHorizontal: scale(4) }}
-              >
-                {SMART_CHIPS.map((chip) => (
-                  <TouchableOpacity
-                    key={chip.id}
-                    style={[
-                      styles.smartChip,
-                      { backgroundColor: colors.bgCard, borderColor: colors.border },
-                    ]}
-                    onPress={() => {
-                      setForm((f) => ({ ...f, title: chip.title, description: chip.description }));
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}
-                  >
-                    <Text style={[styles.smartChipText, { color: colors.textPrimary }]}>
-                      {chip.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
 
               {/* Title */}
               <InputField

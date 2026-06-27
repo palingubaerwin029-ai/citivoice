@@ -71,6 +71,39 @@ export default function Users() {
   const totalPages = Math.ceil(totalUsers / itemsPerPage);
   const displayedUsers = users;
 
+  const exportToCSV = async () => {
+    try {
+      const res = await api.get('/users', { limit: 10000 });
+      const exportData = res.data || [];
+      if (exportData.length === 0) return alert("No users to export");
+
+      const headers = ['ID', 'Name', 'Email', 'Phone', 'Barangay', 'Reports', 'Resolved', 'Joined Date'];
+      const rows = exportData.map(u => [
+        u.id, 
+        `"${u.name || ''}"`, 
+        `"${u.email || ''}"`, 
+        `"${u.phone || ''}"`, 
+        `"${u.barangay || ''}"`, 
+        u.reports_count || 0, 
+        u.resolved_count || 0, 
+        `"${fmtDateShort(u.created_at)}"`
+      ]);
+      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `citivoice_citizens_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Failed to export users.");
+    }
+  };
+
   return (
     <div className={s.page}>
       <div className={s.pageHeader}>
@@ -125,17 +158,22 @@ export default function Users() {
             </button>
           )}
         </div>
-        <select
-          className={s.select}
-          value={brgyFilter}
-          onChange={(e) => setBrgyFilter(e.target.value)}
-        >
-          {barangays.map((b) => (
-            <option key={b} value={b}>
-              {b === 'All' ? 'All Barangays' : b}
-            </option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <select
+            className={s.select}
+            value={brgyFilter}
+            onChange={(e) => setBrgyFilter(e.target.value)}
+          >
+            {barangays.map((b) => (
+              <option key={b} value={b}>
+                {b === 'All' ? 'All Barangays' : b}
+              </option>
+            ))}
+          </select>
+          <button className={`${s.btn} ${s.btnPrimary}`} onClick={exportToCSV} style={{ padding: '0 16px', height: 38 }}>
+            📥 Export CSV
+          </button>
+        </div>
       </div>
 
       <div className={selected ? s.mainLayoutWithSide : s.mainLayout}>

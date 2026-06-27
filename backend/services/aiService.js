@@ -199,11 +199,11 @@ const routeToDepartment = (category, priority) => {
 /**
  * Supercharged Full Concern Analysis using Gemini (with fallback to natural)
  */
-const analyzeFullConcern = async (text, imageTags = []) => {
+const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
   const tagsString = imageTags.join(' ');
   const fullContext = `${text} ${tagsString}`.trim();
 
-  if (!fullContext) {
+  if (!fullContext && !imagePath) {
     return { category: 'Other', priority: 'Low', urgencyScore: 50 };
   }
 
@@ -216,6 +216,8 @@ const analyzeFullConcern = async (text, imageTags = []) => {
     REPORT DETAILS:
     ${fullContext}
     
+    CRITICAL INSTRUCTIONS FOR IMAGES: If an image is provided alongside this request, you MUST prioritize the visual evidence over the text. If the text says "small crack" but the image shows a massive sinkhole, classify based on the sinkhole (High priority). If the text is empty or vague like "fix this", use the image to determine the category.
+
     CRITICAL LANGUAGE INSTRUCTION: The report is likely written in Hiligaynon (Ilonggo), Tagalog, English, or a mix of these. You MUST understand ANY Hiligaynon term flawlessly using your internal knowledge of the language. Translate the context in your head if necessary. For specific local context: "dalan" means road, "bato" means stone, "taytay" means bridge, "humay" or "tubo" means agriculture (Other), "gahod" means noise, "baha" or "naglapaw" means flood, "aso" or "ido" means dog.
     
     Categorization Rules:
@@ -239,7 +241,15 @@ const analyzeFullConcern = async (text, imageTags = []) => {
     Return ONLY JSON. No markdown.
     `;
 
-    const result = await geminiService.generateJSON(prompt);
+    let result = null;
+    if (imagePath && geminiService.generateJSONWithImage) {
+      console.log('[AI] Classifying with Gemini Vision using image and text...');
+      result = await geminiService.generateJSONWithImage(prompt, imagePath);
+    } else {
+      console.log('[AI] Classifying with Gemini text-only...');
+      result = await geminiService.generateJSON(prompt);
+    }
+
     if (result && result.category && result.priority) {
       console.log('[AI] Successfully classified via Gemini LLM.');
       return result;

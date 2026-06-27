@@ -306,7 +306,7 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height={160}>
                 <PieChart>
                   <Pie
-                    data={statusData}
+                    data={statusData.filter((d) => d.value > 0)}
                     cx="50%"
                     cy="50%"
                     innerRadius={46}
@@ -318,9 +318,11 @@ export default function Dashboard() {
                     }
                     style={{ cursor: 'pointer' }}
                   >
-                    {statusData.map((e, i) => (
-                      <Cell key={i} fill={e.color} />
-                    ))}
+                    {statusData
+                      .filter((d) => d.value > 0)
+                      .map((e, i) => (
+                        <Cell key={i} fill={e.color} />
+                      ))}
                   </Pie>
                   <Tooltip {...TT} />
                 </PieChart>

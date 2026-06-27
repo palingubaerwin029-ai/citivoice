@@ -115,8 +115,20 @@ const findSimilarConcerns = (targetConcern, allConcerns, options = {}) => {
 
     // Determine match type
     let matchType = 'related';
-    if (textScore >= 0.6 && geoScore >= 0.5) matchType = 'duplicate';
-    else if (textScore >= 0.7) matchType = 'duplicate';
+    
+    // Strict Location Proximity (User requested: check if it's in the same place/pin location)
+    // geoScore >= 0.8 means it's extremely close to the pin location (e.g., within 60 meters)
+    const isVeryClose = geoScore >= 0.8;
+    const isSameCategory = c.category === targetConcern.category;
+
+    if (isVeryClose && isSameCategory && textScore >= 0.3) {
+      // If it's basically the exact same spot and same category, it's a duplicate
+      matchType = 'duplicate';
+    } else if (textScore >= 0.6 && geoScore >= 0.5) {
+      matchType = 'duplicate';
+    } else if (textScore >= 0.85) {
+      matchType = 'duplicate';
+    }
 
     return {
       concern: c,

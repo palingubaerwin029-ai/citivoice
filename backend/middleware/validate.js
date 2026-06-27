@@ -172,27 +172,7 @@ const validateBarangay = [
   handleValidationErrors,
 ];
 
-// ─── Templates ───────────────────────────────────────────────────────────────
-const validateTemplate = [
-  body('category').trim().notEmpty().withMessage('Category is required'),
-  body('quick_title')
-    .trim()
-    .notEmpty()
-    .withMessage('Quick title is required')
-    .isLength({ max: 200 })
-    .withMessage('Quick title must be under 200 characters'),
-  body('template_body')
-    .trim()
-    .notEmpty()
-    .withMessage('Template body is required')
-    .isLength({ max: 5000 })
-    .withMessage('Template body must be under 5000 characters'),
-  body('priority')
-    .optional({ values: 'falsy' })
-    .isIn(['Low', 'Medium', 'High', 'Critical'])
-    .withMessage('Priority must be Low, Medium, High, or Critical'),
-  handleValidationErrors,
-];
+
 
 module.exports = {
   handleValidationErrors,
@@ -201,7 +181,6 @@ module.exports = {
   validateRegister,
   validateConcern,
   validateBarangay,
-  validateTemplate,
   validateForgotPassword,
   validateResetPassword,
   validateUpdateUser,

@@ -79,8 +79,6 @@ const insertConcern = async (data) => {
     user_id,
     user_name,
     user_barangay,
-    sentiment,
-    urgency_score,
     department,
   } = data;
   const [result] = await pool.query(
@@ -88,9 +86,9 @@ const insertConcern = async (data) => {
        (title, description, category, priority, status, image_url,
         location_address, location_lat, location_lng,
         user_id, user_name, user_barangay, admin_note, upvotes,
-        sentiment, urgency_score, department,
+        department,
         created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?, NULL, 0, ?, ?, ?, NOW(), NOW())`,
+     VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?, NULL, 0, ?, NOW(), NOW())`,
     [
       title,
       description,
@@ -103,8 +101,6 @@ const insertConcern = async (data) => {
       user_id,
       user_name || null,
       user_barangay || null,
-      sentiment || 'neutral',
-      urgency_score || 50,
       department || null,
     ],
   );
