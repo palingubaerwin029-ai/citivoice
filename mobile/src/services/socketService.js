@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BASE_URL } from '../context/AuthContext';
+import { BASE_URL } from '../config/api';
 
 // Extract base url by removing '/api' if it exists
 const SOCKET_URL = BASE_URL.replace(/\/api\/?$/, '');

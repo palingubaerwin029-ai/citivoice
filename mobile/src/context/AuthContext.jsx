@@ -10,37 +10,8 @@ export const VERIFICATION_STATUS = {
   REJECTED: 'rejected',
 };
 
-import Constants from 'expo-constants';
-
-// ── API base URL (Prioritize Env Var for Tunnels, then local LAN IP) ────────
-const getBaseUrl = () => {
-  // Use EXPO_PUBLIC_API_URL from .env if defined (useful for ngrok/localtunnel)
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-  const hostUri = Constants?.expoConfig?.hostUri;
-  if (hostUri) {
-    return `http://${hostUri.split(':')[0]}:5000/api`;
-  }
-  return 'http://10.0.2.2:5000/api'; // Default Android emulator fallback
-};
-
-export const BASE_URL = getBaseUrl();
-
-// Map localhost backend URLs to the dynamically resolved IP for mobile
-export const resolveImageUrl = (url) => {
-  if (!url) return null;
-  // If the backend saved a localhost URL, swap it for the mobile's resolved BASE_URL IP
-  if (url.startsWith('http://localhost:5000') || url.startsWith('http://127.0.0.1:5000')) {
-    const backendBase = BASE_URL.replace('/api', ''); // e.g., http://192.168.1.5:5000
-    return url.replace(/^http:\/\/(localhost|127\.0\.0\.1):5000/, backendBase);
-  }
-  // If it's a relative path starting with /uploads
-  if (url.startsWith('/uploads/')) {
-    return `${BASE_URL.replace('/api', '')}${url}`;
-  }
-  return url;
-};
+import { BASE_URL, resolveImageUrl } from '../config/api';
+export { BASE_URL, resolveImageUrl };
 
 const apiRequest = async (path, options = {}) => {
   const token = await AsyncStorage.getItem('cv_token');
