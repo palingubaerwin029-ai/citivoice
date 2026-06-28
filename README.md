@@ -20,7 +20,7 @@ citivoice/
 | Layer | Technology | Role |
 |-------|-----------|------|
 | **Backend API** | Node.js, Express, MySQL | Data persistence, auth, file uploads, notifications |
-| **Admin Dashboard** | React 19, Leaflet, Recharts | Manage barangays, concerns, users, events |
+| **Admin Dashboard** | React 19, Leaflet, Recharts | Manage barangays, concerns, and users |
 | **Citizen App** | React Native, Expo SDK 54 | Submit concerns, view events, verify identity |
 
 ---
@@ -51,7 +51,6 @@ citivoice/
 - **Barangay Management** — CRUD operations for managing barangay records.
 - **User Management** — View and manage citizen accounts with role-based access control.
 - **Identity Verification** — Secure workflow for reviewing government-issued ID submissions.
-- **Events & Announcements** — Create and manage community events and broadcast announcements.
 - **Reports** — Generate and export analytical reports on community data.
 
 ### 📱 Citizen App (Mobile)
@@ -132,8 +131,6 @@ citivoice/
 │   │   ├── users.js              # User management & verification
 │   │   ├── concerns.js           # CRUD for civic concerns
 │   │   ├── barangays.js          # Barangay management
-│   │   ├── announcements.js      # Announcements broadcasting
-│   │   ├── events.js             # Community events
 │   │   ├── chatbot.js            # Dynamic chatbot endpoints
 │   │   ├── workflow.js           # SLA escalation commands
 │   │   └── notifications.js      # Push notifications
@@ -159,7 +156,6 @@ citivoice/
 │       │   ├── Barangays.jsx     # Barangay management
 │       │   ├── Users.jsx         # User management
 │       │   ├── Verification.jsx  # Identity verification queue
-│       │   ├── Eventsannouncements.jsx  # Events & announcements
 │       │   ├── Reports.jsx       # Analytics & reports
 │       │   └── Login.jsx         # Admin authentication
 │       ├── api.js                # Axios API client
@@ -178,7 +174,6 @@ citivoice/
 │       │   │   ├── Myconcernsscreen.js
 │       │   │   ├── Concerndetailscreen.js
 │       │   │   ├── Mapscreen.js
-│       │   │   ├── Eventsscreen.js
 │       │   │   ├── NotificationsScreen.js
 │       │   │   ├── Profilescreen.js
 │       │   │   └── ChatScreen.jsx    # Dynamically styled AI Chatbot screen
@@ -228,10 +223,6 @@ All routes are prefixed with `/api`.
 | `POST` | `/api/barangays` | Create a barangay (admin) |
 | `PUT` | `/api/barangays/:id` | Update a barangay (admin) |
 | `DELETE` | `/api/barangays/:id` | Delete a barangay (admin) |
-| `GET` | `/api/announcements` | List announcements |
-| `POST` | `/api/announcements` | Create announcement (admin) |
-| `GET` | `/api/events` | List community events |
-| `POST` | `/api/events` | Create event (admin) |
 | `GET` | `/api/notifications` | Get user notifications |
 | `POST` | `/api/chatbot/message` | Send message to AI Assistant |
 | `GET` | `/api/chatbot/:token` | Fetch chat history for user session |
