@@ -27,7 +27,7 @@ citivoice/
 
 ## 🚀 Key Features
 
-### 🤖 Artificial Intelligence (Google Gemini)
+### 🤖 Artificial Intelligence (Groq & Llama 3)
 - **Smart Categorization & Routing** — Automatically classifies reports into appropriate categories (e.g., Electrical, Flood) using natural language processing.
 - **Context-Aware Sentiment Analysis** — Detects urgency and user frustration levels to prioritize concerns.
 - **Localized Understanding** — Trained to understand local dialects and terminology (e.g., Hiligaynon words like 'baha', 'ilog hilabangan' for Kabankalan City).
@@ -66,7 +66,7 @@ citivoice/
 | express-validator | Request validation |
 | Nodemailer | Email notifications |
 | Twilio | SMS notifications |
-| @google/genai | Gemini AI Integration |
+| groq-sdk | Groq AI (Llama 3.3) Integration |
 | Nodemon | Development hot-reload |
 
 ### Admin Dashboard (Web)
@@ -264,6 +264,9 @@ DB_USER=root
 DB_PASSWORD=your_mysql_password
 DB_NAME=citivoice
 JWT_SECRET=your_jwt_secret_key_here
+
+# AI Integration
+GROQ_API_KEY=your_groq_api_key_here
 
 # Optional: Email notifications
 # EMAIL_USER=your_email@gmail.com

@@ -10,6 +10,8 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
+const workflowService = require('./services/workflowService');
 
 const app = express();
 const server = http.createServer(app);
@@ -85,8 +87,37 @@ const io = new Server(server, {
 });
 app.set('io', io);
 
+// Socket Authentication Middleware
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) {
+    return next(new Error('Authentication error: No token provided'));
+  }
+
+  try {
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) throw new Error('JWT_SECRET not configured');
+
+    const user = jwt.verify(token, JWT_SECRET);
+    socket.user = user;
+    next();
+  } catch (err) {
+    return next(new Error('Authentication error: Invalid token'));
+  }
+});
+
 io.on('connection', (socket) => {
-  console.log(`[Socket] Client connected: ${socket.id}`);
+  console.log(`[Socket] Client connected: ${socket.id} (User: ${socket.user.id}, Role: ${socket.user.role})`);
+
+  // Join rooms based on role
+  if (socket.user.role === 'admin') {
+    socket.join('admin');
+    console.log(`[Socket] User ${socket.user.id} joined room: admin`);
+  } else {
+    socket.join(`user:${socket.user.id}`);
+    console.log(`[Socket] User ${socket.user.id} joined room: user:${socket.user.id}`);
+  }
+
   socket.on('disconnect', () => {
     console.log(`[Socket] Client disconnected: ${socket.id}`);
   });
@@ -108,6 +139,8 @@ app.use('/api', globalLimiter);
 app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/concerns', require('./routes/concerns'));
+app.use('/api/workflow', require('./routes/workflow'));
+app.use('/api/chatbot', require('./routes/chatbot'));
 app.use('/api/barangays', require('./routes/barangays'));
 app.use('/api/notifications', require('./routes/notifications'));
 
@@ -124,4 +157,9 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`✅ CitiVoice API & Socket running → http://localhost:${PORT}`);
   console.log(`📁 Uploads served at   → http://localhost:${PORT}/uploads`);
+
+  // Start SLA cron checker (every 15 minutes)
+  setInterval(() => {
+    workflowService.checkSLABreaches(app.get('io'));
+  }, 15 * 60 * 1000);
 });

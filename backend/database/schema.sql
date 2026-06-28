@@ -94,6 +94,71 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 
+-- ─── Concern Assignments (department routing + SLA) ──────────────────────────
+CREATE TABLE IF NOT EXISTS concern_assignments (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  concern_id      INT NOT NULL,
+  assigned_to     INT DEFAULT NULL,
+  assigned_by     INT DEFAULT NULL,
+  department      VARCHAR(100),
+  sla_hours       INT NOT NULL DEFAULT 72,
+  sla_deadline    DATETIME NOT NULL,
+  status          ENUM('assigned','accepted','escalated','completed') NOT NULL DEFAULT 'assigned',
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (concern_id) REFERENCES concerns(id) ON DELETE CASCADE,
+  FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- ─── Internal Comments (admin-only discussion thread) ────────────────────────
+CREATE TABLE IF NOT EXISTS concern_comments (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  concern_id      INT NOT NULL,
+  user_id         INT NOT NULL,
+  user_name       VARCHAR(255),
+  comment         TEXT NOT NULL,
+  is_internal     BOOLEAN NOT NULL DEFAULT true,
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (concern_id) REFERENCES concerns(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- ─── Audit Log (full history) ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS audit_log (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  entity_type     VARCHAR(50) NOT NULL,
+  entity_id       INT NOT NULL,
+  action          VARCHAR(50) NOT NULL,
+  changed_by      INT DEFAULT NULL,
+  changed_by_name VARCHAR(255),
+  old_value       JSON DEFAULT NULL,
+  new_value       JSON DEFAULT NULL,
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- ─── AI Chatbot Sessions ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS chat_sessions (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  user_id         INT NOT NULL,
+  session_token   VARCHAR(255) NOT NULL UNIQUE,
+  title           VARCHAR(255) DEFAULT 'New Chat',
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- ─── AI Chatbot Messages ─────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  session_id      INT NOT NULL,
+  sender          ENUM('user', 'ai') NOT NULL,
+  message         TEXT NOT NULL,
+  context_data    JSON DEFAULT NULL,
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
+);
 
 -- ─── Essential Bootstrap Data ───────────────────────────────────────────────
 
@@ -108,5 +173,24 @@ INSERT INTO barangays (name) VALUES
   ('Tagukon'), ('Talubangi'), ('Tampalon'), ('Tan-Awan'), ('Tapi')
 ON DUPLICATE KEY UPDATE updated_at = NOW();
 
+-- ─── Performance Indexes ────────────────────────────────────────────────────
+-- Note: MySQL does not natively support "CREATE INDEX IF NOT EXISTS".
+-- To prevent errors when re-running this file on an existing DB, these should ideally 
+-- be managed via an ORM or a custom script. 
 
+CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_users_verification ON users(verification_status);
 
+CREATE INDEX idx_concerns_status ON concerns(status);
+CREATE INDEX idx_concerns_category ON concerns(category);
+CREATE INDEX idx_concerns_priority ON concerns(priority);
+CREATE INDEX idx_concerns_created_at ON concerns(created_at);
+CREATE INDEX idx_concerns_department ON concerns(department);
+CREATE INDEX idx_concerns_barangay ON concerns(user_barangay);
+
+CREATE INDEX idx_notifications_user_read ON notifications(user_id, is_read);
+
+CREATE INDEX idx_assignments_status ON concern_assignments(status);
+CREATE INDEX idx_assignments_deadline ON concern_assignments(sla_deadline);
+
+CREATE INDEX idx_audit_entity ON audit_log(entity_type, entity_id);

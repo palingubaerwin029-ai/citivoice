@@ -4,8 +4,10 @@ const { notifyUser } = require('../services/notificationService');
 const { analyzeFullConcern, routeToDepartment } = require('../services/aiService');
 const { analyzeImage } = require('../services/imageAnalyzer');
 const { findSimilarConcerns } = require('../services/similarityService');
-const { generateText, isAvailable: isGeminiAvailable } = require('../services/geminiService');
-const { invalidate } = require('../middleware/cache');
+const { generateText, isAvailable: isGeminiAvailable } = require('../services/groqService');
+const { cacheMiddleware, invalidate } = require('../middleware/cache');
+const { validateConcern, validateIdParam } = require('../middleware/validate');
+const workflowService = require('../services/workflowService');
 const {
   selectAllConcerns,
   countConcerns,
@@ -228,9 +230,19 @@ const createConcern = async (req, res) => {
 
     const newConcern = await selectConcernById(insertId);
     
+    // Auto-assign
+    try {
+      await workflowService.autoAssign(newConcern);
+    } catch (e) {
+      console.error('[Workflow] Auto-assign error:', e);
+    }
+    
     // Broadcast via socket
     const io = req.app.get('io');
-    if (io) io.emit('new_concern', newConcern);
+    if (io) {
+      io.to('admin').emit('new_concern', newConcern);
+      io.to(`user:${req.user.id}`).emit('new_concern', newConcern);
+    }
 
     res.status(201).json(newConcern);
   } catch (err) {
@@ -284,6 +296,22 @@ const editConcern = async (req, res) => {
 
     await updateConcernFields(req.params.id, fields, values);
 
+    // Audit log
+    const changedFields = req.body;
+    try {
+      await workflowService.logAudit(
+        'concern',
+        req.params.id,
+        'edited',
+        req.user.id,
+        req.user.name,
+        concern,
+        { ...concern, ...changedFields }
+      );
+    } catch (e) {
+      console.error('[Workflow] Audit log error:', e);
+    }
+
     if (concern.user_id) {
       if (status && status !== concern.status) {
         await insertNotification(
@@ -291,6 +319,12 @@ const editConcern = async (req, res) => {
           'Concern Updated',
           `Your concern "${concern.title}" was updated to ${status}.`,
         );
+        if (req.app.get('io')) {
+          req.app.get('io').to(`user:${concern.user_id}`).emit('new_notification', {
+            title: 'Concern Updated',
+            message: `Your concern "${concern.title}" was updated to ${status}.`
+          });
+        }
         notifyUser(
           concern,
           'Concern Updated',
@@ -304,6 +338,12 @@ const editConcern = async (req, res) => {
           'New Official Response',
           `An admin replied to your concern: "${concern.title}".`,
         );
+        if (req.app.get('io')) {
+          req.app.get('io').to(`user:${concern.user_id}`).emit('new_notification', {
+            title: 'New Official Response',
+            message: `An admin replied to your concern: "${concern.title}".`
+          });
+        }
         notifyUser(
           concern,
           'New Official Response',
@@ -318,7 +358,12 @@ const editConcern = async (req, res) => {
     
     // Broadcast via socket
     const io = req.app.get('io');
-    if (io) io.emit('update_concern', updatedConcern);
+    if (io) {
+      io.to('admin').emit('update_concern', updatedConcern);
+      if (updatedConcern.user_id) {
+        io.to(`user:${updatedConcern.user_id}`).emit('concern_status_changed', updatedConcern);
+      }
+    }
 
     res.json(updatedConcern);
   } catch (err) {

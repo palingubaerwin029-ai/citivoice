@@ -18,6 +18,7 @@ const {
   linkConcerns,
   analyzeConcernDraft,
 } = require('../controllers/concerns.controller');
+const workflowController = require('../controllers/workflow.controller');
 
 // ─── List all concerns (auth required, cached 60s) ────────────────────────────
 router.get('/', auth, cacheMiddleware('concerns', 60), listConcerns);
@@ -54,5 +55,12 @@ router.post('/:id/link', auth, requireRole('admin'), validateIdParam, linkConcer
 
 // ─── Upload ID image (mobile verification) ────────────────────────────────────
 router.post('/upload/id-image', upload.single('image'), uploadIdImage);
+
+// ─── Workflow & SLA Tracking ──────────────────────────────────────────────────
+router.get('/:id/assignments', auth, validateIdParam, workflowController.getAssignments);
+router.post('/:id/assign', auth, requireRole('admin'), validateIdParam, workflowController.assignConcern);
+router.get('/:id/comments', auth, validateIdParam, workflowController.getComments);
+router.post('/:id/comments', auth, validateIdParam, workflowController.addComment);
+router.get('/:id/audit', auth, requireRole('admin'), validateIdParam, workflowController.getAudit);
 
 module.exports = router;

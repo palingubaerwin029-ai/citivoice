@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SocketService } from '../services/socketService';
 
 // ── Verification status constants ──────────────────────────────────────────
 export const VERIFICATION_STATUS = {
@@ -72,9 +73,11 @@ export function AuthProvider({ children }) {
             userData.role !== 'admin' &&
             userData.verification_status !== VERIFICATION_STATUS.VERIFIED;
           setUser({ ...userData, _blocked: isBlocked });
+          SocketService.connect();
         }
       } catch {
         await AsyncStorage.multiRemove(['cv_token', 'cv_user']);
+        SocketService.disconnect();
       } finally {
         setLoading(false);
       }
@@ -93,6 +96,7 @@ export function AuthProvider({ children }) {
       userData.role !== 'admin' && userData.verification_status !== VERIFICATION_STATUS.VERIFIED;
     const fullUser = { ...userData, _blocked: isBlocked };
     setUser(fullUser);
+    SocketService.connect();
     return fullUser;
   };
 
@@ -152,6 +156,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     await AsyncStorage.multiRemove(['cv_token', 'cv_user']);
     setUser(null);
+    SocketService.disconnect();
   };
 
   return (

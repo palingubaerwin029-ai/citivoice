@@ -16,6 +16,9 @@ import s from '../styles/Admin.module.css';
 import d from '../styles/Dashboard.module.css';
 import Skeleton from '../components/Skeleton';
 import AnimatedCounter from '../components/AnimatedCounter';
+import { socket } from '../services/socket';
+import { useToast } from '../components/ToastProvider';
+import { useChatbot } from '../context/ChatbotContext';
 
 const STATUS_COLORS = {
   Pending: '#F59E0B',
@@ -44,7 +47,10 @@ const STAT_CONFIGS = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { addToast } = useToast();
+  const { setContextData } = useChatbot();
   const [concerns, setConcerns] = useState([]);
+  const [overdue, setOverdue] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const getLocalDate = () => {
@@ -84,18 +90,40 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchData = () => {
-      api
-        .get('/concerns')
-        .then((res) => setConcerns(res.data || []))
+      Promise.all([
+        api.get('/concerns'),
+        api.get('/workflow/overdue').catch(() => []) // Handle cleanly if route missing during dev
+      ])
+        .then(([concernsData, overdueData]) => {
+          setConcerns(concernsData.data || []);
+          setOverdue(overdueData.length || 0);
+        })
         .catch(console.error)
         .finally(() => setLoading(false));
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000); // Auto-refresh every 30 seconds
 
-    return () => clearInterval(interval);
-  }, []);
+    // Listen to socket events
+    const handleNewConcern = (newConcern) => {
+      setConcerns((prev) => [newConcern, ...prev]);
+      addToast(`New concern: ${newConcern.title}`);
+    };
+
+    const handleUpdateConcern = (updatedConcern) => {
+      setConcerns((prev) =>
+        prev.map((c) => (c.id === updatedConcern.id ? updatedConcern : c))
+      );
+    };
+
+    socket.on('new_concern', handleNewConcern);
+    socket.on('update_concern', handleUpdateConcern);
+
+    return () => {
+      socket.off('new_concern', handleNewConcern);
+      socket.off('update_concern', handleUpdateConcern);
+    };
+  }, [addToast]);
 
   const filteredConcerns = concerns.filter((c) => {
     if (!c.created_at) return true;
@@ -144,6 +172,15 @@ export default function Dashboard() {
     .filter((c) => c.priority === 'High' && c.status === 'Pending')
     .slice(0, 5);
   const recent = filteredConcerns.slice(0, 10);
+
+  useEffect(() => {
+    setContextData({
+      page: 'Dashboard',
+      stats,
+      topCategories: catData,
+      urgentCount: urgent.length
+    });
+  }, [stats.total, filterMode]);
 
   return (
     <div className={s.page}>
@@ -228,6 +265,19 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className={`${s.statsRow} stagger-1`}>
+        {/* Overdue SLA Stat */}
+        <div
+          className={s.statCard}
+          style={{ '--accent-color': '#EF4444', cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+          onClick={() => navigate('/concerns')}
+        >
+          <div className={s.statIconWrap} style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444' }}>⚠️</div>
+          <div className={s.statValue}>
+            {loading ? <Skeleton height="30px" width="60px" /> : <AnimatedCounter value={overdue} />}
+          </div>
+          <div className={s.statLabel} style={{ color: '#EF4444' }}>Overdue SLAs</div>
+        </div>
+
         {STAT_CONFIGS.map((cfg) => (
           <div
             key={cfg.key}

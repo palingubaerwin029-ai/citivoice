@@ -11,12 +11,14 @@ import {
   Platform,
   Modal,
   Animated,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useConcerns } from '../../context/ConcernContext';
-import { useAuth, resolveImageUrl } from '../../context/AuthContext';
+import { useAuth, resolveImageUrl, mobileApi } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { StatusBadge, CategoryBadge } from '../../components/UI';
 import { getStatusConfig } from '../../utils/theme';
@@ -35,6 +37,42 @@ export default function ConcernDetailScreen({ route, navigation }) {
   const canDelete = isOwner && concern?.status === 'Pending';
   const isUpvoted = false;
   const [imageModalVisible, setImageModalVisible] = useState(false);
+
+  // Workflow state
+  const [assignments, setAssignments] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [posting, setPosting] = useState(false);
+
+  useEffect(() => {
+    const fetchWorkflowData = async () => {
+      try {
+        const [aRes, cRes] = await Promise.all([
+          mobileApi.get(`/concerns/${concernId}/assignments`),
+          mobileApi.get(`/concerns/${concernId}/comments`),
+        ]);
+        setAssignments(aRes.data || aRes || []);
+        setComments(cRes.data || cRes || []);
+      } catch (err) {
+        console.log('Failed to fetch workflow data', err);
+      }
+    };
+    fetchWorkflowData();
+  }, [concernId]);
+
+  const postComment = async () => {
+    if (!newComment.trim()) return;
+    setPosting(true);
+    try {
+      await mobileApi.post(`/concerns/${concernId}/comments`, { comment: newComment.trim() });
+      setNewComment('');
+      const cRes = await mobileApi.get(`/concerns/${concernId}/comments`);
+      setComments(cRes.data || cRes || []);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to post comment');
+    }
+    setPosting(false);
+  };
 
   // Custom header replaces navigation.setOptions
 
@@ -267,6 +305,35 @@ export default function ConcernDetailScreen({ route, navigation }) {
             </View>
           )}
 
+          {/* Workflow SLA Timer */}
+          {assignments?.length > 0 && (
+            <View style={[styles.section, styles.adminNoteCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+              <View style={styles.adminNoteHeader}>
+                <Ionicons name="timer-outline" size={16} color={colors.primary} />
+                <Text style={[styles.adminNoteTitle, { color: colors.primary }]}>
+                  {t('SLA Timer') || 'SLA TIMER'}
+                </Text>
+              </View>
+              {(() => {
+                const latest = assignments[0];
+                const deadline = new Date(latest.sla_deadline);
+                const diffHours = (deadline - new Date()) / (1000 * 60 * 60);
+                const color = diffHours < 0 ? colors.statusRejected : (diffHours < 24 ? colors.statusPending : colors.statusResolved);
+                
+                return (
+                  <View>
+                    <Text style={{ fontSize: rf(14), fontWeight: '700', color }}>
+                      {diffHours < 0 ? `Breached by ${Math.abs(diffHours).toFixed(1)} hrs` : `${diffHours.toFixed(1)} hrs remaining`}
+                    </Text>
+                    <Text style={{ fontSize: rf(12), color: colors.textSecondary, marginTop: 4 }}>
+                      Department: {latest.department}
+                    </Text>
+                  </View>
+                );
+              })()}
+            </View>
+          )}
+
           {/* Official Response */}
           {concern.admin_note && (
             <View
@@ -353,6 +420,73 @@ export default function ConcernDetailScreen({ route, navigation }) {
               {isUpvoted ? t('youUpvoted') : t('upvoteThis')} · {concern.upvotes || 0}
             </Text>
           </TouchableOpacity>
+
+          {/* Public Comments */}
+          <View style={[styles.section, { marginTop: verticalScale(20) }]}>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+              💬 Discussion
+            </Text>
+            
+            <View style={{ gap: verticalScale(10), marginBottom: verticalScale(14) }}>
+              {comments.length === 0 ? (
+                <Text style={{ color: colors.textMuted, fontSize: rf(13), textAlign: 'center' }}>No comments yet.</Text>
+              ) : (
+                comments.map(c => (
+                  <View key={c.id} style={{ 
+                    padding: scale(12), 
+                    backgroundColor: colors.bgCard, 
+                    borderRadius: moderateScale(8),
+                    borderLeftWidth: 3,
+                    borderLeftColor: colors.primary
+                  }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: verticalScale(4) }}>
+                      <Text style={{ fontSize: rf(12), fontWeight: '600', color: colors.textPrimary }}>{c.user_name}</Text>
+                      <Text style={{ fontSize: rf(10), color: colors.textMuted }}>{fmt(c.created_at)}</Text>
+                    </View>
+                    <Text style={{ fontSize: rf(13), color: colors.textSecondary, lineHeight: rf(20) }}>
+                      {c.comment}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: scale(8), alignItems: 'center' }}>
+              <TextInput 
+                style={{ 
+                  flex: 1, 
+                  backgroundColor: colors.bgCard, 
+                  color: colors.textPrimary,
+                  borderRadius: moderateScale(20),
+                  paddingHorizontal: scale(14),
+                  paddingVertical: verticalScale(10),
+                  fontSize: rf(13),
+                  borderWidth: 1,
+                  borderColor: colors.border
+                }}
+                placeholder="Add a comment..."
+                placeholderTextColor={colors.textMuted}
+                value={newComment}
+                onChangeText={setNewComment}
+              />
+              <TouchableOpacity 
+                style={{ 
+                  backgroundColor: newComment.trim() ? colors.primary : colors.bgCard,
+                  padding: scale(10),
+                  borderRadius: scale(20),
+                  opacity: posting ? 0.7 : 1
+                }}
+                onPress={postComment}
+                disabled={!newComment.trim() || posting}
+              >
+                {posting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="send" size={18} color={newComment.trim() ? '#fff' : colors.textMuted} />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </ScrollView>
 

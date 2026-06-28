@@ -1,5 +1,5 @@
 const natural = require('natural');
-const geminiService = require('./geminiService');
+const groqService = require('./groqService');
 
 const categoryClassifier = new natural.BayesClassifier();
 const priorityClassifier = new natural.BayesClassifier();
@@ -208,7 +208,7 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
   }
 
   // 1. Try Gemini first for max accuracy
-  if (geminiService.isAvailable()) {
+  if (groqService.isAvailable()) {
     const prompt = `
     You are an expert city dispatcher for Kabankalan City and a native Hiligaynon speaker.
     Carefully analyze this citizen report to categorize it accurately:
@@ -242,12 +242,12 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
     `;
 
     let result = null;
-    if (imagePath && geminiService.generateJSONWithImage) {
+    if (imagePath && groqService.generateJSONWithImage) {
       console.log('[AI] Classifying with Gemini Vision using image and text...');
-      result = await geminiService.generateJSONWithImage(prompt, imagePath);
+      result = await groqService.generateJSONWithImage(prompt, imagePath);
     } else {
       console.log('[AI] Classifying with Gemini text-only...');
-      result = await geminiService.generateJSON(prompt);
+      result = await groqService.generateJSON(prompt);
     }
 
     if (result && result.category && result.priority) {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api, fmtDateShort } from '../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { socket } from '../services/socket';
+import { useToast } from '../components/ToastProvider';
 
 import s from '../styles/Admin.module.css';
 import cStyles from '../styles/Concerns.module.css';
@@ -20,6 +21,7 @@ const PRIORITIES = ['All', 'High', 'Medium', 'Low'];
 
 export default function Concerns() {
   const [searchParams] = useSearchParams();
+  const { addToast } = useToast();
   const [concerns, setConcerns] = useState([]);
   const [totalConcerns, setTotalConcerns] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -56,9 +58,10 @@ export default function Concerns() {
     loadData();
 
     const onNewConcern = (newConcern) => {
-      // Check if new concern matches current filters before adding
       if (statusFilter !== 'All' && newConcern.status !== statusFilter) return;
       if (search && !newConcern.title.toLowerCase().includes(search.toLowerCase())) return;
+
+      addToast(`New concern: ${newConcern.title}`);
 
       setConcerns((prev) => {
         const newList = [newConcern, ...prev];

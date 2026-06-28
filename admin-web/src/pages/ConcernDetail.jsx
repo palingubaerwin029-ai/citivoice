@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api, fmtDate, fmtDateShort, resolveImageUrl } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useChatbot } from '../context/ChatbotContext';
 import s from '../styles/Admin.module.css';
 import cd from '../styles/ConcernDetail.module.css';
 
@@ -39,39 +40,64 @@ export default function ConcernDetail() {
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { setContextData } = useChatbot();
 
   // AI Features state
   const [aiGenerating, setAiGenerating] = useState(false);
   const [similarConcerns, setSimilarConcerns] = useState([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
 
+  // Workflow state
+  const [assignments, setAssignments] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [auditLog, setAuditLog] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [isInternalComment, setIsInternalComment] = useState(true);
+  const [addingComment, setAddingComment] = useState(false);
+
   useEffect(() => {
-    api
-      .get(`/concerns/${id}`)
-      .then((data) => {
-        setConcern(data);
-        setSelStatus(data.status || 'Pending');
-        setSelCategory(data.category || 'Other');
-        setSelPriority(data.priority || 'Medium');
-        setNote(data.admin_note || '');
+    if (!id) return;
+    Promise.all([
+      api.get(`/concerns/${id}`),
+      api.get(`/concerns/${id}/assignments`),
+      api.get(`/concerns/${id}/comments`),
+      api.get(`/concerns/${id}/audit`)
+    ])
+      .then(([cData, aData, comData, audData]) => {
+        setConcern(cData);
+        setSelStatus(cData.status || 'Pending');
+        setSelCategory(cData.category || 'Other');
+        setSelPriority(cData.priority || 'Medium');
+        setNote(cData.admin_note || '');
+        setAssignments(aData || []);
+        setComments(comData || []);
+        setAuditLog(audData || []);
+
+        setContextData({
+          page: 'ConcernDetail',
+          concern: cData,
+          assignments: aData,
+          comments: comData
+        });
+
+        // After loading concern, load similar ones
+        if (cData.id) loadSimilarConcerns(cData.id);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Load similar concerns
-  useEffect(() => {
-    if (!id) return;
+  const loadSimilarConcerns = (concernId) => {
     setLoadingSimilar(true);
     api
-      .get(`/concerns/${id}/similar`)
+      .get(`/concerns/${concernId}/similar`)
       .then((data) => {
         const all = [...(data.linked || []), ...(data.computed || [])];
         setSimilarConcerns(all.slice(0, 5));
       })
       .catch(() => setSimilarConcerns([]))
       .finally(() => setLoadingSimilar(false));
-  }, [id]);
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -93,7 +119,6 @@ export default function ConcernDetail() {
     setSaving(false);
   };
 
-  // ─── Feature 1: AI Response Generation ──────────────────────────────────
   const handleAiGenerate = async () => {
     setAiGenerating(true);
     try {
@@ -105,6 +130,56 @@ export default function ConcernDetail() {
       alert('AI generation failed: ' + err.message);
     }
     setAiGenerating(false);
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+    setAddingComment(true);
+    try {
+      await api.post(`/concerns/${id}/comments`, {
+        comment: newComment.trim(),
+        is_internal: isInternalComment
+      });
+      setNewComment('');
+      const updatedComments = await api.get(`/concerns/${id}/comments`);
+      setComments(updatedComments || []);
+    } catch (err) {
+      alert('Failed to add comment: ' + err.message);
+    }
+    setAddingComment(false);
+  };
+
+  const renderSLA = () => {
+    if (!assignments || assignments.length === 0) return null;
+    const latest = assignments[0];
+    
+    const deadline = new Date(latest.sla_deadline);
+    const now = new Date();
+    const diffHours = (deadline - now) / (1000 * 60 * 60);
+    
+    let color = 'var(--green)';
+    let bg = 'rgba(16,185,129,0.1)';
+    if (diffHours < 0) { color = 'var(--red)'; bg = 'rgba(239,68,68,0.1)'; }
+    else if (diffHours < 24) { color = 'var(--yellow)'; bg = 'rgba(245,158,11,0.1)'; }
+
+    return (
+      <div className={s.card} style={{ padding: '12px 14px', background: bg, border: `1px solid ${color}` }}>
+        <div className={s.sectionLabel} style={{ marginBottom: 4, color }}>
+          ⏳ SLA Timer
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 600, color }}>
+          {diffHours < 0 ? `Breached by ${Math.abs(diffHours).toFixed(1)} hrs` : `${diffHours.toFixed(1)} hrs remaining`}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-1)', marginTop: 4 }}>
+          Department: {latest.department}
+        </div>
+        {latest.assignee_name && (
+          <div style={{ fontSize: 11, color: 'var(--text-1)', marginTop: 2 }}>
+            Assigned to: {latest.assignee_name}
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) return <div className={s.loading}>Loading…</div>;
@@ -235,17 +310,8 @@ export default function ConcernDetail() {
             ))}
           </div>
 
-          {/* Feature 4: Department Routing */}
-          {concern.department && (
-            <div className={s.card} style={{ padding: '12px 14px' }}>
-              <div className={s.sectionLabel} style={{ marginBottom: 8 }}>
-                🏢 Auto-Routed To
-              </div>
-              <div className={s.textPrimary} style={{ fontSize: 12, lineHeight: 1.5 }}>
-                {concern.department}
-              </div>
-            </div>
-          )}
+          {/* Workflow SLA */}
+          {renderSLA()}
 
           {/* Description */}
           <div className={s.card}>
@@ -296,15 +362,15 @@ export default function ConcernDetail() {
             </div>
           )}
 
-          {/* Timeline */}
+          {/* Audit Trail */}
           <div className={s.card}>
             <div className={s.cardHeader}>
-              <span className={s.cardTitle}>Timeline</span>
+              <span className={s.cardTitle}>Audit Trail</span>
             </div>
             <div style={{ padding: '8px 16px 16px' }}>
-              {buildTimeline(concern).map((t, i, arr) => (
+              {auditLog.map((log, i, arr) => (
                 <div
-                  key={i}
+                  key={log.id}
                   className={cd.timelineItem}
                   style={{ marginBottom: i < arr.length - 1 ? 0 : 4 }}
                 >
@@ -313,11 +379,19 @@ export default function ConcernDetail() {
                     {i < arr.length - 1 && <div className={cd.timelineLine} />}
                   </div>
                   <div style={{ paddingBottom: 14 }}>
-                    <div className={cd.timelineEvent}>{t.event}</div>
-                    <div className={cd.timelineDate}>{t.date}</div>
+                    <div className={cd.timelineEvent}>{log.action.replace(/_/g, ' ')}</div>
+                    <div className={cd.timelineDate}>{fmtDateShort(log.created_at)}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+                      By: {log.changed_by_name || 'System'}
+                    </div>
                   </div>
                 </div>
               ))}
+              {auditLog.length === 0 && (
+                <div style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center', padding: '10px 0' }}>
+                  No audit history.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -504,13 +578,65 @@ export default function ConcernDetail() {
             </div>
           </div>
 
-          {/* Previous note */}
-          {concern.admin_note && (
-            <div className={cd.prevNote}>
-              <div className={cd.prevNoteHeader}>Previous Response</div>
-              <div className={cd.prevNoteText}>{concern.admin_note}</div>
+          {/* Comments / Discussion Thread */}
+          <div className={s.card}>
+            <div className={s.cardHeader}>
+              <span className={s.cardTitle}>Discussion Thread</span>
             </div>
-          )}
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+                {comments.length === 0 && (
+                  <div style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center' }}>No comments yet.</div>
+                )}
+                {comments.map(c => (
+                  <div key={c.id} style={{ 
+                    padding: 10, 
+                    background: c.is_internal ? 'rgba(245,158,11,0.1)' : 'var(--surface-3)', 
+                    borderLeft: c.is_internal ? '3px solid var(--yellow)' : '3px solid var(--blue)',
+                    borderRadius: 4 
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-1)' }}>{c.user_name}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-3)' }}>{fmtDateShort(c.created_at)}</span>
+                    </div>
+                    <p style={{ fontSize: 13, color: 'var(--text-2)', margin: 0, lineHeight: 1.4 }}>
+                      {c.comment}
+                    </p>
+                    {c.is_internal && (
+                      <div style={{ fontSize: 10, color: 'var(--yellow)', marginTop: 4 }}>🔒 Internal Note</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <textarea
+                  className={s.textarea}
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Type a comment..."
+                  rows={2}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ fontSize: 12, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input 
+                      type="checkbox" 
+                      checked={isInternalComment}
+                      onChange={(e) => setIsInternalComment(e.target.checked)}
+                    />
+                    Internal Note (Admins only)
+                  </label>
+                  <button 
+                    className={`${s.btn} ${s.btnPrimary} ${s.btnSm}`}
+                    onClick={handleAddComment}
+                    disabled={addingComment || !newComment.trim()}
+                  >
+                    {addingComment ? 'Posting...' : 'Post Comment'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 
-const geminiService = require('./geminiService');
+const groqService = require('./groqService');
 const { Expo } = require('expo-server-sdk');
 
 // ── Expo Setup ────────────────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext) =>
   let finalMessage = defaultMessage;
 
   // 1. Generate an empathetic personalized message using Gemini
-  if (geminiService.isAvailable() && notificationContext) {
+  if (groqService.isAvailable() && notificationContext) {
     const prompt = `
       You are the friendly, helpful AI assistant of CitiVoice (the city complaint tracking system).
       Write a short, professional, empathetic, and reassuring notification message to a citizen named ${user.name || 'Citizen'}.
@@ -93,7 +93,7 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext) =>
       Keep it very brief (2-3 sentences max). Use a warm, encouraging tone. No need for a greeting or sign-off since it goes into a template.
     `;
 
-    const aiGenerated = await geminiService.generateText(prompt, {
+    const aiGenerated = await groqService.generateText(prompt, {
       temperature: 0.6,
       maxTokens: 200,
     });

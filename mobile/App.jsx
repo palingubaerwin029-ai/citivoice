@@ -8,12 +8,16 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 
+import { RootSiblingParent } from 'react-native-root-siblings';
+
 // ── Root component ─────────────────────────────────────────────────────────
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppContent />
-    </ThemeProvider>
+    <RootSiblingParent>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </RootSiblingParent>
   );
 }
 

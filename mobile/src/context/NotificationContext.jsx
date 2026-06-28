@@ -4,6 +4,8 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { mobileApi, useAuth } from './AuthContext';
+import { SocketService } from '../services/socketService';
+import Toast from 'react-native-root-toast';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -84,13 +86,32 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     fetchUnreadCount();
 
-    // Poll every 30 seconds for new notifications
+    // Poll every 30 seconds for new notifications (fallback)
     let interval;
     if (user) {
       interval = setInterval(() => {
         fetchUnreadCount();
       }, 30000);
     }
+
+    // Real-time socket updates
+    const handleNewNotification = (data) => {
+      setUnreadCount((prev) => prev + 1);
+      
+      // Show in-app toast for socket notifications
+      if (data && data.title) {
+        Toast.show(`${data.title}: ${data.message}`, {
+          duration: Toast.durations.LONG,
+          position: Toast.positions.TOP,
+          shadow: true,
+          animation: true,
+          hideOnPress: true,
+          delay: 0,
+        });
+      }
+    };
+    
+    SocketService.on('new_notification', handleNewNotification);
     // Initialize push notifications
     registerForPushNotificationsAsync().then((token) => {
       setExpoPushToken(token);
@@ -113,6 +134,7 @@ export const NotificationProvider = ({ children }) => {
     });
 
     return () => {
+      SocketService.off('new_notification', handleNewNotification);
       if (interval) clearInterval(interval);
       if (notificationListener.current) {
         notificationListener.current.remove();

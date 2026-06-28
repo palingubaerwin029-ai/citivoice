@@ -169,6 +169,13 @@ export default function HomeScreen({ navigation }) {
               <View style={S.headerActions}>
                 <TouchableOpacity
                   style={S.bellBtn}
+                  onPress={() => navigation.navigate('Chat')}
+                >
+                  <Ionicons name="sparkles-outline" size={22} color={colors.primary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={S.bellBtn}
                   onPress={() => navigation.navigate('Notifications')}
                 >
                   <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
