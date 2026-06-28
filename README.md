@@ -27,11 +27,22 @@ citivoice/
 
 ## 🚀 Key Features
 
-### 🤖 Artificial Intelligence (Groq & Llama 3)
+### 🤖 Artificial Intelligence (Groq & Llama 3.3)
+- **Context-Aware AI Assistant** — Dynamic chatbot widget utilizing Meta's `llama-3.3-70b-versatile` via the `groq-sdk` for near-instant responses, complying with regional rules.
 - **Smart Categorization & Routing** — Automatically classifies reports into appropriate categories (e.g., Electrical, Flood) using natural language processing.
 - **Context-Aware Sentiment Analysis** — Detects urgency and user frustration levels to prioritize concerns.
 - **Localized Understanding** — Trained to understand local dialects and terminology (e.g., Hiligaynon words like 'baha', 'ilog hilabangan' for Kabankalan City).
-- **Personalized Notifications** — AI-generated empathy-driven notification emails and SMS to keep citizens informed in a humanized tone.
+
+### ⚡ Real-Time WebSockets
+- **Live Notifications & Alerts** — Socket.io integration to broadcast updates to the web admin panel and the citizen mobile app instantly.
+- **Dynamic Dashboard Updates** — Live-updates review queues, unread notifications counts, and Map view markers as reports are filed.
+
+### ⏱️ SLA Escalation Workflow
+- **Service Level Agreements** — Automatically assigns incoming concerns to department workflows with set deadlines based on urgency (High: 24h, Medium: 72h, Low: 168h).
+- **Background Cron Operations** — Continuously monitors overdue SLA deadlines, auto-escalates lagging concerns, upgrades priorities to High, records audit logs, and triggers WebSocket warning events.
+
+### 💾 Performance Tuning
+- **Relational Optimization** — 12 customized indexes on tables like `concerns`, `users`, `notifications`, and `concern_assignments` to guarantee lightning-fast load times for analytical queries.
 
 ### 🏢 Admin Dashboard (Web)
 - **Analytics Dashboard** — Real-time charts and statistics powered by Recharts with concern breakdowns by status, category, and barangay.
@@ -60,6 +71,7 @@ citivoice/
 |---------|---------|
 | Express.js | REST API framework |
 | MySQL 8.0 + mysql2 | Primary relational database |
+| Socket.io | Full-duplex WebSocket communications |
 | JSON Web Tokens | Stateless authentication |
 | Bcrypt.js | Password hashing |
 | Multer | Multipart file upload handling |
@@ -73,6 +85,7 @@ citivoice/
 | Package | Purpose |
 |---------|---------|
 | React 19 | UI framework |
+| Socket.io-client | Real-time WebSocket connectivity |
 | React Router v6 | Client-side routing |
 | Recharts | Data visualization & charts |
 | Leaflet + React-Leaflet | Interactive mapping |
@@ -86,6 +99,7 @@ citivoice/
 |---------|---------|
 | React Native 0.81 | Mobile framework |
 | Expo SDK 54 | Development platform |
+| Socket.io-client | Push notification and alert listener |
 | React Navigation v6 | Screen navigation (stack + tabs) |
 | React Native Maps | Native map component |
 | Expo Image Picker | Camera & gallery access |
@@ -109,7 +123,7 @@ citivoice/
 │
 ├── backend/
 │   ├── database/
-│   │   └── schema.sql            # MySQL schema & migrations
+│   │   └── schema.sql            # MySQL schema & performance indexes
 │   ├── middleware/
 │   │   ├── auth.js               # JWT verification middleware
 │   │   └── upload.js             # Multer file upload config
@@ -120,11 +134,17 @@ citivoice/
 │   │   ├── barangays.js          # Barangay management
 │   │   ├── announcements.js      # Announcements broadcasting
 │   │   ├── events.js             # Community events
+│   │   ├── chatbot.js            # Dynamic chatbot endpoints
+│   │   ├── workflow.js           # SLA escalation commands
 │   │   └── notifications.js      # Push notifications
 │   ├── services/
-│   │   └── notificationService.js  # Email & SMS dispatch
+│   │   ├── notificationService.js  # Email & SMS dispatch
+│   │   ├── groqService.js        # Groq Llama 3.3 AI processing engine
+│   │   ├── chatbotService.js     # Context-aware chat session manager
+│   │   └── workflowService.js    # SLA escalation cron & audit logging service
+│   ├── apply-indexes.js          # Custom script to build MySQL performance indexes
 │   ├── db.js                     # MySQL connection pool
-│   ├── server.js                 # Express app entry point
+│   ├── server.js                 # Express server with WebSockets & Cron schedules
 │   └── migrate.js                # Database migration runner
 │
 ├── admin-web/
@@ -160,7 +180,8 @@ citivoice/
 │       │   │   ├── Mapscreen.js
 │       │   │   ├── Eventsscreen.js
 │       │   │   ├── NotificationsScreen.js
-│       │   │   └── Profilescreen.js
+│       │   │   ├── Profilescreen.js
+│       │   │   └── ChatScreen.jsx    # Dynamically styled AI Chatbot screen
 │       │   └── admin/
 │       │       ├── Admindashboardscreen.js
 │       │       ├── Adminconcernsscreen.js
@@ -212,6 +233,9 @@ All routes are prefixed with `/api`.
 | `GET` | `/api/events` | List community events |
 | `POST` | `/api/events` | Create event (admin) |
 | `GET` | `/api/notifications` | Get user notifications |
+| `POST` | `/api/chatbot/message` | Send message to AI Assistant |
+| `GET` | `/api/chatbot/:token` | Fetch chat history for user session |
+| `POST` | `/api/workflow/check-sla` | Manually run SLA escalation checks |
 | `GET` | `/api/health` | Health check |
 
 ---
