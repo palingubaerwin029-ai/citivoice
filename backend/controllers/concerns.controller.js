@@ -25,6 +25,7 @@ const {
   insertConcernLink,
   selectLinkedConcerns,
 } = require('../models/concern.model');
+const { selectDepartmentByCategory } = require('../models/department.model');
 
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:5000';
 
@@ -157,10 +158,22 @@ const createConcern = async (req, res) => {
   // ─── Feature 4: Department Routing ──────────────────────────────────────
   let department = null;
   try {
-    const routing = routeToDepartment(finalCategory, finalPriority);
-    department = `${routing.department} — ${routing.team}`;
+    const dbDept = await selectDepartmentByCategory(finalCategory);
+    if (dbDept) {
+      const team = finalPriority === 'High' ? 'Emergency Response Unit' : finalPriority === 'Medium' ? 'Maintenance Division' : 'General Queue';
+      department = `${dbDept.name} — ${team}`;
+      console.log(`[AI] Dynamically routed to database department: ${department}`);
+    } else {
+      const routing = routeToDepartment(finalCategory, finalPriority);
+      department = `${routing.department} — ${routing.team}`;
+      console.log(`[AI] Mapped to static fallback department: ${department}`);
+    }
   } catch (e) {
     console.error('AI Routing Error:', e);
+    try {
+      const routing = routeToDepartment(finalCategory, finalPriority);
+      department = `${routing.department} — ${routing.team}`;
+    } catch (_) {}
   }
 
   try {
@@ -230,15 +243,15 @@ const createConcern = async (req, res) => {
 
     const newConcern = await selectConcernById(insertId);
     
-    // Auto-assign
+    // Auto-assign (pass io for admin notifications)
+    const io = req.app.get('io');
     try {
-      await workflowService.autoAssign(newConcern);
+      await workflowService.autoAssign(newConcern, io);
     } catch (e) {
       console.error('[Workflow] Auto-assign error:', e);
     }
     
     // Broadcast via socket
-    const io = req.app.get('io');
     if (io) {
       io.to('admin').emit('new_concern', newConcern);
       io.to(`user:${req.user.id}`).emit('new_concern', newConcern);
@@ -282,9 +295,16 @@ const editConcern = async (req, res) => {
         const existingConcern = await selectConcernById(req.params.id);
         const newCat = category || existingConcern.category;
         const newPri = priority || existingConcern.priority;
-        const routing = routeToDepartment(newCat, newPri);
+        
+        const dbDept = await selectDepartmentByCategory(newCat);
         fields.push('department = ?');
-        values.push(`${routing.department} — ${routing.team}`);
+        if (dbDept) {
+          const team = newPri === 'High' ? 'Emergency Response Unit' : newPri === 'Medium' ? 'Maintenance Division' : 'General Queue';
+          values.push(`${dbDept.name} — ${team}`);
+        } else {
+          const routing = routeToDepartment(newCat, newPri);
+          values.push(`${routing.department} — ${routing.team}`);
+        }
       } catch (e) {
         console.error('AI Routing Error on edit:', e);
       }
@@ -355,9 +375,20 @@ const editConcern = async (req, res) => {
 
     invalidate('concerns', 'concern_detail');
     const updatedConcern = await selectConcernById(req.params.id);
+
+    // Get socket.io instance for notifications
+    const io = req.app.get('io');
+
+    // Re-assign to new department if category or priority changed
+    if (category !== undefined || priority !== undefined) {
+      try {
+        await workflowService.reassignConcern(updatedConcern, io);
+      } catch (e) {
+        console.error('[Workflow] Re-assign error:', e);
+      }
+    }
     
     // Broadcast via socket
-    const io = req.app.get('io');
     if (io) {
       io.to('admin').emit('update_concern', updatedConcern);
       if (updatedConcern.user_id) {

@@ -5,6 +5,7 @@ export const translations = {
     tagline: 'Your voice. Your community.',
     cityDescription:
       'Inspired by the golden sun of our democracy and the green growth of the Bangkal tree, CitiVoice connects Kabankalanons to unity, progress, and sustainable civic action.',
+    chatbotWelcome: 'Hello! I am the CitiVoice AI Assistant. You can ask me how to file a concern, what the statuses mean, or get help navigating the platform.',
 
     // Auth
     login: 'Sign In',
@@ -203,6 +204,7 @@ export const translations = {
     tagline: 'Ang iyong boses. Ang iyong komunidad.',
     cityDescription:
       'Dinasig ng gintong araw ng ating demokrasya at luntiang paglago ng puno ng Bangkal, pinag-uugnay ng CitiVoice ang mga Kabankalanon tungo sa pagkakaisa, pag-unlad, at napapanatiling pagkilos.',
+    chatbotWelcome: 'Kumusta! Ako ang CitiVoice AI Assistant. Maaari mo akong tanungin kung paano mag-ulat ng concern, ano ang kahulugan ng mga status, o humingi ng tulong sa paggamit ng platform.',
 
     login: 'Mag-sign In',
     register: 'Gumawa ng Account',
@@ -389,6 +391,7 @@ export const translations = {
     tagline: 'Ang imo tingog. Ang imo komunidad.',
     cityDescription:
       'Ginhimo ang CitiVoice para i-konek ang mga Kabankalanon. Tuyo sini nga magbinuligay ang tanan para sa pag-asenso sang aton syudad.',
+    chatbotWelcome: 'Kamusta! Ako ang CitiVoice AI Assistant. Pwede mo ako mapamangkot kon paano mag-report sang concern, kon ano ang buot silingon sang mga status, ukon magpatabang sa paggamit sang platform.',
 
     login: 'Mag-login',
     register: 'Himo Account',

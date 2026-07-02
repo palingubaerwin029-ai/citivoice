@@ -35,7 +35,7 @@ export default function ChatScreen({ navigation }) {
         loadHistory(storedToken);
       } else {
         setMessages([
-          { id: 'welcome', sender: 'ai', message: 'Hello! I am the CitiVoice AI Assistant. How can I help you today?' }
+          { id: 'welcome', sender: 'ai', message: t('chatbotWelcome') }
         ]);
       }
     };
@@ -49,7 +49,7 @@ export default function ChatScreen({ navigation }) {
       if (history.length > 0) {
         setMessages(history);
       } else {
-        setMessages([{ id: 'welcome', sender: 'ai', message: 'Hello! I am the CitiVoice AI Assistant. How can I help you today?' }]);
+        setMessages([{ id: 'welcome', sender: 'ai', message: t('chatbotWelcome') }]);
       }
     } catch (err) {
       console.log('Failed to load chat history', err);

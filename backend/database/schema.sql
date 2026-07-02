@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
   phone               VARCHAR(50)         DEFAULT NULL,
   barangay            VARCHAR(255)        DEFAULT NULL,
   role                ENUM('admin','citizen') NOT NULL DEFAULT 'citizen',
+  department          VARCHAR(100)        DEFAULT NULL,
   verification_status ENUM('unverified','pending','verified','rejected') NOT NULL DEFAULT 'unverified',
   is_verified         TINYINT(1)          NOT NULL DEFAULT 0,
   id_type             VARCHAR(100)        DEFAULT NULL,
@@ -33,6 +34,16 @@ CREATE TABLE IF NOT EXISTS barangays (
   name       VARCHAR(255) NOT NULL UNIQUE,
   created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ─── Departments ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS departments (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  name        VARCHAR(255) NOT NULL UNIQUE,
+  category    VARCHAR(100) DEFAULT NULL UNIQUE,
+  description TEXT         DEFAULT NULL,
+  created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- ─── Concerns ────────────────────────────────────────────────────────────────
@@ -172,6 +183,17 @@ INSERT INTO barangays (name) VALUES
   ('Oringao'), ('Orong'), ('Pinaguinpinan'), ('Salong'), ('Tabugon'), ('Tagoc'),
   ('Tagukon'), ('Talubangi'), ('Tampalon'), ('Tan-Awan'), ('Tapi')
 ON DUPLICATE KEY UPDATE updated_at = NOW();
+
+-- Comprehensive Department list for Kabankalan City routing
+INSERT INTO departments (name, category, description) VALUES
+  ('City Engineering Office', 'Road & Infrastructure', 'Handles road repairs, bridge maintenance, and other public infrastructure.'),
+  ('NOCECO / Electric Utility', 'Electricity', 'Manages streetlights, electrical posts, power issues, and wiring concerns.'),
+  ('City Water District', 'Water & Drainage', 'Responsible for clean water supply, pipe bursts, and drainage/flooding systems.'),
+  ('City Sanitation Division', 'Waste & Sanitation', 'Coordinates garbage collection, waste management, and public sanitation.'),
+  ('PNP / Barangay Tanod', 'Public Safety', 'Enforces public order, traffic safety, and immediate emergency response.'),
+  ('City Admin Office', 'Other', 'Administrative support, policy implementation, and general inquiries.'),
+  ('Barangay Hall', NULL, 'Local barangay affairs, community relations, and low-priority local concerns.')
+ON DUPLICATE KEY UPDATE category = VALUES(category), description = VALUES(description), updated_at = NOW();
 
 -- ─── Performance Indexes ────────────────────────────────────────────────────
 -- Note: MySQL does not natively support "CREATE INDEX IF NOT EXISTS".

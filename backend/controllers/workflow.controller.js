@@ -1,6 +1,7 @@
 const workflowModel = require('../models/workflow.model');
 const workflowService = require('../services/workflowService');
 const concernModel = require('../models/concern.model');
+const { selectById } = require('../models/user.model');
 
 const getAssignments = async (req, res) => {
   try {
@@ -40,6 +41,19 @@ const assignConcern = async (req, res) => {
       null,
       { assigned_to, department, sla_hours }
     );
+
+    // Notify the assigned admin
+    if (assigned_to) {
+      try {
+        const assignedAdmin = await selectById(assigned_to);
+        if (assignedAdmin) {
+          const io = req.app.get('io');
+          await workflowService.notifyAssignedAdmin(assignedAdmin, concern, io);
+        }
+      } catch (e) {
+        console.error('[Workflow] Failed to notify assigned admin:', e.message);
+      }
+    }
 
     res.json({ success: true, assignmentId });
   } catch (err) {

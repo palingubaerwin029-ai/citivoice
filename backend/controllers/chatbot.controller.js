@@ -6,7 +6,7 @@ const sendMessage = async (req, res) => {
   if (!message) return res.status(400).json({ error: 'Message is required' });
 
   try {
-    const result = await chatbotService.processMessage(sessionToken, message, contextData, req.user.id);
+    const result = await chatbotService.processMessage(sessionToken, message, contextData, req.user.id, req.user.role);
     res.json(result);
   } catch (err) {
     console.error('Chatbot sendMessage error:', err);

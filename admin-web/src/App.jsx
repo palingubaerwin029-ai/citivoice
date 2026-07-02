@@ -13,6 +13,7 @@ import Reports from './pages/Reports';
 import Login from './pages/Login';
 import Verification from './pages/Verification';
 import Barangays from './pages/Barangays';
+import Departments from './pages/Departments';
 import ToastProvider from './components/ToastProvider';
 import { ChatbotProvider } from './context/ChatbotContext';
 import ChatWidget from './components/ChatWidget';
@@ -97,6 +98,7 @@ export default function App() {
                 <Route path="/users" element={<Users />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/barangays" element={<Barangays />} />
+                <Route path="/departments" element={<Departments />} />
               </Routes>
             </main>
             <ChatWidget />

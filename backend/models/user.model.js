@@ -189,6 +189,30 @@ const updateUserAvatar = async (id, avatarUrl) => {
   ]);
 };
 
+/**
+ * Find admin users belonging to a specific department, ordered by fewest
+ * active (non-completed) assignments for round-robin load balancing.
+ * @param {string} departmentName - The department name to match (e.g., "City Engineering Office")
+ * @returns {Promise<Array>} Admin users sorted by least active assignments
+ */
+const selectAdminsByDepartment = async (departmentName) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT u.id, u.name, u.email, u.fcm_token, u.department,
+        (SELECT COUNT(*) FROM concern_assignments ca 
+         WHERE ca.assigned_to = u.id AND ca.status NOT IN ('completed')) as active_assignments
+       FROM users u
+       WHERE u.role = 'admin' AND u.department = ?
+       ORDER BY active_assignments ASC`,
+      [departmentName]
+    );
+    return rows;
+  } catch (err) {
+    console.error('Error fetching admins by department:', err);
+    throw err;
+  }
+};
+
 module.exports = {
   selectByEmail,
   selectByName,
@@ -207,4 +231,5 @@ module.exports = {
   clearResetOtp,
   updatePasswordByEmail,
   updateUserAvatar,
+  selectAdminsByDepartment,
 };

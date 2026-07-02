@@ -12,12 +12,13 @@ export const ChatbotProvider = ({ children }) => {
   const [contextData, setContextData] = useState(null);
 
   useEffect(() => {
+    const welcomeMsg = 'Hello Administrator! I am your CitiVoice AI co-pilot. I can help you analyze civic concerns, review SLA compliance, summarize concern details, or guide you through administrative workflows.';
     if (sessionToken) {
       api.get(`/chatbot/${sessionToken}`)
         .then(data => setMessages(data || []))
-        .catch(() => setMessages([{ id: 'welcome', sender: 'ai', message: 'Hello Admin! How can I help you today?' }]));
+        .catch(() => setMessages([{ id: 'welcome', sender: 'ai', message: welcomeMsg }]));
     } else {
-      setMessages([{ id: 'welcome', sender: 'ai', message: 'Hello Admin! How can I help you today?' }]);
+      setMessages([{ id: 'welcome', sender: 'ai', message: welcomeMsg }]);
     }
   }, [sessionToken]);
 
