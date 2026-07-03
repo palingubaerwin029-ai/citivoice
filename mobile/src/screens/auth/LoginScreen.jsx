@@ -415,7 +415,7 @@ export default function LoginScreen({ navigation }) {
                     if (serverError) setServerError(null);
                   }}
                   onBlur={() => validateField('email', email)}
-                  placeholder="you@example.com"
+                  placeholder="you@gmail.com"
                   placeholderTextColor={colors.textMuted}
                   keyboardType="email-address"
                   autoCapitalize="none"

@@ -49,7 +49,13 @@ const validateRegister = [
     .withMessage('Email is required')
     .isEmail()
     .withMessage('Must be a valid email')
-    .normalizeEmail(),
+    .normalizeEmail()
+    .custom((val) => {
+      if (!val.endsWith('@gmail.com')) {
+        throw new Error('Email must be a Gmail address (@gmail.com)');
+      }
+      return true;
+    }),
   body('password')
     .notEmpty()
     .withMessage('Password is required')

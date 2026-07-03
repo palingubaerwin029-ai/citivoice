@@ -10,8 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AdminChatIcon from '../../components/AdminChatIcon';
 import { useTheme } from '../../context/ThemeContext';
 import { mobileApi } from '../../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,6 +22,7 @@ import { useLanguage } from '../../context/LanguageContext';
 export default function ChatScreen({ navigation }) {
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,13 +48,17 @@ export default function ChatScreen({ navigation }) {
     try {
       const res = await mobileApi.get(`/chatbot/${token}`);
       const history = res.data || res || [];
-      if (history.length > 0) {
+      if (Array.isArray(history) && history.length > 0) {
         setMessages(history);
       } else {
         setMessages([{ id: 'welcome', sender: 'ai', message: t('chatbotWelcome') }]);
       }
     } catch (err) {
       console.log('Failed to load chat history', err);
+      // If the session token is stale or invalid (e.g., 404), reset token and show welcome screen
+      await AsyncStorage.removeItem('cv_chat_token');
+      setSessionToken(null);
+      setMessages([{ id: 'welcome', sender: 'ai', message: t('chatbotWelcome') }]);
     }
   };
 
@@ -91,7 +97,7 @@ export default function ChatScreen({ navigation }) {
       ]}>
         {!isUser && (
           <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <Ionicons name="sparkles" size={14} color="#fff" />
+            <AdminChatIcon size={14} color="#fff" />
           </View>
         )}
         <View style={[
@@ -107,7 +113,7 @@ export default function ChatScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bgDark }]} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bgDark }]} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
@@ -121,19 +127,26 @@ export default function ChatScreen({ navigation }) {
 
       <KeyboardAvoidingView 
         style={styles.keyboardView} 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <FlatList
           ref={flatListRef}
           data={messages}
-          keyExtractor={item => item.id.toString()}
+          keyExtractor={(item, index) => (item.id ? item.id.toString() : index.toString())}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
 
-        <View style={[styles.inputContainer, { backgroundColor: colors.bgCard, borderTopColor: colors.border }]}>
+        <View style={[
+          styles.inputContainer, 
+          { 
+            backgroundColor: colors.bgCard, 
+            borderTopColor: colors.border,
+            paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, scale(12)) : scale(12)
+          }
+        ]}>
           <TextInput
             style={[styles.input, { backgroundColor: colors.bgDark, color: colors.textPrimary }]}
             placeholder="Type your message..."

@@ -13,7 +13,6 @@ import {
   IoSunnyOutline,
   IoMoonOutline,
   IoDocumentTextOutline,
-  IoBriefcaseOutline,
 } from 'react-icons/io5';
 import s from '../styles/Sidebar.module.css';
 import { resolveImageUrl } from '../services/api';
@@ -25,7 +24,6 @@ const NAV = [
   { path: '/verification', icon: <IoShieldCheckmarkOutline />, label: 'Verification' },
   { path: '/users', icon: <IoPeopleOutline />, label: 'Users' },
   { path: '/barangays', icon: <IoBusinessOutline />, label: 'Barangays' },
-  { path: '/departments', icon: <IoBriefcaseOutline />, label: 'Departments' },
   { section: 'Analytics' },
   { path: '/map', icon: <IoMapOutline />, label: 'Map View' },
   { path: '/reports', icon: <IoBarChartOutline />, label: 'Reports' },

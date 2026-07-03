@@ -205,8 +205,10 @@ select {
     --text-3: #555555;
   }
 
-  .sidebar {
-    display: none;
+  .sidebar,
+  [class*="fab"],
+  [class*="widget"] {
+    display: none !important;
   }
 
 }

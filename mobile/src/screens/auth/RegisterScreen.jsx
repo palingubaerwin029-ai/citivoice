@@ -140,6 +140,7 @@ export default function RegisterScreen({ navigation }) {
     if (!form.name.trim()) e.name = t('required');
     if (!form.email.trim()) e.email = t('required');
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = t('invalidEmail');
+    else if (!form.email.trim().toLowerCase().endsWith('@gmail.com')) e.email = 'Email must be a Gmail address (@gmail.com)';
     if (!form.password) e.password = t('required');
     else if (form.password.length < 8) e.password = 'Password must be at least 8 characters.';
     else if (
@@ -301,7 +302,7 @@ export default function RegisterScreen({ navigation }) {
               label={t('email').toUpperCase()}
               value={form.email}
               onChangeText={(v) => set('email', v)}
-              placeholder="you@example.com"
+              placeholder="you@gmail.com"
               keyboardType="email-address"
               autoCapitalize="none"
               leftIcon="mail-outline"

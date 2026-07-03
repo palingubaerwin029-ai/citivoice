@@ -176,7 +176,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                           setEmail(v);
                           if (error) setError(null);
                         }}
-                        placeholder="you@example.com"
+                        placeholder="you@gmail.com"
                         placeholderTextColor={colors.textMuted}
                         keyboardType="email-address"
                         autoCapitalize="none"

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,13 +50,11 @@ const getTabBarOptions = (colors) => ({
     backgroundColor: colors.bgCard,
     borderTopColor: colors.border,
     borderTopWidth: 1,
-    height: 62,
-    paddingBottom: 8,
-    paddingTop: 4,
   },
-  tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+  tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginBottom: 4 },
   tabBarActiveTintColor: colors.primary,
   tabBarInactiveTintColor: colors.textMuted,
+  tabBarHideOnKeyboard: true,
 });
 
 // ── Auth Stack ─────────────────────────────────────────────────────────────
@@ -144,7 +142,15 @@ function CitizenTabs() {
       <Tab.Screen
         name="Home"
         component={HomeStack}
-        options={{ headerShown: false, tabBarLabel: t('feed') }}
+        options={({ route }) => {
+          const routeName = getFocusedRouteNameFromRoute(route) ?? 'Feed';
+          const shouldHide = ['Chat', 'ConcernDetail', 'SubmitConcern', 'Notifications'].includes(routeName);
+          return {
+            headerShown: false,
+            tabBarLabel: t('feed'),
+            tabBarStyle: shouldHide ? { display: 'none' } : undefined,
+          };
+        }}
       />
       <Tab.Screen
         name="MyConcerns"
