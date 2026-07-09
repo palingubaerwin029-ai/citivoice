@@ -1,5 +1,13 @@
 # 📢 CitiVoice
 
+<p align="center">
+  <img src="admin-web/public/logo.png" alt="CitiVoice Logo" width="200" />
+</p>
+
+<p align="center">
+  <strong>Your Voice. Your Community.</strong>
+</p>
+
 **CitiVoice** is a full-stack community management and civic reporting platform that connects citizens with local government administrators. Built for city-level deployment, it enables real-time issue reporting, identity verification, event management, and data-driven analytics — all through a unified ecosystem of web and mobile applications.
 
 ---
