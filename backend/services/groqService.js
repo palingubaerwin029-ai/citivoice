@@ -130,10 +130,9 @@ const generateJSON = async (prompt, options = {}) => {
       const text = result.choices[0]?.message?.content;
       if (!text) return null;
 
-      const cleaned = text
-        .replace(/```json\s*/gi, '')
-        .replace(/```\s*/g, '')
-        .trim();
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) return null;
+      const cleaned = match[0].trim();
       return JSON.parse(cleaned);
     } catch (err) {
       console.error('[AI] Failed to parse Groq JSON response:', err.message);
@@ -193,10 +192,9 @@ const generateJSONWithImage = async (prompt, imagePath, options = {}) => {
       const text = result.choices[0]?.message?.content;
       if (!text) return null;
 
-      const cleaned = text
-        .replace(/```json\s*/gi, '')
-        .replace(/```\s*/g, '')
-        .trim();
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) return null;
+      const cleaned = match[0].trim();
       return JSON.parse(cleaned);
     } catch (err) {
       console.error('[AI] Failed to parse Groq Vision JSON response:', err.message);

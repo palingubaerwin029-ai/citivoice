@@ -13,10 +13,10 @@
     "db:down": "docker-compose down"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "docx": "^9.7.1"
   },
   "dependencies": {
-    "docx": "^9.7.1",
     "mammoth": "^1.12.0"
   }
 }

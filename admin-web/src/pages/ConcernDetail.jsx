@@ -602,7 +602,7 @@ export default function ConcernDetail() {
                     <p style={{ fontSize: 13, color: 'var(--text-2)', margin: 0, lineHeight: 1.4 }}>
                       {c.comment}
                     </p>
-                    {c.is_internal && (
+                    {Boolean(c.is_internal) && (
                       <div style={{ fontSize: 10, color: 'var(--yellow)', marginTop: 4 }}>🔒 Internal Note</div>
                     )}
                   </div>

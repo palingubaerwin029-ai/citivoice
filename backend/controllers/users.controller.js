@@ -181,8 +181,8 @@ const rejectUser = async (req, res) => {
   try {
     const contactInfo = await selectUserContactInfo(req.params.id);
 
-    // Delete the user instead of just marking them rejected
-    await deleteUser(req.params.id);
+    // Mark the user as rejected and save the rejection reason
+    await updateUserVerification(req.params.id, 'rejected', 0, reason, 'NULL');
 
     if (contactInfo) {
       notifyUser(

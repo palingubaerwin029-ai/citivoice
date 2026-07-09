@@ -9,6 +9,7 @@ const {
   selectById,
   updateResetOtp,
   updatePasswordByEmail,
+  checkExistingIdNumber,
 } = require('../models/user.model');
 const { sendEmail } = require('../services/notificationService');
 
@@ -49,6 +50,13 @@ const register = async (req, res) => {
     if (phone) {
       const existingPhone = await selectByPhone(phone);
       if (existingPhone) return res.status(400).json({ error: 'Phone number already registered' });
+    }
+
+    if (idNumber) {
+      const exists = await checkExistingIdNumber(idNumber, 0);
+      if (exists) {
+        return res.status(400).json({ error: 'This ID number is already linked to another account.' });
+      }
     }
 
     // Password complexity check

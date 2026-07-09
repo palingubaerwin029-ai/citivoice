@@ -9,6 +9,7 @@ import 'leaflet/dist/leaflet.css';
 // 🔌 Plugins (must come after leaflet)
 import 'leaflet-routing-machine';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+import 'leaflet.heat';
 import { OpenStreetMapProvider } from 'leaflet-geosearch';
 
 import {
@@ -68,8 +69,8 @@ const pulseIcon = new L.DivIcon({
   iconAnchor: [12, 24],
   html: `
     <div style="position:relative; width:24px; height:24px;">
-      <div style="background:#1A6BFF; width:16px; height:16px; border-radius:50%; border:3px solid white; position:absolute; top:4px; left:4px; z-index:2;"></div>
-      <div style="background:#1A6BFF; width:16px; height:16px; border-radius:50%; position:absolute; top:4px; left:4px; animation:pulse 1.5s infinite;"></div>
+      <div style="background:linear-gradient(135deg, #1A6BFF, #00D4AA); width:16px; height:16px; border-radius:50%; border:2px solid white; position:absolute; top:4px; left:4px; z-index:2; box-shadow: 0 4px 10px rgba(26,107,255,0.6);"></div>
+      <div style="background:linear-gradient(135deg, #1A6BFF, #00D4AA); width:16px; height:16px; border-radius:50%; position:absolute; top:4px; left:4px; animation:pulse 1.5s infinite;"></div>
     </div>
   `,
 });
@@ -149,6 +150,21 @@ function FitBounds({ data, filter }) {
   return null;
 }
 
+function HeatmapLayer({ data, visible }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!visible || !data.length) return;
+    const points = data
+      .filter(c => c.location_lat && c.location_lng)
+      .map(c => [parseFloat(c.location_lat), parseFloat(c.location_lng), 1]);
+    const heat = L.heatLayer(points, { radius: 25, blur: 15, maxZoom: 16 }).addTo(map);
+    return () => {
+      map.removeLayer(heat);
+    };
+  }, [data, map, visible]);
+  return null;
+}
+
 export function MapView() {
   const navigate = useNavigate();
   const [concerns, setConcerns] = useState([]);
@@ -158,6 +174,7 @@ export function MapView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [flyCoords, setFlyCoords] = useState(null);
+  const [showHeatmap, setShowHeatmap] = useState(false);
   const provider = new OpenStreetMapProvider();
 
   useEffect(() => {
@@ -261,28 +278,41 @@ export function MapView() {
         <FlyToMarker selected={selected} />
         <FlyToLocation coords={flyCoords} />
         <Routing selected={selected} />
+        <HeatmapLayer data={filtered} visible={showHeatmap} />
 
-        <MarkerClusterGroup chunkedLoading>
-          {filtered.map((c) => {
-            const color = STATUS_COLORS[c.status] || '#8899BB';
-            return (
-              <Marker
-                key={c.id}
-                position={[parseFloat(c.location_lat), parseFloat(c.location_lng)]}
-                icon={c.status === 'In Progress' ? pulseIcon : createIcon(color)}
-                eventHandlers={{ click: () => setSelected(c) }}
-              >
-                <Popup className="premium-popup" autoPan={false}>
-                  <div style={{ color: '#000' }}>
-                    <strong>{c.title}</strong>
-                    <br />
-                    <span style={{ color: color }}>● {c.status}</span>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
-        </MarkerClusterGroup>
+        {!showHeatmap && (
+          <MarkerClusterGroup chunkedLoading>
+            {filtered.map((c) => {
+              const color = STATUS_COLORS[c.status] || '#8899BB';
+              return (
+                <Marker
+                  key={c.id}
+                  position={[parseFloat(c.location_lat), parseFloat(c.location_lng)]}
+                  icon={c.status === 'In Progress' ? pulseIcon : createIcon(color)}
+                  eventHandlers={{ click: () => setSelected(c) }}
+                >
+                  <Popup className="premium-popup" autoPan={false}>
+                    <div style={{ display: 'flex', flexDirection: 'column', width: 220 }}>
+                      {c.image_url ? (
+                        <div style={{ width: '100%', height: 110, overflow: 'hidden' }}>
+                          <img src={resolveImageUrl(c.image_url)} alt="Thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      ) : (
+                        <div style={{ width: '100%', height: 80, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 30 }}>🖼️</span>
+                        </div>
+                      )}
+                      <div style={{ padding: '12px 14px', background: 'rgba(0,0,0,0.2)' }}>
+                        <strong style={{ fontSize: 14, color: '#fff', display: 'block', marginBottom: 4, lineHeight: 1.2 }}>{c.title}</strong>
+                        <span style={{ color: color, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>● {c.status}</span>
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </MarkerClusterGroup>
+        )}
 
         {/* 🗺️ Map Legend Overlay */}
         <div className={s.legendOverlay}>
@@ -295,8 +325,16 @@ export function MapView() {
           ))}
         </div>
 
-        {/* 🎯 Recenter Button */}
-        <div className={s.recenterWrap}>
+        {/* 🎯 Controls Overlay */}
+        <div className={s.recenterWrap} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button
+            onClick={() => setShowHeatmap(!showHeatmap)}
+            className={s.recenterBtn}
+            title="Toggle Heatmap"
+            style={{ background: showHeatmap ? 'rgba(239, 68, 68, 0.4)' : undefined, borderColor: showHeatmap ? 'rgba(239, 68, 68, 0.8)' : undefined }}
+          >
+            🔥
+          </button>
           <button
             onClick={() => setFlyCoords([9.9868, 122.813])}
             className={s.recenterBtn}

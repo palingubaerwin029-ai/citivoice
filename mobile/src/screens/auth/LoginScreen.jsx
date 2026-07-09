@@ -56,8 +56,8 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
       icon: '❌',
       color: '#EF4444',
       title: 'Verification Rejected',
-      message: user?.rejectionReason
-        ? `Reason: ${user.rejectionReason}`
+      message: user?.rejection_reason
+        ? `Reason: ${user.rejection_reason}`
         : 'Your verification was rejected by the administrator. Please resubmit with a valid government ID.',
       action: 'Resubmit ID',
       actionFn: onGoVerify,
@@ -307,12 +307,13 @@ export default function LoginScreen({ navigation }) {
       <View style={[S.glowBlob, { backgroundColor: colors.primary }]} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
         <ScrollView
+          style={{ flex: 1 }}
           contentContainerStyle={S.scroll}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
         >
           {/* Language switcher */}

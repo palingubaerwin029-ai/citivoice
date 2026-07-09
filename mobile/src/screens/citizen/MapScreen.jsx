@@ -32,6 +32,27 @@ const DEFAULT_REGION = {
   longitudeDelta: 0.05,
 };
 
+const darkMapStyle = [
+  { "elementType": "geometry", "stylers": [{"color": "#242f3e"}] },
+  { "elementType": "labels.text.fill", "stylers": [{"color": "#746855"}] },
+  { "elementType": "labels.text.stroke", "stylers": [{"color": "#242f3e"}] },
+  { "featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{"color": "#d59563"}] },
+  { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{"color": "#d59563"}] },
+  { "featureType": "poi.park", "elementType": "geometry", "stylers": [{"color": "#263c3f"}] },
+  { "featureType": "poi.park", "elementType": "labels.text.fill", "stylers": [{"color": "#6b9a76"}] },
+  { "featureType": "road", "elementType": "geometry", "stylers": [{"color": "#38414e"}] },
+  { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{"color": "#212a37"}] },
+  { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{"color": "#9ca5b3"}] },
+  { "featureType": "road.highway", "elementType": "geometry", "stylers": [{"color": "#746855"}] },
+  { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{"color": "#1f2835"}] },
+  { "featureType": "road.highway", "elementType": "labels.text.fill", "stylers": [{"color": "#f3d19c"}] },
+  { "featureType": "transit", "elementType": "geometry", "stylers": [{"color": "#2f3948"}] },
+  { "featureType": "transit.station", "elementType": "labels.text.fill", "stylers": [{"color": "#d59563"}] },
+  { "featureType": "water", "elementType": "geometry", "stylers": [{"color": "#17263c"}] },
+  { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{"color": "#515c6d"}] },
+  { "featureType": "water", "elementType": "labels.text.stroke", "stylers": [{"color": "#17263c"}] }
+];
+
 const safeCoord = (val) => {
   const n = parseFloat(val);
   return isNaN(n) ? null : n;
@@ -170,6 +191,7 @@ export default function MapScreen({ navigation }) {
         showsUserLocation
         showsMyLocationButton={false}
         mapType={mapType}
+        customMapStyle={theme === 'dark' ? darkMapStyle : []}
         onMapReady={() => setMapReady(true)}
         onPress={handleDismiss}
         clusterColor={colors.primary}
@@ -185,14 +207,15 @@ export default function MapScreen({ navigation }) {
               }}
               onPress={onPress}
             >
-              <View
+              <LinearGradient
+                colors={[colors.primary, colors.primaryLight || '#60A5FA']}
                 style={[
                   styles.clusterMarker,
-                  { backgroundColor: colors.primary, borderColor: colors.primaryLight },
+                  { borderColor: 'rgba(255,255,255,0.4)' },
                 ]}
               >
                 <Text style={styles.clusterText}>{points}</Text>
-              </View>
+              </LinearGradient>
             </Marker>
           );
         }}
@@ -210,11 +233,11 @@ export default function MapScreen({ navigation }) {
                 onPress={() => handleMarkerPress(c)}
               >
                 <View
-                  style={[styles.markerPin, { backgroundColor: PIN_COLORS[c.status] || '#8899BB' }]}
+                  style={[styles.markerPin, { backgroundColor: PIN_COLORS[c.status] || '#8899BB', borderColor: 'rgba(255,255,255,0.8)' }]}
                 >
                   <Ionicons
                     name={getCategoryConfig(colors)[c.category]?.icon || 'alert-circle'}
-                    size={14}
+                    size={16}
                     color="#fff"
                   />
                 </View>
@@ -648,27 +671,28 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopLeftRadius: moderateScale(20),
-    borderTopRightRadius: moderateScale(20),
+    borderTopLeftRadius: moderateScale(32),
+    borderTopRightRadius: moderateScale(32),
     borderTopWidth: 1,
     paddingBottom: verticalScale(36),
-    paddingTop: verticalScale(12),
+    paddingTop: verticalScale(14),
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: -6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
       },
-      android: { elevation: 10 },
+      android: { elevation: 20 },
     }),
   },
   bottomSheetHandle: {
-    width: scale(36),
-    height: verticalScale(4),
-    borderRadius: scale(2),
+    width: scale(48),
+    height: verticalScale(5),
+    borderRadius: scale(3),
     alignSelf: 'center',
-    marginBottom: verticalScale(14),
+    marginBottom: verticalScale(16),
+    opacity: 0.6,
   },
   bottomSheetContent: {
     flexDirection: 'row',
@@ -678,13 +702,17 @@ const styles = StyleSheet.create({
   },
   bsLeft: { flex: 1, flexDirection: 'row', gap: scale(12), alignItems: 'flex-start' },
   bsIcon: {
-    width: scale(44),
-    height: scale(44),
-    borderRadius: moderateScale(12),
+    width: scale(48),
+    height: scale(48),
+    borderRadius: moderateScale(16),
     alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 },
+      android: { elevation: 2 },
+    }),
   },
-  bsTitle: { fontSize: rf(15), fontWeight: '700', marginBottom: verticalScale(5) },
+  bsTitle: { fontSize: rf(16), fontWeight: '800', marginBottom: verticalScale(6) },
   bsMeta: {
     flexDirection: 'row',
     alignItems: 'center',

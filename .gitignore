@@ -111,3 +111,6 @@ backend/uploads/*
 # Database & Backups
 *.sql
 backups/
+# Deployment Docs
+deployment.md
+backend/.env.production

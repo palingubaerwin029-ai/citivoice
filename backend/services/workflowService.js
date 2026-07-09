@@ -149,7 +149,7 @@ const checkSLABreaches = async (io) => {
       
       // Update concern priority if not High
       if (assignment.priority !== 'High') {
-        await concernModel.updateConcernFields(assignment.concern_id, ['priority = ?', 'updated_at = NOW()'], ['High', assignment.concern_id]);
+        await concernModel.updateConcernFields(assignment.concern_id, ['priority = ?', 'updated_at = NOW()'], ['High']);
       }
 
       await logAudit('assignment', assignment.id, 'sla_breached_escalated', null, 'System', { status: assignment.status }, { status: 'escalated' });

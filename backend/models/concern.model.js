@@ -121,7 +121,7 @@ const selectConcernWithUser = async (id) => {
 };
 
 const updateConcernFields = async (id, fields, values) => {
-  await pool.query(`UPDATE concerns SET ${fields.join(', ')} WHERE id = ?`, values);
+  await pool.query(`UPDATE concerns SET ${fields.join(', ')} WHERE id = ?`, [...values, id]);
 };
 
 const selectConcernImageUrl = async (id) => {

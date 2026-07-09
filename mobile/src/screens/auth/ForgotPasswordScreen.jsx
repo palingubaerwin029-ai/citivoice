@@ -102,13 +102,14 @@ export default function ForgotPasswordScreen({ navigation }) {
       <View style={[S.glowBlob, { backgroundColor: colors.primary }]} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
         style={{ flex: 1 }}
       >
         <ScrollView
+          style={{ flex: 1 }}
           contentContainerStyle={S.scroll}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
         >
           {/* Back button */}

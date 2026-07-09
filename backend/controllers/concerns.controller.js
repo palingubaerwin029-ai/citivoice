@@ -219,7 +219,7 @@ const createConcern = async (req, res) => {
           await updateConcernFields(
             insertId, 
             ['status = ?', 'admin_note = ?', 'updated_at = NOW()'], 
-            ['Resolved', adminNote, insertId]
+            ['Resolved', adminNote]
           );
           
           console.log(`[AI] Auto-merged duplicate concern #${insertId} with original #${originalConcernId}`);
@@ -312,7 +312,6 @@ const editConcern = async (req, res) => {
 
     if (!fields.length) return res.status(400).json({ error: 'Nothing to update' });
     fields.push('updated_at = NOW()');
-    values.push(req.params.id);
 
     await updateConcernFields(req.params.id, fields, values);
 
