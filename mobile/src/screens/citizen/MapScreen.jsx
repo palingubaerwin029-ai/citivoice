@@ -144,10 +144,10 @@ export default function MapScreen({ navigation }) {
     );
   };
 
-  // Filter and validate concerns that have valid coordinates
+  // Filter and validate concerns that have valid coordinates (supporting both original names and aliases)
   const pinnable = mapConcerns.filter((c) => {
-    const lat = safeCoord(c.location_lat);
-    const lng = safeCoord(c.location_lng);
+    const lat = safeCoord(c.location_lat ?? c.lat);
+    const lng = safeCoord(c.location_lng ?? c.lng);
     if (lat === null || lng === null) return false;
     if (statusFilter !== 'All' && c.status !== statusFilter) return false;
     return true;
@@ -155,8 +155,8 @@ export default function MapScreen({ navigation }) {
 
   const handleMarkerPress = useCallback((concern) => {
     setSelectedConcern(concern);
-    const rawLat = safeCoord(concern.location_lat);
-    const rawLng = safeCoord(concern.location_lng);
+    const rawLat = safeCoord(concern.location_lat ?? concern.lat);
+    const rawLng = safeCoord(concern.location_lng ?? concern.lng);
     if (rawLat !== null && rawLng !== null) {
       mapRef.current?.animateToRegion(
         {
@@ -222,8 +222,8 @@ export default function MapScreen({ navigation }) {
       >
         {mapReady &&
           pinnable.map((c) => {
-            const rawLat = safeCoord(c.location_lat);
-            const rawLng = safeCoord(c.location_lng);
+            const rawLat = safeCoord(c.location_lat ?? c.lat);
+            const rawLng = safeCoord(c.location_lng ?? c.lng);
             if (rawLat === null || rawLng === null) return null;
             const { lat, lng } = getJitteredCoord(rawLat, rawLng, c.id);
             return (
@@ -246,11 +246,11 @@ export default function MapScreen({ navigation }) {
           })}
 
         {/* The Exact True Location of the Selected Concern */}
-        {selectedConcern && safeCoord(selectedConcern.location_lat) !== null && (
+        {selectedConcern && safeCoord(selectedConcern.location_lat ?? selectedConcern.lat) !== null && (
           <Marker
             coordinate={{
-              latitude: safeCoord(selectedConcern.location_lat),
-              longitude: safeCoord(selectedConcern.location_lng),
+              latitude: safeCoord(selectedConcern.location_lat ?? selectedConcern.lat),
+              longitude: safeCoord(selectedConcern.location_lng ?? selectedConcern.lng),
             }}
             zIndex={999}
             anchor={{ x: 0.5, y: 0.5 }}
@@ -411,7 +411,7 @@ export default function MapScreen({ navigation }) {
         >
           <View style={[styles.bottomSheetHandle, { backgroundColor: colors.border }]} />
           <View style={styles.bottomSheetContent}>
-            <View style={styles.bsLeft}>
+            <TouchableOpacity style={styles.bsLeft} onPress={handleViewDetail} activeOpacity={0.7}>
               <View
                 style={[
                   styles.bsIcon,
@@ -453,7 +453,7 @@ export default function MapScreen({ navigation }) {
                   </Text>
                 ) : null}
               </View>
-            </View>
+            </TouchableOpacity>
 
             <View style={styles.bsActions}>
               <TouchableOpacity

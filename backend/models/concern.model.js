@@ -46,9 +46,9 @@ const countConcerns = async (userId = null, status = null, category = null) => {
 };
 
 const selectMapConcerns = async () => {
-  // Only lightweight data for map markers
+  // Only lightweight data for map markers (supporting both raw column names and aliases)
   const [rows] = await pool.query(
-    'SELECT id, title, location_lat as lat, location_lng as lng, status, category FROM concerns WHERE location_lat IS NOT NULL'
+    'SELECT id, title, location_lat, location_lng, location_lat as lat, location_lng as lng, status, category FROM concerns WHERE location_lat IS NOT NULL'
   );
   return rows;
 };
