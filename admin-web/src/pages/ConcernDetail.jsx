@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api, fmtDate, fmtDateShort, resolveImageUrl } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useChatbot } from '../context/ChatbotContext';
 import s from '../styles/Admin.module.css';
 import cd from '../styles/ConcernDetail.module.css';
 
@@ -40,7 +39,7 @@ export default function ConcernDetail() {
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const { setContextData } = useChatbot();
+
 
   // AI Features state
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -73,12 +72,7 @@ export default function ConcernDetail() {
         setComments(comData || []);
         setAuditLog(audData || []);
 
-        setContextData({
-          page: 'ConcernDetail',
-          concern: cData,
-          assignments: aData,
-          comments: comData
-        });
+
 
         // After loading concern, load similar ones
         if (cData.id) loadSimilarConcerns(cData.id);

@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: citivoice-backend
+    restart: always
+    env_file:
+      - ./backend/.env
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/uploads:/usr/src/app/uploads
+
+  admin-web:
+    build:
+      context: ./admin-web
+      args:
+        REACT_APP_API_URL: /api
+    container_name: citivoice-admin
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    container_name: citivoice-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/production.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+      - admin-web

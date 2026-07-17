@@ -36,7 +36,6 @@ citivoice/
 ## 🚀 Key Features
 
 ### 🤖 Artificial Intelligence (Groq & Llama 3.3)
-- **Context-Aware AI Assistant** — Dynamic chatbot widget utilizing Meta's `llama-3.3-70b-versatile` via the `groq-sdk` for near-instant responses, complying with regional rules.
 - **Smart Categorization & Routing** — Automatically classifies reports into appropriate categories (e.g., Electrical, Flood) using natural language processing.
 - **Context-Aware Sentiment Analysis** — Detects urgency and user frustration levels to prioritize concerns.
 - **Localized Understanding** — Trained to understand local dialects and terminology (e.g., Hiligaynon words like 'baha', 'ilog hilabangan' for Kabankalan City).
@@ -139,13 +138,11 @@ citivoice/
 │   │   ├── users.js              # User management & verification
 │   │   ├── concerns.js           # CRUD for civic concerns
 │   │   ├── barangays.js          # Barangay management
-│   │   ├── chatbot.js            # Dynamic chatbot endpoints
 │   │   ├── workflow.js           # SLA escalation commands
 │   │   └── notifications.js      # Push notifications
 │   ├── services/
 │   │   ├── notificationService.js  # Email & SMS dispatch
 │   │   ├── groqService.js        # Groq Llama 3.3 AI processing engine
-│   │   ├── chatbotService.js     # Context-aware chat session manager
 │   │   └── workflowService.js    # SLA escalation cron & audit logging service
 │   ├── apply-indexes.js          # Custom script to build MySQL performance indexes
 │   ├── db.js                     # MySQL connection pool
@@ -183,8 +180,7 @@ citivoice/
 │       │   │   ├── Concerndetailscreen.js
 │       │   │   ├── Mapscreen.js
 │       │   │   ├── NotificationsScreen.js
-│       │   │   ├── Profilescreen.js
-│       │   │   └── ChatScreen.jsx    # Dynamically styled AI Chatbot screen
+│       │   │   └── Profilescreen.js
 │       │   └── admin/
 │       │       ├── Admindashboardscreen.js
 │       │       ├── Adminconcernsscreen.js
@@ -232,8 +228,6 @@ All routes are prefixed with `/api`.
 | `PUT` | `/api/barangays/:id` | Update a barangay (admin) |
 | `DELETE` | `/api/barangays/:id` | Delete a barangay (admin) |
 | `GET` | `/api/notifications` | Get user notifications |
-| `POST` | `/api/chatbot/message` | Send message to AI Assistant |
-| `GET` | `/api/chatbot/:token` | Fetch chat history for user session |
 | `POST` | `/api/workflow/check-sla` | Manually run SLA escalation checks |
 | `GET` | `/api/health` | Health check |
 

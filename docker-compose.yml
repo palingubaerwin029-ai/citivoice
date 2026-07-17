@@ -21,6 +21,7 @@ services:
       - ./backend/.env
     environment:
       DB_HOST: database
+      DB_PASSWORD: root
     ports:
       - "5000:5000"
     volumes:
@@ -47,7 +48,7 @@ services:
     build:
       context: ./admin-web
       args:
-        REACT_APP_API_URL: http://localhost:5000/api
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:5000/api}
     container_name: citivoice-admin
     restart: always
     ports:

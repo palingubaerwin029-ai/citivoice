@@ -18,7 +18,6 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useNotifications } from '../../context/NotificationContext';
 import * as Haptics from 'expo-haptics';
 import ConcernCard from '../../components/ConcernCard';
-import AdminChatIcon from '../../components/AdminChatIcon';
 import { EmptyState, StatCard, Skeleton } from '../../components/UI';
 import { RADIUS, SHADOWS, STATUS_CONFIG } from '../../utils/theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -168,13 +167,6 @@ export default function HomeScreen({ navigation }) {
                 </Text>
               </View>
               <View style={S.headerActions}>
-                <TouchableOpacity
-                  style={S.bellBtn}
-                  onPress={() => navigation.navigate('Chat')}
-                >
-                  <AdminChatIcon size={22} color={colors.primary} />
-                </TouchableOpacity>
-
                 <TouchableOpacity
                   style={S.bellBtn}
                   onPress={() => navigation.navigate('Notifications')}
