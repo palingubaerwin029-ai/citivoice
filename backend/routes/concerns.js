@@ -36,7 +36,7 @@ router.post('/', auth, upload.single('image'), validateConcern, createConcern);
 router.post('/analyze', auth, analyzeConcernDraft);
 
 // ─── Update concern (admin only: status, admin_note) ──────────────────────────
-router.put('/:id', auth, requireRole('admin'), validateIdParam, editConcern);
+router.put('/:id', auth, requireRole('admin'), upload.single('image'), validateIdParam, editConcern);
 
 // ─── Delete concern (admin or owner) ──────────────────────────────────────────
 router.delete('/:id', auth, validateIdParam, removeConcern);

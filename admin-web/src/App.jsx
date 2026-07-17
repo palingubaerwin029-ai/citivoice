@@ -14,6 +14,8 @@ import Login from './pages/Login';
 import Verification from './pages/Verification';
 import Barangays from './pages/Barangays';
 import ToastProvider from './components/ToastProvider';
+import { ChatbotProvider } from './context/ChatbotContext';
+import ChatWidget from './components/ChatWidget';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -75,29 +77,32 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <BrowserRouter>
-        <div style={styles.layout}>
-          <Sidebar
-            user={user}
-            onLogout={handleLogout}
-            theme={theme}
-            onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          />
-          <main style={styles.main}>
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/concerns" element={<Concerns />} />
-              <Route path="/concerns/:id" element={<ConcernDetail />} />
-              <Route path="/map" element={<MapView />} />
-              <Route path="/verification" element={<Verification />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/barangays" element={<Barangays />} />
-            </Routes>
-          </main>
-        </div>
-      </BrowserRouter>
+      <ChatbotProvider>
+        <BrowserRouter>
+          <div style={styles.layout}>
+            <Sidebar
+              user={user}
+              onLogout={handleLogout}
+              theme={theme}
+              onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            />
+            <main style={styles.main}>
+              <Routes>
+                <Route path="/" element={<Navigate to="/dashboard" />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/concerns" element={<Concerns />} />
+                <Route path="/concerns/:id" element={<ConcernDetail />} />
+                <Route path="/map" element={<MapView />} />
+                <Route path="/verification" element={<Verification />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/barangays" element={<Barangays />} />
+              </Routes>
+            </main>
+            <ChatWidget />
+          </div>
+        </BrowserRouter>
+      </ChatbotProvider>
     </ToastProvider>
   );
 }

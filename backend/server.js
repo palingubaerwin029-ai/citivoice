@@ -140,6 +140,7 @@ app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/concerns', require('./routes/concerns'));
 app.use('/api/workflow', require('./routes/workflow'));
+app.use('/api/chatbot', require('./routes/chatbot'));
 app.use('/api/barangays', require('./routes/barangays'));
 app.use('/api/departments', require('./routes/departments'));
 app.use('/api/notifications', require('./routes/notifications'));

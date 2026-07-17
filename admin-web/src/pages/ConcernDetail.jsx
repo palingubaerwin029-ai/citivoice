@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api, fmtDate, fmtDateShort, resolveImageUrl } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useChatbot } from '../context/ChatbotContext';
 import s from '../styles/Admin.module.css';
 import cd from '../styles/ConcernDetail.module.css';
 
@@ -39,7 +40,21 @@ export default function ConcernDetail() {
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { setContextData } = useChatbot();
 
+  // Proof of resolution states
+  const [resolvedFile, setResolvedFile] = useState(null);
+  const [resolvedPreview, setResolvedPreview] = useState(null);
+  const [clearResolvedImage, setClearResolvedImage] = useState(false);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setResolvedFile(file);
+      setResolvedPreview(URL.createObjectURL(file));
+      setClearResolvedImage(false);
+    }
+  };
 
   // AI Features state
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -72,13 +87,22 @@ export default function ConcernDetail() {
         setComments(comData || []);
         setAuditLog(audData || []);
 
-
+        setContextData({
+          page: 'ConcernDetail',
+          concern: cData,
+          assignments: aData,
+          comments: comData
+        });
 
         // After loading concern, load similar ones
         if (cData.id) loadSimilarConcerns(cData.id);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    return () => {
+      setContextData(null);
+    };
   }, [id]);
 
   const loadSimilarConcerns = (concernId) => {
@@ -96,13 +120,35 @@ export default function ConcernDetail() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put(`/concerns/${id}`, {
-        status: selStatus,
-        category: selCategory,
-        priority: selPriority,
-        admin_note: note.trim() || null,
-      });
+      let body;
+      const isMultipart = !!resolvedFile;
+
+      if (isMultipart) {
+        body = new FormData();
+        body.append('status', selStatus);
+        body.append('category', selCategory);
+        body.append('priority', selPriority);
+        if (note.trim()) {
+          body.append('admin_note', note.trim());
+        }
+        body.append('image', resolvedFile);
+      } else {
+        body = {
+          status: selStatus,
+          category: selCategory,
+          priority: selPriority,
+          admin_note: note.trim() || null,
+        };
+        if (clearResolvedImage) {
+          body.resolved_image_url = null;
+        }
+      }
+
+      await api.put(`/concerns/${id}`, body);
       setSaved(true);
+      setResolvedFile(null);
+      setResolvedPreview(null);
+      setClearResolvedImage(false);
       setTimeout(() => setSaved(false), 3000);
       // Refetch to sync
       const updated = await api.get(`/concerns/${id}`);
@@ -183,7 +229,9 @@ export default function ConcernDetail() {
     selStatus !== concern.status ||
     selCategory !== concern.category ||
     selPriority !== concern.priority ||
-    note !== (concern.admin_note || '');
+    note !== (concern.admin_note || '') ||
+    clearResolvedImage ||
+    !!resolvedFile;
 
   const buildTimeline = (c) => {
     const steps = [{ event: 'Concern submitted', date: fmtDateShort(c.created_at) }];
@@ -333,6 +381,21 @@ export default function ConcernDetail() {
             </div>
           )}
 
+          {/* Resolved Proof Image */}
+          {concern.resolved_image_url && (
+            <div className={s.card}>
+              <div className={s.cardHeader} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 16 }}>✅</span>
+                <span className={s.cardTitle}>Resolution Proof Photo</span>
+              </div>
+              <img
+                src={resolveImageUrl(concern.resolved_image_url)}
+                alt="Resolution Proof"
+                style={{ width: '100%', maxHeight: 280, objectFit: 'cover' }}
+              />
+            </div>
+          )}
+
           {/* Location */}
           {concern.location_address && (
             <div className={s.card}>
@@ -456,6 +519,112 @@ export default function ConcernDetail() {
               >
                 {note.length} chars
               </div>
+
+              {/* Proof of Resolution Image Upload */}
+              {(selStatus === 'Resolved' || concern.status === 'Resolved') && (
+                <div style={{ marginTop: 14, marginBottom: 14, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+                  <div className={s.sectionLabel} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    📸 Proof of Completion Image
+                  </div>
+                  
+                  {/* Current Proof Image */}
+                  {concern.resolved_image_url && !resolvedPreview && !clearResolvedImage && (
+                    <div style={{ position: 'relative', marginBottom: 10, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                      <img
+                        src={resolveImageUrl(concern.resolved_image_url)}
+                        alt="Resolution Proof"
+                        style={{ width: '100%', maxHeight: 180, objectFit: 'cover' }}
+                      />
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.6)', padding: '6px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, color: '#fff' }}>Current proof uploaded</span>
+                        <button
+                          type="button"
+                          className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
+                          style={{ color: '#ff4d4d', padding: '2px 8px', fontSize: 11 }}
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to remove the current proof image?')) {
+                              setClearResolvedImage(true);
+                            }
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {clearResolvedImage && (
+                    <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      🗑 Current proof image will be deleted on save.
+                      <button
+                        type="button"
+                        style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', fontSize: 12 }}
+                        onClick={() => setClearResolvedImage(false)}
+                      >
+                        Undo
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Selected Preview */}
+                  {resolvedPreview && (
+                    <div style={{ position: 'relative', marginBottom: 10, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--primary)' }}>
+                      <img
+                        src={resolvedPreview}
+                        alt="Resolution Proof Preview"
+                        style={{ width: '100%', maxHeight: 180, objectFit: 'cover' }}
+                      />
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.6)', padding: '6px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, color: '#fff' }}>New proof selected</span>
+                        <button
+                          type="button"
+                          className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
+                          style={{ color: '#ff4d4d', padding: '2px 8px', fontSize: 11 }}
+                          onClick={() => {
+                            setResolvedFile(null);
+                            setResolvedPreview(null);
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* File Input */}
+                  <label
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px dashed var(--border)',
+                      borderRadius: 10,
+                      padding: '16px 12px',
+                      cursor: 'pointer',
+                      background: 'var(--surface-2)',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+                    onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+                  >
+                    <span style={{ fontSize: 24, marginBottom: 4 }}>📤</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>
+                      {resolvedFile ? 'Change Proof Image' : 'Upload Proof Image'}
+                    </span>
+                    <span style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+                      PNG, JPG or WEBP (Max 10MB)
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleFileChange}
+                    />
+                  </label>
+                </div>
+              )}
+
               {saved ? (
                 <div className={s.successBanner}>
                   <span>✅</span> Changes saved successfully!

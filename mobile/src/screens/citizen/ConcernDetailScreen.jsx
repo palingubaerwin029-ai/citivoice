@@ -36,7 +36,7 @@ export default function ConcernDetailScreen({ route, navigation }) {
   const isOwner = concern?.user_id === user?.id;
   const canDelete = isOwner && concern?.status === 'Pending';
   const isUpvoted = false;
-  const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [modalImageUri, setModalImageUri] = useState(null);
 
   // Workflow state
   const [assignments, setAssignments] = useState([]);
@@ -157,7 +157,7 @@ export default function ConcernDetailScreen({ route, navigation }) {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Image */}
         {concern.image_url ? (
-          <TouchableOpacity activeOpacity={0.9} onPress={() => setImageModalVisible(true)}>
+          <TouchableOpacity activeOpacity={0.9} onPress={() => setModalImageUri(resolveImageUrl(concern.image_url))}>
             <Image source={{ uri: resolveImageUrl(concern.image_url) }} style={styles.heroImage} />
           </TouchableOpacity>
         ) : (
@@ -355,6 +355,30 @@ export default function ConcernDetailScreen({ route, navigation }) {
             </View>
           )}
 
+          {/* Proof of Resolution */}
+          {concern.resolved_image_url && (
+            <View style={[styles.section, styles.adminNoteCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+              <View style={styles.adminNoteHeader}>
+                <Ionicons name="checkmark-circle-outline" size={16} color={colors.statusResolved} />
+                <Text style={[styles.adminNoteTitle, { color: colors.statusResolved }]}>
+                  Proof of Completion
+                </Text>
+              </View>
+              <TouchableOpacity activeOpacity={0.9} onPress={() => setModalImageUri(resolveImageUrl(concern.resolved_image_url))}>
+                <Image 
+                  source={{ uri: resolveImageUrl(concern.resolved_image_url) }} 
+                  style={{
+                    width: '100%',
+                    height: verticalScale(200),
+                    borderRadius: moderateScale(10),
+                    marginTop: verticalScale(4),
+                    resizeMode: 'cover'
+                  }} 
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Timeline */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
@@ -492,10 +516,10 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
       {/* ── Fullscreen Image Modal ── */}
       <Modal
-        visible={imageModalVisible}
+        visible={!!modalImageUri}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setImageModalVisible(false)}
+        onRequestClose={() => setModalImageUri(null)}
       >
         <View
           style={{
@@ -515,7 +539,7 @@ export default function ConcernDetailScreen({ route, navigation }) {
               backgroundColor: 'rgba(255,255,255,0.1)',
               borderRadius: scale(20),
             }}
-            onPress={() => setImageModalVisible(false)}
+            onPress={() => setModalImageUri(null)}
           >
             <Ionicons name="close" size={28} color="#fff" />
           </TouchableOpacity>
@@ -527,10 +551,12 @@ export default function ConcernDetailScreen({ route, navigation }) {
             showsVerticalScrollIndicator={false}
             centerContent
           >
-            <Image
-              source={{ uri: resolveImageUrl(concern.image_url) }}
-              style={{ width: scale(350), height: verticalScale(500), resizeMode: 'contain' }}
-            />
+            {modalImageUri && (
+              <Image
+                source={{ uri: modalImageUri }}
+                style={{ width: scale(350), height: verticalScale(500), resizeMode: 'contain' }}
+              />
+            )}
           </ScrollView>
         </View>
       </Modal>

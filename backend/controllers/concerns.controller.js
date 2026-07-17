@@ -272,6 +272,30 @@ const editConcern = async (req, res) => {
 
     const fields = [];
     const values = [];
+
+    if (req.file) {
+      const resolved_image_url = `${BASE_URL()}/uploads/${req.file.filename}`;
+      fields.push('resolved_image_url = ?');
+      values.push(resolved_image_url);
+
+      try {
+        const existingConcern = await selectConcernById(req.params.id);
+        if (existingConcern && existingConcern.resolved_image_url) {
+          deleteImageFile(existingConcern.resolved_image_url);
+        }
+      } catch (e) {
+        console.error('Error deleting old resolved image:', e);
+      }
+    } else if (req.body.resolved_image_url === null || req.body.resolved_image_url === 'null') {
+      fields.push('resolved_image_url = ?');
+      values.push(null);
+      try {
+        const existingConcern = await selectConcernById(req.params.id);
+        if (existingConcern && existingConcern.resolved_image_url) {
+          deleteImageFile(existingConcern.resolved_image_url);
+        }
+      } catch (e) {}
+    }
     if (status !== undefined) {
       fields.push('status = ?');
       values.push(status);

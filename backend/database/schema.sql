@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS concerns (
   priority         ENUM('High','Medium','Low')             NOT NULL DEFAULT 'Medium',
   status           ENUM('Pending','In Progress','Resolved','Rejected') NOT NULL DEFAULT 'Pending',
   image_url        TEXT                                    DEFAULT NULL,
+  resolved_image_url TEXT                                  DEFAULT NULL,
   location_address TEXT                                    DEFAULT NULL,
   location_lat     DECIMAL(10,7)                           DEFAULT NULL,
   location_lng     DECIMAL(10,7)                           DEFAULT NULL,
