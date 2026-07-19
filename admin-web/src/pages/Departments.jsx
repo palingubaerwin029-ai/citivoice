@@ -61,6 +61,8 @@ const EMPTY_FORM = {
   name: '',
   category: '',
   description: '',
+  email: '',
+  contact_phone: '',
 };
 
 export default function Departments() {
@@ -115,6 +117,8 @@ export default function Departments() {
         name: form.name.trim(),
         category: form.category || null,
         description: form.description.trim() || null,
+        email: form.email.trim() || null,
+        contact_phone: form.contact_phone.trim() || null,
       };
 
       if (editItem) {
@@ -149,6 +153,8 @@ export default function Departments() {
       name: item.name,
       category: item.category || '',
       description: item.description || '',
+      email: item.email || '',
+      contact_phone: item.contact_phone || '',
     });
     setShowForm(true);
   };
@@ -217,6 +223,23 @@ export default function Departments() {
                       <p className={dept.description ? styles.deptDesc : `${styles.deptDesc} ${s.emptyText}`}>
                         {dept.description || 'No description provided.'}
                       </p>
+
+                      {/* Official Contact Info */}
+                      <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--text-2)' }}>
+                        {dept.email && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span>📧</span>
+                            <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{dept.email}</span>
+                          </div>
+                        )}
+                        {dept.contact_phone && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span>📞</span>
+                            <span>{dept.contact_phone}</span>
+                          </div>
+                        )}
+                      </div>
+
                       {dept.category && (
                         <div style={{ marginBottom: 16 }}>
                           <span style={{ fontSize: 11, textTransform: 'uppercase', color: '#8899BB', marginRight: 8, fontWeight: 700 }}>AI Mapping:</span>
@@ -296,6 +319,27 @@ export default function Departments() {
                 placeholder="e.g. Health & Sanitation Dept"
                 autoFocus
                 required
+              />
+
+              <label className={styles.label}>Official Notification Email</label>
+              <input
+                type="email"
+                className={styles.input}
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="e.g. engineering@kabankalancity.gov.ph"
+              />
+              <small style={{ color: '#8899BB', fontSize: 11, marginTop: -4, marginBottom: 8 }}>
+                Approved concerns will automatically dispatch official email notifications to this address.
+              </small>
+
+              <label className={styles.label}>Contact Phone Number</label>
+              <input
+                type="text"
+                className={styles.input}
+                value={form.contact_phone}
+                onChange={(e) => setForm((f) => ({ ...f, contact_phone: e.target.value }))}
+                placeholder="e.g. (053) 471-2000"
               />
 
               <label className={styles.label}>AI Auto-Routing Category</label>

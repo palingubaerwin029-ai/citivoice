@@ -26,7 +26,7 @@ const listDepartments = async (req, res) => {
 };
 
 const createDepartment = async (req, res) => {
-  const { name, category, description } = req.body;
+  const { name, category, description, email, contact_phone } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Department name is required' });
   }
@@ -45,8 +45,10 @@ const createDepartment = async (req, res) => {
       name: name.trim(),
       category: category || null,
       description: description || null,
+      email: email || null,
+      contact_phone: contact_phone || null,
     });
-    res.status(201).json({ id, name: name.trim(), category: category || null, description: description || null });
+    res.status(201).json({ id, name: name.trim(), category: category || null, description: description || null, email: email || null, contact_phone: contact_phone || null });
   } catch (err) {
     console.error('createDepartment error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -54,7 +56,7 @@ const createDepartment = async (req, res) => {
 };
 
 const editDepartment = async (req, res) => {
-  const { name, category, description } = req.body;
+  const { name, category, description, email, contact_phone } = req.body;
   const { id } = req.params;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Department name is required' });
@@ -78,8 +80,10 @@ const editDepartment = async (req, res) => {
       name: name.trim(),
       category: category || null,
       description: description || null,
+      email: email || null,
+      contact_phone: contact_phone || null,
     });
-    res.json({ id: parseInt(id), name: name.trim(), category: category || null, description: description || null });
+    res.json({ id: parseInt(id), name: name.trim(), category: category || null, description: description || null, email: email || null, contact_phone: contact_phone || null });
   } catch (err) {
     console.error('editDepartment error:', err);
     res.status(500).json({ error: 'Internal server error' });

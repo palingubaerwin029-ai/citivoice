@@ -183,7 +183,34 @@ const logAudit = async (entityType, entityId, action, changedBy, changedByName, 
   }
 };
 
+/**
+ * Reusable helper to resolve department string based on database mappings or AI fallbacks.
+ */
+const { selectDepartmentByCategory } = require('../models/department.model');
+const { routeToDepartment } = require('./aiService');
+
+const resolveDepartmentForConcern = async (category, priority) => {
+  try {
+    const dbDept = await selectDepartmentByCategory(category);
+    if (dbDept) {
+      const team = priority === 'High' ? 'Emergency Response Unit' : priority === 'Medium' ? 'Maintenance Division' : 'General Queue';
+      return `${dbDept.name} — ${team}`;
+    }
+    const routing = routeToDepartment(category, priority);
+    return `${routing.department} — ${routing.team}`;
+  } catch (e) {
+    console.error('Department Resolution Error:', e);
+    try {
+      const routing = routeToDepartment(category, priority);
+      return `${routing.department} — ${routing.team}`;
+    } catch (_) {
+      return 'City Admin Office — General Queue';
+    }
+  }
+};
+
 module.exports = {
+  resolveDepartmentForConcern,
   autoAssign,
   reassignConcern,
   notifyAssignedAdmin,

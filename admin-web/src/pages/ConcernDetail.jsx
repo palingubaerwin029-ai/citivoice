@@ -61,31 +61,54 @@ export default function ConcernDetail() {
   const [similarConcerns, setSimilarConcerns] = useState([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
 
-  // Workflow state
+  // Workflow & Executive Approval state
   const [assignments, setAssignments] = useState([]);
   const [comments, setComments] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [isInternalComment, setIsInternalComment] = useState(true);
+  const [targetDeptComment, setTargetDeptComment] = useState('');
   const [addingComment, setAddingComment] = useState(false);
+
+  // Approval & Email state
+  const [approvalNotes, setApprovalNotes] = useState('');
+  const [approvalTargetDept, setApprovalTargetDept] = useState('');
+  const [approving, setApproving] = useState(false);
+  const [approvalSuccess, setApprovalSuccess] = useState(null);
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([
+    Promise.allSettled([
       api.get(`/concerns/${id}`),
       api.get(`/concerns/${id}/assignments`),
       api.get(`/concerns/${id}/comments`),
-      api.get(`/concerns/${id}/audit`)
+      api.get(`/concerns/${id}/audit`),
+      api.get('/departments')
     ])
-      .then(([cData, aData, comData, audData]) => {
+      .then(([cRes, aRes, comRes, audRes, deptRes]) => {
+        const cData = cRes.status === 'fulfilled' ? cRes.value : null;
+        const aData = aRes.status === 'fulfilled' ? aRes.value : [];
+        const comData = comRes.status === 'fulfilled' ? comRes.value : [];
+        const audData = audRes.status === 'fulfilled' ? audRes.value : [];
+        const deptList = deptRes.status === 'fulfilled' ? deptRes.value : [];
+
+        if (!cData) {
+          console.error('Failed to load concern:', cRes.reason);
+          return;
+        }
+
         setConcern(cData);
         setSelStatus(cData.status || 'Pending');
         setSelCategory(cData.category || 'Other');
         setSelPriority(cData.priority || 'Medium');
         setNote(cData.admin_note || '');
+        setApprovalNotes(cData.approval_notes || 'Approved for immediate evaluation and action.');
+        setApprovalTargetDept(cData.department || (deptList && deptList[0]?.name) || 'City Engineering Office');
         setAssignments(aData || []);
         setComments(comData || []);
         setAuditLog(audData || []);
+        setDepartments(deptList || []);
 
         setContextData({
           page: 'ConcernDetail',
@@ -172,15 +195,45 @@ export default function ConcernDetail() {
     setAiGenerating(false);
   };
 
+  const handleApproveAndDispatch = async () => {
+    setApproving(true);
+    setApprovalSuccess(null);
+    try {
+      const res = await api.post(`/concerns/${id}/approve`, {
+        approval_notes: approvalNotes.trim(),
+        target_department: approvalTargetDept
+      });
+      if (res.success) {
+        setConcern(res.concern);
+        setSelStatus(res.concern.status || 'In Progress');
+        setApprovalSuccess(`✅ Concern Approved! Email notice dispatched to ${res.department_notified}.`);
+        
+        // Refresh audit log & assignments
+        const [newAudit, newAssignments] = await Promise.all([
+          api.get(`/concerns/${id}/audit`),
+          api.get(`/concerns/${id}/assignments`)
+        ]);
+        setAuditLog(newAudit || []);
+        setAssignments(newAssignments || []);
+      }
+    } catch (err) {
+      alert('Failed to approve concern: ' + (err.message || 'Unknown error'));
+    } finally {
+      setApproving(false);
+    }
+  };
+
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
     setAddingComment(true);
     try {
       await api.post(`/concerns/${id}/comments`, {
         comment: newComment.trim(),
-        is_internal: isInternalComment
+        is_internal: isInternalComment,
+        target_department: targetDeptComment || null,
       });
       setNewComment('');
+      setTargetDeptComment('');
       const updatedComments = await api.get(`/concerns/${id}/comments`);
       setComments(updatedComments || []);
     } catch (err) {
@@ -381,20 +434,51 @@ export default function ConcernDetail() {
             </div>
           )}
 
-          {/* Resolved Proof Image */}
-          {concern.resolved_image_url && (
-            <div className={s.card}>
-              <div className={s.cardHeader} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 16 }}>✅</span>
-                <span className={s.cardTitle}>Resolution Proof Photo</span>
+          {/* Proof Photo — admin-attached work/resolution photo */}
+          {concern.resolved_image_url && (() => {
+            const isResolved = concern.status === 'Resolved';
+            const proofIcon = isResolved ? '✅' : '📸';
+            const proofLabel = isResolved ? 'Proof of Completion' : 'Work-in-Progress Photo';
+            const proofSub = isResolved
+              ? 'Photo attached by admin confirming work is done'
+              : 'Photo attached by admin showing current work status';
+            return (
+              <div className={s.card}>
+                <div className={s.cardHeader} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 16 }}>{proofIcon}</span>
+                  <div style={{ flex: 1 }}>
+                    <span className={s.cardTitle}>{proofLabel}</span>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{proofSub}</div>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      padding: '2px 8px',
+                      borderRadius: 99,
+                      background: isResolved ? 'rgba(16,185,129,0.12)' : 'rgba(59,130,246,0.12)',
+                      color: isResolved ? '#10B981' : '#3B82F6',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {isResolved ? 'Resolved' : concern.status}
+                  </span>
+                </div>
+                <a href={resolveImageUrl(concern.resolved_image_url)} target="_blank" rel="noreferrer" style={{ display: 'block' }}>
+                  <img
+                    src={resolveImageUrl(concern.resolved_image_url)}
+                    alt="Proof Photo"
+                    style={{ width: '100%', maxHeight: 300, objectFit: 'cover', cursor: 'zoom-in', transition: 'opacity 0.2s' }}
+                    onMouseOver={e => e.currentTarget.style.opacity = '0.88'}
+                    onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                  />
+                </a>
+                <div style={{ padding: '8px 16px', fontSize: 11, color: 'var(--text-3)', borderTop: '1px solid var(--border)' }}>
+                  🔗 Click image to open full size · Visible to the citizen in the mobile app
+                </div>
               </div>
-              <img
-                src={resolveImageUrl(concern.resolved_image_url)}
-                alt="Resolution Proof"
-                style={{ width: '100%', maxHeight: 280, objectFit: 'cover' }}
-              />
-            </div>
-          )}
+            );
+          })()}
+
 
           {/* Location */}
           {concern.location_address && (
@@ -453,181 +537,201 @@ export default function ConcernDetail() {
           </div>
         </div>
 
-        {/* ── Right: Admin panel ── */}
+        {/* ── Right: Integrated Executive Action Hub ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Update status */}
-          <div className={s.card}>
-            <div className={s.cardHeader}>
-              <span className={s.cardTitle}>Update Status</span>
+          
+          {/* Integrated Action Hub */}
+          <div className={s.card} style={{ border: '1px solid rgba(59,130,246,0.4)', background: 'var(--surface-1)' }}>
+            <div className={s.cardHeader} style={{ borderBottom: '1px solid var(--border)' }}>
+              <span className={s.cardTitle} style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                🏛️ Executive Action & Response Hub
+              </span>
+              <span style={{ fontSize: 10, background: 'rgba(59,130,246,0.15)', color: 'var(--primary)', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>
+                Unified Controls
+              </span>
             </div>
-            <div style={{ padding: '14px 16px' }} className={cd.statusGrid}>
-              {STATUSES.map((st) => {
-                const active = selStatus === st.key;
-                const c = SC[st.key];
-                return (
-                  <button
-                    key={st.key}
-                    className={`${cd.statusBtn} ${active ? cd.statusBtnActive : ''}`}
-                    style={{
-                      background: active ? c + '18' : 'var(--surface-3)',
-                      border: `1px solid ${active ? c : 'var(--border)'}`,
-                      color: active ? c : 'var(--text-2)',
-                    }}
-                    onClick={() => setSelStatus(st.key)}
-                  >
-                    <span>{st.icon}</span> {st.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Official response */}
-          <div className={s.card}>
-            <div className={s.cardHeader}>
-              <span className={s.cardTitle}>Official Response</span>
-              <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Visible to citizen</span>
-            </div>
-            <div style={{ padding: '14px 16px' }}>
-              {/* Feature 1: AI Generate Button */}
-              <button
-                onClick={handleAiGenerate}
-                disabled={aiGenerating}
-                className={`${cd.aiDraftBtn} ${aiGenerating ? cd.aiDraftBtnGenerating : ''}`}
-              >
-                {aiGenerating ? (
-                  <>
-                    <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>
-                      ⚙️
-                    </span>{' '}
-                    Generating...
-                  </>
-                ) : (
-                  <>✨ AI Draft Response</>
-                )}
-              </button>
-
-              <textarea
-                className={s.textarea}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="e.g. Road crew dispatched. Expected completion: Dec 15. Thank you for your report."
-                rows={5}
-              />
-              <div
-                style={{ fontSize: 11, color: 'var(--text-3)', textAlign: 'right', marginTop: 4 }}
-              >
-                {note.length} chars
-              </div>
-
-              {/* Proof of Resolution Image Upload */}
-              {(selStatus === 'Resolved' || concern.status === 'Resolved') && (
-                <div style={{ marginTop: 14, marginBottom: 14, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-                  <div className={s.sectionLabel} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    📸 Proof of Completion Image
+            <div style={{ padding: '16px' }}>
+              
+              {/* Executive Approval Badge & Dispatch */}
+              {concern.approved_at ? (
+                <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', padding: '10px 12px', borderRadius: 8, marginBottom: 16, fontSize: 12, color: 'var(--green)' }}>
+                  <strong>✅ Officially Approved</strong>
+                  <div style={{ marginTop: 2, fontSize: 11, opacity: 0.9 }}>
+                    Approved on {fmtDate(concern.approved_at)} by <strong>{concern.approved_by_name || "City Admin"}</strong>
                   </div>
-                  
-                  {/* Current Proof Image */}
-                  {concern.resolved_image_url && !resolvedPreview && !clearResolvedImage && (
-                    <div style={{ position: 'relative', marginBottom: 10, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
-                      <img
-                        src={resolveImageUrl(concern.resolved_image_url)}
-                        alt="Resolution Proof"
-                        style={{ width: '100%', maxHeight: 180, objectFit: 'cover' }}
-                      />
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.6)', padding: '6px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 11, color: '#fff' }}>Current proof uploaded</span>
-                        <button
-                          type="button"
-                          className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
-                          style={{ color: '#ff4d4d', padding: '2px 8px', fontSize: 11 }}
-                          onClick={() => {
-                            if (window.confirm('Are you sure you want to remove the current proof image?')) {
-                              setClearResolvedImage(true);
-                            }
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {clearResolvedImage && (
-                    <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      🗑 Current proof image will be deleted on save.
-                      <button
-                        type="button"
-                        style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', fontSize: 12 }}
-                        onClick={() => setClearResolvedImage(false)}
-                      >
-                        Undo
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Selected Preview */}
-                  {resolvedPreview && (
-                    <div style={{ position: 'relative', marginBottom: 10, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--primary)' }}>
-                      <img
-                        src={resolvedPreview}
-                        alt="Resolution Proof Preview"
-                        style={{ width: '100%', maxHeight: 180, objectFit: 'cover' }}
-                      />
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.6)', padding: '6px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 11, color: '#fff' }}>New proof selected</span>
-                        <button
-                          type="button"
-                          className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
-                          style={{ color: '#ff4d4d', padding: '2px 8px', fontSize: 11 }}
-                          onClick={() => {
-                            setResolvedFile(null);
-                            setResolvedPreview(null);
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* File Input */}
-                  <label
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: '2px dashed var(--border)',
-                      borderRadius: 10,
-                      padding: '16px 12px',
-                      cursor: 'pointer',
-                      background: 'var(--surface-2)',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
-                    onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
-                  >
-                    <span style={{ fontSize: 24, marginBottom: 4 }}>📤</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>
-                      {resolvedFile ? 'Change Proof Image' : 'Upload Proof Image'}
-                    </span>
-                    <span style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
-                      PNG, JPG or WEBP (Max 10MB)
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      onChange={handleFileChange}
-                    />
-                  </label>
+                </div>
+              ) : (
+                <div style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)', padding: '12px', borderRadius: 8, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)' }}>⚡ Fast-Track Executive Approval</span>
+                    <button
+                      className={`${s.btn} ${s.btnPrimary} ${s.btnSm}`}
+                      style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}
+                      onClick={handleApproveAndDispatch}
+                      disabled={approving}
+                    >
+                      {approving ? 'Processing...' : '⚡ Approve & Email Department'}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6 }}>
+                    Approving automatically alerts the assigned department office email.
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <select
+                      className={s.select}
+                      style={{ fontSize: 11, padding: '4px 8px', flex: 1 }}
+                      value={approvalTargetDept}
+                      onChange={(e) => setApprovalTargetDept(e.target.value)}
+                    >
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.name}>
+                          Target: {d.name} {d.email ? `(${d.email})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
 
+              {approvalSuccess && (
+                <div className={s.successBanner} style={{ marginBottom: 14 }}>
+                  {approvalSuccess}
+                </div>
+              )}
+
+              {/* Status Selector */}
+              <div style={{ marginBottom: 14 }}>
+                <div className={s.sectionLabel} style={{ marginBottom: 6 }}>Set Concern Status</div>
+                <div className={cd.statusGrid}>
+                  {STATUSES.map((st) => {
+                    const active = selStatus === st.key;
+                    const c = SC[st.key];
+                    return (
+                      <button
+                        key={st.key}
+                        className={`${cd.statusBtn} ${active ? cd.statusBtnActive : ''}`}
+                        style={{
+                          background: active ? c + '18' : 'var(--surface-3)',
+                          border: `1px solid ${active ? c : 'var(--border)'}`,
+                          color: active ? c : 'var(--text-2)',
+                        }}
+                        onClick={() => setSelStatus(st.key)}
+                      >
+                        <span>{st.icon}</span> {st.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Official Citizen Response */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span className={s.sectionLabel}>Official Response (Visible to citizen)</span>
+                  <button
+                    onClick={handleAiGenerate}
+                    disabled={aiGenerating}
+                    className={`${cd.aiDraftBtn} ${aiGenerating ? cd.aiDraftBtnGenerating : ''}`}
+                    style={{ fontSize: 11, padding: '3px 8px' }}
+                  >
+                    {aiGenerating ? '⚙️ Generating...' : '✨ AI Draft'}
+                  </button>
+                </div>
+
+                <textarea
+                  className={s.textarea}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="e.g. Road crew dispatched. Expected completion: Dec 15. Thank you for your report."
+                  rows={4}
+                />
+              </div>
+
+              {/* Proof of Work Image Upload */}
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginBottom: 14 }}>
+                <div className={s.sectionLabel} style={{ marginBottom: 4 }}>
+                  📸 {selStatus === 'Resolved' ? 'Proof of Completion Photo' : 'Attach Status Photo'}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 8 }}>
+                  Attach proof photo showing work progress or resolution.
+                </div>
+
+                {concern.resolved_image_url && !resolvedPreview && !clearResolvedImage && (
+                  <div style={{ position: 'relative', marginBottom: 8, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                    <img
+                      src={resolveImageUrl(concern.resolved_image_url)}
+                      alt="Resolution Proof"
+                      style={{ width: '100%', maxHeight: 150, objectFit: 'cover' }}
+                    />
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 11, color: '#fff' }}>Current proof uploaded</span>
+                      <button
+                        type="button"
+                        className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
+                        style={{ color: '#ff4d4d', padding: '2px 6px', fontSize: 10 }}
+                        onClick={() => setClearResolvedImage(true)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {resolvedPreview && (
+                  <div style={{ position: 'relative', marginBottom: 8, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--primary)' }}>
+                    <img
+                      src={resolvedPreview}
+                      alt="Resolution Proof Preview"
+                      style={{ width: '100%', maxHeight: 150, objectFit: 'cover' }}
+                    />
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 11, color: '#fff' }}>New proof selected</span>
+                      <button
+                        type="button"
+                        className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
+                        style={{ color: '#ff4d4d', padding: '2px 6px', fontSize: 10 }}
+                        onClick={() => {
+                          setResolvedFile(null);
+                          setResolvedPreview(null);
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    border: '1px dashed var(--border)',
+                    borderRadius: 8,
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    background: 'var(--surface-2)',
+                    fontSize: 12,
+                  }}
+                >
+                  <span>📤</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-1)' }}>
+                    {resolvedFile ? 'Change Photo' : 'Upload Proof Photo'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handleFileChange}
+                  />
+                </label>
+              </div>
+
+              {/* Single Primary Action Button */}
               {saved ? (
                 <div className={s.successBanner}>
-                  <span>✅</span> Changes saved successfully!
+                  <span>✅</span> Status and response updated successfully!
                 </div>
               ) : (
                 <button
@@ -635,13 +739,12 @@ export default function ConcernDetail() {
                   style={{
                     width: '100%',
                     justifyContent: 'center',
-                    marginTop: 10,
                     opacity: !hasChanges || saving ? 0.5 : 1,
                   }}
                   onClick={handleSave}
                   disabled={!hasChanges || saving}
                 >
-                  {saving ? 'Saving…' : '💾 Save Changes'}
+                  {saving ? 'Saving...' : '💾 Save Status & Response'}
                 </button>
               )}
             </div>
@@ -741,43 +844,66 @@ export default function ConcernDetail() {
             </div>
           </div>
 
-          {/* Comments / Discussion Thread */}
+          {/* Comments / Inter-Departmental Communication Hub */}
           <div className={s.card}>
             <div className={s.cardHeader}>
-              <span className={s.cardTitle}>Discussion Thread</span>
+              <span className={s.cardTitle}>💬 Inter-Department Communication</span>
             </div>
             <div style={{ padding: '14px 16px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
                 {comments.length === 0 && (
-                  <div style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center' }}>No comments yet.</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center' }}>No inter-department notes yet.</div>
                 )}
                 {comments.map(c => (
                   <div key={c.id} style={{ 
                     padding: 10, 
-                    background: c.is_internal ? 'rgba(245,158,11,0.1)' : 'var(--surface-3)', 
-                    borderLeft: c.is_internal ? '3px solid var(--yellow)' : '3px solid var(--blue)',
-                    borderRadius: 4 
+                    background: c.is_internal ? 'rgba(245,158,11,0.08)' : 'var(--surface-3)', 
+                    borderLeft: c.target_department ? '3px solid #3b82f6' : c.is_internal ? '3px solid var(--yellow)' : '3px solid var(--blue)',
+                    borderRadius: 6 
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, alignItems: 'center' }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-1)' }}>{c.user_name}</span>
                       <span style={{ fontSize: 10, color: 'var(--text-3)' }}>{fmtDateShort(c.created_at)}</span>
                     </div>
                     <p style={{ fontSize: 13, color: 'var(--text-2)', margin: 0, lineHeight: 1.4 }}>
                       {c.comment}
                     </p>
-                    {Boolean(c.is_internal) && (
-                      <div style={{ fontSize: 10, color: 'var(--yellow)', marginTop: 4 }}>🔒 Internal Note</div>
-                    )}
+                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                      {c.target_department && (
+                        <span style={{ fontSize: 10, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
+                          🏛️ Directive to: {c.target_department}
+                        </span>
+                      )}
+                      {Boolean(c.is_internal) && (
+                        <span style={{ fontSize: 10, color: 'var(--yellow)' }}>🔒 Internal Note</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <select
+                    className={s.select}
+                    style={{ fontSize: 11, padding: '4px 8px', flex: 1 }}
+                    value={targetDeptComment}
+                    onChange={(e) => setTargetDeptComment(e.target.value)}
+                  >
+                    <option value="">💬 General Internal Note</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.name}>
+                        🏛️ Target Directive: {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <textarea
                   className={s.textarea}
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Type a comment..."
+                  placeholder="Type an internal note or inter-department directive..."
                   rows={2}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

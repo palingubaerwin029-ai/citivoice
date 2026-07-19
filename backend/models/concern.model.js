@@ -183,7 +183,7 @@ const selectLinkedConcerns = async (concernId) => {
   try {
     const [rows] = await pool.query(
       `
-      SELECT c.id, c.title, c.status, c.category, c.priority, c.user_barangay, c.created_at,
+      SELECT c.id, c.title, c.status, c.category, c.priority, c.user_barangay, c.user_id, c.admin_note, c.department, c.created_at,
              cl.link_type, cl.similarity_score
       FROM concern_links cl
       JOIN concerns c ON (
@@ -196,7 +196,7 @@ const selectLinkedConcerns = async (concernId) => {
     );
     return rows;
   } catch (err) {
-    if (err.code === 'ER_NO_SUCH_TABLE') return [];
+    if (err.code === 'ER_NO_SUCH_TABLE' || err.code === 'ER_BAD_FIELD_ERROR') return [];
     throw err;
   }
 };

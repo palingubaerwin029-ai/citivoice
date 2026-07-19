@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { notifyUser } = require('../services/notificationService');
+const { notifyUser, notifyDepartmentOnApproval, dispatchSystemNotification } = require('../services/notificationService');
 const { analyzeFullConcern, routeToDepartment } = require('../services/aiService');
 const { analyzeImage } = require('../services/imageAnalyzer');
 const { findSimilarConcerns } = require('../services/similarityService');
@@ -25,7 +25,7 @@ const {
   insertConcernLink,
   selectLinkedConcerns,
 } = require('../models/concern.model');
-const { selectDepartmentByCategory } = require('../models/department.model');
+const { selectDepartmentByCategory, selectDepartmentByName } = require('../models/department.model');
 
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:5000';
 
@@ -155,26 +155,8 @@ const createConcern = async (req, res) => {
     console.log(`[AI] Auto-escalated priority to High (urgency: ${urgencyScore})`);
   }
 
-  // ─── Feature 4: Department Routing ──────────────────────────────────────
-  let department = null;
-  try {
-    const dbDept = await selectDepartmentByCategory(finalCategory);
-    if (dbDept) {
-      const team = finalPriority === 'High' ? 'Emergency Response Unit' : finalPriority === 'Medium' ? 'Maintenance Division' : 'General Queue';
-      department = `${dbDept.name} — ${team}`;
-      console.log(`[AI] Dynamically routed to database department: ${department}`);
-    } else {
-      const routing = routeToDepartment(finalCategory, finalPriority);
-      department = `${routing.department} — ${routing.team}`;
-      console.log(`[AI] Mapped to static fallback department: ${department}`);
-    }
-  } catch (e) {
-    console.error('AI Routing Error:', e);
-    try {
-      const routing = routeToDepartment(finalCategory, finalPriority);
-      department = `${routing.department} — ${routing.team}`;
-    } catch (_) {}
-  }
+  // ─── Feature 4: Department Routing (Centralized) ─────────────────────────
+  const department = await workflowService.resolveDepartmentForConcern(finalCategory, finalPriority);
 
   try {
     const insertId = await insertConcern({
@@ -212,23 +194,39 @@ const createConcern = async (req, res) => {
           }
         }
 
-        // ─── Auto-Merge Logic ───
+        // ─── Auto-Merge & Status Application Logic ───
         if (isDuplicate && originalConcernId) {
-          const adminNote = `System Notice: This concern has been auto-identified as a duplicate of Concern #${originalConcernId} based on strict location proximity and category matching.`;
-          
-          await updateConcernFields(
-            insertId, 
-            ['status = ?', 'admin_note = ?', 'updated_at = NOW()'], 
-            ['Resolved', adminNote]
-          );
-          
-          console.log(`[AI] Auto-merged duplicate concern #${insertId} with original #${originalConcernId}`);
-          
+          const originalConcern = await selectConcernById(originalConcernId);
+          const originalStatus = originalConcern ? originalConcern.status : 'Pending';
+          const originalAdminNote = originalConcern ? originalConcern.admin_note : null;
+          const originalDept = originalConcern ? originalConcern.department : null;
+          const originalResolvedImg = originalConcern ? originalConcern.resolved_image_url : null;
+
+          const adminNote = originalAdminNote
+            ? `[Auto-Duplicate of #${originalConcernId}] ${originalAdminNote}`
+            : `System Notice: Auto-identified as a duplicate of Concern #${originalConcernId} (Current Status: ${originalStatus}).`;
+
+          const fieldsToUpdate = ['status = ?', 'admin_note = ?', 'updated_at = NOW()'];
+          const valuesToUpdate = [originalStatus, adminNote];
+
+          if (originalDept) {
+            fieldsToUpdate.push('department = ?');
+            valuesToUpdate.push(originalDept);
+          }
+          if (originalResolvedImg) {
+            fieldsToUpdate.push('resolved_image_url = ?');
+            valuesToUpdate.push(originalResolvedImg);
+          }
+
+          await updateConcernFields(insertId, fieldsToUpdate, valuesToUpdate);
+
+          console.log(`[AI] Auto-merged duplicate concern #${insertId} with original #${originalConcernId} (Applied status: ${originalStatus})`);
+
           if (newConcern.user_id) {
             await insertNotification(
               newConcern.user_id,
-              'Concern Merged',
-              `Your recent report was identified as a duplicate of an existing report (#${originalConcernId}) at the same location. It has been merged, and the city is already aware!`
+              'Concern Linked & Status Applied',
+              `Your recent report was identified as a duplicate of existing report #${originalConcernId}. Its status has been synchronized to "${originalStatus}".`
             );
           }
         }
@@ -319,16 +317,9 @@ const editConcern = async (req, res) => {
         const existingConcern = await selectConcernById(req.params.id);
         const newCat = category || existingConcern.category;
         const newPri = priority || existingConcern.priority;
-        
-        const dbDept = await selectDepartmentByCategory(newCat);
+        const updatedDept = await workflowService.resolveDepartmentForConcern(newCat, newPri);
         fields.push('department = ?');
-        if (dbDept) {
-          const team = newPri === 'High' ? 'Emergency Response Unit' : newPri === 'Medium' ? 'Maintenance Division' : 'General Queue';
-          values.push(`${dbDept.name} — ${team}`);
-        } else {
-          const routing = routeToDepartment(newCat, newPri);
-          values.push(`${routing.department} — ${routing.team}`);
-        }
+        values.push(updatedDept);
       } catch (e) {
         console.error('AI Routing Error on edit:', e);
       }
@@ -338,6 +329,48 @@ const editConcern = async (req, res) => {
     fields.push('updated_at = NOW()');
 
     await updateConcernFields(req.params.id, fields, values);
+
+    // ─── Cascade Status to Linked Duplicate Concerns ───
+    if (status !== undefined || admin_note !== undefined || req.file) {
+      try {
+        const linked = await selectLinkedConcerns(req.params.id);
+        const duplicateLinks = linked.filter(l => l.link_type === 'duplicate');
+
+        for (const dup of duplicateLinks) {
+          const dupFields = ['updated_at = NOW()'];
+          const dupValues = [];
+
+          if (status !== undefined) {
+            dupFields.push('status = ?');
+            dupValues.push(status);
+          }
+          if (admin_note !== undefined) {
+            dupFields.push('admin_note = ?');
+            dupValues.push(admin_note ? `[Duplicate of #${req.params.id}] ${admin_note}` : null);
+          }
+          if (req.file) {
+            const resolved_image_url = `${BASE_URL()}/uploads/${req.file.filename}`;
+            dupFields.push('resolved_image_url = ?');
+            dupValues.push(resolved_image_url);
+          }
+
+          if (dupFields.length > 1) {
+            await updateConcernFields(dup.id, dupFields, dupValues);
+            console.log(`[Duplicate Cascade] Applied status (${status || 'updated'}) to linked duplicate concern #${dup.id}`);
+
+            if (dup.user_id && status) {
+              await insertNotification(
+                dup.user_id,
+                'Linked Concern Updated',
+                `The primary report (#${req.params.id}) linked to your concern was updated to "${status}".`
+              );
+            }
+          }
+        }
+      } catch (cascadeErr) {
+        console.error('[Duplicate Cascade Error]:', cascadeErr.message);
+      }
+    }
 
     // Audit log
     const changedFields = req.body;
@@ -357,42 +390,42 @@ const editConcern = async (req, res) => {
 
     if (concern.user_id) {
       if (status && status !== concern.status) {
-        await insertNotification(
-          concern.user_id,
-          'Concern Updated',
-          `Your concern "${concern.title}" was updated to ${status}.`,
-        );
-        if (req.app.get('io')) {
-          req.app.get('io').to(`user:${concern.user_id}`).emit('new_notification', {
-            title: 'Concern Updated',
-            message: `Your concern "${concern.title}" was updated to ${status}.`
-          });
-        }
-        notifyUser(
-          concern,
-          'Concern Updated',
-          `Your concern "${concern.title}" has been updated to ${status}. Check the app for details.`,
-          `The citizen's concern titled "${concern.title}" just had its status changed to "${status}".`,
-        );
+        await dispatchSystemNotification({
+          userId: concern.user_id,
+          userObj: concern,
+          title: 'Concern Updated',
+          message: `Your concern "${concern.title}" has been updated to ${status}. Check the app for details.`,
+          socketRoom: `user:${concern.user_id}`,
+          io: req.app.get('io')
+        });
       }
       if (admin_note) {
-        await insertNotification(
-          concern.user_id,
-          'New Official Response',
-          `An admin replied to your concern: "${concern.title}".`,
-        );
-        if (req.app.get('io')) {
-          req.app.get('io').to(`user:${concern.user_id}`).emit('new_notification', {
-            title: 'New Official Response',
-            message: `An admin replied to your concern: "${concern.title}".`
-          });
-        }
-        notifyUser(
-          concern,
-          'New Official Response',
-          `An admin has officially responded to your concern: "${concern.title}". Check the app to view the update.`,
-          `An official city admin has just written a new response to the citizen's concern titled "${concern.title}". The response is: "${admin_note}"`,
-        );
+        await dispatchSystemNotification({
+          userId: concern.user_id,
+          userObj: concern,
+          title: 'New Official Response',
+          message: `An admin has officially responded to your concern: "${concern.title}". Check the app to view the update.`,
+          socketRoom: `user:${concern.user_id}`,
+          io: req.app.get('io')
+        });
+      }
+      // Notify citizen when a proof photo is attached
+      if (req.file) {
+        const proofTitle = (status || concern.status) === 'Resolved'
+          ? 'Proof of Completion Uploaded'
+          : 'Work Update Photo Added';
+        const proofMessage = (status || concern.status) === 'Resolved'
+          ? `The city has uploaded a proof photo confirming your concern "${concern.title}" has been resolved. Open the app to view it.`
+          : `A work-in-progress photo has been attached to your concern "${concern.title}". Open the app to see the latest update.`;
+
+        await dispatchSystemNotification({
+          userId: concern.user_id,
+          userObj: concern,
+          title: proofTitle,
+          message: proofMessage,
+          socketRoom: `user:${concern.user_id}`,
+          io: req.app.get('io')
+        });
       }
     }
 
@@ -593,16 +626,171 @@ const linkConcerns = async (req, res) => {
   const { target_id, link_type } = req.body;
   if (!target_id) return res.status(400).json({ error: 'target_id required' });
 
+  const sourceId = parseInt(req.params.id);
+  const targetId = parseInt(target_id);
+
   try {
     await insertConcernLink(
-      parseInt(req.params.id),
-      parseInt(target_id),
+      sourceId,
+      targetId,
       link_type || 'related',
       req.body.similarity_score || null,
     );
-    res.json({ success: true });
+
+    let appliedStatus = null;
+
+    // If marked as duplicate, check target concern's status and apply it to source concern
+    if (link_type === 'duplicate') {
+      const targetConcern = await selectConcernById(targetId);
+      const sourceConcern = await selectConcernById(sourceId);
+
+      if (targetConcern && sourceConcern) {
+        appliedStatus = targetConcern.status;
+        const fieldsToUpdate = ['status = ?', 'updated_at = NOW()'];
+        const valuesToUpdate = [targetConcern.status];
+
+        if (targetConcern.admin_note) {
+          fieldsToUpdate.push('admin_note = ?');
+          valuesToUpdate.push(`[Duplicate of #${targetId}] ${targetConcern.admin_note}`);
+        }
+        if (targetConcern.department) {
+          fieldsToUpdate.push('department = ?');
+          valuesToUpdate.push(targetConcern.department);
+        }
+        if (targetConcern.resolved_image_url) {
+          fieldsToUpdate.push('resolved_image_url = ?');
+          valuesToUpdate.push(targetConcern.resolved_image_url);
+        }
+
+        await updateConcernFields(sourceId, fieldsToUpdate, valuesToUpdate);
+        invalidate('concerns', 'concern_detail');
+
+        if (sourceConcern.user_id) {
+          await insertNotification(
+            sourceConcern.user_id,
+            'Concern Status Synchronized',
+            `Your report #${sourceId} was linked as a duplicate of #${targetId}. Status updated to "${targetConcern.status}".`
+          );
+        }
+      }
+    }
+
+    res.json({ success: true, applied_status: appliedStatus });
   } catch (err) {
     console.error('Link concerns error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const approveConcern = async (req, res) => {
+  const { approval_notes, target_department } = req.body;
+  try {
+    const concern = await selectConcernById(req.params.id);
+    if (!concern) return res.status(404).json({ error: 'Concern not found' });
+
+    const approverName = req.user.name || req.user.email || "City Admin";
+    const fields = ['status = ?', 'approval_notes = ?', 'approved_by_name = ?', 'approved_at = NOW()', 'updated_at = NOW()'];
+    const values = ['In Progress', approval_notes || 'Approved for immediate evaluation and action.', approverName];
+
+    if (target_department) {
+      fields.push('department = ?');
+      values.push(target_department);
+    }
+
+    await updateConcernFields(req.params.id, fields, values);
+
+    // Cascade approval and status to linked duplicate concerns
+    try {
+      const linked = await selectLinkedConcerns(req.params.id);
+      const duplicateLinks = linked.filter(l => l.link_type === 'duplicate');
+      for (const dup of duplicateLinks) {
+        const dupFields = ['status = ?', 'approval_notes = ?', 'approved_by_name = ?', 'approved_at = NOW()', 'updated_at = NOW()'];
+        const dupValues = ['In Progress', `[Duplicate of #${req.params.id}] ${approval_notes || 'Approved for immediate evaluation and action.'}`, approverName];
+        if (target_department) {
+          dupFields.push('department = ?');
+          dupValues.push(target_department);
+        }
+        await updateConcernFields(dup.id, dupFields, dupValues);
+        if (dup.user_id) {
+          await insertNotification(
+            dup.user_id,
+            'Linked Concern Approved',
+            `The primary report (#${req.params.id}) linked to your concern was approved and set to "In Progress".`
+          );
+        }
+      }
+    } catch (cascadeErr) {
+      console.error('[Duplicate Cascade Error on Approve]:', cascadeErr.message);
+    }
+    invalidate('concerns', 'concern_detail');
+
+    const updatedConcern = await selectConcernById(req.params.id);
+
+    // Find department details
+    let deptInfo = null;
+    if (updatedConcern.department) {
+      const baseDeptName = updatedConcern.department.split(' — ')[0].trim();
+      deptInfo = await selectDepartmentByName(baseDeptName);
+    }
+    if (!deptInfo && updatedConcern.category) {
+      deptInfo = await selectDepartmentByCategory(updatedConcern.category);
+    }
+
+    // Email official approval notice to department
+    try {
+      await notifyDepartmentOnApproval(updatedConcern, approval_notes, deptInfo, approverName);
+    } catch (e) {
+      console.error('[Notification] Error sending department email:', e.message);
+    }
+
+    // Log audit
+    try {
+      await workflowService.logAudit(
+        'concern',
+        updatedConcern.id,
+        'approved_and_notified_department',
+        req.user.id,
+        req.user.name,
+        { status: concern.status },
+        { status: 'In Progress', department: updatedConcern.department, approval_notes }
+      );
+    } catch (e) {
+      console.error('[Workflow] Audit log error on approve:', e);
+    }
+
+    // Notify citizen
+    if (updatedConcern.user_id) {
+      await insertNotification(
+        updatedConcern.user_id,
+        'Concern Approved & Forwarded',
+        `Your concern "${updatedConcern.title}" has been approved by ${req.user.name} and forwarded to ${updatedConcern.department || 'the responsible department'}!`
+      );
+      if (req.app.get('io')) {
+        req.app.get('io').to(`user:${updatedConcern.user_id}`).emit('new_notification', {
+          title: 'Concern Approved & Forwarded',
+          message: `Your concern "${updatedConcern.title}" was approved and forwarded to ${updatedConcern.department || 'the responsible department'}.`
+        });
+      }
+      notifyUser(
+        updatedConcern,
+        'Concern Approved & Forwarded',
+        `Great news! Your concern "${updatedConcern.title}" has been officially approved and sent to ${updatedConcern.department || 'the city department'} for resolution.`,
+        `The citizen's concern titled "${updatedConcern.title}" was approved by ${req.user.name} and sent to ${updatedConcern.department}.`
+      );
+    }
+
+    // Broadcast socket event to admins
+    if (req.app.get('io')) {
+      req.app.get('io').to('admin').emit('concern_approved', updatedConcern);
+    }
+
+    res.json({
+      success: true,
+      concern: updatedConcern,
+      department_notified: deptInfo ? `${deptInfo.name} (${deptInfo.email})` : 'Assigned Department'
+    });
+  } catch (err) {
+    console.error('Approve concern error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -613,6 +801,7 @@ module.exports = {
   getConcern,
   createConcern,
   editConcern,
+  approveConcern,
   removeConcern,
   toggleUpvote,
   uploadIdImage,

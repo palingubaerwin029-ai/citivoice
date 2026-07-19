@@ -48,32 +48,71 @@ const STATUS_COLORS = {
   Rejected: '#FF4444',
 };
 
+const CATEGORY_ICONS = {
+  'Road & Infrastructure': '🛣️',
+  'Electricity': '⚡',
+  'Water & Drainage': '🌊',
+  'Waste & Sanitation': '🚮',
+  'Public Safety': '🚨',
+  'Executive Approval': '🏛️',
+};
+
 // --- ICONS ---
-const createIcon = (color) =>
-  new L.DivIcon({
+const createIcon = (color, category, isHighPriority) => {
+  const iconEmoji = CATEGORY_ICONS[category] || '📍';
+  const pulseHtml = isHighPriority
+    ? `<div style="position:absolute; top:-4px; left:-4px; width:36px; height:44px; border-radius:18px; border:2px solid #FF4444; animation:pulse 1.2s infinite; pointer-events:none;"></div>`
+    : '';
+
+  return new L.DivIcon({
     className: 'custom-pin',
-    iconSize: [28, 36],
-    iconAnchor: [14, 36],
+    iconSize: [30, 38],
+    iconAnchor: [15, 38],
     html: `
-      <svg width="28" height="36" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 0C5.373 0 0 5.373 0 12c0 8 12 20 12 20S24 20 24 12C24 5.373 18.627 0 12 0z"
-          fill="${color}" stroke="white" stroke-width="1.5"/>
-        <circle cx="12" cy="12" r="4.5" fill="white"/>
-      </svg>
+      <div style="position:relative; width:30px; height:38px; display:flex; align-items:center; justify-content:center;">
+        ${pulseHtml}
+        <svg width="30" height="38" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 8 12 20 12 20S24 20 24 12C24 5.373 18.627 0 12 0z"
+            fill="${color}" stroke="white" stroke-width="1.5"/>
+          <circle cx="12" cy="11" r="6.5" fill="white" opacity="0.95"/>
+        </svg>
+        <span style="position:absolute; top:3px; left:0; width:30px; text-align:center; font-size:11px;">${iconEmoji}</span>
+      </div>
     `,
   });
+};
 
 const pulseIcon = new L.DivIcon({
   className: 'custom-pin',
-  iconSize: [24, 24],
-  iconAnchor: [12, 24],
+  iconSize: [26, 26],
+  iconAnchor: [13, 26],
   html: `
-    <div style="position:relative; width:24px; height:24px;">
-      <div style="background:linear-gradient(135deg, #1A6BFF, #00D4AA); width:16px; height:16px; border-radius:50%; border:2px solid white; position:absolute; top:4px; left:4px; z-index:2; box-shadow: 0 4px 10px rgba(26,107,255,0.6);"></div>
-      <div style="background:linear-gradient(135deg, #1A6BFF, #00D4AA); width:16px; height:16px; border-radius:50%; position:absolute; top:4px; left:4px; animation:pulse 1.5s infinite;"></div>
+    <div style="position:relative; width:26px; height:26px;">
+      <div style="background:linear-gradient(135deg, #1A6BFF, #00D4AA); width:18px; height:18px; border-radius:50%; border:2px solid white; position:absolute; top:4px; left:4px; z-index:2; box-shadow: 0 4px 10px rgba(26,107,255,0.6);"></div>
+      <div style="background:linear-gradient(135deg, #1A6BFF, #00D4AA); width:18px; height:18px; border-radius:50%; position:absolute; top:4px; left:4px; animation:pulse 1.5s infinite;"></div>
     </div>
   `,
 });
+
+function getCityHallDistance(lat, lng) {
+  if (!lat || !lng) return null;
+  const lat1 = 9.9868;
+  const lon1 = 122.813;
+  const lat2 = parseFloat(lat);
+  const lon2 = parseFloat(lng);
+  if (isNaN(lat2) || isNaN(lon2)) return null;
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c;
+  const driveMins = Math.max(2, Math.round((d / 30) * 60));
+  return { distanceKm: d.toFixed(1), driveMins };
+}
 
 function Routing({ selected }) {
   const map = useMap();
@@ -134,18 +173,24 @@ function FlyToLocation({ coords }) {
 // Auto fit map
 function FitBounds({ data, filter }) {
   const map = useMap();
+  const hasFitted = React.useRef(false);
   const lastFilter = React.useRef(filter);
 
   useEffect(() => {
-    if (!data.length) return;
-    if (lastFilter.current !== filter || lastFilter.current === undefined) {
-      const bounds = L.latLngBounds(
-        data.map((c) => [parseFloat(c.location_lat), parseFloat(c.location_lng)]),
-      );
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-      lastFilter.current = filter;
+    if (!Array.isArray(data) || !data.length) return;
+    if (!hasFitted.current || lastFilter.current !== filter) {
+      const validPoints = data
+        .filter((c) => c && c.location_lat && c.location_lng && !isNaN(parseFloat(c.location_lat)))
+        .map((c) => [parseFloat(c.location_lat), parseFloat(c.location_lng)]);
+
+      if (validPoints.length > 0) {
+        const bounds = L.latLngBounds(validPoints);
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+        hasFitted.current = true;
+        lastFilter.current = filter;
+      }
     }
-  }, [data, filter]);
+  }, [data, filter, map]);
 
   return null;
 }
@@ -153,10 +198,10 @@ function FitBounds({ data, filter }) {
 function HeatmapLayer({ data, visible }) {
   const map = useMap();
   useEffect(() => {
-    if (!visible || !data.length) return;
+    if (!visible || !Array.isArray(data) || !data.length) return;
     const points = data
-      .filter(c => c.location_lat && c.location_lng)
-      .map(c => [parseFloat(c.location_lat), parseFloat(c.location_lng), 1]);
+      .filter((c) => c && c.location_lat && c.location_lng)
+      .map((c) => [parseFloat(c.location_lat), parseFloat(c.location_lng), 1]);
     const heat = L.heatLayer(points, { radius: 25, blur: 15, maxZoom: 16 }).addTo(map);
     return () => {
       map.removeLayer(heat);
@@ -169,12 +214,15 @@ export function MapView() {
   const navigate = useNavigate();
   const [concerns, setConcerns] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [filter, setFilter] = useState(localStorage.getItem('mv_filter') || 'All');
+  const [filter, setFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [priorityFilter, setPriorityFilter] = useState('All');
   const [mapType, setMapType] = useState(localStorage.getItem('mv_layer') || 'Dark Matter');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [flyCoords, setFlyCoords] = useState(null);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [lightboxImg, setLightboxImg] = useState(null);
   const provider = new OpenStreetMapProvider();
 
   useEffect(() => {
@@ -186,14 +234,26 @@ export function MapView() {
   }, [mapType]);
 
   useEffect(() => {
-    api.get('/concerns?limit=1000').then((res) => setConcerns(res.data || [])).catch(console.error);
+    api
+      .get('/concerns?limit=1000')
+      .then((res) => {
+        const list = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+        setConcerns(list);
+      })
+      .catch(console.error);
 
     const onNewConcern = (newConcern) => {
-      setConcerns((prev) => [newConcern, ...prev]);
+      setConcerns((prev) => [newConcern, ...(Array.isArray(prev) ? prev : [])]);
     };
 
     const onUpdateConcern = (updatedConcern) => {
-      setConcerns((prev) => prev.map((c) => (c.id === updatedConcern.id ? updatedConcern : c)));
+      setConcerns((prev) =>
+        (Array.isArray(prev) ? prev : []).map((c) => (c.id === updatedConcern.id ? updatedConcern : c))
+      );
       setSelected((prevSelected) => {
         if (prevSelected && prevSelected.id === updatedConcern.id) {
           return updatedConcern;
@@ -211,9 +271,22 @@ export function MapView() {
     };
   }, []);
 
-  const filtered = concerns.filter(
-    (c) => c.location_lat && (filter === 'All' || c.status === filter),
-  );
+  const concernsList = Array.isArray(concerns) ? concerns : [];
+
+  const counts = {
+    pending: concernsList.filter((c) => c.status === 'Pending').length,
+    inProgress: concernsList.filter((c) => c.status === 'In Progress').length,
+    resolved: concernsList.filter((c) => c.status === 'Resolved').length,
+    highPriority: concernsList.filter((c) => c.priority === 'High' && c.status !== 'Resolved').length,
+  };
+
+  const filtered = concernsList.filter((c) => {
+    if (!c.location_lat || !c.location_lng) return false;
+    if (filter !== 'All' && c.status !== filter) return false;
+    if (categoryFilter !== 'All' && c.category !== categoryFilter) return false;
+    if (priorityFilter === 'High' && c.priority !== 'High') return false;
+    return true;
+  });
 
   const handleSearch = async (e) => {
     const q = e.target.value;
@@ -243,6 +316,35 @@ export function MapView() {
 
   return (
     <div className={s.container}>
+      {/* 📊 LIVE COMMAND SUMMARY WIDGET */}
+      <div className={`${s.glass} ${s.commandWidget}`}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: '#00D4AA', textTransform: 'uppercase', marginBottom: 6 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#00D4AA', boxShadow: '0 0 8px #00D4AA' }} />
+          Live Command Center
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#FFB800' }}>{counts.pending}</div>
+            <div style={{ fontSize: 10, color: '#8899BB' }}>Pending</div>
+          </div>
+          <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)' }} />
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#1A6BFF' }}>{counts.inProgress}</div>
+            <div style={{ fontSize: 10, color: '#8899BB' }}>In Progress</div>
+          </div>
+          <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)' }} />
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#00D4AA' }}>{counts.resolved}</div>
+            <div style={{ fontSize: 10, color: '#8899BB' }}>Resolved</div>
+          </div>
+          <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)' }} />
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#FF4444' }}>{counts.highPriority}</div>
+            <div style={{ fontSize: 10, color: '#8899BB' }}>High Priority</div>
+          </div>
+        </div>
+      </div>
+
       {/* 🔥 FULLSCREEN MAP */}
       <MapContainer
         center={[9.9868, 122.813]}
@@ -283,12 +385,16 @@ export function MapView() {
         {!showHeatmap && (
           <MarkerClusterGroup chunkedLoading>
             {filtered.map((c) => {
+              const lat = parseFloat(c.location_lat);
+              const lng = parseFloat(c.location_lng);
+              if (isNaN(lat) || isNaN(lng)) return null;
               const color = STATUS_COLORS[c.status] || '#8899BB';
+              const isHighPriority = c.priority === 'High';
               return (
                 <Marker
                   key={c.id}
-                  position={[parseFloat(c.location_lat), parseFloat(c.location_lng)]}
-                  icon={c.status === 'In Progress' ? pulseIcon : createIcon(color)}
+                  position={[lat, lng]}
+                  icon={createIcon(color, c.category, isHighPriority)}
                   eventHandlers={{ click: () => setSelected(c) }}
                 >
                   <Popup className="premium-popup" autoPan={false}>
@@ -314,16 +420,7 @@ export function MapView() {
           </MarkerClusterGroup>
         )}
 
-        {/* 🗺️ Map Legend Overlay */}
-        <div className={s.legendOverlay}>
-          <div className={s.legendHeader}>Status Guide</div>
-          {Object.entries(STATUS_COLORS).map(([status, color]) => (
-            <div key={status} className={s.legendItem}>
-              <span className={s.legendDot} style={{ background: color }} />
-              <span className={s.legendLabel}>{status}</span>
-            </div>
-          ))}
-        </div>
+
 
         {/* 🎯 Controls Overlay */}
         <div className={s.recenterWrap} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -418,6 +515,47 @@ export function MapView() {
             );
           })}
         </div>
+
+        {/* Category & Priority Filters */}
+        <div className={s.chipRow} style={{ marginTop: 6 }}>
+          {[
+            { key: 'All', label: 'All Categories' },
+            { key: 'Road & Infrastructure', label: '🛣️ Roads' },
+            { key: 'Electricity', label: '⚡ Electricity' },
+            { key: 'Water & Drainage', label: '🌊 Water' },
+            { key: 'Waste & Sanitation', label: '🚮 Sanitation' },
+            { key: 'Public Safety', label: '🚨 Safety' },
+          ].map(({ key, label }) => {
+            const isActive = categoryFilter === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setCategoryFilter(key)}
+                className={`${s.chipBtn} ${isActive ? s.chipBtnActive : s.chipBtnInactive}`}
+                style={
+                  isActive
+                    ? { background: '#1A6BFF', borderColor: '#1A6BFF', boxShadow: '0 0 12px rgba(26,107,255,0.4)' }
+                    : { background: 'rgba(13,25,48,0.7)', fontSize: 12 }
+                }
+              >
+                {label}
+              </button>
+            );
+          })}
+
+          <button
+            onClick={() => setPriorityFilter(priorityFilter === 'High' ? 'All' : 'High')}
+            className={`${s.chipBtn}`}
+            style={{
+              background: priorityFilter === 'High' ? '#FF4444' : 'rgba(239,68,68,0.2)',
+              borderColor: '#FF4444',
+              color: '#fff',
+              boxShadow: priorityFilter === 'High' ? '0 0 12px rgba(255,68,68,0.6)' : 'none',
+            }}
+          >
+            🔥 High Priority
+          </button>
+        </div>
       </div>
 
       {/* 📋 SIDE PANEL */}
@@ -437,25 +575,40 @@ export function MapView() {
         {selected && (
           <div className={s.sideContent}>
             {selected.image_url ? (
-              <img
-                src={resolveImageUrl(selected.image_url)}
-                alt="Problem"
-                className={s.sideImage}
-              />
+              <div
+                style={{ position: 'relative', cursor: 'zoom-in' }}
+                onClick={() => setLightboxImg(resolveImageUrl(selected.image_url))}
+              >
+                <img
+                  src={resolveImageUrl(selected.image_url)}
+                  alt="Problem"
+                  className={s.sideImage}
+                />
+                <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 8, fontSize: 11, color: '#fff' }}>
+                  🔍 Click to Zoom
+                </div>
+              </div>
             ) : (
               <div className={s.sideImagePlaceholder}>🖼️</div>
             )}
 
             <div>
-              <span
-                className={s.statusBadge}
-                style={{
-                  backgroundColor: STATUS_COLORS[selected.status] + '20',
-                  color: STATUS_COLORS[selected.status],
-                }}
-              >
-                {selected.status}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span
+                  className={s.statusBadge}
+                  style={{
+                    backgroundColor: STATUS_COLORS[selected.status] + '20',
+                    color: STATUS_COLORS[selected.status],
+                  }}
+                >
+                  {selected.status}
+                </span>
+                {selected.priority === 'High' && (
+                  <span style={{ background: 'rgba(255,68,68,0.2)', color: '#FF4444', border: '1px solid rgba(255,68,68,0.4)', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
+                    🔥 High Priority
+                  </span>
+                )}
+              </div>
               <h3 className={s.concernTitle}>{selected.title}</h3>
             </div>
 
@@ -466,10 +619,28 @@ export function MapView() {
                 <span className={s.locationIcon}>📍</span>
                 <div>
                   <div className={s.locationLabel}>Location</div>
-                  <div className={s.locationText}>{selected.location_address}</div>
+                  <div className={s.locationText}>{selected.location_address || selected.user_barangay || 'Kabankalan City'}</div>
                 </div>
               </div>
             </div>
+
+            {/* ETA & Distance Calculation */}
+            {selected.location_lat && selected.location_lng && (() => {
+              const eta = getCityHallDistance(selected.location_lat, selected.location_lng);
+              return eta ? (
+                <div style={{ display: 'flex', gap: 12, margin: '12px 0', padding: '10px 14px', background: 'rgba(26,107,255,0.12)', border: '1px solid rgba(26,107,255,0.3)', borderRadius: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: '#8899BB' }}>Distance from City Hall</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>📍 {eta.distanceKm} km</div>
+                  </div>
+                  <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
+                  <div>
+                    <div style={{ fontSize: 11, color: '#8899BB' }}>Est. Dispatch Drive</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#00D4AA' }}>⏱️ ~{eta.driveMins} mins</div>
+                  </div>
+                </div>
+              ) : null;
+            })()}
 
             <button
               onClick={() => navigate(`/concerns/${selected.id}`)}
@@ -480,6 +651,36 @@ export function MapView() {
           </div>
         )}
       </div>
+
+      {/* 📸 FULLSCREEN IMAGE LIGHTBOX MODAL */}
+      {lightboxImg && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(0,0,0,0.88)',
+            backdropFilter: 'blur(16px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+          }}
+          onClick={() => setLightboxImg(null)}
+        >
+          <img
+            src={lightboxImg}
+            alt="Full Preview"
+            style={{ maxHeight: '90vh', maxWidth: '90vw', borderRadius: 16, boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}
+          />
+          <button
+            style={{ position: 'absolute', top: 24, right: 24, background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', fontSize: 24, width: 44, height: 44, borderRadius: '50%', cursor: 'pointer' }}
+            onClick={() => setLightboxImg(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }

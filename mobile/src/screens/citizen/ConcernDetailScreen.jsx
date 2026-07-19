@@ -355,29 +355,69 @@ export default function ConcernDetailScreen({ route, navigation }) {
             </View>
           )}
 
-          {/* Proof of Resolution */}
-          {concern.resolved_image_url && (
-            <View style={[styles.section, styles.adminNoteCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
-              <View style={styles.adminNoteHeader}>
-                <Ionicons name="checkmark-circle-outline" size={16} color={colors.statusResolved} />
-                <Text style={[styles.adminNoteTitle, { color: colors.statusResolved }]}>
-                  Proof of Completion
-                </Text>
+          {/* Proof Photo — attached by admin */}
+          {concern.resolved_image_url && (() => {
+            const isResolved = concern.status === 'Resolved';
+            const proofIcon = isResolved ? 'checkmark-circle' : 'camera';
+            const proofIconColor = isResolved ? colors.statusResolved : colors.primary;
+            const proofTitle = isResolved ? 'Proof of Completion' : 'Work-in-Progress Photo';
+            const proofSub = isResolved
+              ? 'The city has confirmed the work is done'
+              : 'Photo attached showing current work status';
+            return (
+              <View style={[styles.section, styles.adminNoteCard, {
+                backgroundColor: isResolved
+                  ? colors.statusResolved + '11'
+                  : colors.bgCard,
+                borderColor: isResolved
+                  ? colors.statusResolved + '44'
+                  : colors.border,
+              }]}>
+                <View style={styles.adminNoteHeader}>
+                  <Ionicons name={proofIcon} size={16} color={proofIconColor} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.adminNoteTitle, { color: proofIconColor }]}>
+                      {proofTitle}
+                    </Text>
+                    <Text style={{ fontSize: rf(11), color: colors.textMuted, marginTop: verticalScale(1) }}>
+                      {proofSub}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => setModalImageUri(resolveImageUrl(concern.resolved_image_url))}
+                  style={{ position: 'relative' }}
+                >
+                  <Image
+                    source={{ uri: resolveImageUrl(concern.resolved_image_url) }}
+                    style={{
+                      width: '100%',
+                      height: verticalScale(200),
+                      borderRadius: moderateScale(10),
+                      marginTop: verticalScale(4),
+                      resizeMode: 'cover',
+                    }}
+                  />
+                  <View style={{
+                    position: 'absolute',
+                    bottom: moderateScale(8),
+                    right: moderateScale(8),
+                    backgroundColor: 'rgba(0,0,0,0.55)',
+                    paddingHorizontal: scale(8),
+                    paddingVertical: verticalScale(3),
+                    borderRadius: moderateScale(12),
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: scale(4),
+                  }}>
+                    <Ionicons name="expand-outline" size={12} color="#fff" />
+                    <Text style={{ fontSize: rf(10), color: '#fff', fontWeight: '600' }}>Tap to expand</Text>
+                  </View>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity activeOpacity={0.9} onPress={() => setModalImageUri(resolveImageUrl(concern.resolved_image_url))}>
-                <Image 
-                  source={{ uri: resolveImageUrl(concern.resolved_image_url) }} 
-                  style={{
-                    width: '100%',
-                    height: verticalScale(200),
-                    borderRadius: moderateScale(10),
-                    marginTop: verticalScale(4),
-                    resizeMode: 'cover'
-                  }} 
-                />
-              </TouchableOpacity>
-            </View>
-          )}
+            );
+          })()}
 
           {/* Timeline */}
           <View style={styles.section}>

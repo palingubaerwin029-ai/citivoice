@@ -47,11 +47,11 @@ const selectDepartmentByCategory = async (category) => {
 };
 
 const insertDepartment = async (data) => {
-  const { name, category, description } = data;
+  const { name, category, description, email, contact_phone } = data;
   try {
     const [result] = await pool.query(
-      'INSERT INTO departments (name, category, description) VALUES (?, ?, ?)',
-      [name, category || null, description || null]
+      'INSERT INTO departments (name, category, description, email, contact_phone) VALUES (?, ?, ?, ?, ?)',
+      [name, category || null, description || null, email || null, contact_phone || null]
     );
     return result.insertId;
   } catch (err) {
@@ -61,11 +61,11 @@ const insertDepartment = async (data) => {
 };
 
 const updateDepartment = async (id, data) => {
-  const { name, category, description } = data;
+  const { name, category, description, email, contact_phone } = data;
   try {
     await pool.query(
-      'UPDATE departments SET name = ?, category = ?, description = ? WHERE id = ?',
-      [name, category || null, description || null, id]
+      'UPDATE departments SET name = ?, category = ?, description = ?, email = ?, contact_phone = ? WHERE id = ?',
+      [name, category || null, description || null, email || null, contact_phone || null, id]
     );
   } catch (err) {
     console.error('Error updating department:', err);

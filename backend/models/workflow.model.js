@@ -40,10 +40,10 @@ const getOverdueAssignments = async () => {
 
 // ─── Internal Comments ───
 const insertComment = async (data) => {
-  const { concern_id, user_id, user_name, comment, is_internal } = data;
+  const { concern_id, user_id, user_name, comment, is_internal, target_department } = data;
   const [result] = await pool.query(
-    `INSERT INTO concern_comments (concern_id, user_id, user_name, comment, is_internal) VALUES (?, ?, ?, ?, ?)`,
-    [concern_id, user_id, user_name, comment, is_internal === undefined ? true : is_internal]
+    `INSERT INTO concern_comments (concern_id, user_id, user_name, comment, is_internal, target_department) VALUES (?, ?, ?, ?, ?, ?)`,
+    [concern_id, user_id, user_name, comment, is_internal === undefined ? true : is_internal, target_department || null]
   );
   return result.insertId;
 };

@@ -10,6 +10,7 @@ const {
   getConcern,
   createConcern,
   editConcern,
+  approveConcern,
   removeConcern,
   toggleUpvote,
   uploadIdImage,
@@ -37,6 +38,9 @@ router.post('/analyze', auth, analyzeConcernDraft);
 
 // ─── Update concern (admin only: status, admin_note) ──────────────────────────
 router.put('/:id', auth, requireRole('admin'), upload.single('image'), validateIdParam, editConcern);
+
+// ─── Approve concern & email department (admin only) ─────────────────────────
+router.post('/:id/approve', auth, requireRole('admin'), validateIdParam, approveConcern);
 
 // ─── Delete concern (admin or owner) ──────────────────────────────────────────
 router.delete('/:id', auth, validateIdParam, removeConcern);

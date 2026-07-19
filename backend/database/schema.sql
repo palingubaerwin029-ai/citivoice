@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS departments (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   name        VARCHAR(255) NOT NULL UNIQUE,
   category    VARCHAR(100) DEFAULT NULL UNIQUE,
+  email       VARCHAR(255) DEFAULT NULL,
+  contact_phone VARCHAR(50) DEFAULT NULL,
   description TEXT         DEFAULT NULL,
   created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -63,6 +65,9 @@ CREATE TABLE IF NOT EXISTS concerns (
   user_name        VARCHAR(255)                            DEFAULT NULL,
   user_barangay    VARCHAR(255)                            DEFAULT NULL,
   admin_note       TEXT                                    DEFAULT NULL,
+  approval_notes   TEXT                                    DEFAULT NULL,
+  approved_by_name VARCHAR(255)                            DEFAULT NULL,
+  approved_at      DATETIME                                DEFAULT NULL,
   upvotes          INT                                     NOT NULL DEFAULT 0,
   department       VARCHAR(100)                            DEFAULT NULL,
   created_at       DATETIME                                NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -131,6 +136,7 @@ CREATE TABLE IF NOT EXISTS concern_comments (
   user_name       VARCHAR(255),
   comment         TEXT NOT NULL,
   is_internal     BOOLEAN NOT NULL DEFAULT true,
+  target_department VARCHAR(100) DEFAULT NULL,
   created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (concern_id) REFERENCES concerns(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -186,15 +192,16 @@ INSERT INTO barangays (name) VALUES
 ON DUPLICATE KEY UPDATE updated_at = NOW();
 
 -- Comprehensive Department list for Kabankalan City routing
-INSERT INTO departments (name, category, description) VALUES
-  ('City Engineering Office', 'Road & Infrastructure', 'Handles road repairs, bridge maintenance, and other public infrastructure.'),
-  ('NOCECO / Electric Utility', 'Electricity', 'Manages streetlights, electrical posts, power issues, and wiring concerns.'),
-  ('City Water District', 'Water & Drainage', 'Responsible for clean water supply, pipe bursts, and drainage/flooding systems.'),
-  ('City Sanitation Division', 'Waste & Sanitation', 'Coordinates garbage collection, waste management, and public sanitation.'),
-  ('PNP / Barangay Tanod', 'Public Safety', 'Enforces public order, traffic safety, and immediate emergency response.'),
-  ('City Admin Office', 'Other', 'Administrative support, policy implementation, and general inquiries.'),
-  ('Barangay Hall', NULL, 'Local barangay affairs, community relations, and low-priority local concerns.')
-ON DUPLICATE KEY UPDATE category = VALUES(category), description = VALUES(description), updated_at = NOW();
+INSERT INTO departments (name, category, email, contact_phone, description) VALUES
+  ('City Mayor\'s Office', 'Executive Approval', 'mayor@kabankalancity.gov.ph', '(053) 471-2001', 'City Mayor\'s Executive Office for high-priority concern approvals and official directives.'),
+  ('City Engineering Office', 'Road & Infrastructure', 'engineering@kabankalancity.gov.ph', '(053) 471-2002', 'Handles road repairs, bridge maintenance, and other public infrastructure.'),
+  ('NOCECO / Electric Utility', 'Electricity', 'noceco@kabankalancity.gov.ph', '(053) 471-2003', 'Manages streetlights, electrical posts, power issues, and wiring concerns.'),
+  ('City Water District', 'Water & Drainage', 'waterdistrict@kabankalancity.gov.ph', '(053) 471-2004', 'Responsible for clean water supply, pipe bursts, and drainage/flooding systems.'),
+  ('City Sanitation Division', 'Waste & Sanitation', 'sanitation@kabankalancity.gov.ph', '(053) 471-2005', 'Coordinates garbage collection, waste management, and public sanitation.'),
+  ('PNP / Barangay Tanod', 'Public Safety', 'publicsafety@kabankalancity.gov.ph', '(053) 471-2006', 'Enforces public order, traffic safety, and immediate emergency response.'),
+  ('City Admin Office', 'Other', 'admin@kabankalancity.gov.ph', '(053) 471-2000', 'Administrative support, policy implementation, and general inquiries.'),
+  ('Barangay Hall', NULL, 'barangayhall@kabankalancity.gov.ph', '(053) 471-2007', 'Local barangay affairs, community relations, and low-priority local concerns.')
+ON DUPLICATE KEY UPDATE category = VALUES(category), email = VALUES(email), contact_phone = VALUES(contact_phone), description = VALUES(description), updated_at = NOW();
 
 -- ─── Performance Indexes ────────────────────────────────────────────────────
 -- Note: MySQL does not natively support "CREATE INDEX IF NOT EXISTS".

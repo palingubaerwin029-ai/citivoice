@@ -8,6 +8,8 @@ import {
   Dimensions,
   ActivityIndicator,
   Platform,
+  Linking,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -76,6 +78,47 @@ const STATUS_FILTER_KEYS = [
   { key: 'Resolved', tKey: 'resolved' },
 ];
 
+const CATEGORY_FILTER_KEYS = [
+  { key: 'All', icon: 'apps-outline', label: 'All' },
+  { key: 'Road & Infrastructure', icon: 'construct-outline', label: 'Roads' },
+  { key: 'Electricity', icon: 'flash-outline', label: 'Electricity' },
+  { key: 'Water & Drainage', icon: 'water-outline', label: 'Water' },
+  { key: 'Waste & Sanitation', icon: 'trash-outline', label: 'Sanitation' },
+  { key: 'Public Safety', icon: 'shield-half-outline', label: 'Safety' },
+];
+
+const computeDistanceStr = (lat1, lon1, lat2, lon2) => {
+  const n1 = safeCoord(lat1);
+  const n2 = safeCoord(lon1);
+  const n3 = safeCoord(lat2);
+  const n4 = safeCoord(lon2);
+  if (n1 === null || n2 === null || n3 === null || n4 === null) return null;
+  const R = 6371; // km
+  const dLat = (n3 - n1) * (Math.PI / 180);
+  const dLon = (n4 - n2) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(n1 * (Math.PI / 180)) * Math.cos(n3 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c;
+  if (d < 1) {
+    return `${Math.round(d * 1000)}m away`;
+  }
+  return `${d.toFixed(1)}km away`;
+};
+
+const openDirections = (lat, lng) => {
+  const nLat = safeCoord(lat);
+  const nLng = safeCoord(lng);
+  if (nLat === null || nLng === null) return;
+  const destination = `${nLat},${nLng}`;
+  const url = Platform.OS === 'ios'
+    ? `http://maps.apple.com/?daddr=${destination}&dirflg=d`
+    : `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+  Linking.openURL(url).catch((err) => console.log('Could not open maps', err));
+};
+
 export default function MapScreen({ navigation }) {
   const { colors, theme } = useTheme();
 
@@ -86,13 +129,14 @@ export default function MapScreen({ navigation }) {
     Rejected: colors.statusRejected,
   };
 
-  const { loadMapData } = useConcerns();
+  const { loadMapData, toggleUpvote: toggleConcernUpvote } = useConcerns();
   const { t } = useLanguage();
   const mapRef = useRef(null);
   const [statusFilter, setStatusFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState('All');
   const [selectedConcern, setSelectedConcern] = useState(null);
   const [mapType, setMapType] = useState('standard');
-  const { loadingLocation, getCurrentLocation } = useLocation();
+  const { loadingLocation, getCurrentLocation, location: userLocation } = useLocation();
   const [mapReady, setMapReady] = useState(false);
   const [mapConcerns, setMapConcerns] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
@@ -144,12 +188,30 @@ export default function MapScreen({ navigation }) {
     );
   };
 
+  const handleQuickUpvote = async (concernId) => {
+    if (toggleConcernUpvote) {
+      try {
+        await toggleConcernUpvote(concernId);
+        setSelectedConcern(prev => {
+          if (!prev || prev.id !== concernId) return prev;
+          const currentlyUpvoted = prev.is_upvoted_by_me;
+          return {
+            ...prev,
+            upvotes: (prev.upvotes || 0) + (currentlyUpvoted ? -1 : 1),
+            is_upvoted_by_me: !currentlyUpvoted,
+          };
+        });
+      } catch (e) {}
+    }
+  };
+
   // Filter and validate concerns that have valid coordinates (supporting both original names and aliases)
   const pinnable = mapConcerns.filter((c) => {
     const lat = safeCoord(c.location_lat ?? c.lat);
     const lng = safeCoord(c.location_lng ?? c.lng);
     if (lat === null || lng === null) return false;
     if (statusFilter !== 'All' && c.status !== statusFilter) return false;
+    if (categoryFilter !== 'All' && c.category !== categoryFilter) return false;
     return true;
   });
 
@@ -275,7 +337,7 @@ export default function MapScreen({ navigation }) {
 
       {/* ── Header overlay (safe from notch) ── */}
       <SafeAreaView style={styles.headerOverlay} edges={['top']} pointerEvents="box-none">
-        {/* Filter Pills */}
+        {/* Status Filter Pills */}
         <View style={styles.filterContainer}>
           <ScrollView
             horizontal
@@ -328,6 +390,47 @@ export default function MapScreen({ navigation }) {
                       {count}
                     </Text>
                   </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Category Filter Chips */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.filterRow, { marginTop: verticalScale(6) }]}
+          >
+            {CATEGORY_FILTER_KEYS.map((cat) => {
+              const active = categoryFilter === cat.key;
+              return (
+                <TouchableOpacity
+                  key={cat.key}
+                  style={[
+                    styles.filterChipSmall,
+                    { backgroundColor: colors.bgCard + 'E5', borderColor: colors.border },
+                    active && { backgroundColor: colors.primary, borderColor: colors.primary },
+                  ]}
+                  onPress={() => {
+                    setCategoryFilter(cat.key);
+                    setSelectedConcern(null);
+                  }}
+                >
+                  <Ionicons
+                    name={cat.icon}
+                    size={13}
+                    color={active ? '#fff' : colors.textMuted}
+                    style={{ marginRight: scale(4) }}
+                  />
+                  <Text
+                    style={[
+                      styles.filterTextSmall,
+                      { color: colors.textSecondary },
+                      active && { color: '#fff', fontWeight: '700' },
+                    ]}
+                  >
+                    {cat.label}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -401,80 +504,153 @@ export default function MapScreen({ navigation }) {
           ))}
       </View>
 
-      {/* Selected Concern Bottom Sheet */}
-      {selectedConcern && (
-        <View
-          style={[
-            styles.bottomSheet,
-            { backgroundColor: colors.bgCard, borderColor: colors.border },
-          ]}
-        >
-          <View style={[styles.bottomSheetHandle, { backgroundColor: colors.border }]} />
-          <View style={styles.bottomSheetContent}>
-            <TouchableOpacity style={styles.bsLeft} onPress={handleViewDetail} activeOpacity={0.7}>
-              <View
-                style={[
-                  styles.bsIcon,
-                  {
-                    backgroundColor:
-                      getCategoryConfig(colors)[selectedConcern.category]?.bg || colors.bgCard,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={getCategoryConfig(colors)[selectedConcern.category]?.icon || 'alert-circle'}
-                  size={22}
-                  color={
-                    getCategoryConfig(colors)[selectedConcern.category]?.color || colors.primary
-                  }
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.bsTitle, { color: colors.textPrimary }]} numberOfLines={2}>
+      {/* Selected Concern Bottom Sheet (Redesigned Floating Card) */}
+      {selectedConcern && (() => {
+        const rawLat = safeCoord(selectedConcern.location_lat ?? selectedConcern.lat);
+        const rawLng = safeCoord(selectedConcern.location_lng ?? selectedConcern.lng);
+        const distanceStr = userLocation?.coords
+          ? computeDistanceStr(userLocation.coords.latitude, userLocation.coords.longitude, rawLat, rawLng)
+          : null;
+
+        const imgUrl = selectedConcern.image_url
+          ? (selectedConcern.image_url.startsWith('http')
+              ? selectedConcern.image_url
+              : `http://localhost:5000${selectedConcern.image_url.startsWith('/') ? '' : '/'}${selectedConcern.image_url}`)
+          : null;
+
+        const categoryConfig = getCategoryConfig(colors)[selectedConcern.category] || {};
+
+        return (
+          <View
+            style={[
+              styles.bottomSheet,
+              { backgroundColor: colors.bgCard, borderColor: colors.border },
+            ]}
+          >
+            {/* Top Bar with Drag Handle & Close */}
+            <View style={styles.cardHeaderRow}>
+              <View style={[styles.bottomSheetHandle, { backgroundColor: colors.border }]} />
+              <TouchableOpacity style={styles.closeCardBtn} onPress={handleDismiss} activeOpacity={0.7}>
+                <Ionicons name="close-circle" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Main Content Row */}
+            <TouchableOpacity
+              style={styles.cardMainRow}
+              onPress={handleViewDetail}
+              activeOpacity={0.85}
+            >
+              {/* Left Image Thumbnail or Category Avatar */}
+              {imgUrl ? (
+                <View style={styles.thumbContainer}>
+                  <Image source={{ uri: imgUrl }} style={styles.thumbImage} resizeMode="cover" />
+                  <View style={[styles.thumbCategoryBadge, { backgroundColor: categoryConfig.color || colors.primary }]}>
+                    <Ionicons name={categoryConfig.icon || 'alert-circle'} size={12} color="#fff" />
+                  </View>
+                </View>
+              ) : (
+                <View
+                  style={[
+                    styles.avatarIconBox,
+                    { backgroundColor: categoryConfig.bg || colors.primary + '15' },
+                  ]}
+                >
+                  <Ionicons
+                    name={categoryConfig.icon || 'alert-circle'}
+                    size={26}
+                    color={categoryConfig.color || colors.primary}
+                  />
+                </View>
+              )}
+
+              {/* Title & Metadata */}
+              <View style={styles.cardDetails}>
+                {/* Badges Row */}
+                <View style={styles.cardMetaRow}>
+                  <StatusBadge status={selectedConcern.status} />
+
+                  {selectedConcern.priority === 'High' && (
+                    <View style={[styles.priorityPill, { backgroundColor: colors.statusRejected + '20', borderColor: colors.statusRejected + '50' }]}>
+                      <Ionicons name="flash" size={10} color={colors.statusRejected} />
+                      <Text style={[styles.priorityText, { color: colors.statusRejected }]}>High</Text>
+                    </View>
+                  )}
+
+                  {distanceStr && (
+                    <View style={[styles.distancePill, { backgroundColor: colors.primary + '18' }]}>
+                      <Ionicons name="navigate" size={10} color={colors.primary} />
+                      <Text style={[styles.distanceText, { color: colors.primary }]}>{distanceStr}</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Title */}
+                <Text style={[styles.cardTitleText, { color: colors.textPrimary }]} numberOfLines={2}>
                   {selectedConcern.title}
                 </Text>
-                <View style={styles.bsMeta}>
-                  <StatusBadge status={selectedConcern.status} />
-                  <Text style={[styles.bsVotes, { color: colors.textMuted }]}>
-                    👍 {selectedConcern.upvotes || 0}
+
+                {/* Location / Barangay */}
+                <View style={styles.locationRow}>
+                  <Ionicons name="location-outline" size={13} color={colors.textMuted} />
+                  <Text style={[styles.locationText, { color: colors.textMuted }]} numberOfLines={1}>
+                    {selectedConcern.location_address || selectedConcern.user_barangay || 'Kabankalan City'}
                   </Text>
                 </View>
-                {selectedConcern.location_address ? (
-                  <Text style={[styles.bsLocation, { color: colors.textMuted }]} numberOfLines={1}>
-                    📍 {selectedConcern.location_address}
-                  </Text>
-                ) : null}
-                {selectedConcern.user_barangay ? (
-                  <Text
-                    style={[styles.bsBarangay, { color: colors.textSecondary }]}
-                    numberOfLines={1}
-                  >
-                    🏘️ {selectedConcern.user_barangay}
-                  </Text>
-                ) : null}
               </View>
             </TouchableOpacity>
 
-            <View style={styles.bsActions}>
-              <TouchableOpacity
-                style={[styles.viewBtn, { backgroundColor: colors.primary }]}
-                onPress={handleViewDetail}
-              >
-                <Ionicons name="arrow-forward" size={16} color="#fff" />
-              </TouchableOpacity>
+            {/* Bottom Actions Bar */}
+            <View style={[styles.cardActionBar, { borderTopColor: colors.border + '50' }]}>
+              {/* Upvote Button */}
               <TouchableOpacity
                 style={[
-                  styles.closeBtn,
-                  { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                  styles.actionUpvoteBtn,
+                  {
+                    backgroundColor: selectedConcern.is_upvoted_by_me ? colors.primary + '20' : colors.bgCardAlt,
+                    borderColor: selectedConcern.is_upvoted_by_me ? colors.primary : colors.border,
+                  },
                 ]}
-                onPress={handleDismiss}
+                onPress={() => handleQuickUpvote(selectedConcern.id)}
               >
-                <Ionicons name="close" size={16} color={colors.textMuted} />
+                <Ionicons
+                  name={selectedConcern.is_upvoted_by_me ? 'thumbs-up' : 'thumbs-up-outline'}
+                  size={15}
+                  color={selectedConcern.is_upvoted_by_me ? colors.primary : colors.textSecondary}
+                />
+                <Text
+                  style={[
+                    styles.actionUpvoteText,
+                    { color: selectedConcern.is_upvoted_by_me ? colors.primary : colors.textSecondary },
+                  ]}
+                >
+                  {selectedConcern.upvotes || 0} Upvotes
+                </Text>
+              </TouchableOpacity>
+
+              {/* Get Directions Button */}
+              {rawLat !== null && rawLng !== null && (
+                <TouchableOpacity
+                  style={[styles.actionDirectionsBtn, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '35' }]}
+                  onPress={() => openDirections(rawLat, rawLng)}
+                >
+                  <Ionicons name="navigate-outline" size={15} color={colors.primary} />
+                  <Text style={[styles.actionDirectionsText, { color: colors.primary }]}>Directions</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* View Detail Accent Button */}
+              <TouchableOpacity
+                style={[styles.actionViewDetailBtn, { backgroundColor: colors.primary }]}
+                onPress={handleViewDetail}
+              >
+                <Text style={styles.actionViewDetailText}>View</Text>
+                <Ionicons name="arrow-forward" size={14} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
-        </View>
-      )}
+        );
+      })()}
 
       {/* Loading overlay */}
       {dataLoading && (
@@ -573,6 +749,44 @@ const styles = StyleSheet.create({
   },
   filterCountText: { fontSize: rf(10), fontWeight: '800' },
 
+  filterChipSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(5),
+    borderRadius: moderateScale(14),
+    borderWidth: 1,
+    marginRight: scale(6),
+  },
+  filterTextSmall: { fontSize: rf(11), fontWeight: '600' },
+
+  distancePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(3),
+    paddingHorizontal: scale(7),
+    paddingVertical: verticalScale(2),
+    borderRadius: moderateScale(10),
+  },
+  distanceText: { fontSize: rf(11), fontWeight: '700' },
+
+  upvoteChipBtn: {
+    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(2),
+    borderRadius: moderateScale(10),
+    borderWidth: 1,
+  },
+  upvoteChipText: { fontSize: rf(11), fontWeight: '700' },
+
+  directionsBtn: {
+    width: scale(38),
+    height: scale(38),
+    borderRadius: moderateScale(10),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+
   countBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -665,79 +879,163 @@ const styles = StyleSheet.create({
   },
   legendText: { fontSize: rf(11), fontWeight: '600' },
 
-  // ── Bottom Sheet ──
+  // ── Bottom Sheet (Redesigned Floating Card) ──
   bottomSheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopLeftRadius: moderateScale(32),
-    borderTopRightRadius: moderateScale(32),
-    borderTopWidth: 1,
-    paddingBottom: verticalScale(36),
-    paddingTop: verticalScale(14),
+    borderTopLeftRadius: moderateScale(28),
+    borderTopRightRadius: moderateScale(28),
+    borderTopWidth: 1.5,
+    paddingBottom: verticalScale(28),
+    paddingTop: verticalScale(10),
+    paddingHorizontal: scale(16),
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -6 },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
+        shadowOffset: { width: 0, height: -8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 14,
       },
-      android: { elevation: 20 },
+      android: { elevation: 24 },
     }),
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: verticalScale(10),
+    position: 'relative',
   },
   bottomSheetHandle: {
-    width: scale(48),
-    height: verticalScale(5),
-    borderRadius: scale(3),
+    width: scale(44),
+    height: verticalScale(4),
+    borderRadius: scale(2),
     alignSelf: 'center',
-    marginBottom: verticalScale(16),
-    opacity: 0.6,
+    opacity: 0.5,
   },
-  bottomSheetContent: {
+  closeCardBtn: {
+    position: 'absolute',
+    right: 0,
+    top: -2,
+  },
+
+  cardMainRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: scale(16),
+    alignItems: 'flex-start',
     gap: scale(12),
+    marginBottom: verticalScale(14),
   },
-  bsLeft: { flex: 1, flexDirection: 'row', gap: scale(12), alignItems: 'flex-start' },
-  bsIcon: {
-    width: scale(48),
-    height: scale(48),
+
+  thumbContainer: {
+    position: 'relative',
+    width: scale(68),
+    height: scale(68),
     borderRadius: moderateScale(16),
+    overflow: 'hidden',
+  },
+  thumbImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: moderateScale(16),
+  },
+  thumbCategoryBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: scale(20),
+    height: scale(20),
+    borderRadius: scale(10),
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 },
-      android: { elevation: 2 },
-    }),
+    borderWidth: 1.5,
+    borderColor: '#fff',
   },
-  bsTitle: { fontSize: rf(16), fontWeight: '800', marginBottom: verticalScale(6) },
-  bsMeta: {
+
+  avatarIconBox: {
+    width: scale(64),
+    height: scale(64),
+    borderRadius: moderateScale(18),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  cardDetails: { flex: 1 },
+  cardMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(8),
+    flexWrap: 'wrap',
+    gap: scale(6),
     marginBottom: verticalScale(4),
   },
-  bsVotes: { fontSize: rf(12) },
-  bsLocation: { fontSize: rf(11), marginBottom: verticalScale(2) },
-  bsBarangay: { fontSize: rf(11) },
-  bsActions: { gap: verticalScale(8) },
-  viewBtn: {
-    width: scale(38),
-    height: scale(38),
-    borderRadius: moderateScale(10),
+
+  priorityPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeBtn: {
-    width: scale(38),
-    height: scale(38),
-    borderRadius: moderateScale(10),
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: scale(3),
+    paddingHorizontal: scale(6),
+    paddingVertical: verticalScale(2),
+    borderRadius: moderateScale(8),
     borderWidth: 1,
   },
+  priorityText: { fontSize: rf(10), fontWeight: '800' },
+
+  cardTitleText: {
+    fontSize: rf(15),
+    fontWeight: '800',
+    lineHeight: rf(20),
+    marginBottom: verticalScale(4),
+  },
+
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+  },
+  locationText: { fontSize: rf(11), fontWeight: '500' },
+
+  // ── Bottom Action Bar ──
+  cardActionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: verticalScale(12),
+    borderTopWidth: 1,
+    gap: scale(8),
+  },
+
+  actionUpvoteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(12),
+    borderWidth: 1,
+  },
+  actionUpvoteText: { fontSize: rf(12), fontWeight: '700' },
+
+  actionDirectionsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(5),
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(12),
+    borderWidth: 1,
+  },
+  actionDirectionsText: { fontSize: rf(12), fontWeight: '700' },
+
+  actionViewDetailBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(5),
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(8),
+    borderRadius: moderateScale(12),
+  },
+  actionViewDetailText: { fontSize: rf(12), fontWeight: '800', color: '#fff' },
 
   // ── Exact Location Pin ──
   exactLocationPulse: {

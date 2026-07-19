@@ -78,15 +78,29 @@ const getComments = async (req, res) => {
 };
 
 const addComment = async (req, res) => {
-  const { comment, is_internal } = req.body;
+  const { comment, is_internal, target_department } = req.body;
   try {
     const commentId = await workflowModel.insertComment({
       concern_id: req.params.id,
       user_id: req.user.id,
       user_name: req.user.name,
       comment,
-      is_internal: req.user.role === 'admin' ? is_internal : false
+      is_internal: req.user.role === 'admin' ? is_internal : false,
+      target_department: target_department || null,
     });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to('admin').emit('new_comment', {
+        id: commentId,
+        concern_id: req.params.id,
+        user_name: req.user.name,
+        comment,
+        is_internal,
+        target_department
+      });
+    }
+
     res.json({ success: true, commentId });
   } catch (err) {
     console.error('addComment error:', err);
