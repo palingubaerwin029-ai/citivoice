@@ -83,14 +83,17 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext) =>
 
   let finalMessage = defaultMessage;
 
-  // 1. Generate an empathetic personalized message using Gemini
+  // 1. Generate an empathetic personalized message using Gemini / Groq AI
   if (groqService.isAvailable() && notificationContext) {
     const prompt = `
-      You are the friendly, helpful AI assistant of CitiVoice (the city complaint tracking system).
+      You are the official public relations assistant for the Office of the City Mayor, Kabankalan City.
       Write a short, professional, empathetic, and reassuring notification message to a citizen named ${user.name || 'Citizen'}.
-      Context: ${notificationContext}
+      Context of Update: ${notificationContext}
       
-      Keep it very brief (2-3 sentences max). Use a warm, encouraging tone. No need for a greeting or sign-off since it goes into a template.
+      Instructions:
+      - Keep it brief (2-3 sentences max).
+      - Use a warm, professional, respectful tone representing the City Government of Kabankalan.
+      - Do not include greetings or sign-offs (they are handled by the official template).
     `;
 
     const aiGenerated = await groqService.generateText(prompt, {
@@ -104,29 +107,55 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext) =>
 
   const safeMsg = escapeHTML(finalMessage);
 
-  // 2. Format HTML nicely for emails (Premium Visual Design)
+  // 2. Format HTML for emails (Official Government Executive Template)
   const htmlBody = `
-    <div style="font-family: 'Inter', 'Segoe UI', sans-serif; padding: 40px 20px; background-color: #f4f7f6; color: #1e293b; max-width: 600px; margin: auto; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
-      <div style="background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); padding: 30px 20px; text-align: center; border-radius: 12px 12px 0 0; margin: -40px -20px 30px -20px;">
-        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">CitiVoice</h1>
-        <p style="color: rgba(255,255,255,0.8); margin: 5px 0 0 0; font-size: 14px;">Your City, Your Voice</p>
-      </div>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 40px 15px; background-color: #0f172a; color: #334155;">
       
-      <div style="padding: 0 20px;">
-        <h2 style="font-size: 20px; color: #0f172a; margin-top: 0;">Hi ${safeName},</h2>
+      <!-- Main Container Card -->
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3); border: 1px solid #1e293b;">
         
-        <div style="background: white; padding: 25px; border-radius: 12px; border-left: 5px solid #3b82f6; margin: 25px 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
-          <p style="font-size: 16px; line-height: 1.6; margin: 0; color: #334155;">${finalMessage.replace(/\n/g, '<br/>')}</p>
+        <!-- Top Official Banner -->
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1d4ed8 100%); padding: 32px 24px; text-align: center; color: #ffffff;">
+          
+          <div style="display: inline-block; padding: 4px 14px; background: rgba(217, 119, 6, 0.2); border: 1px solid rgba(245, 158, 11, 0.5); border-radius: 20px; font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #fbbf24; margin-bottom: 10px;">
+            Republic of the Philippines · City of Kabankalan
+          </div>
+
+          <h1 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.5px; color: #ffffff;">
+            CitiVoice Public Service
+          </h1>
+          <div style="font-size: 12px; font-weight: 600; color: #93c5fd; letter-spacing: 1px; text-transform: uppercase; margin-top: 4px;">
+            Office of the City Mayor · Official Citizen Update
+          </div>
         </div>
-        
-        <p style="font-size: 15px; color: #475569; margin-top: 30px;">
-          Thank you for helping us make the city a better place. Stay safe!
-        </p>
-      </div>
-      
-      <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center;">
-        <p style="font-size: 12px; color: #94a3b8; margin: 0;">This is an automated update from the CitiVoice platform.</p>
-        <p style="font-size: 12px; color: #94a3b8; margin: 5px 0 0 0;">Please do not reply directly to this email.</p>
+
+        <!-- Body Content -->
+        <div style="padding: 30px 24px;">
+          <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 16px;">
+            Dear ${safeName},
+          </div>
+
+          <!-- Highlight Message Box -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-left: 5px solid #2563eb; border-radius: 12px; padding: 20px; font-size: 14px; color: #1e293b; line-height: 1.6; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+            ${safeMsg.replace(/\n/g, '<br/>')}
+          </div>
+
+          <div style="font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 24px;">
+            The Office of the City Mayor and the City Government of Kabankalan are committed to responding promptly to community concerns. Thank you for actively contributing to the safety and improvement of our city.
+          </div>
+        </div>
+
+        <!-- Official Footer -->
+        <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 24px; text-align: center;">
+          <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">
+            City Government of Kabankalan
+          </div>
+          <div style="font-size: 11px; color: #64748b; line-height: 1.5;">
+            Office of the City Mayor · CitiVoice Governance Network<br/>
+            This is an automated official update. Please do not reply directly to this notification.
+          </div>
+        </div>
+
       </div>
     </div>
   `;
