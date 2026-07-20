@@ -50,6 +50,16 @@ async function migrate() {
       console.log('[Migration] ✅ Added approval tracking columns to `concerns` table.');
     }
 
+    // 3b. Add resolved_image_url to concerns table if missing
+    const [resolvedImgCol] = await pool.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'concerns' AND COLUMN_NAME = 'resolved_image_url'`
+    );
+    if (resolvedImgCol.length === 0) {
+      await pool.query('ALTER TABLE concerns ADD COLUMN resolved_image_url TEXT DEFAULT NULL AFTER image_url');
+      console.log('[Migration] ✅ Added `resolved_image_url` column to `concerns` table.');
+    }
+
     // 4. Add target_department to concern_comments table for inter-department communications
     const [targetDeptCol] = await pool.query(
       `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
