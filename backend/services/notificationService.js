@@ -223,7 +223,7 @@ const notifyDepartmentOnApproval = async (concern, approvalNotes, deptInfo, appr
     ? `Office of the City Mayor (${escapeHTML(approvedByName)})`
     : 'Office of the City Mayor';
 
-  const subject = `[EXECUTIVE DIRECTIVE #${concern.id}] Office of the City Mayor — ${concern.title}`;
+  const subject = `[EXECUTIVE DIRECTIVE] Office of the City Mayor — ${concern.title}`;
 
   const htmlBody = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 40px 15px; background-color: #0f172a; color: #334155;">
@@ -248,7 +248,7 @@ const notifyDepartmentOnApproval = async (concern, approvalNotes, deptInfo, appr
 
           <!-- Document Number Pill -->
           <div style="margin-top: 20px; display: inline-block; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); padding: 8px 18px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 12px; font-family: monospace; color: #e2e8f0;">
-            DIRECTIVE REF: <strong style="color: #ffffff;">EXECUTIVE-2026-CONCERN-#${concern.id}</strong>
+            DIRECTIVE REF: <strong style="color: #ffffff;">OFFICIAL-EXECUTIVE-DIRECTIVE</strong>
           </div>
         </div>
 
@@ -282,11 +282,7 @@ const notifyDepartmentOnApproval = async (concern, approvalNotes, deptInfo, appr
 
             <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #334155;">
               <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td style="padding: 8px 0; color: #64748b; font-weight: 600; width: 130px;">Concern ID:</td>
-                <td style="padding: 8px 0; font-weight: 800; color: #0f172a;">#${concern.id}</td>
-              </tr>
-              <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Report Title:</td>
+                <td style="padding: 8px 0; color: #64748b; font-weight: 600; width: 130px;">Report Title:</td>
                 <td style="padding: 8px 0; font-weight: 700; color: #0f172a;">${safeTitle}</td>
               </tr>
               <tr style="border-bottom: 1px solid #f1f5f9;">
