@@ -8,7 +8,9 @@ import {
   StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  ScrollView,
+  Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +30,13 @@ export default function ChatScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [sessionToken, setSessionToken] = useState(null);
   const flatListRef = useRef();
+
+  const QUICK_PROMPTS = [
+    { label: '📊 Check My Reports', prompt: 'What is the current status of my reported concerns?' },
+    { label: '🚨 How to File Report?', prompt: 'How do I report a new concern in Kabankalan City?' },
+    { label: '⚡ Streetlight Issues', prompt: 'Who handles broken streetlights and electric posts?' },
+    { label: '🗑️ Garbage Schedule', prompt: 'What is the garbage collection schedule for CENRO?' },
+  ];
 
   useEffect(() => {
     const initChat = async () => {
@@ -55,16 +64,15 @@ export default function ChatScreen({ navigation }) {
       }
     } catch (err) {
       console.log('Failed to load chat history', err);
-      // If the session token is stale or invalid (e.g., 404), reset token and show welcome screen
       await AsyncStorage.removeItem('cv_chat_token');
       setSessionToken(null);
       setMessages([{ id: 'welcome', sender: 'ai', message: t('chatbotWelcome') }]);
     }
   };
 
-  const sendMessage = async () => {
-    if (!inputText.trim()) return;
-    const userMsg = { id: Date.now().toString(), sender: 'user', message: inputText.trim() };
+  const handleSendText = async (textToSend) => {
+    if (!textToSend.trim()) return;
+    const userMsg = { id: Date.now().toString(), sender: 'user', message: textToSend.trim() };
     setMessages(prev => [...prev, userMsg]);
     setInputText('');
     setLoading(true);
@@ -88,6 +96,25 @@ export default function ChatScreen({ navigation }) {
     setLoading(false);
   };
 
+  const clearChat = async () => {
+    Alert.alert(
+      'Clear Conversation',
+      'Are you sure you want to reset your conversation history with the AI Assistant?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            await AsyncStorage.removeItem('cv_chat_token');
+            setSessionToken(null);
+            setMessages([{ id: 'welcome', sender: 'ai', message: t('chatbotWelcome') }]);
+          },
+        },
+      ]
+    );
+  };
+
   const renderItem = ({ item }) => {
     const isUser = item.sender === 'user';
     return (
@@ -102,7 +129,11 @@ export default function ChatScreen({ navigation }) {
         )}
         <View style={[
           styles.msgBubble,
-          { backgroundColor: isUser ? colors.primary : colors.bgCard }
+          { 
+            backgroundColor: isUser ? colors.primary : colors.bgCard,
+            borderColor: isUser ? 'transparent' : colors.border,
+            borderWidth: isUser ? 0 : 1,
+          }
         ]}>
           <Text style={[styles.msgText, { color: isUser ? '#fff' : colors.textPrimary }]}>
             {item.message}
@@ -114,15 +145,27 @@ export default function ChatScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bgDark }]} edges={['top']}>
-      {/* Header */}
+      {/* Official Executive Header */}
       <View style={[styles.header, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-          CitiVoice AI
-        </Text>
-        <View style={styles.headerBtn} />
+        
+        <View style={styles.headerTitleContainer}>
+          <View style={styles.headerTitleRow}>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+              CitiVoice AI Assistant
+            </Text>
+            <View style={styles.onlineDot} />
+          </View>
+          <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
+            Office of the City Mayor · Kabankalan City
+          </Text>
+        </View>
+
+        <TouchableOpacity onPress={clearChat} style={styles.headerBtn}>
+          <Ionicons name="trash-outline" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
       </View>
 
       <KeyboardAvoidingView 
@@ -139,6 +182,23 @@ export default function ChatScreen({ navigation }) {
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
 
+        {/* Quick Suggestion Chips */}
+        <View style={[styles.chipsContainer, { borderTopColor: colors.border }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
+            {QUICK_PROMPTS.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.chipBtn, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+                onPress={() => handleSendText(item.prompt)}
+                disabled={loading}
+              >
+                <Text style={[styles.chipText, { color: colors.primary }]}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Input Bar */}
         <View style={[
           styles.inputContainer, 
           { 
@@ -148,8 +208,8 @@ export default function ChatScreen({ navigation }) {
           }
         ]}>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.bgDark, color: colors.textPrimary }]}
-            placeholder="Type your message..."
+            style={[styles.input, { backgroundColor: colors.bgDark, color: colors.textPrimary, borderColor: colors.border }]}
+            placeholder="Ask AI assistant in English or Hiligaynon..."
             placeholderTextColor={colors.textMuted}
             value={inputText}
             onChangeText={setInputText}
@@ -157,7 +217,7 @@ export default function ChatScreen({ navigation }) {
           />
           <TouchableOpacity 
             style={[styles.sendBtn, { backgroundColor: inputText.trim() ? colors.primary : colors.bgDark }]}
-            onPress={sendMessage}
+            onPress={() => handleSendText(inputText)}
             disabled={!inputText.trim() || loading}
           >
             {loading ? (
@@ -179,21 +239,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: scale(16),
-    paddingVertical: verticalScale(12),
+    paddingVertical: verticalScale(10),
     borderBottomWidth: 1,
   },
   headerBtn: {
-    width: scale(40),
-    height: scale(40),
+    width: scale(38),
+    height: scale(38),
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerTitleContainer: {
+    alignItems: 'center',
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
   headerTitle: {
-    fontSize: rf(16),
+    fontSize: rf(15),
     fontWeight: '700',
   },
+  onlineDot: {
+    width: scale(8),
+    height: scale(8),
+    borderRadius: scale(4),
+    backgroundColor: '#22c55e',
+  },
+  headerSubtitle: {
+    fontSize: rf(11),
+    fontWeight: '500',
+    marginTop: verticalScale(2),
+  },
   keyboardView: { flex: 1 },
-  listContent: { padding: scale(16), gap: verticalScale(12) },
+  listContent: { padding: scale(16), gap: verticalScale(14) },
   msgContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -207,20 +286,44 @@ const styles = StyleSheet.create({
     gap: scale(8),
   },
   avatar: {
-    width: scale(24),
-    height: scale(24),
-    borderRadius: scale(12),
+    width: scale(28),
+    height: scale(28),
+    borderRadius: scale(14),
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: verticalScale(2),
   },
   msgBubble: {
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(10),
     borderRadius: moderateScale(16),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   msgText: {
     fontSize: rf(14),
-    lineHeight: rf(20),
+    lineHeight: rf(21),
+  },
+  chipsContainer: {
+    paddingVertical: verticalScale(8),
+    borderTopWidth: 1,
+  },
+  chipsScroll: {
+    paddingHorizontal: scale(14),
+    gap: scale(8),
+  },
+  chipBtn: {
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(7),
+    borderRadius: moderateScale(20),
+    borderWidth: 1,
+  },
+  chipText: {
+    fontSize: rf(12),
+    fontWeight: '600',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -237,6 +340,7 @@ const styles = StyleSheet.create({
     paddingBottom: verticalScale(10),
     fontSize: rf(14),
     maxHeight: verticalScale(100),
+    borderWidth: 1,
   },
   sendBtn: {
     width: scale(40),
