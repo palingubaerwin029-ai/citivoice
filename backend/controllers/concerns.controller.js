@@ -173,7 +173,7 @@ const createConcern = async (req, res) => {
       user_barangay,
       department,
     });
-    invalidate('concerns', 'concern_detail');
+    invalidate('concerns', 'concern_detail', 'map_concerns');
 
     // ─── Feature 3: Duplicate Detection (async, non-blocking) ─────────────
     setImmediate(async () => {
@@ -429,7 +429,7 @@ const editConcern = async (req, res) => {
       }
     }
 
-    invalidate('concerns', 'concern_detail');
+    invalidate('concerns', 'concern_detail', 'map_concerns');
     const updatedConcern = await selectConcernById(req.params.id);
 
     // Get socket.io instance for notifications
@@ -475,7 +475,7 @@ const removeConcern = async (req, res) => {
     const imageUrl = concern.image_url;
     if (imageUrl) deleteImageFile(imageUrl);
     await deleteConcernAndUpvotes(req.params.id);
-    invalidate('concerns', 'concern_detail');
+    invalidate('concerns', 'concern_detail', 'map_concerns');
     res.json({ success: true });
   } catch (err) {
     console.error('Concern delete error:', err);
@@ -490,11 +490,11 @@ const toggleUpvote = async (req, res) => {
     const hasUpvoted = await checkUpvote(concernId, userId);
     if (hasUpvoted) {
       await removeUpvote(concernId, userId);
-      invalidate('concerns', 'concern_detail');
+      invalidate('concerns', 'concern_detail', 'map_concerns');
       return res.json({ upvoted: false });
     }
     await addUpvote(concernId, userId);
-    invalidate('concerns', 'concern_detail');
+    invalidate('concerns', 'concern_detail', 'map_concerns');
     res.json({ upvoted: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -663,7 +663,7 @@ const linkConcerns = async (req, res) => {
         }
 
         await updateConcernFields(sourceId, fieldsToUpdate, valuesToUpdate);
-        invalidate('concerns', 'concern_detail');
+        invalidate('concerns', 'concern_detail', 'map_concerns');
 
         if (sourceConcern.user_id) {
           await insertNotification(
@@ -722,7 +722,7 @@ const approveConcern = async (req, res) => {
     } catch (cascadeErr) {
       console.error('[Duplicate Cascade Error on Approve]:', cascadeErr.message);
     }
-    invalidate('concerns', 'concern_detail');
+    invalidate('concerns', 'concern_detail', 'map_concerns');
 
     const updatedConcern = await selectConcernById(req.params.id);
 

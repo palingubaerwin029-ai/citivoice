@@ -46,9 +46,12 @@ const countConcerns = async (userId = null, status = null, category = null) => {
 };
 
 const selectMapConcerns = async () => {
-  // Only lightweight data for map markers (supporting both raw column names and aliases)
+  // Data needed for map markers AND the bottom-sheet card when a marker is tapped
   const [rows] = await pool.query(
-    'SELECT id, title, location_lat, location_lng, location_lat as lat, location_lng as lng, status, category FROM concerns WHERE location_lat IS NOT NULL'
+    `SELECT id, title, location_lat, location_lng, location_lat AS lat, location_lng AS lng,
+            status, category, priority, image_url, upvotes, location_address, user_barangay
+     FROM concerns
+     WHERE location_lat IS NOT NULL AND location_lng IS NOT NULL`
   );
   return rows;
 };

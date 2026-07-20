@@ -144,15 +144,22 @@ export default function MapScreen({ navigation }) {
 
   useEffect(() => {
     let isMounted = true;
-    setDataLoading(true);
-    loadMapData().then(data => {
-      if (isMounted) {
-        setMapConcerns(data || []);
-        setDataLoading(false);
-      }
-    });
-    return () => { isMounted = false; };
-  }, []);
+    const fetchData = () => {
+      setDataLoading(true);
+      loadMapData().then(data => {
+        if (isMounted) {
+          setMapConcerns(data || []);
+          setDataLoading(false);
+        }
+      });
+    };
+
+    fetchData(); // initial load
+
+    // Reload when screen is focused (e.g. after submitting a new concern)
+    const unsubscribe = navigation.addListener('focus', fetchData);
+    return () => { isMounted = false; unsubscribe(); };
+  }, [navigation]);
 
   useEffect(() => {
     const loadMapType = async () => {

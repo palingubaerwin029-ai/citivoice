@@ -148,7 +148,13 @@ function CitizenTabs() {
           return {
             headerShown: false,
             tabBarLabel: t('feed'),
-            tabBarStyle: shouldHide ? { display: 'none' } : undefined,
+            tabBarStyle: shouldHide
+              ? { display: 'none' }
+              : {
+                  backgroundColor: colors.bgCard,
+                  borderTopColor: colors.border,
+                  borderTopWidth: 1,
+                },
           };
         }}
       />
