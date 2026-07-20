@@ -1,5 +1,6 @@
 const { generateText } = require('./groqService');
 const chatbotModel = require('../models/chatbot.model');
+const pool = require('../db');
 
 const CITIZEN_SYSTEM_PROMPT = `You are the Official CitiVoice AI Assistant representing the Office of the City Mayor, Kabankalan City, Negros Occidental.
 You are an expert guide helping citizens report municipal concerns and navigate city services.
@@ -27,6 +28,7 @@ Platform Workflow & Statuses:
 
 Guidance Rules:
 - Keep answers clear, reassuring, and concise (2-4 sentences max).
+- If the citizen asks about the status of their report, use the LIVE USER REPORTS provided in context to answer accurately.
 - If the citizen asks how to report, guide them: tap the + button, upload a photo, select location, and submit.
 - Always uphold citizen confidence in city governance.`;
 
@@ -41,11 +43,48 @@ Core Executive Knowledge:
 - Workflow: Fast-track approval by Office of the City Mayor -> Department Dispatch -> Field Resolution -> Proof Photo verification.
 - SLA Management: Standard resolution SLA target is 48-72 hours based on priority.
 - AI Duplicate Detection: Automatically flags reports with high text/location similarity.
+- Use the LIVE CITY METRICS provided in context to answer administrative queries accurately with exact figures.
 - Provide sharp, analytical, and actionable executive advice to city managers.`;
+
+/**
+ * Fetch live context data for the user/admin session
+ */
+const fetchLiveSessionContext = async (userId, userRole) => {
+  try {
+    if (userRole === 'admin') {
+      const [rows] = await pool.query(`
+        SELECT status, COUNT(*) AS count 
+        FROM concerns 
+        GROUP BY status
+      `);
+      const metrics = {};
+      let total = 0;
+      for (const r of rows) {
+        metrics[r.status] = r.count;
+        total += r.count;
+      }
+      metrics.Total = total;
+      return { liveCityMetrics: metrics };
+    } else if (userId) {
+      const [rows] = await pool.query(
+        `SELECT id, title, category, status, priority, department, created_at 
+         FROM concerns 
+         WHERE user_id = ? 
+         ORDER BY created_at DESC 
+         LIMIT 5`,
+        [userId]
+      );
+      return { liveUserReports: rows };
+    }
+  } catch (err) {
+    console.error('[Chatbot AI] Error fetching live context:', err.message);
+  }
+  return {};
+};
 
 const processMessage = async (sessionToken, userMessage, contextData, userId, userRole = 'citizen') => {
   let session = null;
-  
+
   if (sessionToken) {
     session = await chatbotModel.getSessionByToken(sessionToken);
   }
@@ -63,15 +102,19 @@ const processMessage = async (sessionToken, userMessage, contextData, userId, us
   const history = await chatbotModel.getMessagesBySession(session.id);
   const recentHistory = history.slice(-10);
 
+  // Fetch live context (user reports or admin city metrics)
+  const liveContext = await fetchLiveSessionContext(userId, userRole);
+  const mergedContext = { ...contextData, ...liveContext };
+
   // Choose system prompt based on user role
   const systemPrompt = userRole === 'admin' ? ADMIN_SYSTEM_PROMPT : CITIZEN_SYSTEM_PROMPT;
 
   // Format prompt
   let prompt = `${systemPrompt}\n\n`;
-  if (contextData) {
-    prompt += `CURRENT CONTEXT (The user is currently viewing this data): ${JSON.stringify(contextData)}\n\n`;
+  if (Object.keys(mergedContext).length > 0) {
+    prompt += `LIVE CONTEXT DATA: ${JSON.stringify(mergedContext)}\n\n`;
   }
-  
+
   prompt += `Conversation History:\n`;
   for (const msg of recentHistory) {
     if (msg.sender === 'user') {
@@ -80,30 +123,29 @@ const processMessage = async (sessionToken, userMessage, contextData, userId, us
       prompt += `CitiVoice AI: ${msg.message}\n`;
     }
   }
-  
+
   prompt += `CitiVoice AI:`;
 
   try {
     const aiResponse = await generateText(prompt);
-    
+
     if (!aiResponse) {
-      // Gemini unavailable or returned empty — provide a graceful fallback
       const fallback = "I'm sorry, the AI service is temporarily unavailable. Please try again in a moment.";
       await chatbotModel.insertMessage(session.id, 'ai', fallback, null);
       return {
         sessionToken: session.session_token,
-        message: fallback
+        message: fallback,
       };
     }
-    
+
     const cleanResponse = aiResponse.trim();
-    
+
     // Save AI response
     await chatbotModel.insertMessage(session.id, 'ai', cleanResponse, null);
-    
+
     return {
       sessionToken: session.session_token,
-      message: cleanResponse
+      message: cleanResponse,
     };
   } catch (err) {
     console.error('Chatbot AI Error:', err);
@@ -112,5 +154,5 @@ const processMessage = async (sessionToken, userMessage, contextData, userId, us
 };
 
 module.exports = {
-  processMessage
+  processMessage,
 };
