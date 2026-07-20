@@ -133,4 +133,12 @@ export const ConcernService = {
       body: JSON.stringify({ title, description }),
     });
   },
+
+  // ── AI ID Name Verification Check ───────────────────────────────────────
+  async verifyIdName(idImageUrl, name) {
+    return apiRequest(`/auth/verify-id-name`, {
+      method: 'POST',
+      body: JSON.stringify({ idImageUrl, name }),
+    });
+  },
 };

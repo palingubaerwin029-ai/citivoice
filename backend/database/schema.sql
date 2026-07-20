@@ -193,14 +193,9 @@ ON DUPLICATE KEY UPDATE updated_at = NOW();
 
 -- Comprehensive Department list for Kabankalan City routing
 INSERT INTO departments (name, category, email, contact_phone, description) VALUES
-  ('City Mayor\'s Office', 'Executive Approval', 'mayor@kabankalancity.gov.ph', '(053) 471-2001', 'City Mayor\'s Executive Office for high-priority concern approvals and official directives.'),
-  ('City Engineering Office', 'Road & Infrastructure', 'engineering@kabankalancity.gov.ph', '(053) 471-2002', 'Handles road repairs, bridge maintenance, and other public infrastructure.'),
-  ('NOCECO / Electric Utility', 'Electricity', 'noceco@kabankalancity.gov.ph', '(053) 471-2003', 'Manages streetlights, electrical posts, power issues, and wiring concerns.'),
-  ('City Water District', 'Water & Drainage', 'waterdistrict@kabankalancity.gov.ph', '(053) 471-2004', 'Responsible for clean water supply, pipe bursts, and drainage/flooding systems.'),
-  ('City Sanitation Division', 'Waste & Sanitation', 'sanitation@kabankalancity.gov.ph', '(053) 471-2005', 'Coordinates garbage collection, waste management, and public sanitation.'),
-  ('PNP / Barangay Tanod', 'Public Safety', 'publicsafety@kabankalancity.gov.ph', '(053) 471-2006', 'Enforces public order, traffic safety, and immediate emergency response.'),
-  ('City Admin Office', 'Other', 'admin@kabankalancity.gov.ph', '(053) 471-2000', 'Administrative support, policy implementation, and general inquiries.'),
-  ('Barangay Hall', NULL, 'barangayhall@kabankalancity.gov.ph', '(053) 471-2007', 'Local barangay affairs, community relations, and low-priority local concerns.')
+  ('City Engineer\'s Office (CEO)', 'Road & Infrastructure', 'engineering@kabankalancity.gov.ph', '(053) 471-2002', 'Maintains public drainages, clears major blockages, repairs broken culverts, and builds new drainage systems along city-owned roads.'),
+  ('City Environment and Natural Resources Office (CENRO)', 'Waste & Sanitation', 'sanitation@kabankalancity.gov.ph', '(053) 471-2005', 'Manages garbage collection schedules, operates the city\'s sanitary landfill, and enforces anti-littering and waste segregation ordinances.'),
+  ('Negros Occidental Electric Cooperative (NOCECO)', 'Electricity', 'noceco@kabankalancity.gov.ph', '(053) 471-2003', 'Distributes electricity, manages power outages, repairs broken electric poles, handles meter connections, and processes your monthly bill.')
 ON DUPLICATE KEY UPDATE category = VALUES(category), email = VALUES(email), contact_phone = VALUES(contact_phone), description = VALUES(description), updated_at = NOW();
 
 -- ─── Performance Indexes ────────────────────────────────────────────────────

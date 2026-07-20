@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const path = require('path');
 const {
   selectByEmail,
   selectByName,
@@ -12,6 +13,7 @@ const {
   checkExistingIdNumber,
 } = require('../models/user.model');
 const { sendEmail } = require('../services/notificationService');
+const { verifyNameOnId } = require('../services/idVerificationService');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -56,6 +58,26 @@ const register = async (req, res) => {
       const exists = await checkExistingIdNumber(idNumber, 0);
       if (exists) {
         return res.status(400).json({ error: 'This ID number is already linked to another account.' });
+      }
+    }
+
+    // ── AI Name Verification (server-side enforcement) ───────────────────
+    if (idImageUrl) {
+      const uploadsDir = path.join(__dirname, '..', 'uploads');
+      const imageName = idImageUrl.replace(/^\/?(uploads\/)?/, '');
+      const imagePath = path.join(uploadsDir, imageName);
+
+      try {
+        const verification = await verifyNameOnId(imagePath, name);
+        if (!verification.match && verification.extractedName) {
+          return res.status(400).json({
+            error: 'The name you entered does not match the name on your ID.',
+            idVerification: verification,
+          });
+        }
+      } catch (verifyErr) {
+        // Log but don't block registration if AI service is completely down
+        console.error('[Register] ID verification error (non-blocking):', verifyErr.message);
       }
     }
 
@@ -192,10 +214,33 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// ── Verify ID Name (AI check before registration) ──────────────────────────
+const verifyIdName = async (req, res) => {
+  const { idImageUrl, name } = req.body;
+
+  if (!idImageUrl || !name) {
+    return res.status(400).json({ error: 'Both idImageUrl and name are required.' });
+  }
+
+  try {
+    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    // idImageUrl comes as "/uploads/filename.jpg" or just "filename.jpg"
+    const imageName = idImageUrl.replace(/^\/?(?:uploads\/)?/, '');
+    const imagePath = path.join(uploadsDir, imageName);
+
+    const result = await verifyNameOnId(imagePath, name);
+    res.json(result);
+  } catch (err) {
+    console.error('Verify ID name error:', err);
+    res.status(500).json({ error: 'Failed to verify ID name.' });
+  }
+};
+
 module.exports = {
   login,
   register,
   getMe,
   forgotPassword,
   resetPassword,
+  verifyIdName,
 };

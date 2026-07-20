@@ -43,6 +43,7 @@ export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   const firstName = user?.name?.split(' ')[0] || 'there';
 
@@ -64,17 +65,28 @@ export default function HomeScreen({ navigation }) {
   );
 
   const fetchPage = async (p, isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoadingMore(true);
+    if (isRefresh) {
+      setRefreshing(true);
+      setHasMore(true);
+    } else {
+      setLoadingMore(true);
+    }
     
-    await loadFeed(p, 10, isRefresh);
+    const res = await loadFeed(p, 10, isRefresh);
     
+    // Stop pagination when we've reached the last page or got no data
+    if (res && res.totalPages) {
+      setHasMore(p < res.totalPages);
+    } else if (!res || !res.data || res.data.length === 0) {
+      setHasMore(false);
+    }
+
     if (isRefresh) setRefreshing(false);
     else setLoadingMore(false);
   };
 
   const handleLoadMore = () => {
-    if (!loading && !loadingMore && !refreshing) {
+    if (!loading && !loadingMore && !refreshing && hasMore) {
       const nextPage = page + 1;
       setPage(nextPage);
       fetchPage(nextPage, false);

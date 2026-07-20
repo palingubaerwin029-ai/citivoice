@@ -152,44 +152,59 @@ export const SHADOWS = {
   },
 };
 
-export const getCategoryConfig = (colors) => ({
-  'Road & Infrastructure': {
-    icon: 'construct',
-    color: colors.accentWarm || '#F97316',
-    bg: (colors.accentWarm || '#F97316') + '1F',
-    label: 'Road',
-  },
-  'Water & Drainage': {
-    icon: 'water',
-    color: colors.info || '#3B82F6',
-    bg: (colors.info || '#3B82F6') + '1F',
-    label: 'Water',
-  },
-  Electricity: {
-    icon: 'flash',
-    color: colors.statusPending || '#F59E0B',
-    bg: (colors.statusPending || '#F59E0B') + '1F',
-    label: 'Electric',
-  },
-  'Waste & Sanitation': {
-    icon: 'trash',
-    color: colors.accent || '#10B981',
-    bg: (colors.accent || '#10B981') + '1F',
-    label: 'Waste',
-  },
-  'Public Safety': {
-    icon: 'shield',
-    color: colors.statusRejected || '#EF4444',
-    bg: (colors.statusRejected || '#EF4444') + '1F',
-    label: 'Safety',
-  },
-  Other: {
-    icon: 'ellipsis-horizontal',
-    color: colors.textSecondary || '#94A3B8',
-    bg: (colors.textSecondary || '#94A3B8') + '1F',
-    label: 'Other',
-  },
-});
+export const getCategoryConfig = (colors) => {
+  const defaultConfig = {
+    icon: 'alert-circle',
+    color: colors.primaryLight || colors.primary || '#3B82F6',
+    bg: (colors.primaryLight || colors.primary || '#3B82F6') + '1F',
+    label: 'General',
+  };
+
+  const map = {
+    'Road & Infrastructure': {
+      icon: 'construct',
+      color: colors.accentWarm || '#F97316',
+      bg: (colors.accentWarm || '#F97316') + '1F',
+      label: 'Road',
+    },
+    Electricity: {
+      icon: 'flash',
+      color: colors.statusPending || '#F59E0B',
+      bg: (colors.statusPending || '#F59E0B') + '1F',
+      label: 'Electric',
+    },
+    Drainage: {
+      icon: 'water',
+      color: colors.info || '#3B82F6',
+      bg: (colors.info || '#3B82F6') + '1F',
+      label: 'Drainage',
+    },
+    'Waste & Sanitation': {
+      icon: 'trash',
+      color: colors.accent || '#10B981',
+      bg: (colors.accent || '#10B981') + '1F',
+      label: 'Waste',
+    },
+    // Legacy / fallback mappings for backward compatibility
+    'Water & Drainage': {
+      icon: 'water',
+      color: colors.info || '#3B82F6',
+      bg: (colors.info || '#3B82F6') + '1F',
+      label: 'Drainage',
+    },
+    'Public Safety': {
+      icon: 'shield',
+      color: colors.statusRejected || '#EF4444',
+      bg: (colors.statusRejected || '#EF4444') + '1F',
+      label: 'Safety',
+    },
+    Other: defaultConfig,
+  };
+
+  return new Proxy(map, {
+    get: (target, prop) => (prop in target ? target[prop] : defaultConfig),
+  });
+};
 
 export const getStatusConfig = (colors) => ({
   Pending: {

@@ -190,82 +190,129 @@ const notifyDepartmentOnApproval = async (concern, approvalNotes, deptInfo, appr
   const safeCitizen = escapeHTML(concern.user_name || 'Citizen Report');
   const safeBarangay = escapeHTML(concern.user_barangay || 'N/A');
   const safeNotes = escapeHTML(approvalNotes || 'Approved for immediate evaluation and action.');
-  const safeApprover = escapeHTML(approvedByName);
+  const approverLabel = approvedByName && approvedByName !== 'City Admin' 
+    ? `Office of the City Mayor (${escapeHTML(approvedByName)})`
+    : 'Office of the City Mayor';
 
-  const subject = `[OFFICIAL NOTICE - APPROVED CONCERN #${concern.id}] Action Required: ${concern.title}`;
+  const subject = `[EXECUTIVE DIRECTIVE #${concern.id}] Office of the City Mayor — ${concern.title}`;
 
   const htmlBody = `
-    <div style="font-family: 'Inter', 'Segoe UI', Arial, sans-serif; padding: 40px 20px; background-color: #f1f5f9; color: #1e293b; max-width: 650px; margin: auto; border-radius: 16px; box-shadow: 0 12px 30px rgba(0,0,0,0.08);">
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 40px 15px; background-color: #0f172a; color: #334155;">
       
-      <!-- Top Branding Bar -->
-      <div style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 30px 24px; text-align: center; border-radius: 12px 12px 0 0; color: white;">
-        <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; opacity: 0.85; margin-bottom: 6px;">OFFICIAL EXECUTIVE NOTICE</div>
-        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">CitiVoice Governance Network</h1>
-        <p style="margin: 6px 0 0 0; font-size: 14px; opacity: 0.9;">City Government of Kabankalan</p>
-      </div>
-
-      <div style="background: #ffffff; padding: 30px 24px; border-radius: 0 0 12px 12px; border: 1px solid #e2e8f0; border-top: none;">
+      <!-- Main Container Card -->
+      <div style="max-width: 640px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3); border: 1px solid #1e293b;">
         
-        <!-- Status Banner -->
-        <div style="background: #f0fdf4; border-left: 5px solid #22c55e; padding: 16px 20px; border-radius: 8px; margin-bottom: 24px;">
-          <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div>
-              <span style="background: #22c55e; color: white; padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">✅ CONCERN APPROVED</span>
-              <h2 style="font-size: 18px; color: #0f172a; margin: 10px 0 4px 0;">Assigned to: ${deptName}</h2>
-              <p style="margin: 0; font-size: 13px; color: #475569;">Approved By: <strong>${safeApprover}</strong></p>
+        <!-- Official Header Banner -->
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1d4ed8 100%); padding: 36px 28px 28px 28px; text-align: center; color: #ffffff; position: relative;">
+          
+          <!-- Top Gold Seal Divider -->
+          <div style="display: inline-block; padding: 4px 14px; background: rgba(217, 119, 6, 0.2); border: 1px solid rgba(245, 158, 11, 0.5); border-radius: 20px; font-size: 10px; font-weight: 800; letter-spacing: 2.5px; text-transform: uppercase; color: #fbbf24; margin-bottom: 12px;">
+            Republic of the Philippines · City of Kabankalan
+          </div>
+
+          <h1 style="margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -0.5px; color: #ffffff; font-family: 'Segoe UI', Arial, sans-serif;">
+            Office of the City Mayor
+          </h1>
+          <div style="font-size: 13px; font-weight: 600; color: #93c5fd; letter-spacing: 1px; text-transform: uppercase; margin-top: 4px;">
+            Official Executive Directive & Department Assignment
+          </div>
+
+          <!-- Document Number Pill -->
+          <div style="margin-top: 20px; display: inline-block; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); padding: 8px 18px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 12px; font-family: monospace; color: #e2e8f0;">
+            DIRECTIVE REF: <strong style="color: #ffffff;">EXECUTIVE-2026-CONCERN-#${concern.id}</strong>
+          </div>
+        </div>
+
+        <!-- Content Area -->
+        <div style="padding: 32px 28px;">
+
+          <!-- Executive Approval Alert Box -->
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 6px solid #16a34a; border-radius: 12px; padding: 20px; margin-bottom: 28px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <span style="background: #16a34a; color: #ffffff; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 5px 12px; border-radius: 20px; display: inline-block;">
+                ✓ ACTION APPROVED BY MAYOR
+              </span>
+              <span style="font-size: 11px; color: #166534; font-weight: 700; text-transform: uppercase;">
+                Priority: ${safePriority}
+              </span>
+            </div>
+            
+            <div style="font-size: 18px; font-weight: 800; color: #0f172a; margin-top: 10px; line-height: 1.3;">
+              Assigned Department: <span style="color: #1d4ed8;">${deptName}</span>
+            </div>
+            <div style="font-size: 13px; color: #475569; margin-top: 6px;">
+              Authority: <strong>${approverLabel}</strong>
             </div>
           </div>
-        </div>
 
-        <!-- Concern Summary Box -->
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 24px;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-            <tr>
-              <td style="padding: 6px 0; color: #64748b; width: 120px;"><strong>Concern ID:</strong></td>
-              <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">#${concern.id}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #64748b;"><strong>Title:</strong></td>
-              <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${safeTitle}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #64748b;"><strong>Category:</strong></td>
-              <td style="padding: 6px 0; color: #0f172a;">${safeCategory}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #64748b;"><strong>Priority:</strong></td>
-              <td style="padding: 6px 0;"><span style="color: ${concern.priority === 'High' ? '#ef4444' : '#f59e0b'}; font-weight: 700;">${safePriority} Priority</span></td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #64748b;"><strong>Location:</strong></td>
-              <td style="padding: 6px 0; color: #0f172a;">📍 ${safeLocation} (Barangay ${safeBarangay})</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #64748b;"><strong>Reported By:</strong></td>
-              <td style="padding: 6px 0; color: #0f172a;">👤 ${safeCitizen}</td>
-            </tr>
-          </table>
-        </div>
+          <!-- Report Details Table Card -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 22px; margin-bottom: 28px;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 14px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+              📄 Citizen Concern Metadata & Location
+            </div>
 
-        <!-- Description -->
-        <div style="margin-bottom: 24px;">
-          <h3 style="font-size: 14px; text-transform: uppercase; color: #475569; letter-spacing: 0.5px; margin: 0 0 8px 0;">Citizen Description</h3>
-          <div style="background: #f1f5f9; padding: 14px 18px; border-radius: 8px; font-size: 14px; color: #334155; line-height: 1.6; border-left: 3px solid #94a3b8;">
-            ${safeDesc.replace(/\n/g, '<br/>')}
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #334155;">
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 8px 0; color: #64748b; font-weight: 600; width: 130px;">Concern ID:</td>
+                <td style="padding: 8px 0; font-weight: 800; color: #0f172a;">#${concern.id}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Report Title:</td>
+                <td style="padding: 8px 0; font-weight: 700; color: #0f172a;">${safeTitle}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Category:</td>
+                <td style="padding: 8px 0; font-weight: 600; color: #1e40af;">${safeCategory}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Location / Area:</td>
+                <td style="padding: 8px 0; color: #0f172a;">📍 ${safeLocation} (Barangay ${safeBarangay})</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Reporting Citizen:</td>
+                <td style="padding: 8px 0; color: #0f172a;">👤 ${safeCitizen}</td>
+              </tr>
+            </table>
           </div>
-        </div>
 
-        <!-- Official Directive / Approval Notes -->
-        <div style="margin-bottom: 28px;">
-          <h3 style="font-size: 14px; text-transform: uppercase; color: #1e3a8a; letter-spacing: 0.5px; margin: 0 0 8px 0;">🏛️ Official Executive Directive / Notes</h3>
-          <div style="background: #eff6ff; border: 1px dashed #3b82f6; padding: 16px 18px; border-radius: 8px; font-size: 14px; color: #1e40af; line-height: 1.6;">
-            ${safeNotes.replace(/\n/g, '<br/>')}
+          <!-- Citizen Description Block -->
+          <div style="margin-bottom: 28px;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #475569; margin-bottom: 10px;">
+              📝 Reported Problem Summary
+            </div>
+            <div style="background: #ffffff; border: 1px solid #cbd5e1; border-left: 4px solid #64748b; border-radius: 8px; padding: 16px 20px; font-size: 14px; color: #1e293b; line-height: 1.6;">
+              ${safeDesc.replace(/\n/g, '<br/>')}
+            </div>
           </div>
+
+          <!-- Executive Directive Notes Box -->
+          <div style="margin-bottom: 32px;">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #1e3a8a; margin-bottom: 10px;">
+              🏛️ Executive Instructions & Action Required
+            </div>
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-left: 5px solid #2563eb; border-radius: 10px; padding: 18px 20px; font-size: 14px; color: #1e40af; line-height: 1.6; font-weight: 500;">
+              ${safeNotes.replace(/\n/g, '<br/>')}
+            </div>
+          </div>
+
+          <!-- Official Call to Action Button -->
+          <div style="text-align: center; margin: 36px 0 24px 0;">
+            <a href="http://localhost:8080/concerns/${concern.id}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 8px 16px rgba(15,23,42,0.25);">
+              🏛️ Open Concern in CitiVoice Console →
+            </a>
+          </div>
+
         </div>
 
-        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
-          <p style="font-size: 13px; color: #64748b; margin: 0 0 6px 0;">Please log into the CitiVoice Admin Web Console to review assignments and post work-in-progress status.</p>
-          <p style="font-size: 11px; color: #94a3b8; margin: 0;">Automated System Notice • City Government of Kabankalan</p>
+        <!-- Official Footer -->
+        <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 24px 28px; text-align: center;">
+          <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">
+            City Government of Kabankalan
+          </div>
+          <div style="font-size: 11px; color: #64748b; line-height: 1.5;">
+            Office of the City Mayor · CitiVoice Governance Network<br/>
+            This is an automated official executive transmission. Confidential & Privileged.
+          </div>
         </div>
 
       </div>

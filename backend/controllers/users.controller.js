@@ -15,6 +15,8 @@ const {
   updateUserAvatar,
 } = require('../models/user.model');
 
+const { verifyNameOnId } = require('../services/idVerificationService');
+
 const safe = (user) => {
   if (!user) return user;
   const { password_hash, reset_otp, reset_otp_expires, fcm_token, ...rest } = user;
@@ -89,23 +91,17 @@ const updateUser = async (req, res) => {
 
     let updatedUser = await selectById(req.params.id);
 
-    // OCR Auto-verification Logic
+    // AI Auto-verification Logic (Post-Registration Submission)
     if (id_image_url && submitted_at && updatedUser.verification_status !== 'verified') {
       try {
-        const filename = id_image_url.split('/uploads/')[1];
+        const filename = id_image_url.split('/uploads/')[1] || id_image_url.replace(/^\/?(uploads\/)?/, '');
         if (filename) {
           const filePath = path.join(__dirname, '..', 'uploads', filename);
-          const result = await Tesseract.recognize(filePath, 'eng');
+          const verification = await verifyNameOnId(filePath, updatedUser.name);
           
-          // Strip spaces and hyphens to make OCR matching more reliable
-          const text = result.data.text.toLowerCase().replace(/[\s-]/g, '');
-          const searchName = updatedUser.name.toLowerCase().replace(/[\s-]/g, '');
-          const searchIdNumber = (updatedUser.id_number || '').toLowerCase().replace(/[\s-]/g, '');
+          console.log(`[Users Verify] Verification result for user ${req.params.id}:`, verification);
 
-          const hasName = text.includes(searchName);
-          const hasId = searchIdNumber ? text.includes(searchIdNumber) : false;
-
-          if (hasName && hasId) {
+          if (verification.match) {
             // Match found! Auto-verify
             await updateUserVerification(req.params.id, 'verified', 1, null, 'NOW()');
             updatedUser = await selectById(req.params.id); // refresh user object
@@ -115,24 +111,24 @@ const updateUser = async (req, res) => {
               await insertNotification(
                 req.params.id,
                 '✅ Account Auto-Verified!',
-                'Your ID was scanned and automatically verified by our system. You can now log into the app.',
+                `Your ID was scanned and automatically verified by AI (${verification.confidence}% name match). You can now fully use CitiVoice!`,
               );
               notifyUser(
                 contactInfo,
                 'Account Auto-Verified!',
-                'Your ID was automatically verified by our system. You can now log into the app.',
-                'The citizen just submitted their ID and our system automatically verified it with 100% confidence. Welcome them to the app.',
+                'Your ID was automatically verified by AI. You can now use all CitiVoice features.',
+                'The citizen just submitted their ID and our system automatically verified it. Welcome them to the app.',
               );
             }
           } else {
-            // No match found, ensure status is 'pending' for manual review
+            // No high match found, ensure status is 'pending' for manual admin review
             await updateUserVerification(req.params.id, 'pending', 0, null, 'NULL');
             updatedUser = await selectById(req.params.id); // refresh user object
           }
         }
       } catch (e) {
-        console.error('OCR Auto-verification error:', e);
-        // Fallback to manual review if OCR fails
+        console.error('AI Auto-verification error:', e);
+        // Fallback to manual review if AI verification fails
         await updateUserVerification(req.params.id, 'pending', 0, null, 'NULL');
         updatedUser = await selectById(req.params.id); // refresh user object
       }

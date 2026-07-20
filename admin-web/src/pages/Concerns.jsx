@@ -251,7 +251,7 @@ export default function Concerns() {
                               color: 'var(--primary-light)',
                             }}
                           >
-                            {c.category?.split(' ')[0]}
+                            {c.category}
                           </span>
                         </td>
                         <td className={s.td}>

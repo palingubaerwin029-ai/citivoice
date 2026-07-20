@@ -82,9 +82,8 @@ const CATEGORY_FILTER_KEYS = [
   { key: 'All', icon: 'apps-outline', label: 'All' },
   { key: 'Road & Infrastructure', icon: 'construct-outline', label: 'Roads' },
   { key: 'Electricity', icon: 'flash-outline', label: 'Electricity' },
-  { key: 'Water & Drainage', icon: 'water-outline', label: 'Water' },
+  { key: 'Drainage', icon: 'water-outline', label: 'Drainage' },
   { key: 'Waste & Sanitation', icon: 'trash-outline', label: 'Sanitation' },
-  { key: 'Public Safety', icon: 'shield-half-outline', label: 'Safety' },
 ];
 
 const computeDistanceStr = (lat1, lon1, lat2, lon2) => {

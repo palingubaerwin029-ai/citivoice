@@ -95,11 +95,9 @@ export const translations = {
 
     // Categories
     road: 'Road & Infrastructure',
-    water: 'Water & Drainage',
+    water: 'Drainage',
     electricity: 'Electricity',
     waste: 'Waste & Sanitation',
-    safety: 'Public Safety',
-    other: 'Other',
 
     // Profile
     memberSince: 'Member since',

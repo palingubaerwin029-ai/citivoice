@@ -51,9 +51,8 @@ const STATUS_COLORS = {
 const CATEGORY_ICONS = {
   'Road & Infrastructure': '🛣️',
   'Electricity': '⚡',
-  'Water & Drainage': '🌊',
+  'Drainage': '🌊',
   'Waste & Sanitation': '🚮',
-  'Public Safety': '🚨',
   'Executive Approval': '🏛️',
 };
 
@@ -522,9 +521,8 @@ export function MapView() {
             { key: 'All', label: 'All Categories' },
             { key: 'Road & Infrastructure', label: '🛣️ Roads' },
             { key: 'Electricity', label: '⚡ Electricity' },
-            { key: 'Water & Drainage', label: '🌊 Water' },
+            { key: 'Drainage', label: '🌊 Drainage' },
             { key: 'Waste & Sanitation', label: '🚮 Sanitation' },
-            { key: 'Public Safety', label: '🚨 Safety' },
           ].map(({ key, label }) => {
             const isActive = categoryFilter === key;
             return (

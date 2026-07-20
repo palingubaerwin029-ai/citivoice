@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { login, register, getMe, forgotPassword, resetPassword } = require('../controllers/auth.controller');
+const { login, register, getMe, forgotPassword, resetPassword, verifyIdName } = require('../controllers/auth.controller');
 const auth = require('../middleware/auth');
 const {
   validateLogin,
@@ -13,6 +13,9 @@ router.post('/login', validateLogin, login);
 
 // ─── Register (mobile citizens) ──────────────────────────────────────────────
 router.post('/register', validateRegister, register);
+
+// ─── Verify ID Name (AI pre-registration check) ──────────────────────────────
+router.post('/verify-id-name', verifyIdName);
 
 // ─── Get current user from token ──────────────────────────────────────────────
 router.get('/me', auth, getMe);

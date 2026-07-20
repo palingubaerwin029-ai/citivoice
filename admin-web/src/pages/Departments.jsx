@@ -18,43 +18,25 @@ import styles from '../styles/Departments.module.css';
 import s from '../styles/Admin.module.css';
 
 const DEPT_ICONS = {
-  'City Engineering Office': {
+  "City Engineer's Office (CEO)": {
     icon: <IoBuildOutline />,
     class: styles.iconEngineering,
   },
-  'NOCECO / Electric Utility': {
-    icon: <IoFlashOutline />,
-    class: styles.iconElectric,
-  },
-  'City Water District': {
-    icon: <IoWaterOutline />,
-    class: styles.iconWater,
-  },
-  'City Sanitation Division': {
+  'City Environment and Natural Resources Office (CENRO)': {
     icon: <IoTrashBinOutline />,
     class: styles.iconSanitation,
   },
-  'PNP / Barangay Tanod': {
-    icon: <IoShieldOutline />,
-    class: styles.iconSafety,
-  },
-  'City Admin Office': {
-    icon: <IoGridOutline />,
-    class: styles.iconGeneral,
-  },
-  'Barangay Hall': {
-    icon: <IoBusinessOutline />,
-    class: styles.iconGeneral,
+  'Negros Occidental Electric Cooperative (NOCECO)': {
+    icon: <IoFlashOutline />,
+    class: styles.iconElectric,
   },
 };
 
 const CATEGORIES = [
   'Road & Infrastructure',
   'Electricity',
-  'Water & Drainage',
+  'Drainage',
   'Waste & Sanitation',
-  'Public Safety',
-  'Other',
 ];
 
 const EMPTY_FORM = {

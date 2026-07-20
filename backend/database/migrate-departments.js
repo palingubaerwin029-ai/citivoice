@@ -9,13 +9,9 @@ require('dotenv').config();
 const pool = require('../db');
 
 const DEPARTMENTS = [
-  { name: 'City Engineering Office', description: 'Handles road repairs, bridge maintenance, and other public infrastructure.' },
-  { name: 'NOCECO / Electric Utility', description: 'Manages streetlights, electrical posts, power issues, and wiring concerns.' },
-  { name: 'City Water District', description: 'Responsible for clean water supply, pipe bursts, and drainage/flooding systems.' },
-  { name: 'City Sanitation Division', description: 'Coordinates garbage collection, waste management, and public sanitation.' },
-  { name: 'PNP / Barangay Tanod', description: 'Enforces public order, traffic safety, and immediate emergency response.' },
-  { name: 'City Admin Office', description: 'Administrative support, policy implementation, and general inquiries.' },
-  { name: 'Barangay Hall', description: 'Local barangay affairs, community relations, and low-priority local concerns.' }
+  { name: "City Engineer's Office (CEO)", description: "Maintains public drainages, clears major blockages, repairs broken culverts, and builds new drainage systems along city-owned roads." },
+  { name: 'City Environment and Natural Resources Office (CENRO)', description: 'Manages garbage collection schedules, operates the city\'s sanitary landfill, and enforces anti-littering and waste segregation ordinances.' },
+  { name: 'Negros Occidental Electric Cooperative (NOCECO)', description: 'Distributes electricity, manages power outages, repairs broken electric poles, handles meter connections, and processes your monthly bill.' },
 ];
 
 async function migrate() {
@@ -34,7 +30,10 @@ async function migrate() {
     `);
     console.log('[Migration] ✅ Table `departments` verified.');
 
-    // 2. Seed departments
+    // 2. Cleanup obsolete & seed 3 official departments
+    const validNames = DEPARTMENTS.map((d) => d.name);
+    await pool.query('DELETE FROM departments WHERE name NOT IN (?)', [validNames]);
+
     for (const dept of DEPARTMENTS) {
       await pool.query(
         `INSERT INTO departments (name, description) VALUES (?, ?) 
@@ -42,7 +41,7 @@ async function migrate() {
         [dept.name, dept.description]
       );
     }
-    console.log('[Migration] ✅ Departments seeded successfully.');
+    console.log('[Migration] ✅ Departments seeded & cleaned successfully.');
     process.exit(0);
   } catch (err) {
     console.error('[Migration] ❌ Migration failed:', err.message);

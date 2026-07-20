@@ -17,13 +17,9 @@ const pool = mysql.createPool({
 });
 
 const DEPARTMENTS = [
-  { name: 'City Engineering Office', category: 'Road & Infrastructure', description: 'Handles road repairs, bridge maintenance, and other public infrastructure.' },
-  { name: 'NOCECO / Electric Utility', category: 'Electricity', description: 'Manages streetlights, electrical posts, power issues, and wiring concerns.' },
-  { name: 'City Water District', category: 'Water & Drainage', description: 'Responsible for clean water supply, pipe bursts, and drainage/flooding systems.' },
-  { name: 'City Sanitation Division', category: 'Waste & Sanitation', description: 'Coordinates garbage collection, waste management, and public sanitation.' },
-  { name: 'PNP / Barangay Tanod', category: 'Public Safety', description: 'Enforces public order, traffic safety, and immediate emergency response.' },
-  { name: 'City Admin Office', category: 'Other', description: 'Administrative support, policy implementation, and general inquiries.' },
-  { name: 'Barangay Hall', category: null, description: 'Local barangay affairs, community relations, and low-priority local concerns.' }
+  { name: "City Engineer's Office (CEO)", category: 'Road & Infrastructure', description: "Maintains public drainages, clears major blockages, repairs broken culverts, and builds new drainage systems along city-owned roads." },
+  { name: 'City Environment and Natural Resources Office (CENRO)', category: 'Waste & Sanitation', description: 'Manages garbage collection schedules, operates the city\'s sanitary landfill, and enforces anti-littering and waste segregation ordinances.' },
+  { name: 'Negros Occidental Electric Cooperative (NOCECO)', category: 'Electricity', description: 'Distributes electricity, manages power outages, repairs broken electric poles, handles meter connections, and processes your monthly bill.' },
 ];
 
 async function migrate() {

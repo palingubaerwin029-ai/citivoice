@@ -34,19 +34,30 @@ export default function MyConcernsScreen({ navigation }) {
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   const fetchPage = async (p, isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoadingMore(true);
+    if (isRefresh) {
+      setRefreshing(true);
+      setHasMore(true);
+    } else {
+      setLoadingMore(true);
+    }
     
-    await loadMyConcerns(p, 10, isRefresh);
+    const res = await loadMyConcerns(p, 10, isRefresh);
     
+    if (res && res.totalPages) {
+      setHasMore(p < res.totalPages);
+    } else if (!res || !res.data || res.data.length === 0) {
+      setHasMore(false);
+    }
+
     if (isRefresh) setRefreshing(false);
     else setLoadingMore(false);
   };
 
   const handleLoadMore = () => {
-    if (!loading && !loadingMore && !refreshing) {
+    if (!loading && !loadingMore && !refreshing && hasMore) {
       const nextPage = page + 1;
       setPage(nextPage);
       fetchPage(nextPage, false);

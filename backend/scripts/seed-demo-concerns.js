@@ -6,7 +6,7 @@ const DEMO_CONCERNS = [
   {
     title: 'Severe road flooding near Barangay Tabao main crossing',
     description: 'Deep flood water blocking vehicles near the main crossing. Needs immediate drainage clearing.',
-    category: 'Water & Drainage',
+    category: 'Drainage',
     priority: 'High',
     status: 'In Progress',
     location_address: 'Barangay Tabao, Kabankalan City',
@@ -81,7 +81,7 @@ const DEMO_CONCERNS = [
   {
     title: 'Clogged drainage pipe causing street overflow',
     description: 'Rainwater overflowing from blocked culvert onto residential sidewalk.',
-    category: 'Water & Drainage',
+    category: 'Drainage',
     priority: 'High',
     status: 'Pending',
     location_address: 'Barangay 3 Crossing, Kabankalan City',

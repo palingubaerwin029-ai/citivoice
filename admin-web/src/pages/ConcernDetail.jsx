@@ -22,10 +22,8 @@ const STATUSES = [
 const CATEGORIES = [
   'Road & Infrastructure',
   'Electricity',
-  'Water & Drainage',
+  'Drainage',
   'Waste & Sanitation',
-  'Public Safety',
-  'Other',
 ];
 const PRIORITIES = ['High', 'Medium', 'Low'];
 
@@ -104,7 +102,7 @@ export default function ConcernDetail() {
         setSelPriority(cData.priority || 'Medium');
         setNote(cData.admin_note || '');
         setApprovalNotes(cData.approval_notes || 'Approved for immediate evaluation and action.');
-        setApprovalTargetDept(cData.department || (deptList && deptList[0]?.name) || 'City Engineering Office');
+        setApprovalTargetDept(cData.department || (deptList && deptList[0]?.name) || "City Engineer's Office (CEO)");
         setAssignments(aData || []);
         setComments(comData || []);
         setAuditLog(audData || []);

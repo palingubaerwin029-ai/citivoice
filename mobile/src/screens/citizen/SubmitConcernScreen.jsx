@@ -38,7 +38,12 @@ export default function SubmitConcernScreen({ navigation }) {
 
   const { addConcern, analyzeDraft } = useConcerns();
   const { t } = useLanguage();
-  const CATEGORIES = Object.keys(getCategoryConfig(colors));
+  const CATEGORIES = [
+    'Road & Infrastructure',
+    'Electricity',
+    'Drainage',
+    'Waste & Sanitation',
+  ];
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
@@ -47,7 +52,7 @@ export default function SubmitConcernScreen({ navigation }) {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    category: 'Other',
+    category: 'Road & Infrastructure',
     priority: 'Medium',
   });
   const [imageUri, setImageUri] = useState(null);
@@ -252,7 +257,7 @@ export default function SubmitConcernScreen({ navigation }) {
           onPress={() => {
             setSubmitted(false);
             setCurrentStep(1);
-            setForm({ title: '', description: '', category: 'Other', priority: 'Medium' });
+            setForm({ title: '', description: '', category: 'Road & Infrastructure', priority: 'Medium' });
             setImageUri(null);
             setLocation(null);
             setShowMap(false);

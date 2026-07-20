@@ -12,13 +12,9 @@ require('dotenv').config();
 const pool = require('../db');
 
 const VALID_DEPARTMENTS = [
-  'City Engineering Office',
-  'NOCECO / Electric Utility',
-  'City Water District',
-  'City Sanitation Division',
-  'PNP / Barangay Tanod',
-  'City Admin Office',
-  'Barangay Hall',
+  "City Engineer's Office (CEO)",
+  'City Environment and Natural Resources Office (CENRO)',
+  'Negros Occidental Electric Cooperative (NOCECO)',
 ];
 
 async function migrate() {

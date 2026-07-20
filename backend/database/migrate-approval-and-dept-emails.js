@@ -9,14 +9,9 @@ require('dotenv').config();
 const pool = require('../db');
 
 const DEPARTMENT_EMAILS = [
-  { name: "City Mayor's Office", category: 'Executive Approval', email: 'palingubaerwin029@gmail.com', contact_phone: '(053) 471-2001', description: "City Mayor's Executive Office for high-priority concern approvals and official directives." },
-  { name: 'City Engineering Office', category: 'Road & Infrastructure', email: 'palingubaerwin029@gmail.com', contact_phone: '(053) 471-2002', description: 'Handles road repairs, bridge maintenance, and other public infrastructure.' },
-  { name: 'NOCECO / Electric Utility', category: 'Electricity', email: 'palingubaerwin029@gmail.com', contact_phone: '(053) 471-2003', description: 'Manages streetlights, electrical posts, power issues, and wiring concerns.' },
-  { name: 'City Water District', category: 'Water & Drainage', email: 'palingubaerwin029@gmail.com', contact_phone: '(053) 471-2004', description: 'Responsible for clean water supply, pipe bursts, and drainage/flooding systems.' },
-  { name: 'City Sanitation Division', category: 'Waste & Sanitation', email: 'palingubaerwin029@gmail.com', contact_phone: '(053) 471-2005', description: 'Coordinates garbage collection, waste management, and public sanitation.' },
-  { name: 'PNP / Barangay Tanod', category: 'Public Safety', email: 'palingubaerwin029@gmail.com', contact_phone: '(053) 471-2006', description: 'Enforces public order, traffic safety, and immediate emergency response.' },
-  { name: 'City Admin Office', category: 'Other', email: 'palingubaerwin029@gmail.com', contact_phone: '(053) 471-2000', description: 'Administrative support, policy implementation, and general inquiries.' },
-  { name: 'Barangay Hall', category: null, email: 'palingubaerwin029@gmail.com', contact_phone: '(053) 471-2007', description: 'Local barangay affairs, community relations, and low-priority local concerns.' }
+  { name: "City Engineer's Office (CEO)", category: 'Road & Infrastructure', email: 'palingubaerwin029@gmail.com', contact_phone: '(053) 471-2002', description: "Maintains public drainages, clears major blockages, repairs broken culverts, and builds new drainage systems along city-owned roads." },
+  { name: 'City Environment and Natural Resources Office (CENRO)', category: 'Waste & Sanitation', email: 'palingubaerwin029@gmail.com', contact_phone: '(053) 471-2005', description: 'Manages garbage collection schedules, operates the city\'s sanitary landfill, and enforces anti-littering and waste segregation ordinances.' },
+  { name: 'Negros Occidental Electric Cooperative (NOCECO)', category: 'Electricity', email: 'palingubaerwin029@gmail.com', contact_phone: '(053) 471-2003', description: 'Distributes electricity, manages power outages, repairs broken electric poles, handles meter connections, and processes your monthly bill.' },
 ];
 
 async function migrate() {
@@ -65,7 +60,11 @@ async function migrate() {
       console.log('[Migration] ✅ Added `target_department` column to `concern_comments` table.');
     }
 
-    // 5. Seed / update departments
+    // 5. Seed / update departments & delete obsolete ones
+    const validNames = DEPARTMENT_EMAILS.map((d) => d.name);
+    await pool.query('DELETE FROM departments WHERE name NOT IN (?)', [validNames]);
+    console.log('[Migration] 🧹 Cleaned up obsolete departments.');
+
     for (const d of DEPARTMENT_EMAILS) {
       const [existing] = await pool.query('SELECT id FROM departments WHERE LOWER(name) = LOWER(?)', [d.name]);
       if (existing.length === 0) {
@@ -76,10 +75,10 @@ async function migrate() {
         console.log(`[Migration] ➕ Created department: ${d.name}`);
       } else {
         await pool.query(
-          'UPDATE departments SET email = COALESCE(email, ?), contact_phone = COALESCE(contact_phone, ?), category = COALESCE(category, ?) WHERE id = ?',
-          [d.email, d.contact_phone, d.category, existing[0].id]
+          'UPDATE departments SET email = ?, contact_phone = ?, category = ?, description = ? WHERE id = ?',
+          [d.email, d.contact_phone, d.category, d.description, existing[0].id]
         );
-        console.log(`[Migration] 🔄 Updated department contact details: ${d.name}`);
+        console.log(`[Migration] 🔄 Updated department details: ${d.name}`);
       }
     }
 

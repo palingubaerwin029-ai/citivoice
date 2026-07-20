@@ -542,12 +542,10 @@ Write 2-4 sentences maximum. Be professional but warm. Do not use markdown forma
 
     // Fallback: template-based response
     const templates = {
-      'Road & Infrastructure': `Thank you for reporting this issue regarding ${concern.title.toLowerCase()}. Our City Engineering Office has been notified and a team will be dispatched to assess the situation. We expect to begin work within the next 3-5 business days. We appreciate your help in keeping our roads safe.`,
-      Electricity: `We have received your report about ${concern.title.toLowerCase()}. This has been forwarded to our electric utility team for immediate attention. A repair crew will be scheduled within 24-48 hours. Thank you for helping us maintain our community's infrastructure.`,
-      'Water & Drainage': `Thank you for reporting this concern. The City Water District has been alerted about ${concern.title.toLowerCase()} and will send a team to inspect the area. Expected response time is within 2-3 business days. Your vigilance helps keep our community safe.`,
-      'Waste & Sanitation': `We acknowledge your report regarding ${concern.title.toLowerCase()}. Our Sanitation Division has been notified and collection/cleanup will be prioritized. Please expect action within 1-3 business days. Thank you for helping maintain our community's cleanliness.`,
-      'Public Safety': `Your safety report has been received and forwarded to the appropriate authorities. A patrol unit will be dispatched to assess the situation. For immediate emergencies, please also contact the local police station directly. Thank you for your vigilance.`,
-      Other: `Thank you for bringing ${concern.title.toLowerCase()} to our attention. This has been logged and assigned to the appropriate department for review. We will provide updates as the situation progresses. Your feedback helps improve our community.`,
+      'Road & Infrastructure': `Thank you for reporting this issue regarding ${concern.title.toLowerCase()}. Our City Engineer's Office (CEO) has been notified and a team will be dispatched to assess the situation. We expect to begin work within the next 3-5 business days. We appreciate your help in keeping our roads safe.`,
+      Electricity: `We have received your report about ${concern.title.toLowerCase()}. This has been forwarded to NOCECO for immediate attention. A repair crew will be scheduled within 24-48 hours. Thank you for helping us maintain our community's infrastructure.`,
+      Drainage: `Thank you for reporting this concern. The City Engineer's Office (CEO) has been alerted about ${concern.title.toLowerCase()} and will send a drainage team to inspect the area. Expected response time is within 2-3 business days. Your vigilance helps keep our community safe.`,
+      'Waste & Sanitation': `We acknowledge your report regarding ${concern.title.toLowerCase()}. CENRO has been notified and collection/cleanup will be prioritized. Please expect action within 1-3 business days. Thank you for helping maintain our community's cleanliness.`,
     };
 
     const template = templates[concern.category] || templates['Other'];
@@ -688,7 +686,7 @@ const approveConcern = async (req, res) => {
     const concern = await selectConcernById(req.params.id);
     if (!concern) return res.status(404).json({ error: 'Concern not found' });
 
-    const approverName = req.user.name || req.user.email || "City Admin";
+    const approverName = req.user.name || req.user.email || "Office of the City Mayor";
     const fields = ['status = ?', 'approval_notes = ?', 'approved_by_name = ?', 'approved_at = NOW()', 'updated_at = NOW()'];
     const values = ['In Progress', approval_notes || 'Approved for immediate evaluation and action.', approverName];
 

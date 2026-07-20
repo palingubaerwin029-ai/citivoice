@@ -156,11 +156,47 @@ export default function RegisterScreen({ navigation }) {
     return !Object.keys(e).length;
   };
 
+  const [aiVerifying, setAiVerifying] = useState(false);
+  const [aiResult, setAiResult] = useState(null);
+
+  useEffect(() => {
+    // Reset AI result when image or name changes drastically
+    setAiResult(null);
+  }, [form.idImage]);
+
+  const verifyIdNameAI = async (imageUri, nameStr) => {
+    if (!imageUri || !nameStr.trim()) return null;
+    setAiVerifying(true);
+    setAiResult(null);
+    try {
+      const uploadedUrl = await ConcernService.uploadImage(imageUri);
+      const res = await ConcernService.verifyIdName(uploadedUrl, nameStr.trim());
+      setAiResult(res);
+      setAiVerifying(false);
+      return { uploadedUrl, res };
+    } catch (err) {
+      console.log('AI verification error:', err);
+      setAiVerifying(false);
+      return null;
+    }
+  };
+
   const handleRegister = async () => {
     if (!validate()) return;
     setLoading(true);
     try {
       const idImageUrl = await ConcernService.uploadImage(form.idImage);
+
+      // Verify ID name with AI
+      const verifyRes = await ConcernService.verifyIdName(idImageUrl, form.name.trim());
+      setAiResult(verifyRes);
+
+      if (verifyRes && !verifyRes.match && verifyRes.extractedName) {
+        setLoading(false);
+        setError(`AI Name Mismatch: The name on your ID (${verifyRes.extractedName}) does not match '${form.name}'. Please ensure your full name matches your ID.`);
+        return;
+      }
+
       await register({ ...form, idImageUrl });
       navigation.navigate('VerifyIdentity');
     } catch (err) {
@@ -672,6 +708,45 @@ export default function RegisterScreen({ navigation }) {
                   </View>
                 </View>
               )}
+              {/* AI Verification Badge */}
+              {aiResult && (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: 10,
+                    borderRadius: 10,
+                    marginTop: 8,
+                    backgroundColor: aiResult.match ? colors.success + '18' : colors.warning + '18',
+                    borderWidth: 1,
+                    borderColor: aiResult.match ? colors.success + '44' : colors.warning + '44',
+                  }}
+                >
+                  <Ionicons
+                    name={aiResult.match ? 'checkmark-circle' : 'alert-circle'}
+                    size={18}
+                    color={aiResult.match ? colors.success : colors.warning}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: rf(12),
+                        fontWeight: '700',
+                        color: aiResult.match ? colors.success : colors.warning,
+                      }}
+                    >
+                      {aiResult.match ? 'AI Name Verified' : 'AI Name Mismatch Notice'}
+                    </Text>
+                    <Text style={{ fontSize: rf(11), color: colors.textSecondary }}>
+                      {aiResult.extractedName
+                        ? `ID Name: "${aiResult.extractedName}" (${aiResult.confidence}% match)`
+                        : aiResult.reason}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
               {errors.idImage && (
                 <View
                   style={{
