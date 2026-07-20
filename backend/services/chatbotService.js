@@ -84,21 +84,27 @@ const fetchLiveSessionContext = async (userId, userRole) => {
  */
 const handleEscalationPing = async (userId, concernId, reason) => {
   try {
-    let targetId = concernId;
-    if (!targetId && userId) {
+    let concern = null;
+    if (concernId) {
+      const [rows] = await pool.query('SELECT id, title FROM concerns WHERE id = ?', [concernId]);
+      if (rows.length > 0) concern = rows[0];
+    }
+    if (!concern && userId) {
       const [rows] = await pool.query(
-        'SELECT id FROM concerns WHERE user_id = ? AND status IN ("Pending", "In Progress") ORDER BY updated_at ASC LIMIT 1',
+        'SELECT id, title FROM concerns WHERE user_id = ? AND status IN ("Pending", "In Progress") ORDER BY updated_at ASC LIMIT 1',
         [userId]
       );
-      if (rows.length > 0) targetId = rows[0].id;
+      if (rows.length > 0) concern = rows[0];
     }
 
-    if (targetId) {
-      await pool.query('UPDATE concerns SET updated_at = NOW() WHERE id = ?', [targetId]);
+    if (concern) {
+      await pool.query('UPDATE concerns SET updated_at = NOW() WHERE id = ?', [concern.id]);
+      const reportTitle = concern.title || 'Report';
       return {
         escalated: true,
-        concernId: targetId,
-        message: `⚡ Executive Escalation Ping dispatched to department for Report #${targetId}. Priority flagged for Mayor's Office review.`,
+        concernId: concern.id,
+        title: reportTitle,
+        message: `⚡ Executive Escalation Ping dispatched to department for "${reportTitle}". Priority flagged for Mayor's Office review.`,
       };
     }
   } catch (err) {
@@ -178,7 +184,7 @@ const processMessage = async (sessionToken, userMessage, contextData, userId, us
       const escalationResult = await handleEscalationPing(userId, targetConcernId, parsed.escalation?.reason);
       if (escalationResult) {
         actionData = { escalation: escalationResult };
-        parsed.message += `\n\n⚡ **Executive Escalation Dispatched**: Report #${escalationResult.concernId} has been prioritized for department evaluation.`;
+        parsed.message += `\n\n⚡ **Executive Escalation Dispatched**: "${escalationResult.title}" has been prioritized for department evaluation.`;
       }
     }
 
