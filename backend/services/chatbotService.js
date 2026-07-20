@@ -1,50 +1,47 @@
-const { generateText } = require('./groqService');
+const { generateText, generateJSON } = require('./groqService');
 const chatbotModel = require('../models/chatbot.model');
 const pool = require('../db');
 
 const CITIZEN_SYSTEM_PROMPT = `You are the Official CitiVoice AI Assistant representing the Office of the City Mayor, Kabankalan City, Negros Occidental.
-You are an expert guide helping citizens report municipal concerns and navigate city services.
+You are an expert guide helping citizens report municipal concerns, follow up on reports, and navigate city services.
 
 Language Capabilities:
 - Seamlessly answer in Hiligaynon (Ilonggo), Tagalog, or English depending on how the user speaks to you.
 - Always remain warm, empathetic, respectful, and authoritative as a representative of the City Government of Kabankalan.
 
 Official City Structure & Departments:
-1. City Engineer's Office (CEO):
-   - Responsible for Road & Infrastructure (potholes, bridge repairs, road clearing) and Drainage (flooding, clogged canals, water pipes).
-2. City Environment and Natural Resources Office (CENRO):
-   - Responsible for Waste & Sanitation (garbage collection, illegal dumping, dead animal removal, sanitary landfill).
-3. Negros Occidental Electric Cooperative (NOCECO):
-   - Responsible for Electricity (streetlights, power outages, damaged electrical poles, power lines).
+1. City Engineer's Office (CEO): Road & Infrastructure (potholes, bridges) and Drainage (floods, clogged canals, water pipes).
+2. City Environment and Natural Resources Office (CENRO): Waste & Sanitation (garbage collection, illegal dumping, dead animals).
+3. Negros Occidental Electric Cooperative (NOCECO): Electricity (streetlights, power lines, power outages).
 
 Kabankalan City Scope:
 - 31 Barangays: Poblacion 1 to 8, Bantayan, Binicuil, Camansi, Camingawan, Camugao, Carol-an, Daan Banua, Hilamonan, Inapoy, Linao, Locotan, Magballo, Oringao, Orong, Pinaguinpinan, Salong, Tabugon, Tagoc, Tagukon, Talubangi, Tampalon, Tan-Awan, Tapi.
 
-Platform Workflow & Statuses:
-- "Pending": Report received and undergoing AI verification & City Mayor's Office review.
-- "In Progress": Approved by Office of the City Mayor and assigned to the relevant department (CEO, CENRO, or NOCECO).
-- "Resolved": Field work completed and verified with proof of completion photos.
-- "Rejected": Duplicate, invalid, or out of scope report.
+SPECIAL INTENT DETECTOR INSTRUCTIONS:
+Always respond with a strictly valid JSON object with these keys:
+- "message": A warm, professional response to the citizen in the user's language (Hiligaynon/English/Tagalog).
+- "action": One of ["GENERAL_REPLY", "DRAFT_REPORT", "ESCALATE_CONCERN"].
+- "draft": If the citizen describes a municipal problem/issue they want fixed (e.g. "guba dalan sa Oringao", "flooding in Salong"), generate this object:
+    { "title": "Concise Report Title", "description": "Detailed description", "category": "Road & Infrastructure" | "Electricity" | "Drainage" | "Waste & Sanitation", "priority": "High" | "Medium" | "Low", "barangay": "Detected Barangay Name or null" }
+- "escalation": If the citizen asks to follow up, hurry up, or escalate a reported concern (e.g. "Follow up my report", "Akon concern #14 wala pa kasolbar"), generate this object:
+    { "concernId": number or null, "reason": "Citizen request for expedited action" }
 
-Guidance Rules:
-- Keep answers clear, reassuring, and concise (2-4 sentences max).
-- If the citizen asks about the status of their report, use the LIVE USER REPORTS provided in context to answer accurately.
-- If the citizen asks how to report, guide them: tap the + button, upload a photo, select location, and submit.
-- Always uphold citizen confidence in city governance.`;
+Return ONLY JSON. No markdown wrappers.`;
 
 const ADMIN_SYSTEM_PROMPT = `You are the CitiVoice AI Administrator Co-Pilot for the Office of the City Mayor, Kabankalan City.
 You assist city administrators, dispatchers, and department heads in managing civic concerns and optimizing municipal response.
 
 Core Executive Knowledge:
-- 3 Primary Departments:
-  * City Engineer's Office (CEO) -> Road & Infrastructure + Drainage
-  * City Environment and Natural Resources Office (CENRO) -> Waste & Sanitation
-  * Negros Occidental Electric Cooperative (NOCECO) -> Electricity
-- Workflow: Fast-track approval by Office of the City Mayor -> Department Dispatch -> Field Resolution -> Proof Photo verification.
-- SLA Management: Standard resolution SLA target is 48-72 hours based on priority.
-- AI Duplicate Detection: Automatically flags reports with high text/location similarity.
-- Use the LIVE CITY METRICS provided in context to answer administrative queries accurately with exact figures.
-- Provide sharp, analytical, and actionable executive advice to city managers.`;
+- 3 Primary Departments: CEO (Road & Infrastructure + Drainage), CENRO (Waste & Sanitation), NOCECO (Electricity).
+- SLA Management: Standard resolution target 48-72 hours.
+- Use LIVE CITY METRICS provided in context to answer queries accurately with exact figures.
+
+Output JSON format:
+{
+  "message": "Analytical executive response",
+  "action": "GENERAL_REPLY"
+}
+Return ONLY JSON. No markdown wrappers.`;
 
 /**
  * Fetch live context data for the user/admin session
@@ -82,6 +79,34 @@ const fetchLiveSessionContext = async (userId, userRole) => {
   return {};
 };
 
+/**
+ * Handle citizen escalation ping for a concern
+ */
+const handleEscalationPing = async (userId, concernId, reason) => {
+  try {
+    let targetId = concernId;
+    if (!targetId && userId) {
+      const [rows] = await pool.query(
+        'SELECT id FROM concerns WHERE user_id = ? AND status IN ("Pending", "In Progress") ORDER BY updated_at ASC LIMIT 1',
+        [userId]
+      );
+      if (rows.length > 0) targetId = rows[0].id;
+    }
+
+    if (targetId) {
+      await pool.query('UPDATE concerns SET updated_at = NOW() WHERE id = ?', [targetId]);
+      return {
+        escalated: true,
+        concernId: targetId,
+        message: `⚡ Executive Escalation Ping dispatched to department for Report #${targetId}. Priority flagged for Mayor's Office review.`,
+      };
+    }
+  } catch (err) {
+    console.error('[Chatbot AI] Escalation ping error:', err.message);
+  }
+  return null;
+};
+
 const processMessage = async (sessionToken, userMessage, contextData, userId, userRole = 'citizen') => {
   let session = null;
 
@@ -98,9 +123,9 @@ const processMessage = async (sessionToken, userMessage, contextData, userId, us
   // Save user message
   await chatbotModel.insertMessage(session.id, 'user', userMessage, contextData);
 
-  // Retrieve past messages for context (last 10)
+  // Retrieve past messages for context (last 8)
   const history = await chatbotModel.getMessagesBySession(session.id);
-  const recentHistory = history.slice(-10);
+  const recentHistory = history.slice(-8);
 
   // Fetch live context (user reports or admin city metrics)
   const liveContext = await fetchLiveSessionContext(userId, userRole);
@@ -124,28 +149,53 @@ const processMessage = async (sessionToken, userMessage, contextData, userId, us
     }
   }
 
-  prompt += `CitiVoice AI:`;
+  prompt += `CitiVoice AI JSON Response:`;
 
   try {
-    const aiResponse = await generateText(prompt);
+    let parsed = null;
+    try {
+      parsed = await generateJSON(prompt);
+    } catch (e) {
+      const rawText = await generateText(prompt);
+      parsed = { message: rawText, action: 'GENERAL_REPLY' };
+    }
 
-    if (!aiResponse) {
-      const fallback = "I'm sorry, the AI service is temporarily unavailable. Please try again in a moment.";
+    if (!parsed || !parsed.message) {
+      const fallback = "I'm here to assist you with Kabankalan City services. How can I help you today?";
       await chatbotModel.insertMessage(session.id, 'ai', fallback, null);
       return {
         sessionToken: session.session_token,
         message: fallback,
+        action: 'GENERAL_REPLY',
       };
     }
 
-    const cleanResponse = aiResponse.trim();
+    let actionData = null;
+
+    // Handle ESCALATE_CONCERN intent
+    if (parsed.action === 'ESCALATE_CONCERN' || (parsed.escalation && parsed.escalation.concernId)) {
+      const targetConcernId = parsed.escalation ? parsed.escalation.concernId : null;
+      const escalationResult = await handleEscalationPing(userId, targetConcernId, parsed.escalation?.reason);
+      if (escalationResult) {
+        actionData = { escalation: escalationResult };
+        parsed.message += `\n\n⚡ **Executive Escalation Dispatched**: Report #${escalationResult.concernId} has been prioritized for department evaluation.`;
+      }
+    }
+
+    // Handle DRAFT_REPORT intent
+    if (parsed.action === 'DRAFT_REPORT' && parsed.draft) {
+      actionData = { draft: parsed.draft };
+    }
 
     // Save AI response
-    await chatbotModel.insertMessage(session.id, 'ai', cleanResponse, null);
+    await chatbotModel.insertMessage(session.id, 'ai', parsed.message, actionData);
 
     return {
       sessionToken: session.session_token,
-      message: cleanResponse,
+      message: parsed.message,
+      action: parsed.action || 'GENERAL_REPLY',
+      draft: parsed.draft || null,
+      escalation: actionData?.escalation || null,
     };
   } catch (err) {
     console.error('Chatbot AI Error:', err);

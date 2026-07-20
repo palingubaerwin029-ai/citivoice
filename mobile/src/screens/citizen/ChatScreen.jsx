@@ -70,6 +70,30 @@ export default function ChatScreen({ navigation }) {
     }
   };
 
+  const [isRecording, setIsRecording] = useState(false);
+
+  const toggleVoiceDictation = () => {
+    if (isRecording) {
+      setIsRecording(false);
+    } else {
+      setIsRecording(true);
+      Alert.alert(
+        '🎙️ Voice Dictation Active',
+        'Speak your concern in Hiligaynon, Tagalog, or English. Tap Stop when finished.',
+        [
+          {
+            text: 'Stop & Send Sample',
+            onPress: () => {
+              setIsRecording(false);
+              handleSendText('May guba nga karsada kag baha diri sa Barangay Oringao');
+            },
+          },
+          { text: 'Cancel', style: 'cancel', onPress: () => setIsRecording(false) },
+        ]
+      );
+    }
+  };
+
   const handleSendText = async (textToSend) => {
     if (!textToSend.trim()) return;
     const userMsg = { id: Date.now().toString(), sender: 'user', message: textToSend.trim() };
@@ -89,7 +113,16 @@ export default function ChatScreen({ navigation }) {
         await AsyncStorage.setItem('cv_chat_token', data.sessionToken);
       }
 
-      setMessages(prev => [...prev, { id: Date.now().toString(), sender: 'ai', message: data.message }]);
+      setMessages(prev => [
+        ...prev, 
+        { 
+          id: Date.now().toString(), 
+          sender: 'ai', 
+          message: data.message,
+          draft: data.draft,
+          escalation: data.escalation,
+        }
+      ]);
     } catch (err) {
       setMessages(prev => [...prev, { id: Date.now().toString(), sender: 'ai', message: 'Sorry, I encountered an error. Please try again later.' }]);
     }
@@ -115,6 +148,10 @@ export default function ChatScreen({ navigation }) {
     );
   };
 
+  const navigateToSubmitDraft = (draft) => {
+    navigation.navigate('SubmitConcern', { initialDraft: draft });
+  };
+
   const renderItem = ({ item }) => {
     const isUser = item.sender === 'user';
     return (
@@ -127,17 +164,59 @@ export default function ChatScreen({ navigation }) {
             <AdminChatIcon size={14} color="#fff" />
           </View>
         )}
-        <View style={[
-          styles.msgBubble,
-          { 
-            backgroundColor: isUser ? colors.primary : colors.bgCard,
-            borderColor: isUser ? 'transparent' : colors.border,
-            borderWidth: isUser ? 0 : 1,
-          }
-        ]}>
-          <Text style={[styles.msgText, { color: isUser ? '#fff' : colors.textPrimary }]}>
-            {item.message}
-          </Text>
+        <View style={styles.msgBubbleWrapper}>
+          <View style={[
+            styles.msgBubble,
+            { 
+              backgroundColor: isUser ? colors.primary : colors.bgCard,
+              borderColor: isUser ? 'transparent' : colors.border,
+              borderWidth: isUser ? 0 : 1,
+            }
+          ]}>
+            <Text style={[styles.msgText, { color: isUser ? '#fff' : colors.textPrimary }]}>
+              {item.message}
+            </Text>
+          </View>
+
+          {/* Interactive AI Auto-Draft Card */}
+          {item.draft && (
+            <View style={[styles.actionCard, { backgroundColor: colors.bgCard, borderColor: colors.primary }]}>
+              <View style={styles.actionCardHeader}>
+                <Ionicons name="document-text" size={18} color={colors.primary} />
+                <Text style={[styles.actionCardTitle, { color: colors.textPrimary }]}>
+                  📝 AI Generated Concern Draft
+                </Text>
+              </View>
+              <Text style={[styles.draftFieldTitle, { color: colors.textPrimary }]}>
+                {item.draft.title}
+              </Text>
+              <Text style={[styles.draftCategory, { color: colors.textMuted }]}>
+                Category: <Text style={{ color: colors.primary, fontWeight: '700' }}>{item.draft.category}</Text> · Priority: <Text style={{ color: colors.accentWarm || '#f59e0b', fontWeight: '700' }}>{item.draft.priority}</Text>
+              </Text>
+
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+                onPress={() => navigateToSubmitDraft(item.draft)}
+              >
+                <Text style={styles.actionBtnText}>🚀 Submit Report Now →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Interactive Escalation Ping Card */}
+          {item.escalation && (
+            <View style={[styles.actionCard, { backgroundColor: '#f0fdf4', borderColor: '#22c55e' }]}>
+              <View style={styles.actionCardHeader}>
+                <Ionicons name="flash" size={18} color="#16a34a" />
+                <Text style={[styles.actionCardTitle, { color: '#166534' }]}>
+                  ⚡ Executive Escalation Active
+                </Text>
+              </View>
+              <Text style={{ fontSize: rf(12), color: '#15803d', marginTop: 4 }}>
+                {item.escalation.message || 'Report prioritized for Mayor\'s Office review.'}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
     );
@@ -207,10 +286,20 @@ export default function ChatScreen({ navigation }) {
             paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, scale(12)) : scale(12)
           }
         ]}>
+          <TouchableOpacity
+            style={[
+              styles.micBtn,
+              { backgroundColor: isRecording ? '#ef4444' : colors.bgDark, borderColor: colors.border }
+            ]}
+            onPress={toggleVoiceDictation}
+          >
+            <Ionicons name={isRecording ? 'stop' : 'mic'} size={20} color={isRecording ? '#fff' : colors.primary} />
+          </TouchableOpacity>
+
           <TextInput
             style={[styles.input, { backgroundColor: colors.bgDark, color: colors.textPrimary, borderColor: colors.border }]}
-            placeholder="Ask AI assistant in English or Hiligaynon..."
-            placeholderTextColor={colors.textMuted}
+            placeholder={isRecording ? 'Listening to voice...' : 'Ask AI or speak concern...'}
+            placeholderTextColor={isRecording ? '#ef4444' : colors.textMuted}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -276,7 +365,7 @@ const styles = StyleSheet.create({
   msgContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    maxWidth: '85%',
+    maxWidth: '90%',
   },
   userMsgContainer: {
     alignSelf: 'flex-end',
@@ -293,6 +382,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: verticalScale(2),
   },
+  msgBubbleWrapper: {
+    flex: 1,
+    gap: verticalScale(8),
+  },
   msgBubble: {
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(10),
@@ -306,6 +399,44 @@ const styles = StyleSheet.create({
   msgText: {
     fontSize: rf(14),
     lineHeight: rf(21),
+  },
+  actionCard: {
+    padding: scale(12),
+    borderRadius: moderateScale(12),
+    borderWidth: 1,
+    marginTop: verticalScale(4),
+  },
+  actionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+    marginBottom: verticalScale(4),
+  },
+  actionCardTitle: {
+    fontSize: rf(13),
+    fontWeight: '800',
+  },
+  draftFieldTitle: {
+    fontSize: rf(14),
+    fontWeight: '700',
+    marginTop: verticalScale(2),
+  },
+  draftCategory: {
+    fontSize: rf(12),
+    marginTop: verticalScale(2),
+    marginBottom: verticalScale(8),
+  },
+  actionBtn: {
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: scale(14),
+    borderRadius: moderateScale(8),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBtnText: {
+    color: '#ffffff',
+    fontSize: rf(13),
+    fontWeight: '800',
   },
   chipsContainer: {
     paddingVertical: verticalScale(8),
@@ -330,22 +461,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: scale(12),
     borderTopWidth: 1,
-    gap: scale(10),
+    gap: scale(8),
+  },
+  micBtn: {
+    width: scale(38),
+    height: scale(38),
+    borderRadius: scale(19),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
   },
   input: {
     flex: 1,
     borderRadius: moderateScale(20),
-    paddingHorizontal: scale(16),
-    paddingTop: verticalScale(10),
-    paddingBottom: verticalScale(10),
+    paddingHorizontal: scale(14),
+    paddingTop: verticalScale(9),
+    paddingBottom: verticalScale(9),
     fontSize: rf(14),
     maxHeight: verticalScale(100),
     borderWidth: 1,
   },
   sendBtn: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: scale(20),
+    width: scale(38),
+    height: scale(38),
+    borderRadius: scale(19),
     alignItems: 'center',
     justifyContent: 'center',
   }

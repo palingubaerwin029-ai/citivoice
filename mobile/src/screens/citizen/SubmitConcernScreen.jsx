@@ -50,11 +50,23 @@ export default function SubmitConcernScreen({ navigation }) {
   const TOTAL_STEPS = 2;
 
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    category: 'Road & Infrastructure',
-    priority: 'Medium',
+    title: route.params?.initialDraft?.title || '',
+    description: route.params?.initialDraft?.description || '',
+    category: route.params?.initialDraft?.category || 'Road & Infrastructure',
+    priority: route.params?.initialDraft?.priority || 'Medium',
   });
+
+  useEffect(() => {
+    if (route.params?.initialDraft) {
+      setForm((prev) => ({
+        ...prev,
+        title: route.params.initialDraft.title || prev.title,
+        description: route.params.initialDraft.description || prev.description,
+        category: route.params.initialDraft.category || prev.category,
+        priority: route.params.initialDraft.priority || prev.priority,
+      }));
+    }
+  }, [route.params?.initialDraft]);
   const [imageUri, setImageUri] = useState(null);
   const [location, setLocation] = useState(null);
   const [manualAddress, setManualAddress] = useState('');
