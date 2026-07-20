@@ -667,7 +667,7 @@ const linkConcerns = async (req, res) => {
           await insertNotification(
             sourceConcern.user_id,
             'Concern Status Synchronized',
-            `Your report #${sourceId} was linked as a duplicate of #${targetId}. Status updated to "${targetConcern.status}".`
+            `Your report "${sourceConcern.title}" was linked as a duplicate of "${targetConcern.title}". Status updated to "${targetConcern.status}".`
           );
         }
       }
@@ -703,7 +703,7 @@ const approveConcern = async (req, res) => {
       const duplicateLinks = linked.filter(l => l.link_type === 'duplicate');
       for (const dup of duplicateLinks) {
         const dupFields = ['status = ?', 'approval_notes = ?', 'approved_by_name = ?', 'approved_at = NOW()', 'updated_at = NOW()'];
-        const dupValues = ['In Progress', `[Duplicate of #${req.params.id}] ${approval_notes || 'Approved for immediate evaluation and action.'}`, approverName];
+        const dupValues = ['In Progress', `[Duplicate of "${concern.title}"] ${approval_notes || 'Approved for immediate evaluation and action.'}`, approverName];
         if (target_department) {
           dupFields.push('department = ?');
           dupValues.push(target_department);
@@ -713,7 +713,7 @@ const approveConcern = async (req, res) => {
           await insertNotification(
             dup.user_id,
             'Linked Concern Approved',
-            `The primary report (#${req.params.id}) linked to your concern was approved and set to "In Progress".`
+            `The primary report "${concern.title}" linked to your concern was approved and set to "In Progress".`
           );
         }
       }
