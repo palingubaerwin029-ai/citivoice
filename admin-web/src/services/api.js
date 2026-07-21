@@ -99,7 +99,10 @@ export const getPinBarangay = (c) => {
     }
   }
 
-  // 3. Do NOT fall back to user_barangay (user's home registered barangay).
-  // The report must strictly reflect the pin location of the concern.
-  return 'Unspecified Location';
+  // 3. Fall back to c.user_barangay if location_address has no explicit barangay phrase
+  if (c.user_barangay && c.user_barangay.trim()) {
+    return c.user_barangay.trim();
+  }
+
+  return 'Barangay 1';
 };

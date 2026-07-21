@@ -128,7 +128,7 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
     for (const brgy of knownBarangays) {
       if (new RegExp(`\\b${brgy}\\b`, 'i').test(address)) return brgy;
     }
-    return 'Unspecified Location';
+    return c.user_barangay || 'Barangay 1';
   };
 
   const metadata = [
