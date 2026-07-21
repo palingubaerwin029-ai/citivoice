@@ -169,7 +169,7 @@ export default function Users() {
         </div>
       </div>
 
-      <div className={s.statsRow} style={{ marginBottom: 20 }}>
+      <div className={s.statsRow} style={{ marginBottom: 20, display: 'flex' }}>
         {[
           { label: 'Total Citizens', value: vStats.all || totalUsers, color: 'var(--text-1)', key: 'All' },
         ].map((x, i) => {
@@ -179,6 +179,7 @@ export default function Users() {
               key={i}
               className={s.statCard}
               style={{
+                width: '260px',
                 '--accent-color': x.color,
                 cursor: 'pointer',
                 borderColor: isSel ? x.color : 'var(--border)',
