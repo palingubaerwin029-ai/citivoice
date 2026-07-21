@@ -120,8 +120,8 @@ function LoadingScreen() {
 }
 
 const styles = {
-  layout: { display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg)' },
-  main: { flex: 1, overflowY: 'auto', backgroundColor: 'var(--bg)' },
+  layout: { display: 'flex', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg)' },
+  main: { flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: 'var(--bg)' },
   loading: {
     display: 'flex',
     flexDirection: 'column',

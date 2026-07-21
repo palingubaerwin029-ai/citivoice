@@ -1,12 +1,14 @@
 .sidebar {
   width: 248px;
-  min-height: 100vh;
+  height: 100vh;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 0;
+  left: 0;
+  z-index: 100;
   transition: width var(--t);
   flex-shrink: 0;
 }
