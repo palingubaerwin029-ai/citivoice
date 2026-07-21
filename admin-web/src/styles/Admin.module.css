@@ -825,31 +825,62 @@
     display: none !important;
   }
 
+  /* Override App.jsx inline height: 100vh and overflow: hidden */
+  :global(body),
+  :global(html) {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
   :global(main) {
     margin: 0 !important;
     padding: 0 !important;
     background: #fff !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Override the flex layout wrapper (App.jsx inline styles) */
+  :global(main),
+  :global(div) {
+    overflow: visible !important;
+  }
+
+  :global(body > div),
+  :global(#root),
+  :global(#root > div),
+  :global(#root > div > div) {
+    height: auto !important;
+    overflow: visible !important;
   }
 
   .page {
-    padding: 0 !important;
+    padding: 10px !important;
     max-width: 100% !important;
     background: #fff !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
   .printOnly {
     display: block !important;
   }
 
+  .statsRow {
+    display: flex !important;
+    flex-wrap: wrap !important;
+  }
+
   .card,
-  .statCard,
-  div[class*="flexLayout"] {
+  .statCard {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
     border: 1px solid #eee !important;
     background: #fff !important;
     box-shadow: none !important;
-    margin-bottom: 14px !important;
+    margin-bottom: 10px !important;
   }
 
   .statValue,
@@ -863,11 +894,6 @@
   .pageSubtitle,
   .infoLabel {
     color: #444 !important;
-  }
-
-  :global(body) {
-    background: #fff !important;
-    color: #000 !important;
   }
 
   /* Ensure charts and colors are visible */

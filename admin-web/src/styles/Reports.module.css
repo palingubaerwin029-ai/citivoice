@@ -35,6 +35,12 @@
     margin: 0 !important;
     padding: 0 !important;
   }
+
+  .flexLayout {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    overflow: visible !important;
+  }
 }
 
 .flexLayout {
