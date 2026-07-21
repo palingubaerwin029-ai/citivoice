@@ -52,6 +52,8 @@ export default function Dashboard() {
   const [concerns, setConcerns] = useState([]);
   const [overdue, setOverdue] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [recentPage, setRecentPage] = useState(1);
+  const RECENT_PER_PAGE = 5;
 
   const getLocalDate = () => {
     const d = new Date();
@@ -171,7 +173,9 @@ export default function Dashboard() {
   const urgent = filteredConcerns
     .filter((c) => c.priority === 'High' && c.status === 'Pending')
     .slice(0, 5);
-  const recent = filteredConcerns.slice(0, 10);
+  const allRecent = filteredConcerns;
+  const recentTotalPages = Math.max(1, Math.ceil(allRecent.length / RECENT_PER_PAGE));
+  const recent = allRecent.slice((recentPage - 1) * RECENT_PER_PAGE, recentPage * RECENT_PER_PAGE);
 
   useEffect(() => {
     setContextData({
@@ -547,6 +551,32 @@ export default function Dashboard() {
                   ))}
             </tbody>
           </table>
+          {/* Pagination Controls */}
+          {allRecent.length > RECENT_PER_PAGE && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderTop: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                Page {recentPage} of {recentTotalPages} ({allRecent.length} total)
+              </span>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  className={`${s.btn}`}
+                  style={{ fontSize: 12, padding: '4px 12px', opacity: recentPage <= 1 ? 0.4 : 1 }}
+                  disabled={recentPage <= 1}
+                  onClick={() => setRecentPage((p) => Math.max(1, p - 1))}
+                >
+                  ← Prev
+                </button>
+                <button
+                  className={`${s.btn}`}
+                  style={{ fontSize: 12, padding: '4px 12px', opacity: recentPage >= recentTotalPages ? 0.4 : 1 }}
+                  disabled={recentPage >= recentTotalPages}
+                  onClick={() => setRecentPage((p) => Math.min(recentTotalPages, p + 1))}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
