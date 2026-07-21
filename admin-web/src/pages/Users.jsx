@@ -172,9 +172,6 @@ export default function Users() {
       <div className={s.statsRow} style={{ marginBottom: 20 }}>
         {[
           { label: 'Total Citizens', value: vStats.all || totalUsers, color: 'var(--text-1)', key: 'All' },
-          { label: 'Verified', value: vStats.verified || 0, color: 'var(--green)', key: 'Verified' },
-          { label: 'Pending Review', value: vStats.pending || 0, color: 'var(--amber)', key: 'Pending' },
-          { label: 'Unverified', value: vStats.unverified || 0, color: 'var(--text-3)', key: 'Unverified' },
         ].map((x, i) => {
           const isSel = statusFilter === x.key;
           return (
