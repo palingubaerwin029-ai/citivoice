@@ -307,7 +307,9 @@ export default function Reports() {
                         </tr>
                       ))}
                     </tbody>
-                                   <h4 style={{ margin: '20px 0 10px', fontSize: 14, fontWeight: 700 }}>
+                  </table>
+
+                  <h4 style={{ margin: '20px 0 10px', fontSize: 14, fontWeight: 700 }}>
                     Top Barangays by Concerns Reported
                   </h4>
                   <table className={r.printTable}>
