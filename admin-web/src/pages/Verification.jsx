@@ -189,20 +189,7 @@ export default function Verification() {
         )}
       </div>
 
-      {/* Stats */}
-      <div className={s.statsRow} style={{ '--cols': 'repeat(4,1fr)' }}>
-        {[
-          { label: 'Pending Review', value: counts.pending, color: '#F59E0B' },
-          { label: 'Verified', value: counts.verified, color: '#10B981' },
-          { label: 'Rejected', value: counts.rejected, color: '#EF4444' },
-          { label: 'Unverified', value: counts.unverified, color: '#64748B' },
-        ].map((x, i) => (
-          <div key={i} className={s.statCard} style={{ '--accent-color': x.color }}>
-            <div className={s.statValue}>{x.value}</div>
-            <div className={s.statLabel}>{x.label}</div>
-          </div>
-        ))}
-      </div>
+
 
       {/* Tabs + Search */}
       <div

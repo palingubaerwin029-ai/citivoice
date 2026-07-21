@@ -169,43 +169,7 @@ export default function Users() {
         </div>
       </div>
 
-      <div className={s.statsRow} style={{ marginBottom: 20, display: 'flex' }}>
-        {[
-          { label: 'Total Citizens', value: vStats.all || totalUsers, color: 'var(--text-1)', key: 'All' },
-        ].map((x, i) => {
-          const isSel = statusFilter === x.key;
-          return (
-            <div
-              key={i}
-              className={s.statCard}
-              style={{
-                width: '260px',
-                '--accent-color': x.color,
-                cursor: 'pointer',
-                borderColor: isSel ? x.color : 'var(--border)',
-                borderWidth: isSel ? '2px' : '1px',
-                transform: isSel ? 'translateY(-2px)' : 'none',
-                boxShadow: isSel ? `0 4px 20px ${x.color}15` : 'none',
-                padding: '16px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                transition: 'all 0.2s'
-              }}
-              onClick={() => {
-                setStatusFilter(x.key);
-                setPage(1);
-                setSelected(null);
-              }}
-            >
-              <div className={s.statValue} style={{ color: x.color }}>
-                {x.value}
-              </div>
-              <div className={s.statLabel}>{x.label}</div>
-            </div>
-          );
-        })}
-      </div>
+
 
       <div
         style={{
