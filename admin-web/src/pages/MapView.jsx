@@ -486,8 +486,9 @@ export function MapView() {
         </div>
 
         {/* Status Filter Chips */}
-        <div className={s.chipRow}>
-          {[
+        <div className={s.chipRowWrapper}>
+          <div className={s.chipRow}>
+            {[
             { label: 'All', color: '#1A6BFF' },
             { label: 'Pending', color: '#FFB800' },
             { label: 'In Progress', color: '#1A6BFF' },
@@ -513,11 +514,15 @@ export function MapView() {
               </button>
             );
           })}
+            {/* Scroll Spacer */}
+            <div className={s.chipSpacer} />
+          </div>
         </div>
 
         {/* Category & Priority Filters */}
-        <div className={s.chipRow} style={{ marginTop: 6 }}>
-          {[
+        <div className={s.chipRowWrapper} style={{ marginTop: 6 }}>
+          <div className={s.chipRow}>
+            {[
             { key: 'All', label: 'All Categories' },
             { key: 'Road & Infrastructure', label: '🛣️ Roads' },
             { key: 'Electricity', label: '⚡ Electricity' },
@@ -553,6 +558,10 @@ export function MapView() {
           >
             🔥 High Priority
           </button>
+
+          {/* Scroll Spacer */}
+          <div className={s.chipSpacer} />
+          </div>
         </div>
       </div>
 

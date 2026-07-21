@@ -31,17 +31,31 @@
 
 
 /* --- Chip Row (hide scrollbar) --- */
+.chipRowWrapper {
+  position: relative;
+  width: 100%;
+  -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
+  mask-image: linear-gradient(to right, black 80%, transparent 100%);
+  pointer-events: none;
+}
+
 .chipRow {
   display: flex;
   gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  pointer-events: all;
+  pointer-events: auto;
 }
 
 .chipRow::-webkit-scrollbar {
   display: none;
+}
+
+.chipSpacer {
+  min-width: 32px;
+  height: 1px;
+  flex-shrink: 0;
 }
 
 /* --- Search Input --- */
