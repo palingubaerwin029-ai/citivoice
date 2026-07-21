@@ -22,6 +22,21 @@
   padding-bottom: 20px;
 }
 
+.pageBreak {
+  display: none;
+}
+
+@media print {
+  .pageBreak {
+    display: block !important;
+    break-after: page !important;
+    page-break-after: always !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
 .flexLayout {
   display: flex;
   gap: 14px;

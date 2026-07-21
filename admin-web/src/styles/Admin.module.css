@@ -842,12 +842,14 @@
   }
 
   .card,
-  .statCard {
-    break-inside: avoid;
+  .statCard,
+  div[class*="flexLayout"] {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
     border: 1px solid #eee !important;
     background: #fff !important;
     box-shadow: none !important;
-    margin-bottom: 20px !important;
+    margin-bottom: 14px !important;
   }
 
   .statValue,

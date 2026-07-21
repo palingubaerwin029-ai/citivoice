@@ -376,6 +376,9 @@ export default function Reports() {
         </div>
       </div>
 
+      {/* Explicit Page Break for Print (Guarantees clean 2-page print report without cutting cards) */}
+      <div className={r.pageBreak} />
+
       {/* Row 2 */}
       <div className={r.flexLayout}>
         <div className={`${s.card} ${r.flex2}`}>
