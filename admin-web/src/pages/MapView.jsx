@@ -126,8 +126,8 @@ const pulseIcon = new L.DivIcon({
 
 function getCityHallDistance(lat, lng) {
   if (!lat || !lng) return null;
-  const lat1 = 10.0075;
-  const lon1 = 122.8039;
+  const lat1 = 10.003962;
+  const lon1 = 122.805922;
   const lat2 = parseFloat(lat);
   const lon2 = parseFloat(lng);
   if (isNaN(lat2) || isNaN(lon2)) return null;
@@ -152,7 +152,7 @@ function Routing({ selected }) {
 
     const route = L.Routing.control({
       waypoints: [
-        L.latLng(10.0075, 122.8039),
+        L.latLng(10.003962, 122.805922),
         L.latLng(parseFloat(selected.location_lat), parseFloat(selected.location_lng)),
       ],
       show: false,
@@ -377,7 +377,7 @@ export function MapView() {
 
       {/* 🔥 FULLSCREEN MAP */}
       <MapContainer
-        center={[10.0075, 122.8039]}
+        center={[10.003962, 122.805922]}
         zoom={13}
         zoomControl={false}
         className={s.mapWrapper}
@@ -463,7 +463,7 @@ export function MapView() {
             🔥
           </button>
           <button
-            onClick={() => setFlyCoords([10.0075, 122.8039])}
+            onClick={() => setFlyCoords([10.003962, 122.805922])}
             className={s.recenterBtn}
             title="Recenter Map"
           >
