@@ -583,7 +583,7 @@ export default function ConcernDetail() {
                     >
                       {departments.map((d) => (
                         <option key={d.id} value={d.name}>
-                          Target: {d.name} {d.email ? `(${d.email})` : ''}
+                          Target: {d.name}
                         </option>
                       ))}
                     </select>
