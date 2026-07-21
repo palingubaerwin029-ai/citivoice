@@ -32,7 +32,6 @@ const ID_TYPES = [
   'Postal ID',
   "Voter's ID",
   'PRC ID',
-  'Barangay ID',
 ];
 
 export default function RegisterScreen({ navigation }) {
@@ -58,7 +57,7 @@ export default function RegisterScreen({ navigation }) {
   const [errors, setErrors] = useState({});
   const [pwFocused, setPwFocused] = useState(false);
   const strengthAnim = useRef(new Animated.Value(0)).current;
-  const [availableBarangays, setAvailableBarangays] = useState(['Other']);
+  const [availableBarangays, setAvailableBarangays] = useState([]);
 
   useEffect(() => {
     const fetchBarangays = async () => {
@@ -66,7 +65,7 @@ export default function RegisterScreen({ navigation }) {
         const rows = await mobileApi.get('/barangays');
         const list = rows.map((r) => r.name);
         list.sort((a, b) => a.localeCompare(b));
-        setAvailableBarangays([...list, 'Other']);
+        setAvailableBarangays(list);
       } catch (err) {
         console.log('Error fetching barangays', err);
       }

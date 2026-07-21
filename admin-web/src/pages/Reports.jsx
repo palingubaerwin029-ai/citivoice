@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api, fmtDateShort } from '../services/api';
+import { api, fmtDateShort, getPinBarangay } from '../services/api';
 import {
   BarChart,
   Bar,
@@ -133,7 +133,8 @@ export default function Reports() {
 
   const brgData = Object.entries(
     filtered.reduce((a, c) => {
-      if (c.user_barangay) a[c.user_barangay] = (a[c.user_barangay] || 0) + 1;
+      const brgy = getPinBarangay(c);
+      if (brgy) a[brgy] = (a[brgy] || 0) + 1;
       return a;
     }, {}),
   )
@@ -307,6 +308,33 @@ export default function Reports() {
                       ))}
                     </tbody>
                   </table>
+
+                  <h4 style={{ margin: '20px 0 10px', fontSize: 14, fontWeight: 700 }}>
+                    Top Pin Location Barangays by Concerns Reported
+                  </h4>
+                  <table className={r.printTable}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #ccc' }}>
+                        <th style={{ padding: '8px 0' }}>Rank</th>
+                        <th style={{ padding: '8px 0' }}>Pin Location Barangay</th>
+                        <th style={{ padding: '8px 0' }}>Total Reports</th>
+                        <th style={{ padding: '8px 0' }}>Percentage</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {brgData.map(([brgy, count], i) => {
+                        const pct = total ? Math.round((count / total) * 100) : 0;
+                        return (
+                          <tr key={brgy} style={{ borderBottom: '1px solid #eee' }}>
+                            <td style={{ padding: '8px 0', fontWeight: 600 }}>#{i + 1}</td>
+                            <td style={{ padding: '8px 0' }}>📍 {brgy}</td>
+                            <td style={{ padding: '8px 0', fontWeight: 700 }}>{count}</td>
+                            <td style={{ padding: '8px 0' }}>{pct}%</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </>
             )}
@@ -434,7 +462,7 @@ export default function Reports() {
       <div className={r.flexLayout}>
         <div className={`${s.card} ${r.flex1}`}>
           <div className={s.cardHeader}>
-            <span className={s.cardTitle}>Top Barangays by Reports</span>
+            <span className={s.cardTitle}>Top Pin Location Barangays</span>
           </div>
           <div style={{ padding: '8px 16px 16px' }}>
             {brgData.length === 0 ? (
@@ -477,7 +505,7 @@ export default function Reports() {
                   <div className={r.upvotedInfo}>
                     <div className={r.upvotedTitle}>{c.title}</div>
                     <div className={r.upvotedMeta}>
-                      {c.category?.split(' ')[0]} · {c.user_barangay}
+                      {c.category?.split(' ')[0]} · 📍 {getPinBarangay(c)}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>

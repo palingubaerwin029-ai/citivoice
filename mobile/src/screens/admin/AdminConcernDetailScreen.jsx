@@ -29,7 +29,7 @@ const STATUS_ICONS = {
 
 export default function AdminConcernDetailScreen({ route, navigation }) {
   const { colors } = useTheme();
-  const { concernId, concernIds = [] } = route.params;
+  const { concernId, concernIds = [] } = route?.params || {};
   const currentIndex = concernIds.indexOf(concernId);
   const hasNext = currentIndex !== -1 && currentIndex < concernIds.length - 1;
   const hasPrev = currentIndex !== -1 && currentIndex > 0;

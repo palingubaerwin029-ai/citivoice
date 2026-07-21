@@ -27,7 +27,7 @@ import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive'
 
 export default function ConcernDetailScreen({ route, navigation }) {
   const { colors } = useTheme();
-  const { concernId } = route.params;
+  const { concernId } = route?.params || {};
   const { concerns, toggleUpvote, deleteConcern } = useConcerns();
   const { user } = useAuth();
   const { t } = useLanguage();
