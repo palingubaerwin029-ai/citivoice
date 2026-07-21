@@ -59,34 +59,23 @@ export const resolveImageUrl = (url) => {
   return match ? `${API_HOST}${match[0]}` : url;
 };
 
-// Utility: Extract/derive pin barangay location from concern's location_address, falling back to user_barangay
+// Utility: Extract/derive barangay only from concern's location_address, falling back to user_barangay
 export const getPinBarangay = (c) => {
   if (!c) return 'Unspecified';
 
   const address = (c.location_address || '').trim();
 
   if (address) {
-    // 1. Regex check for "Barangay <Name/Number>", "Brgy. <Name/Number>", "Poblacion <Number>"
-    const match = address.match(/(?:Barangay|Brgy\.?|Poblacion)\s+([A-Za-z0-9\s-]+?)(?:,|\.|$)/i);
-    if (match && match[1]) {
-      const trimmed = match[1].trim();
-      if (/^\d+$/.test(trimmed)) {
-        if (/Poblacion/i.test(match[0])) {
-          return `Poblacion ${trimmed}`;
-        }
-        return `Barangay ${trimmed}`;
-      }
-      return trimmed.length > 0 ? trimmed : address;
-    }
-
-    // 2. Check against known barangay list (Kabankalan City barangays)
+    // 1. Check against known barangay list (Kabankalan City barangays)
     const knownBarangays = [
+      'Poblacion 1', 'Poblacion 2', 'Poblacion 3', 'Poblacion 4',
+      'Poblacion 5', 'Poblacion 6', 'Poblacion 7', 'Poblacion 8',
       'Barangay 1', 'Barangay 2', 'Barangay 3', 'Barangay 4',
       'Barangay 5', 'Barangay 6', 'Barangay 7', 'Barangay 8', 'Barangay 9',
       'Bantayan', 'Binicuil', 'Camansi', 'Camingawan', 'Camugao', 'Carol-an',
       'Daan Banua', 'Hilamonan', 'Inapoy', 'Linao', 'Locotan', 'Magballo',
-      'Oringao', 'Orong', 'Pinaguinpinan', 'Salong', 'Tabugon', 'Tagoc',
-      'Tagukon', 'Talubangi', 'Tampalon', 'Tan-awan', 'Tapi'
+      'Oringao', 'Orong', 'Pinaguinpinan', 'Salong', 'Tabao', 'Tabugon', 'Tagoc',
+      'Tagukon', 'Talubangi', 'Tampalon', 'Tan-awan', 'Tapi', 'Guinzadan'
     ];
 
     for (const brgy of knownBarangays) {
@@ -96,13 +85,20 @@ export const getPinBarangay = (c) => {
       }
     }
 
-    // 3. Fall back to first segment if available
-    const parts = address.split(',').map((p) => p.trim()).filter(Boolean);
-    if (parts.length > 0 && !/Kabankalan|Negros|Philippines/i.test(parts[0])) {
-      return parts[0];
+    // 2. Regex check for "Barangay <Name/Number>", "Brgy. <Name/Number>", "Poblacion <Number>"
+    const match = address.match(/(?:Barangay|Brgy\.?|Poblacion)\s+([A-Za-z0-9\s-]+?)(?:,|\.|$)/i);
+    if (match && match[1]) {
+      const trimmed = match[1].trim();
+      if (/^\d+$/.test(trimmed)) {
+        if (/Poblacion/i.test(match[0])) {
+          return `Poblacion ${trimmed}`;
+        }
+        return `Barangay ${trimmed}`;
+      }
+      return trimmed;
     }
   }
 
-  // 4. Fallback to user_barangay if pin location address has no barangay info
+  // 3. Fallback to user_barangay if pin location address has no barangay info
   return c.user_barangay || 'Unspecified';
 };

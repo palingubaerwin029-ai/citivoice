@@ -307,16 +307,14 @@ export default function Reports() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
-
-                  <h4 style={{ margin: '20px 0 10px', fontSize: 14, fontWeight: 700 }}>
-                    Top Pin Location Barangays by Concerns Reported
+                                   <h4 style={{ margin: '20px 0 10px', fontSize: 14, fontWeight: 700 }}>
+                    Top Barangays by Concerns Reported
                   </h4>
                   <table className={r.printTable}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #ccc' }}>
                         <th style={{ padding: '8px 0' }}>Rank</th>
-                        <th style={{ padding: '8px 0' }}>Pin Location Barangay</th>
+                        <th style={{ padding: '8px 0' }}>Barangay</th>
                         <th style={{ padding: '8px 0' }}>Total Reports</th>
                         <th style={{ padding: '8px 0' }}>Percentage</th>
                       </tr>
@@ -327,7 +325,7 @@ export default function Reports() {
                         return (
                           <tr key={brgy} style={{ borderBottom: '1px solid #eee' }}>
                             <td style={{ padding: '8px 0', fontWeight: 600 }}>#{i + 1}</td>
-                            <td style={{ padding: '8px 0' }}>📍 {brgy}</td>
+                            <td style={{ padding: '8px 0' }}>{brgy}</td>
                             <td style={{ padding: '8px 0', fontWeight: 700 }}>{count}</td>
                             <td style={{ padding: '8px 0' }}>{pct}%</td>
                           </tr>
@@ -462,7 +460,7 @@ export default function Reports() {
       <div className={r.flexLayout}>
         <div className={`${s.card} ${r.flex1}`}>
           <div className={s.cardHeader}>
-            <span className={s.cardTitle}>Top Pin Location Barangays</span>
+            <span className={s.cardTitle}>Top Barangays</span>
           </div>
           <div style={{ padding: '8px 16px 16px' }}>
             {brgData.length === 0 ? (
@@ -505,7 +503,7 @@ export default function Reports() {
                   <div className={r.upvotedInfo}>
                     <div className={r.upvotedTitle}>{c.title}</div>
                     <div className={r.upvotedMeta}>
-                      {c.category?.split(' ')[0]} · 📍 {getPinBarangay(c)}
+                      {c.category?.split(' ')[0]} · {getPinBarangay(c)}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
