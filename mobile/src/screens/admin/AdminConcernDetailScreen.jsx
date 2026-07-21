@@ -113,7 +113,7 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
   if (!concern) return null;
 
   const getConcernBarangay = (c) => {
-    if (!c) return 'Unspecified';
+    if (!c) return 'Barangay 1';
     const address = c.location_address || '';
     const knownBarangays = [
       'Poblacion 1', 'Poblacion 2', 'Poblacion 3', 'Poblacion 4',

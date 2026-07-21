@@ -61,7 +61,7 @@ export const resolveImageUrl = (url) => {
 
 // Utility: Extract/derive barangay only from concern's location_address, falling back to user_barangay
 export const getPinBarangay = (c) => {
-  if (!c) return 'Unspecified';
+  if (!c) return 'Barangay 1';
 
   const address = (c.location_address || '').trim();
 
