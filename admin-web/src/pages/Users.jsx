@@ -64,9 +64,7 @@ export default function Users() {
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 320);
 
-  const [saving, setSaving] = useState(false);
-  const [rejecting, setRejecting] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState('');
+
   const [lightboxImg, setLightboxImg] = useState(null);
 
   // Note: we can't get ALL barangays dynamically without a separate endpoint if we paginate.
@@ -114,8 +112,6 @@ export default function Users() {
         .catch(console.error);
     } else {
       setUserConcerns([]);
-      setRejecting(false);
-      setRejectionReason('');
     }
   }, [selected]);
 
@@ -124,48 +120,7 @@ export default function Users() {
     setPage(1);
   }, [search, brgyFilter, statusFilter]);
 
-  const handleApprove = async () => {
-    setSaving(true);
-    try {
-      await api.patch(`/users/${selected.id}/verify`);
-      loadStats();
-      loadUsers();
-      setSelected({ ...selected, verification_status: 'verified', is_verified: 1 });
-    } catch (e) {
-      alert(e.message);
-    }
-    setSaving(false);
-  };
 
-  const handleReject = async () => {
-    if (!rejectionReason.trim()) return alert('Please specify a rejection reason.');
-    setSaving(true);
-    try {
-      await api.patch(`/users/${selected.id}/reject`, { reason: rejectionReason.trim() });
-      loadStats();
-      loadUsers();
-      setSelected(null);
-      setRejecting(false);
-      setRejectionReason('');
-    } catch (e) {
-      alert(e.message);
-    }
-    setSaving(false);
-  };
-
-  const handleRevoke = async () => {
-    if (!window.confirm(`Revoke verification for ${selected.name}?`)) return;
-    setSaving(true);
-    try {
-      await api.patch(`/users/${selected.id}/revoke`);
-      loadStats();
-      loadUsers();
-      setSelected({ ...selected, verification_status: 'unverified', is_verified: 0 });
-    } catch (e) {
-      alert(e.message);
-    }
-    setSaving(false);
-  };
 
   // Pagination
   const totalPages = Math.ceil(totalUsers / itemsPerPage);
@@ -571,74 +526,7 @@ export default function Users() {
                     </div>
                   )}
 
-                  {/* Actions */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {(selected.verification_status === 'pending' || selected.verification_status === 'unverified') && !rejecting && (
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button
-                          className={`${s.btn} ${s.btnPrimary}`}
-                          style={{ background: 'var(--green)', color: '#fff', flex: 1, height: 36, fontSize: 12, padding: 0, justifyContent: 'center' }}
-                          onClick={handleApprove}
-                          disabled={saving}
-                        >
-                          Approve ID
-                        </button>
-                        <button
-                          className={`${s.btn} ${s.btnSecondary}`}
-                          style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.2)', flex: 1, height: 36, fontSize: 12, padding: 0, justifyContent: 'center' }}
-                          onClick={() => setRejecting(true)}
-                          disabled={saving}
-                        >
-                          Reject ID
-                        </button>
-                      </div>
-                    )}
 
-                    {selected.verification_status === 'verified' && (
-                      <button
-                        className={`${s.btn} ${s.btnSecondary}`}
-                        style={{ width: '100%', height: 36, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        onClick={handleRevoke}
-                        disabled={saving}
-                      >
-                        ⚠️ Revoke Verification
-                      </button>
-                    )}
-
-                    {rejecting && (
-                      <div style={{ background: 'var(--surface-2)', padding: 12, borderRadius: 'var(--r-md)', border: '1px solid var(--border)', marginTop: 8 }}>
-                        <div className={u.recentTitle} style={{ color: 'var(--red)', fontSize: 10, marginBottom: 6 }}>Rejection Reason</div>
-                        <input
-                          type="text"
-                          className={s.select}
-                          style={{ width: '100%', marginBottom: 8, height: 34, fontSize: 12, padding: '0 8px' }}
-                          placeholder="e.g. Blurry photo, mismatch..."
-                          value={rejectionReason}
-                          onChange={(e) => setRejectionReason(e.target.value)}
-                        />
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button
-                            className={`${s.btn} ${s.btnPrimary}`}
-                            style={{ background: 'var(--red)', color: '#fff', flex: 1, height: 30, fontSize: 11, padding: 0, justifyContent: 'center' }}
-                            onClick={handleReject}
-                            disabled={saving || !rejectionReason.trim()}
-                          >
-                            Confirm Reject
-                          </button>
-                          <button
-                            className={`${s.btn} ${s.btnGhost}`}
-                            style={{ flex: 1, height: 30, fontSize: 11, padding: 0, justifyContent: 'center' }}
-                            onClick={() => {
-                              setRejecting(false);
-                              setRejectionReason('');
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </div>
 
                 <div className={u.recentSection}>

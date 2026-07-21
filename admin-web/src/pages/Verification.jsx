@@ -663,22 +663,7 @@ export default function Verification() {
                       </div>
                     </>
                   )}
-                  {currentStatus === 'verified' && (
-                    <button
-                      className={`${s.btn}`}
-                      style={{
-                        width: '100%',
-                        justifyContent: 'center',
-                        background: 'rgba(239,68,68,0.12)',
-                        border: '1px solid rgba(239,68,68,0.25)',
-                        color: '#EF4444',
-                      }}
-                      onClick={handleRevoke}
-                      disabled={saving}
-                    >
-                      Revoke Verification
-                    </button>
-                  )}
+
                 </div>
               </div>
             </div>

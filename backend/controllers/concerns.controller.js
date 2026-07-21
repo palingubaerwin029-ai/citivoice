@@ -8,6 +8,7 @@ const { generateText, isAvailable: isGeminiAvailable } = require('../services/gr
 const { cacheMiddleware, invalidate } = require('../middleware/cache');
 const { validateConcern, validateIdParam } = require('../middleware/validate');
 const workflowService = require('../services/workflowService');
+const workflowModel = require('../models/workflow.model');
 const {
   selectAllConcerns,
   countConcerns,
@@ -202,9 +203,10 @@ const createConcern = async (req, res) => {
           const originalDept = originalConcern ? originalConcern.department : null;
           const originalResolvedImg = originalConcern ? originalConcern.resolved_image_url : null;
 
+          const originalTitle = originalConcern ? originalConcern.title : 'Unknown';
           const adminNote = originalAdminNote
-            ? `[Auto-Duplicate of #${originalConcernId}] ${originalAdminNote}`
-            : `System Notice: Auto-identified as a duplicate of Concern #${originalConcernId} (Current Status: ${originalStatus}).`;
+            ? `[Auto-Duplicate of "${originalTitle}"] ${originalAdminNote}`
+            : `System Notice: Auto-identified as a duplicate of "${originalTitle}" (Current Status: ${originalStatus}).`;
 
           const fieldsToUpdate = ['status = ?', 'admin_note = ?', 'updated_at = NOW()'];
           const valuesToUpdate = [originalStatus, adminNote];
@@ -226,7 +228,7 @@ const createConcern = async (req, res) => {
             await insertNotification(
               newConcern.user_id,
               'Concern Linked & Status Applied',
-              `Your recent report was identified as a duplicate of existing report #${originalConcernId}. Its status has been synchronized to "${originalStatus}".`
+              `Your recent report was identified as a duplicate of "${originalTitle}". Its status has been synchronized to "${originalStatus}".`
             );
           }
         }
@@ -346,7 +348,7 @@ const editConcern = async (req, res) => {
           }
           if (admin_note !== undefined) {
             dupFields.push('admin_note = ?');
-            dupValues.push(admin_note ? `[Duplicate of #${req.params.id}] ${admin_note}` : null);
+            dupValues.push(admin_note ? `[Duplicate of "${concern.title}"] ${admin_note}` : null);
           }
           if (req.file) {
             const resolved_image_url = `${BASE_URL()}/uploads/${req.file.filename}`;
@@ -434,6 +436,27 @@ const editConcern = async (req, res) => {
 
     // Get socket.io instance for notifications
     const io = req.app.get('io');
+
+    // ─── SLA Timer: Pause / Stop / Resume based on status transition ───
+    if (status && status !== concern.status) {
+      try {
+        if (status === 'In Progress') {
+          // Pause SLA countdown — team is actively working
+          await workflowModel.pauseAssignmentSLA(req.params.id);
+          console.log(`[SLA] Paused SLA timer for concern #${req.params.id} (status → In Progress)`);
+        } else if (status === 'Resolved' || status === 'Rejected') {
+          // Stop SLA permanently — concern is closed
+          await workflowModel.stopAssignmentSLA(req.params.id);
+          console.log(`[SLA] Stopped SLA timer permanently for concern #${req.params.id} (status → ${status})`);
+        } else if (concern.status === 'In Progress' && status === 'Pending') {
+          // Resume SLA countdown — reverted back to Pending
+          await workflowModel.resumeAssignmentSLA(req.params.id);
+          console.log(`[SLA] Resumed SLA timer for concern #${req.params.id} (status → Pending)`);
+        }
+      } catch (slaErr) {
+        console.error('[SLA] Error updating SLA timer:', slaErr.message);
+      }
+    }
 
     // Re-assign to new department if category or priority changed
     if (category !== undefined || priority !== undefined) {
@@ -649,7 +672,7 @@ const linkConcerns = async (req, res) => {
 
         if (targetConcern.admin_note) {
           fieldsToUpdate.push('admin_note = ?');
-          valuesToUpdate.push(`[Duplicate of #${targetId}] ${targetConcern.admin_note}`);
+          valuesToUpdate.push(`[Duplicate of "${targetConcern.title}"] ${targetConcern.admin_note}`);
         }
         if (targetConcern.department) {
           fieldsToUpdate.push('department = ?');
