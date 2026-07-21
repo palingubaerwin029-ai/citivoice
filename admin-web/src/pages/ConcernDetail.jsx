@@ -540,11 +540,11 @@ export default function ConcernDetail() {
           
           {/* Integrated Action Hub */}
           <div className={s.card} style={{ border: '1px solid rgba(59,130,246,0.4)', background: 'var(--surface-1)' }}>
-            <div className={s.cardHeader} style={{ borderBottom: '1px solid var(--border)' }}>
-              <span className={s.cardTitle} style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div className={s.cardHeader} style={{ borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' }}>
+              <span className={s.cardTitle} style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 200, lineHeight: 1.3 }}>
                 🏛️ Executive Action & Response Hub
               </span>
-              <span style={{ fontSize: 10, background: 'rgba(59,130,246,0.15)', color: 'var(--primary)', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>
+              <span style={{ fontSize: 10, background: 'rgba(59,130,246,0.15)', color: 'var(--primary)', padding: '2px 8px', borderRadius: 99, fontWeight: 700, whiteSpace: 'nowrap', alignSelf: 'flex-start', marginTop: 2 }}>
                 Unified Controls
               </span>
             </div>
@@ -560,11 +560,11 @@ export default function ConcernDetail() {
                 </div>
               ) : (
                 <div style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)', padding: '12px', borderRadius: 8, marginBottom: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)' }}>⚡ Fast-Track Executive Approval</span>
                     <button
                       className={`${s.btn} ${s.btnPrimary} ${s.btnSm}`}
-                      style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}
+                      style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', width: '100%', justifyContent: 'center' }}
                       onClick={handleApproveAndDispatch}
                       disabled={approving}
                     >
@@ -574,10 +574,10 @@ export default function ConcernDetail() {
                   <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6 }}>
                     Approving automatically alerts the assigned department office email.
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
                     <select
                       className={s.select}
-                      style={{ fontSize: 11, padding: '4px 8px', flex: 1 }}
+                      style={{ fontSize: 11, padding: '6px 8px', width: '100%', minWidth: 0, textOverflow: 'ellipsis' }}
                       value={approvalTargetDept}
                       onChange={(e) => setApprovalTargetDept(e.target.value)}
                     >
