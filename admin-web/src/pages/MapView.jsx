@@ -59,24 +59,54 @@ const CATEGORY_ICONS = {
 // --- ICONS ---
 const createIcon = (color, category, isHighPriority) => {
   const iconEmoji = CATEGORY_ICONS[category] || '📍';
+  
+  // The priority badge and pulsing ring
   const priorityBadge = isHighPriority
-    ? `<div style="position:absolute; top:-4px; right:-6px; width:18px; height:18px; background:#FF4444; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:10px; z-index:10; box-shadow:0 2px 4px rgba(0,0,0,0.4);" title="High Priority">⚠️</div>
-       <div style="position:absolute; top:-4px; left:-4px; width:36px; height:44px; border-radius:18px; border:2px solid #FF4444; animation:pulse 1.2s infinite; pointer-events:none;"></div>`
+    ? `<div style="position:absolute; top:-4px; right:-2px; width:22px; height:22px; background:#FF4444; border-radius:50%; border:2.5px solid white; display:flex; align-items:center; justify-content:center; font-size:12px; z-index:10; box-shadow:0 3px 6px rgba(0,0,0,0.5);" title="High Priority">⚠️</div>
+       <div style="position:absolute; top:2px; left:5px; width:30px; height:30px; border-radius:50%; border:2px solid #FF4444; animation:pulse 1.2s infinite; pointer-events:none; z-index:-1;"></div>`
     : '';
 
   return new L.DivIcon({
     className: 'custom-pin',
-    iconSize: [30, 38],
-    iconAnchor: [15, 38],
+    iconSize: [40, 48],
+    iconAnchor: [20, 46], // Anchored perfectly at the shadow/point
     html: `
-      <div style="position:relative; width:30px; height:38px; display:flex; align-items:center; justify-content:center;">
+      <div style="position:relative; width:40px; height:48px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;">
         ${priorityBadge}
-        <svg width="30" height="38" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 0C5.373 0 0 5.373 0 12c0 8 12 20 12 20S24 20 24 12C24 5.373 18.627 0 12 0z"
-            fill="${color}" stroke="white" stroke-width="1.5"/>
-          <circle cx="12" cy="11" r="6.5" fill="white" opacity="0.95"/>
-        </svg>
-        <span style="position:absolute; top:3px; left:0; width:30px; text-align:center; font-size:11px;">${iconEmoji}</span>
+        <!-- Map Shadow -->
+        <div style="position:absolute; bottom:0px; width:18px; height:6px; background:rgba(0,0,0,0.6); border-radius:50%; filter:blur(2.5px);"></div>
+        
+        <!-- Premium Teardrop Marker -->
+        <div style="
+          position: relative;
+          width: 30px;
+          height: 30px;
+          background: linear-gradient(135deg, ${color} 0%, #222 250%);
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          border: 2px solid #ffffff;
+          box-shadow: 4px 4px 10px rgba(0,0,0,0.35), inset 0 2px 4px rgba(255,255,255,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-top: 2px;
+          z-index: 2;
+        ">
+          <!-- Inner White Glow Circle -->
+          <div style="
+            transform: rotate(45deg);
+            width: 20px;
+            height: 20px;
+            background: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+          ">
+            <span style="font-size: 11px; margin-top: 1px;">${iconEmoji}</span>
+          </div>
+        </div>
       </div>
     `,
   });
