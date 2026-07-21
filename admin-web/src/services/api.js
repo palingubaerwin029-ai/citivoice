@@ -99,6 +99,7 @@ export const getPinBarangay = (c) => {
     }
   }
 
-  // 3. Fallback to user_barangay if pin location address has no barangay info
-  return c.user_barangay || 'Unspecified';
+  // 3. Do NOT fall back to user_barangay (user's home registered barangay).
+  // The report must strictly reflect the pin location of the concern.
+  return 'Unspecified Location';
 };

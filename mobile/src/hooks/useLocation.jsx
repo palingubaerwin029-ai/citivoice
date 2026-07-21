@@ -12,10 +12,18 @@ export function useLocation() {
     try {
       const [addr] = await Location.reverseGeocodeAsync({ latitude, longitude });
       if (addr) {
+        let barangayPart = null;
+        if (addr.district) {
+          barangayPart = /barangay|brgy|poblacion/i.test(addr.district)
+            ? addr.district
+            : `Barangay ${addr.district}`;
+        } else if (addr.name && /barangay|brgy|poblacion/i.test(addr.name)) {
+          barangayPart = addr.name;
+        }
+
         const parts = [
-          addr.name,
-          addr.street,
-          addr.district,
+          barangayPart,
+          addr.street || (addr.name !== barangayPart ? addr.name : null),
           addr.city || addr.subregion,
           addr.region,
         ].filter(Boolean);

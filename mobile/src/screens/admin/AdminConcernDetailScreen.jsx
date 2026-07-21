@@ -112,9 +112,28 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
 
   if (!concern) return null;
 
+  const getConcernBarangay = (c) => {
+    if (!c) return 'Unspecified';
+    const address = c.location_address || '';
+    const knownBarangays = [
+      'Poblacion 1', 'Poblacion 2', 'Poblacion 3', 'Poblacion 4',
+      'Poblacion 5', 'Poblacion 6', 'Poblacion 7', 'Poblacion 8',
+      'Barangay 1', 'Barangay 2', 'Barangay 3', 'Barangay 4',
+      'Barangay 5', 'Barangay 6', 'Barangay 7', 'Barangay 8', 'Barangay 9',
+      'Bantayan', 'Binicuil', 'Camansi', 'Camingawan', 'Camugao', 'Carol-an',
+      'Daan Banua', 'Hilamonan', 'Inapoy', 'Linao', 'Locotan', 'Magballo',
+      'Oringao', 'Orong', 'Pinaguinpinan', 'Salong', 'Tabao', 'Tabugon', 'Tagoc',
+      'Tagukon', 'Talubangi', 'Tampalon', 'Tan-awan', 'Tapi', 'Guinzadan'
+    ];
+    for (const brgy of knownBarangays) {
+      if (new RegExp(`\\b${brgy}\\b`, 'i').test(address)) return brgy;
+    }
+    return 'Unspecified Location';
+  };
+
   const metadata = [
     { label: 'CITIZEN', value: concern.user_name, icon: 'person' },
-    { label: 'BARANGAY', value: concern.user_barangay, icon: 'location' },
+    { label: 'BARANGAY', value: getConcernBarangay(concern), icon: 'location' },
     { label: 'POSTED', value: new Date(concern.created_at).toLocaleDateString(), icon: 'calendar' },
     { label: 'UPVOTES', value: concern.upvotes || 0, icon: 'heart' },
   ];

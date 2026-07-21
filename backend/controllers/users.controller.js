@@ -11,7 +11,6 @@ const {
   updateUserVerification,
   selectUserContactInfo,
   updateUserFcmToken,
-  deleteUser,
   updateUserAvatar,
 } = require('../models/user.model');
 
@@ -98,7 +97,7 @@ const updateUser = async (req, res) => {
         if (filename) {
           const filePath = path.join(__dirname, '..', 'uploads', filename);
           const verification = await verifyNameOnId(filePath, updatedUser.name);
-          
+
           console.log(`[Users Verify] Verification result for user ${req.params.id}:`, verification);
 
           if (verification.match) {
@@ -247,7 +246,7 @@ const getVerificationStats = async (req, res) => {
       WHERE role = 'citizen' 
       GROUP BY verification_status
     `);
-    
+
     // Some users might have no verification_status (null)
     const [nullRows] = await require('../db').query(`
       SELECT COUNT(*) as count FROM users WHERE role = 'citizen' AND verification_status IS NULL
