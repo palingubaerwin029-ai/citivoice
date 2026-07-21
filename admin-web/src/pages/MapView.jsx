@@ -59,8 +59,9 @@ const CATEGORY_ICONS = {
 // --- ICONS ---
 const createIcon = (color, category, isHighPriority) => {
   const iconEmoji = CATEGORY_ICONS[category] || '📍';
-  const pulseHtml = isHighPriority
-    ? `<div style="position:absolute; top:-4px; left:-4px; width:36px; height:44px; border-radius:18px; border:2px solid #FF4444; animation:pulse 1.2s infinite; pointer-events:none;"></div>`
+  const priorityBadge = isHighPriority
+    ? `<div style="position:absolute; top:-4px; right:-6px; width:18px; height:18px; background:#FF4444; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:10px; z-index:10; box-shadow:0 2px 4px rgba(0,0,0,0.4);" title="High Priority">⚠️</div>
+       <div style="position:absolute; top:-4px; left:-4px; width:36px; height:44px; border-radius:18px; border:2px solid #FF4444; animation:pulse 1.2s infinite; pointer-events:none;"></div>`
     : '';
 
   return new L.DivIcon({
@@ -69,7 +70,7 @@ const createIcon = (color, category, isHighPriority) => {
     iconAnchor: [15, 38],
     html: `
       <div style="position:relative; width:30px; height:38px; display:flex; align-items:center; justify-content:center;">
-        ${pulseHtml}
+        ${priorityBadge}
         <svg width="30" height="38" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 0C5.373 0 0 5.373 0 12c0 8 12 20 12 20S24 20 24 12C24 5.373 18.627 0 12 0z"
             fill="${color}" stroke="white" stroke-width="1.5"/>
