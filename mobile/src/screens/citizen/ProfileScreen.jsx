@@ -13,7 +13,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 import { LANGUAGES } from '../../i18n/translations';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const { colors, theme, toggleTheme } = useTheme();
   const { user, logout, updateUserLocal } = useAuth();
   const { myConcerns } = useConcerns();
@@ -489,6 +489,34 @@ export default function ProfileScreen() {
                 </Text>
                 <Ionicons name="repeat-outline" size={14} color={colors.textMuted} />
               </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: scale(14),
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+              }}
+              onPress={() => navigation.navigate('TermsAndPolicy')}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(10) }}>
+                <View
+                  style={{
+                    width: scale(30),
+                    height: scale(30),
+                    borderRadius: moderateScale(8),
+                    backgroundColor: colors.bgCardAlt,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="document-text-outline" size={15} color={colors.textSecondary} />
+                </View>
+                <Text style={{ color: colors.textSecondary, fontSize: rf(14) }}>Terms & Policy</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
         </View>

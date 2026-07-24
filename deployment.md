@@ -1,4 +1,4 @@
-# Deploying CitiVoice to DigitalOcean
+cd # Deploying CitiVoice to DigitalOcean
 
 This guide will walk you through deploying your dockerized CitiVoice application (Backend, Admin Web, and Database) to a DigitalOcean Droplet.
 

@@ -15,6 +15,7 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import VerifyIdentityScreen from '../screens/auth/VerifyIdentityScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
+import TermsAndPolicyScreen from '../screens/auth/TermsAndPolicyScreen';
 
 // ── Citizen ────────────────────────────────────────────────────────────────
 import HomeScreen from '../screens/citizen/HomeScreen';
@@ -68,6 +69,7 @@ function AuthStack() {
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+      <Stack.Screen name="TermsAndPolicy" component={TermsAndPolicyScreen} />
       <Stack.Screen
         name="VerifyIdentity"
         component={VerifyIdentityScreen}
@@ -108,6 +110,11 @@ function HomeStack() {
         name="Chat"
         component={ChatScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="TermsAndPolicy" 
+        component={TermsAndPolicyScreen} 
+        options={{ headerShown: false }} 
       />
     </Stack.Navigator>
   );

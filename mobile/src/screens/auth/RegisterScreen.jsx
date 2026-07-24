@@ -49,6 +49,7 @@ export default function RegisterScreen({ navigation }) {
     idNumber: '',
     idImage: null,
   });
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [showIdPicker, setShowIdPicker] = useState(false);
@@ -151,6 +152,7 @@ export default function RegisterScreen({ navigation }) {
     if (!form.idType) e.idType = 'Please select an ID type';
     if (!form.idNumber.trim()) e.idNumber = 'Enter your ID number';
     if (!form.idImage) e.idImage = 'Please upload a photo of your ID';
+    if (!agreeToTerms) e.agreeToTerms = 'You must agree to the Terms and Privacy Policy';
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -760,6 +762,34 @@ export default function RegisterScreen({ navigation }) {
                 </View>
               )}
             </View>
+
+            <TouchableOpacity 
+              style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: 8 }}
+              onPress={() => setAgreeToTerms(!agreeToTerms)}
+              activeOpacity={0.7}
+            >
+              <Ionicons 
+                name={agreeToTerms ? "checkbox" : "square-outline"} 
+                size={22} 
+                color={agreeToTerms ? colors.primaryLight : colors.textMuted} 
+              />
+              <Text style={{ marginLeft: 10, color: colors.textSecondary, fontSize: rf(13), flex: 1, lineHeight: rf(18) }}>
+                By registering, I agree to the <Text style={{ color: colors.primaryLight, fontWeight: '700' }} onPress={() => navigation.navigate('TermsAndPolicy')}>Terms of Service</Text> and <Text style={{ color: colors.primaryLight, fontWeight: '700' }} onPress={() => navigation.navigate('TermsAndPolicy')}>Privacy Policy</Text>
+              </Text>
+            </TouchableOpacity>
+            {errors.agreeToTerms && (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: scale(5),
+                    marginBottom: 16,
+                  }}
+                >
+                  <Ionicons name="alert-circle" size={14} color={colors.danger} />
+                  <Text style={{ color: colors.danger, fontSize: rf(12) }}>{errors.agreeToTerms}</Text>
+                </View>
+            )}
 
             <PrimaryButton
               title={t('register')}
