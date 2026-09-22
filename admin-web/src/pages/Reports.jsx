@@ -115,20 +115,39 @@ export default function Reports() {
   ];
 
   const monthly = (() => {
+    const now = new Date();
+    let maxDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    // Start strictly from 2026-06 (June 2026)
+    let minDate = new Date(2026, 5, 1);
+
+    concerns.forEach((c) => {
+      if (!c.created_at) return;
+      const d = new Date(c.created_at);
+      const mDate = new Date(d.getFullYear(), d.getMonth(), 1);
+      if (mDate > maxDate) maxDate = mDate;
+    });
+
     const m = {};
+    const curr = new Date(minDate);
+    while (curr <= maxDate) {
+      const k = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}`;
+      m[k] = { month: k, submitted: 0, completed: 0, pending: 0, inProgress: 0 };
+      curr.setMonth(curr.getMonth() + 1);
+    }
+
     concerns.forEach((c) => {
       if (!c.created_at) return;
       const d = new Date(c.created_at);
       const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      if (!m[k]) m[k] = { month: k, submitted: 0, completed: 0, pending: 0, inProgress: 0 };
-      m[k].submitted++;
-      if (c.status === 'Resolved') m[k].completed++;
-      if (c.status === 'Pending') m[k].pending++;
-      if (c.status === 'In Progress') m[k].inProgress++;
+      if (m[k]) {
+        m[k].submitted++;
+        if (c.status === 'Resolved') m[k].completed++;
+        if (c.status === 'Pending') m[k].pending++;
+        if (c.status === 'In Progress') m[k].inProgress++;
+      }
     });
-    return Object.values(m)
-      .sort((a, b) => a.month.localeCompare(b.month))
-      .slice(-6);
+
+    return Object.values(m).sort((a, b) => a.month.localeCompare(b.month));
   })();
 
   const brgData = Object.entries(

@@ -137,7 +137,14 @@ export default function RegisterScreen({ navigation }) {
   const validate = () => {
     setError(null);
     const e = {};
-    if (!form.name.trim()) e.name = t('required');
+    const nameRegex = /^[a-zA-Z\s\-\.']+$/;
+    if (!form.name.trim()) {
+      e.name = t('required');
+    } else if (form.name.trim().split(/\s+/).length < 2) {
+      e.name = 'Please enter your full name (First and Last name)';
+    } else if (!nameRegex.test(form.name)) {
+      e.name = 'Name can only contain letters, spaces, hyphens, periods, and apostrophes';
+    }
     if (!form.email.trim()) e.email = t('required');
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = t('invalidEmail');
     else if (!form.email.trim().toLowerCase().endsWith('@gmail.com')) e.email = 'Email must be a Gmail address (@gmail.com)';
@@ -217,7 +224,7 @@ export default function RegisterScreen({ navigation }) {
       <View style={[S.glowBlob, { backgroundColor: colors.primary }]} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
         style={{ flex: 1 }}
       >
@@ -327,10 +334,10 @@ export default function RegisterScreen({ navigation }) {
           {/* Form */}
           <View style={[S.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
             <InputField
-              label={t('fullName').toUpperCase()}
+              label={`${t('fullName').toUpperCase()} (AS ON ID)`}
               value={form.name}
               onChangeText={(v) => set('name', v)}
-              placeholder="Juan dela Cruz"
+              placeholder="e.g. Juan M. Dela Cruz"
               autoCapitalize="words"
               leftIcon="person-outline"
               error={errors.name}

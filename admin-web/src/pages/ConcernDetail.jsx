@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api, fmtDate, fmtDateShort, resolveImageUrl } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useChatbot } from '../context/ChatbotContext';
 import s from '../styles/Admin.module.css';
 import cd from '../styles/ConcernDetail.module.css';
 
@@ -38,7 +37,6 @@ export default function ConcernDetail() {
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const { setContextData } = useChatbot();
 
   // Proof of resolution states
   const [resolvedFile, setResolvedFile] = useState(null);
@@ -108,22 +106,12 @@ export default function ConcernDetail() {
         setAuditLog(audData || []);
         setDepartments(deptList || []);
 
-        setContextData({
-          page: 'ConcernDetail',
-          concern: cData,
-          assignments: aData,
-          comments: comData
-        });
-
         // After loading concern, load similar ones
         if (cData.id) loadSimilarConcerns(cData.id);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
 
-    return () => {
-      setContextData(null);
-    };
   }, [id]);
 
   const loadSimilarConcerns = (concernId) => {

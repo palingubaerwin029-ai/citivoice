@@ -18,7 +18,6 @@ import Skeleton from '../components/Skeleton';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { socket } from '../services/socket';
 import { useToast } from '../components/ToastProvider';
-import { useChatbot } from '../context/ChatbotContext';
 
 const STATUS_COLORS = {
   Pending: '#F59E0B',
@@ -48,7 +47,6 @@ const STAT_CONFIGS = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const { setContextData } = useChatbot();
   const [concerns, setConcerns] = useState([]);
   const [overdue, setOverdue] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -176,18 +174,6 @@ export default function Dashboard() {
   const allRecent = filteredConcerns;
   const recentTotalPages = Math.max(1, Math.ceil(allRecent.length / RECENT_PER_PAGE));
   const recent = allRecent.slice((recentPage - 1) * RECENT_PER_PAGE, recentPage * RECENT_PER_PAGE);
-
-  useEffect(() => {
-    setContextData({
-      page: 'Dashboard',
-      stats,
-      topCategories: catData,
-      urgentCount: urgent.length
-    });
-    return () => {
-      setContextData(null);
-    };
-  }, [stats.total, filterMode]);
 
   return (
     <div className={s.page}>

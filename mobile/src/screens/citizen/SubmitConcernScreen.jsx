@@ -36,7 +36,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
     High: colors.statusRejected,
   };
 
-  const { addConcern, analyzeDraft } = useConcerns();
+  const { addConcern, analyzeDraft, isOffline } = useConcerns();
   const { t } = useLanguage();
   const CATEGORIES = [
     'Road & Infrastructure',
@@ -83,6 +83,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
   const mapRef = useRef(null);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [wasSavedOffline, setWasSavedOffline] = useState(false);
 
   const set = (key, val) => {
     setForm((f) => ({ ...f, [key]: val }));
@@ -179,6 +180,12 @@ export default function SubmitConcernScreen({ navigation, route }) {
       if (!validateStep1()) return;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
+      if (isOffline) {
+        // Skip AI analysis if offline
+        setCurrentStep(2);
+        return;
+      }
+
       setAiAnalyzing(true);
       try {
         const result = await analyzeDraft(form.title.trim(), form.description.trim());
@@ -225,7 +232,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
 
     setLoading(true);
     try {
-      await addConcern({
+      const res = await addConcern({
         title: form.title.trim(),
         description: form.description.trim(),
         category: form.category,
@@ -234,6 +241,11 @@ export default function SubmitConcernScreen({ navigation, route }) {
         location: finalLocation,
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (res && res.offline) {
+        setWasSavedOffline(true);
+      } else {
+        setWasSavedOffline(false);
+      }
       setSubmitted(true);
     } catch (err) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -254,9 +266,11 @@ export default function SubmitConcernScreen({ navigation, route }) {
         >
           <Text style={{ fontSize: 52 }}>🎉</Text>
         </View>
-        <Text style={[styles.successTitle, { color: colors.textPrimary }]}>{t('submitted')}</Text>
+        <Text style={[styles.successTitle, { color: colors.textPrimary }]}>
+          {wasSavedOffline ? t('submittedOffline') : t('submitted')}
+        </Text>
         <Text style={[styles.successMsg, { color: colors.textSecondary }]}>
-          {t('submittedMsg')}
+          {wasSavedOffline ? t('submittedOfflineMsg') : t('submittedMsg')}
         </Text>
         <TouchableOpacity
           style={[styles.successBtn, { backgroundColor: colors.primary }]}
@@ -268,6 +282,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
           style={styles.successSecBtn}
           onPress={() => {
             setSubmitted(false);
+            setWasSavedOffline(false);
             setCurrentStep(1);
             setForm({ title: '', description: '', category: 'Road & Infrastructure', priority: 'Medium' });
             setImageUri(null);

@@ -3,7 +3,6 @@
  *
  * Uses Groq Vision AI to extract the full name from a government ID photo,
  * then fuzzy-matches it against the name the user typed during registration.
- * Falls back to Tesseract.js OCR if Groq is unavailable.
  */
 
 const path = require('path');
@@ -204,70 +203,6 @@ async function extractNameWithGroq(imagePath) {
   }
 }
 
-// ── Tesseract.js OCR Fallback ────────────────────────────────────────────────
-
-/**
- * Extract text from an ID image using Tesseract.js OCR (fallback).
- * Attempts to find a name-like string from the raw OCR text.
- *
- * @param {string} imagePath - Absolute path to the ID image file
- * @returns {Promise<string|null>}
- */
-async function extractNameWithOCR(imagePath) {
-  try {
-    const Tesseract = require('tesseract.js');
-    console.log('[ID Verify] Falling back to Tesseract.js OCR...');
-
-    const { data } = await Tesseract.recognize(imagePath, 'eng', {
-      logger: () => {}, // suppress logs
-    });
-
-    const text = data.text;
-    if (!text || text.trim().length === 0) {
-      console.log('[ID Verify] OCR returned empty text');
-      return null;
-    }
-
-    console.log('[ID Verify] OCR raw text:', text.substring(0, 200));
-
-    // Try to find name-like lines (typically uppercase, contains letters, 2+ words)
-    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
-    const namePatterns = [
-      /(?:name|pangalan|full\s*name|last\s*name|first\s*name)\s*[:\-]?\s*(.+)/i,
-      /^([A-Z][a-zA-ZÑñ]+(?:\s+[A-Za-zÑñ.]+){1,5})$/,
-    ];
-
-    for (const line of lines) {
-      for (const pattern of namePatterns) {
-        const match = line.match(pattern);
-        if (match) {
-          const candidate = (match[1] || match[0]).trim();
-          if (candidate.length >= 3 && candidate.split(/\s+/).length >= 2) {
-            console.log(`[ID Verify] OCR extracted candidate name: "${candidate}"`);
-            return candidate;
-          }
-        }
-      }
-    }
-
-    // Last resort: find the longest uppercase-ish line with 2+ words
-    const upperLines = lines
-      .filter((l) => l.length >= 5 && l.split(/\s+/).length >= 2)
-      .filter((l) => /^[A-ZÑñ\s.,'-]+$/.test(l))
-      .sort((a, b) => b.length - a.length);
-
-    if (upperLines.length > 0) {
-      console.log(`[ID Verify] OCR best-guess name: "${upperLines[0]}"`);
-      return upperLines[0];
-    }
-
-    console.log('[ID Verify] OCR could not identify a name');
-    return null;
-  } catch (err) {
-    console.error('[ID Verify] Tesseract OCR error:', err.message);
-    return null;
-  }
-}
 
 // ── Main Verification Function ───────────────────────────────────────────────
 
@@ -299,22 +234,16 @@ async function verifyNameOnId(imagePath, typedName) {
     };
   }
 
-  // Try Groq Vision AI first
+  // Extract name using Groq Vision AI
   let extractedName = null;
-  let method = 'groq_vision';
+  const method = 'groq_vision';
 
   const groqResult = await extractNameWithGroq(imagePath);
   if (groqResult && groqResult.fullName && groqResult.readable !== false) {
     extractedName = groqResult.fullName;
   }
 
-  // Fallback to Tesseract OCR if Groq failed
-  if (!extractedName) {
-    method = 'tesseract_ocr';
-    extractedName = await extractNameWithOCR(imagePath);
-  }
-
-  // If neither method could extract a name
+  // If AI could not extract a name
   if (!extractedName) {
     return {
       match: false,

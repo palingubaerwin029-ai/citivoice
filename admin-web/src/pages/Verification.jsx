@@ -506,7 +506,7 @@ export default function Verification() {
                             AI Auto-Verified
                           </div>
                           <div className={v.aiBannerDesc}>
-                            OCR matched the citizen's name on their submitted ID
+                            AI matched the citizen's name on their submitted ID
                           </div>
                         </div>
                       </div>
@@ -527,7 +527,7 @@ export default function Verification() {
                           AI Needs Manual Review
                         </div>
                         <div className={v.aiBannerDesc}>
-                          OCR could not confidently match the name — please verify manually
+                          AI could not confidently match the name — please verify manually
                         </div>
                       </div>
                     </div>

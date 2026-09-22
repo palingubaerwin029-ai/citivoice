@@ -1,4 +1,3 @@
-const Tesseract = require('tesseract.js');
 const path = require('path');
 const { notifyUser } = require('../services/notificationService');
 const { insertNotification } = require('../models/notification.model');

@@ -25,7 +25,6 @@ import MyConcernsScreen from '../screens/citizen/MyConcernsScreen';
 import MapScreen from '../screens/citizen/MapScreen';
 import ProfileScreen from '../screens/citizen/ProfileScreen';
 import NotificationsScreen from '../screens/citizen/NotificationsScreen';
-import ChatScreen from '../screens/citizen/ChatScreen';
 
 // ── Admin ──────────────────────────────────────────────────────────────────
 import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
@@ -106,11 +105,6 @@ function HomeStack() {
         component={NotificationsScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen
-        name="Chat"
-        component={ChatScreen}
-        options={{ headerShown: false }}
-      />
       <Stack.Screen 
         name="TermsAndPolicy" 
         component={TermsAndPolicyScreen} 
@@ -151,7 +145,7 @@ function CitizenTabs() {
         component={HomeStack}
         options={({ route }) => {
           const routeName = getFocusedRouteNameFromRoute(route) ?? 'Feed';
-          const shouldHide = ['Chat', 'ConcernDetail', 'SubmitConcern', 'Notifications'].includes(routeName);
+          const shouldHide = ['ConcernDetail', 'SubmitConcern', 'Notifications'].includes(routeName);
           return {
             headerShown: false,
             tabBarLabel: t('feed'),

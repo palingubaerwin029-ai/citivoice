@@ -307,7 +307,7 @@ export default function LoginScreen({ navigation }) {
       <View style={[S.glowBlob, { backgroundColor: colors.primary }]} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <ScrollView

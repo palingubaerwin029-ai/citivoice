@@ -5,7 +5,6 @@ export const translations = {
     tagline: 'Your Voice, Your Community',
     cityDescription:
       'Inspired by the golden sun of our democracy and the green growth of the Bangkal tree, CitiVoice connects Kabankalanons to unity, progress, and sustainable civic action.',
-    chatbotWelcome: 'Hello! I am the CitiVoice AI Assistant. You can ask me how to file a concern, what the statuses mean, or get help navigating the platform.',
 
     // Auth
     login: 'Sign In',
@@ -197,6 +196,8 @@ export const translations = {
     fair: 'Fair',
     good: 'Good',
     strong: 'Strong',
+    submittedOffline: 'Report Saved Offline 🎉',
+    submittedOfflineMsg: 'Your concern has been securely saved on your device and will automatically sync when you regain an internet connection.',
   },
 
   fil: {
@@ -205,7 +206,6 @@ export const translations = {
     tagline: 'Ang Iyong Boses, Ang Iyong Komunidad',
     cityDescription:
       'Dinasig ng gintong araw ng ating demokrasya at ng luntiang paglago ng puno ng Bangkal, ikinokonekta ng CitiVoice ang mga Kabankalanon tungo sa pagkakaisa, pag-unlad, at napapanatiling serbisyo sibiko.',
-    chatbotWelcome: 'Kumusta! Ako ang CitiVoice AI Assistant. Maaari mo akong tanungin kung paano mag-ulat ng concern, kung ano ang ibig sabihin ng mga status, o humingi ng tulong sa paggamit ng platform.',
 
     // Auth
     login: 'Mag-sign In',
@@ -397,6 +397,8 @@ export const translations = {
     fair: 'Katamtaman',
     good: 'Maganda',
     strong: 'Malakas',
+    submittedOffline: 'Nai-save ang Ulat nang Offline 🎉',
+    submittedOfflineMsg: 'Ligtas na nai-save ang iyong concern sa iyong device at awtomatikong magsi-sync kapag bumalik na ang iyong internet.',
   },
 
   hil: {
@@ -405,7 +407,6 @@ export const translations = {
     tagline: 'Ang Imo Tingog, Ang Imo Komunidad',
     cityDescription:
       'Ginhimo ang CitiVoice para ikonekta ang mga Kabankalanon. Tuyo sini nga magbinuligay ang tanan para sa pag-asenso sang aton siyudad.',
-    chatbotWelcome: 'Kamusta! Ako ang CitiVoice AI Assistant. Pwede mo ako mapamangkot kon paano mag-report sang problema, kon ano ang buot hambalon sang mga status, ukon magpatabang sa paggamit sang platform.',
 
     // Auth
     login: 'Mag-login',
@@ -596,6 +597,8 @@ export const translations = {
     fair: 'Okay lang',
     good: 'Maayo',
     strong: 'Mabakod',
+    submittedOffline: 'Na-save ang Report Offline 🎉',
+    submittedOfflineMsg: 'Ang imo concern safe nga na-save sa imo device kag automatic nga ma-sync pagbalik sang imo internet.',
   },
 };
 
