@@ -13,6 +13,7 @@ import {
   Animated,
   TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
@@ -128,6 +129,10 @@ export default function ConcernDetailScreen({ route, navigation }) {
   };
 
   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.bgDark }]}
       edges={['top', 'bottom']}
@@ -601,6 +606,7 @@ export default function ConcernDetailScreen({ route, navigation }) {
         </View>
       </Modal>
     </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -10,6 +10,8 @@ import {
   ScrollView,
   Modal,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -197,7 +199,11 @@ export default function AdminConcernsScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bgDark }]} edges={['top']}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.bgDark }]} edges={['top']}>
       <View style={styles.modeToggle}>
         <TouchableOpacity
           style={[styles.modeBtn, viewMode === 'concerns' && { backgroundColor: colors.primary }]}
@@ -380,7 +386,8 @@ export default function AdminConcernsScreen({ navigation }) {
           )
         }
       />
-    </SafeAreaView>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -10,6 +10,8 @@ import {
   TextInput,
   ActivityIndicator,
   Linking,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -139,10 +141,14 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
   ];
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.bgDark }]}
-      contentContainerStyle={styles.scroll}
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: colors.bgDark }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.bgDark }]}
+        contentContainerStyle={styles.scroll}
+      >
       {/* Photo Section */}
       <View
         style={[styles.photoCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
@@ -363,7 +369,8 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
           )}
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

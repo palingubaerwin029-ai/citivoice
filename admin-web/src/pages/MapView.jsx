@@ -53,7 +53,6 @@ const CATEGORY_ICONS = {
   'Electricity': '⚡',
   'Drainage': '🌊',
   'Waste & Sanitation': '🚮',
-  'Executive Approval': '🏛️',
 };
 
 // --- ICONS ---

@@ -350,11 +350,12 @@ export default function SubmitConcernScreen({ navigation, route }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgDark }} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      >
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgDark }} edges={['top', 'bottom']}>
         {/* Custom Header */}
         <View
           style={[
@@ -373,7 +374,12 @@ export default function SubmitConcernScreen({ navigation, route }) {
 
         <View style={styles.header}>{renderProgressBar()}</View>
 
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          showsVerticalScrollIndicator={false}
+        >
           {/* ================= STEP 1: DETAILS ================= */}
           {currentStep === 1 && (
             <View style={styles.stepContainer}>
@@ -699,8 +705,8 @@ export default function SubmitConcernScreen({ navigation, route }) {
             </View>
           )}
         </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 

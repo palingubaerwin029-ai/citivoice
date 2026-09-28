@@ -8,6 +8,8 @@ import {
   FlatList,
   RefreshControl,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -139,7 +141,11 @@ export default function HomeScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={S.container} edges={['top']}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <SafeAreaView style={S.container} edges={['top']}>
       <FlatList
         data={filtered}
         keyExtractor={(item) => String(item.id)}
@@ -315,7 +321,8 @@ export default function HomeScreen({ navigation }) {
           />
         )}
       />
-    </SafeAreaView>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
