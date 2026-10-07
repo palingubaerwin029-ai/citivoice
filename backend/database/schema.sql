@@ -111,15 +111,13 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 
--- ─── Concern Assignments (department routing + SLA) ──────────────────────────
+-- ─── Concern Assignments (department routing) ───────────────────────────────
 CREATE TABLE IF NOT EXISTS concern_assignments (
   id              INT AUTO_INCREMENT PRIMARY KEY,
   concern_id      INT NOT NULL,
   assigned_to     INT DEFAULT NULL,
   assigned_by     INT DEFAULT NULL,
   department      VARCHAR(100),
-  sla_hours       INT NOT NULL DEFAULT 72,
-  sla_deadline    DATETIME NOT NULL,
   status          ENUM('assigned','accepted','escalated','completed') NOT NULL DEFAULT 'assigned',
   created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -216,6 +214,5 @@ CREATE INDEX idx_concerns_barangay ON concerns(user_barangay);
 CREATE INDEX idx_notifications_user_read ON notifications(user_id, is_read);
 
 CREATE INDEX idx_assignments_status ON concern_assignments(status);
-CREATE INDEX idx_assignments_deadline ON concern_assignments(sla_deadline);
 
 CREATE INDEX idx_audit_entity ON audit_log(entity_type, entity_id);

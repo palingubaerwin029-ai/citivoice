@@ -11,7 +11,6 @@ const indexes = [
   'CREATE INDEX idx_concerns_barangay ON concerns(user_barangay)',
   'CREATE INDEX idx_notifications_user_read ON notifications(user_id, is_read)',
   'CREATE INDEX idx_assignments_status ON concern_assignments(status)',
-  'CREATE INDEX idx_assignments_deadline ON concern_assignments(sla_deadline)',
   'CREATE INDEX idx_audit_entity ON audit_log(entity_type, entity_id)'
 ];
 

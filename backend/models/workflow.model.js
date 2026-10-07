@@ -2,12 +2,12 @@ const pool = require('../db');
 
 // ─── Concern Assignments ───
 const insertAssignment = async (data) => {
-  const { concern_id, assigned_to, assigned_by, department, sla_hours, sla_deadline, status } = data;
+  const { concern_id, assigned_to, assigned_by, department, status } = data;
   const [result] = await pool.query(
     `INSERT INTO concern_assignments 
-     (concern_id, assigned_to, assigned_by, department, sla_hours, sla_deadline, status) 
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [concern_id, assigned_to || null, assigned_by || null, department || null, sla_hours, sla_deadline, status || 'assigned']
+     (concern_id, assigned_to, assigned_by, department, status) 
+     VALUES (?, ?, ?, ?, ?)`,
+    [concern_id, assigned_to || null, assigned_by || null, department || null, status || 'assigned']
   );
   return result.insertId;
 };
@@ -28,47 +28,7 @@ const updateAssignmentStatus = async (id, status) => {
   await pool.query('UPDATE concern_assignments SET status = ? WHERE id = ?', [status, id]);
 };
 
-// Pause SLA timer — records the pause timestamp so the deadline can be adjusted later
-const pauseAssignmentSLA = async (concernId) => {
-  await pool.query(
-    `UPDATE concern_assignments 
-     SET sla_paused_at = NOW(), status = 'accepted' 
-     WHERE concern_id = ? AND status NOT IN ('completed', 'escalated') AND sla_paused_at IS NULL`,
-    [concernId]
-  );
-};
 
-// Stop SLA timer permanently — mark assignment as completed
-const stopAssignmentSLA = async (concernId) => {
-  await pool.query(
-    `UPDATE concern_assignments 
-     SET status = 'completed', sla_paused_at = NULL 
-     WHERE concern_id = ? AND status NOT IN ('completed', 'escalated')`,
-    [concernId]
-  );
-};
-
-// Resume SLA timer — extends deadline by the paused duration, clears pause timestamp
-const resumeAssignmentSLA = async (concernId) => {
-  await pool.query(
-    `UPDATE concern_assignments 
-     SET sla_deadline = DATE_ADD(sla_deadline, INTERVAL TIMESTAMPDIFF(SECOND, sla_paused_at, NOW()) SECOND),
-         sla_paused_at = NULL,
-         status = 'assigned'
-     WHERE concern_id = ? AND sla_paused_at IS NOT NULL`,
-    [concernId]
-  );
-};
-
-const getOverdueAssignments = async () => {
-  const [rows] = await pool.query(
-    `SELECT ca.*, c.title, c.priority 
-     FROM concern_assignments ca
-     JOIN concerns c ON ca.concern_id = c.id
-     WHERE ca.status NOT IN ('completed', 'escalated') AND ca.sla_paused_at IS NULL AND ca.sla_deadline < NOW()`
-  );
-  return rows;
-};
 
 // ─── Internal Comments ───
 const insertComment = async (data) => {
@@ -119,10 +79,6 @@ module.exports = {
   insertAssignment,
   getAssignmentsByConcern,
   updateAssignmentStatus,
-  pauseAssignmentSLA,
-  stopAssignmentSLA,
-  resumeAssignmentSLA,
-  getOverdueAssignments,
   insertComment,
   getCommentsByConcern,
   insertAuditLog,

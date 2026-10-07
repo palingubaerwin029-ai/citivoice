@@ -60,7 +60,7 @@ router.post('/:id/link', auth, requireRole('admin'), validateIdParam, linkConcer
 // ─── Upload ID image (mobile verification) ────────────────────────────────────
 router.post('/upload/id-image', upload.single('image'), uploadIdImage);
 
-// ─── Workflow & SLA Tracking ──────────────────────────────────────────────────
+// ─── Workflow Tracking ────────────────────────────────────────────────────────
 router.get('/:id/assignments', auth, validateIdParam, workflowController.getAssignments);
 router.post('/:id/assign', auth, requireRole('admin'), validateIdParam, workflowController.assignConcern);
 router.get('/:id/comments', auth, validateIdParam, workflowController.getComments);

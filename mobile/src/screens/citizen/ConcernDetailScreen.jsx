@@ -310,34 +310,7 @@ export default function ConcernDetailScreen({ route, navigation }) {
             </View>
           )}
 
-          {/* Workflow SLA Timer */}
-          {assignments?.length > 0 && (
-            <View style={[styles.section, styles.adminNoteCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
-              <View style={styles.adminNoteHeader}>
-                <Ionicons name="timer-outline" size={16} color={colors.primary} />
-                <Text style={[styles.adminNoteTitle, { color: colors.primary }]}>
-                  {t('SLA Timer') || 'SLA TIMER'}
-                </Text>
-              </View>
-              {(() => {
-                const latest = assignments[0];
-                const deadline = new Date(latest.sla_deadline);
-                const diffHours = (deadline - new Date()) / (1000 * 60 * 60);
-                const color = diffHours < 0 ? colors.statusRejected : (diffHours < 24 ? colors.statusPending : colors.statusResolved);
-                
-                return (
-                  <View>
-                    <Text style={{ fontSize: rf(14), fontWeight: '700', color }}>
-                      {diffHours < 0 ? `Breached by ${Math.abs(diffHours).toFixed(1)} hrs` : `${diffHours.toFixed(1)} hrs remaining`}
-                    </Text>
-                    <Text style={{ fontSize: rf(12), color: colors.textSecondary, marginTop: 4 }}>
-                      Department: {latest.department}
-                    </Text>
-                  </View>
-                );
-              })()}
-            </View>
-          )}
+
 
           {/* Official Response */}
           {concern.admin_note && (

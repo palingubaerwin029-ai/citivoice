@@ -228,84 +228,7 @@ export default function ConcernDetail() {
     setAddingComment(false);
   };
 
-  const renderSLA = () => {
-    if (!assignments || assignments.length === 0) return null;
-    const latest = assignments[0];
 
-    // Check if SLA is permanently stopped (Resolved/Rejected)
-    const isStopped = latest.status === 'completed' || selStatus === 'Resolved' || selStatus === 'Rejected';
-    if (isStopped) {
-      return (
-        <div className={s.card} style={{ padding: '12px 14px', background: 'rgba(100,116,139,0.08)', border: '1px solid rgba(100,116,139,0.3)' }}>
-          <div className={s.sectionLabel} style={{ marginBottom: 4, color: 'var(--text-2)' }}>
-            ✅ SLA Timer
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>
-            Completed — Timer stopped
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 4 }}>
-            Department: {latest.department}
-          </div>
-          {latest.assignee_name && (
-            <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
-              Assigned to: {latest.assignee_name}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // Check if SLA is paused (In Progress)
-    const isPaused = latest.sla_paused_at || selStatus === 'In Progress';
-    if (isPaused) {
-      return (
-        <div className={s.card} style={{ padding: '12px 14px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.35)' }}>
-          <div className={s.sectionLabel} style={{ marginBottom: 4, color: 'var(--blue-light, #60A5FA)' }}>
-            ⏸️ SLA Timer
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--blue-light, #60A5FA)' }}>
-            Paused — Work In Progress
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-1)', marginTop: 4 }}>
-            Department: {latest.department}
-          </div>
-          {latest.assignee_name && (
-            <div style={{ fontSize: 11, color: 'var(--text-1)', marginTop: 2 }}>
-              Assigned to: {latest.assignee_name}
-            </div>
-          )}
-        </div>
-      );
-    }
-    
-    const deadline = new Date(latest.sla_deadline);
-    const now = new Date();
-    const diffHours = (deadline - now) / (1000 * 60 * 60);
-    
-    let color = 'var(--green)';
-    let bg = 'rgba(16,185,129,0.1)';
-    if (diffHours < 0) { color = 'var(--red)'; bg = 'rgba(239,68,68,0.1)'; }
-    else if (diffHours < 24) { color = 'var(--yellow)'; bg = 'rgba(245,158,11,0.1)'; }
-
-    return (
-      <div className={s.card} style={{ padding: '12px 14px', background: bg, border: `1px solid ${color}` }}>
-        <div className={s.sectionLabel} style={{ marginBottom: 4, color }}>
-          ⏳ SLA Timer
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 600, color }}>
-          {diffHours < 0 ? `Breached by ${Math.abs(diffHours).toFixed(1)} hrs` : `${diffHours.toFixed(1)} hrs remaining`}
-        </div>
-        <div style={{ fontSize: 11, color: 'var(--text-1)', marginTop: 4 }}>
-          Department: {latest.department}
-        </div>
-        {latest.assignee_name && (
-          <div style={{ fontSize: 11, color: 'var(--text-1)', marginTop: 2 }}>
-            Assigned to: {latest.assignee_name}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   if (loading) return <div className={s.loading}>Loading…</div>;
   if (!concern) return <div className={s.loading}>Concern not found.</div>;
@@ -436,9 +359,6 @@ export default function ConcernDetail() {
               </div>
             ))}
           </div>
-
-          {/* Workflow SLA */}
-          {renderSLA()}
 
           {/* Description */}
           <div className={s.card}>

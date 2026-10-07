@@ -48,7 +48,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [concerns, setConcerns] = useState([]);
-  const [overdue, setOverdue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [recentPage, setRecentPage] = useState(1);
   const RECENT_PER_PAGE = 5;
@@ -90,13 +89,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchData = () => {
-      Promise.all([
-        api.get('/concerns'),
-        api.get('/workflow/overdue').catch(() => []) // Handle cleanly if route missing during dev
-      ])
-        .then(([concernsData, overdueData]) => {
-          setConcerns(concernsData.data || []);
-          setOverdue(overdueData.length || 0);
+      api.get('/concerns')
+        .then((res) => {
+          setConcerns(res.data || []);
         })
         .catch(console.error)
         .finally(() => setLoading(false));
@@ -258,19 +253,6 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className={`${s.statsRow} stagger-1`}>
-        {/* Overdue SLA Stat */}
-        <div
-          className={s.statCard}
-          style={{ '--accent-color': '#EF4444', cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid rgba(239, 68, 68, 0.3)' }}
-          onClick={() => navigate('/concerns')}
-        >
-          <div className={s.statIconWrap} style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444' }}>⚠️</div>
-          <div className={s.statValue}>
-            {loading ? <Skeleton height="30px" width="60px" /> : <AnimatedCounter value={overdue} />}
-          </div>
-          <div className={s.statLabel} style={{ color: '#EF4444' }}>Overdue SLAs</div>
-        </div>
-
         {STAT_CONFIGS.map((cfg) => (
           <div
             key={cfg.key}
@@ -298,6 +280,7 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
 
       {/* Charts row */}
       <div className={`stagger-2 ${s.grid3}`} style={{ marginBottom: 16 }}>

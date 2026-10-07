@@ -157,9 +157,5 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`✅ CitiVoice API & Socket running → http://localhost:${PORT}`);
   console.log(`📁 Uploads served at   → http://localhost:${PORT}/uploads`);
-
-  // Start SLA cron checker (every 15 minutes)
-  setInterval(() => {
-    workflowService.checkSLABreaches(app.get('io'));
-  }, 15 * 60 * 1000);
 });
+

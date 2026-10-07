@@ -14,21 +14,16 @@ const getAssignments = async (req, res) => {
 };
 
 const assignConcern = async (req, res) => {
-  const { assigned_to, department, sla_hours } = req.body;
+  const { assigned_to, department } = req.body;
   try {
     const concern = await concernModel.selectConcernById(req.params.id);
     if (!concern) return res.status(404).json({ error: 'Concern not found' });
-
-    const deadline = new Date();
-    deadline.setHours(deadline.getHours() + (sla_hours || 72));
 
     const assignmentId = await workflowModel.insertAssignment({
       concern_id: concern.id,
       assigned_to,
       assigned_by: req.user.id,
       department,
-      sla_hours: sla_hours || 72,
-      sla_deadline: deadline,
       status: 'assigned'
     });
 
@@ -39,7 +34,7 @@ const assignConcern = async (req, res) => {
       req.user.id,
       req.user.name,
       null,
-      { assigned_to, department, sla_hours }
+      { assigned_to, department }
     );
 
     // Notify the assigned admin
@@ -118,21 +113,10 @@ const getAudit = async (req, res) => {
   }
 };
 
-const getOverdueSLA = async (req, res) => {
-  try {
-    const overdue = await workflowModel.getOverdueAssignments();
-    res.json(overdue);
-  } catch (err) {
-    console.error('getOverdueSLA error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
 module.exports = {
   getAssignments,
   assignConcern,
   getComments,
   addComment,
-  getAudit,
-  getOverdueSLA
+  getAudit
 };

@@ -437,26 +437,6 @@ const editConcern = async (req, res) => {
     // Get socket.io instance for notifications
     const io = req.app.get('io');
 
-    // ─── SLA Timer: Pause / Stop / Resume based on status transition ───
-    if (status && status !== concern.status) {
-      try {
-        if (status === 'In Progress') {
-          // Pause SLA countdown — team is actively working
-          await workflowModel.pauseAssignmentSLA(req.params.id);
-          console.log(`[SLA] Paused SLA timer for concern #${req.params.id} (status → In Progress)`);
-        } else if (status === 'Resolved' || status === 'Rejected') {
-          // Stop SLA permanently — concern is closed
-          await workflowModel.stopAssignmentSLA(req.params.id);
-          console.log(`[SLA] Stopped SLA timer permanently for concern #${req.params.id} (status → ${status})`);
-        } else if (concern.status === 'In Progress' && status === 'Pending') {
-          // Resume SLA countdown — reverted back to Pending
-          await workflowModel.resumeAssignmentSLA(req.params.id);
-          console.log(`[SLA] Resumed SLA timer for concern #${req.params.id} (status → Pending)`);
-        }
-      } catch (slaErr) {
-        console.error('[SLA] Error updating SLA timer:', slaErr.message);
-      }
-    }
 
     // Re-assign to new department if category or priority changed
     if (category !== undefined || priority !== undefined) {
