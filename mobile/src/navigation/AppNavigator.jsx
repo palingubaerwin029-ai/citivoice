@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { RADIUS } from '../utils/theme';
 import { useTheme } from '../context/ThemeContext';
+import NetworkBanner from '../components/NetworkBanner';
 
 // ── Auth ───────────────────────────────────────────────────────────────────
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -286,18 +287,23 @@ export default function AppNavigator() {
   };
 
   return (
-    <NavigationContainer theme={navTheme}>
-      {
-        !user ? (
-          <AuthStack /> // Not logged in
-        ) : user._blocked ? (
-          <AuthStack /> // Logged in but NOT verified
-        ) : user.role === 'admin' ? (
-          <AdminStack /> // Admin
-        ) : (
-          <CitizenTabs />
-        ) // Verified citizen
-      }
-    </NavigationContainer>
+    <View style={{ flex: 1 }}>
+      <NavigationContainer theme={navTheme}>
+        {
+          !user ? (
+            <AuthStack /> // Not logged in
+          ) : user._blocked ? (
+            <AuthStack /> // Logged in but NOT verified
+          ) : user.role === 'admin' ? (
+            <AdminStack /> // Admin
+          ) : (
+            <CitizenTabs />
+          ) // Verified citizen
+        }
+      </NavigationContainer>
+
+      {/* Global internet connectivity banner — floats above everything */}
+      <NetworkBanner />
+    </View>
   );
 }

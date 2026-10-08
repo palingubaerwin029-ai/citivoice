@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { AppState, ToastAndroid } from 'react-native';
-import NetInfo from '@react-native-community/netinfo';
+import { ToastAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ConcernService } from '../services/concernService';
 import { useAuth } from './AuthContext';
+import { useNetwork } from './NetworkContext';
 
 const OFFLINE_QUEUE_KEY = 'cv_offline_concerns_queue';
 
@@ -13,8 +13,8 @@ export function ConcernProvider({ children }) {
   const [concerns, setConcerns] = useState([]);
   const [myConcerns, setMyConcerns] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const { isOffline } = useNetwork();
   const { user } = useAuth();
 
   const getOptimisticOfflineItems = async () => {
@@ -109,28 +109,20 @@ export function ConcernProvider({ children }) {
   const syncingRef = useRef(false);
   const syncTimeoutRef = useRef(null);
 
-  // ── Network Listener & Auto-Sync ────────────────────────────────────────
+  // ── Auto-Sync when internet is restored ─────────────────────────────────
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const offline = !(state.isConnected && state.isInternetReachable !== false);
-      setIsOffline(offline);
-
-      if (!offline && user?.id) {
-        // Debounce auto-sync by 1.5s to collapse rapid consecutive NetInfo events into one
-        if (syncTimeoutRef.current) {
-          clearTimeout(syncTimeoutRef.current);
-        }
-        syncTimeoutRef.current = setTimeout(() => {
-          syncOfflineConcerns();
-        }, 1500);
-      }
-    });
+    if (!isOffline && user?.id) {
+      // Debounce auto-sync by 1.5s to collapse rapid consecutive events into one
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = setTimeout(() => {
+        syncOfflineConcerns();
+      }, 1500);
+    }
 
     return () => {
-      unsubscribe();
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     };
-  }, [user?.id]);
+  }, [isOffline, user?.id]);
 
   const syncOfflineConcerns = async () => {
     if (syncingRef.current) {
@@ -287,7 +279,7 @@ export function ConcernProvider({ children }) {
         concerns,
         myConcerns,
         loading,
-        isOffline,
+        isOffline,    // forwarded from NetworkContext for convenience
         addConcern,
         updateConcern,
         deleteConcern,

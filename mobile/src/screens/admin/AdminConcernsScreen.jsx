@@ -37,8 +37,9 @@ export default function AdminConcernsScreen({ navigation }) {
 
   const loadData = async () => {
     try {
-      const data = await ConcernService.getConcerns();
-      setConcerns(data);
+      const res = await ConcernService.getConcerns({ limit: 100 });
+      const items = Array.isArray(res) ? res : res?.data || [];
+      setConcerns(items);
     } catch {
     } finally {
       setLoading(false);
@@ -52,7 +53,9 @@ export default function AdminConcernsScreen({ navigation }) {
     return () => clearInterval(interval);
   }, []);
 
-  const filtered = concerns
+  const safeConcerns = Array.isArray(concerns) ? concerns : [];
+
+  const filtered = safeConcerns
     .filter((c) => {
       const s = search.toLowerCase();
       const matchSearch =
@@ -333,7 +336,7 @@ export default function AdminConcernsScreen({ navigation }) {
                 const active = statusFilter === f;
                 const color = getStatusConfig(colors)[f]?.color || colors.primary;
                 const count =
-                  f === 'All' ? concerns.length : concerns.filter((c) => c.status === f).length;
+                  f === 'All' ? safeConcerns.length : safeConcerns.filter((c) => c.status === f).length;
                 return (
                   <TouchableOpacity
                     key={f}

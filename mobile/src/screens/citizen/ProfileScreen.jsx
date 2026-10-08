@@ -87,11 +87,12 @@ export default function ProfileScreen({ navigation }) {
       setUploadingAvatar(false);
     }
   };
+  const safeMyConcerns = Array.isArray(myConcerns) ? myConcerns : [];
   const stats = {
-    total: myConcerns.length,
-    pending: myConcerns.filter((c) => c.status === 'Pending').length,
-    inProgress: myConcerns.filter((c) => c.status === 'In Progress').length,
-    resolved: myConcerns.filter((c) => c.status === 'Resolved').length,
+    total: safeMyConcerns.length,
+    pending: safeMyConcerns.filter((c) => c.status === 'Pending').length,
+    inProgress: safeMyConcerns.filter((c) => c.status === 'In Progress').length,
+    resolved: safeMyConcerns.filter((c) => c.status === 'Resolved').length,
   };
   const memberSince = (user?.created_at ? new Date(user.created_at) : null)?.toLocaleDateString(
     'en-PH',

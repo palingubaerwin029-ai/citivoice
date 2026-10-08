@@ -6,6 +6,7 @@ import { NotificationProvider } from "./src/context/NotificationContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
+import { NetworkProvider } from "./src/context/NetworkContext";
 
 import { RootSiblingParent } from 'react-native-root-siblings';
 
@@ -14,7 +15,9 @@ export default function App() {
   return (
     <RootSiblingParent>
       <ThemeProvider>
-        <AppContent />
+        <NetworkProvider>
+          <AppContent />
+        </NetworkProvider>
       </ThemeProvider>
     </RootSiblingParent>
   );

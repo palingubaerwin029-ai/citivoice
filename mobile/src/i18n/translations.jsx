@@ -198,6 +198,12 @@ export const translations = {
     strong: 'Strong',
     submittedOffline: 'Report Saved Offline 🎉',
     submittedOfflineMsg: 'Your concern has been securely saved on your device and will automatically sync when you regain an internet connection.',
+    // Network banner
+    noInternetConnection: 'No Internet Connection',
+    offlineModeActive: 'Offline mode · Reports will sync when reconnected.',
+    backOnline: 'Back Online ✓',
+    backOnlineNotice: 'Internet connection restored.',
+    checkConnection: 'Check',
   },
 
   fil: {
@@ -399,6 +405,12 @@ export const translations = {
     strong: 'Malakas',
     submittedOffline: 'Nai-save ang Ulat nang Offline 🎉',
     submittedOfflineMsg: 'Ligtas na nai-save ang iyong concern sa iyong device at awtomatikong magsi-sync kapag bumalik na ang iyong internet.',
+    // Network banner
+    noInternetConnection: 'Walang Koneksyon sa Internet',
+    offlineModeActive: 'Offline mode · Mag-si-sync ang mga ulat kapag nakakonekta na.',
+    backOnline: 'Bumalik na Online ✓',
+    backOnlineNotice: 'Naibalik na ang koneksyon sa internet.',
+    checkConnection: 'Suriin',
   },
 
   hil: {
@@ -599,6 +611,12 @@ export const translations = {
     strong: 'Mabakod',
     submittedOffline: 'Na-save ang Report Offline 🎉',
     submittedOfflineMsg: 'Ang imo concern safe nga na-save sa imo device kag automatic nga ma-sync pagbalik sang imo internet.',
+    // Network banner
+    noInternetConnection: 'Wala Internet nga Koneksyon',
+    offlineModeActive: 'Offline mode · Mag-sync ang mga ulat pag balik ang internet.',
+    backOnline: 'Online na Liwat ✓',
+    backOnlineNotice: 'Nabalik na ang koneksyon sa internet.',
+    checkConnection: 'Susihin',
   },
 };
 

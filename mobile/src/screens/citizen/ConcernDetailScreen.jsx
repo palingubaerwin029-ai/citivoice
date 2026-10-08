@@ -88,7 +88,12 @@ export default function ConcernDetailScreen({ route, navigation }) {
         style: 'destructive',
         onPress: async () => {
           await deleteConcern(concernId);
-          navigation.goBack();
+          // navigate back if possible, otherwise go to Feed (root of Home stack)
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            navigation.navigate('Feed');
+          }
         },
       },
     ]);
@@ -151,7 +156,16 @@ export default function ConcernDetailScreen({ route, navigation }) {
           { backgroundColor: colors.bgCard, borderBottomColor: colors.border },
         ]}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
+        <TouchableOpacity
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Feed');
+            }
+          }}
+          style={styles.headerBtn}
+        >
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>

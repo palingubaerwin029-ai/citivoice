@@ -53,7 +53,9 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
       setAdminNote(data.admin_note || '');
     } catch (err) {
       Alert.alert('Error', 'Could not load concern details.');
-      navigation.goBack();
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      }
     } finally {
       setLoading(false);
     }

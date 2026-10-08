@@ -69,14 +69,16 @@ export default function MyConcernsScreen({ navigation }) {
     fetchPage(1, true);
   };
 
+  const safeMyConcerns = Array.isArray(myConcerns) ? myConcerns : [];
+
   const filtered =
-    activeFilter === 'All' ? myConcerns : myConcerns.filter((c) => c.status === activeFilter);
+    activeFilter === 'All' ? safeMyConcerns : safeMyConcerns.filter((c) => c.status === activeFilter);
 
   const stats = {
-    total: myConcerns.length,
-    pending: myConcerns.filter((c) => c.status === 'Pending').length,
-    inProgress: myConcerns.filter((c) => c.status === 'In Progress').length,
-    resolved: myConcerns.filter((c) => c.status === 'Resolved').length,
+    total: safeMyConcerns.length,
+    pending: safeMyConcerns.filter((c) => c.status === 'Pending').length,
+    inProgress: safeMyConcerns.filter((c) => c.status === 'In Progress').length,
+    resolved: safeMyConcerns.filter((c) => c.status === 'Resolved').length,
   };
 
   return (

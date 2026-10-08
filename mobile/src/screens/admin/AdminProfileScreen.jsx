@@ -15,12 +15,15 @@ export default function AdminProfileScreen() {
   useEffect(() => {
     const fetchConcerns = async () => {
       try {
-        const data = await ConcernService.getConcerns();
-        setConcerns(data);
+        const res = await ConcernService.getConcerns({ limit: 100 });
+        const items = Array.isArray(res) ? res : res?.data || [];
+        setConcerns(items);
       } catch (err) {}
     };
     fetchConcerns();
   }, []);
+
+  const safeConcerns = Array.isArray(concerns) ? concerns : [];
 
   const initials =
     user?.name
@@ -31,16 +34,16 @@ export default function AdminProfileScreen() {
       .slice(0, 2) || '??';
 
   const stats = {
-    total: concerns.length,
-    pending: concerns.filter((c) => c.status === 'Pending').length,
-    inProgress: concerns.filter((c) => c.status === 'In Progress').length,
-    resolved: concerns.filter((c) => c.status === 'Resolved').length,
-    rejected: concerns.filter((c) => c.status === 'Rejected').length,
+    total: safeConcerns.length,
+    pending: safeConcerns.filter((c) => c.status === 'Pending').length,
+    inProgress: safeConcerns.filter((c) => c.status === 'In Progress').length,
+    resolved: safeConcerns.filter((c) => c.status === 'Resolved').length,
+    rejected: safeConcerns.filter((c) => c.status === 'Rejected').length,
   };
   const resolutionRate = stats.total ? Math.round((stats.resolved / stats.total) * 100) : 0;
 
   const topCategory = (() => {
-    const map = concerns.reduce((acc, c) => {
+    const map = safeConcerns.reduce((acc, c) => {
       acc[c.category] = (acc[c.category] || 0) + 1;
       return acc;
     }, {});

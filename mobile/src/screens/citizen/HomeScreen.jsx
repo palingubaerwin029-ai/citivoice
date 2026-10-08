@@ -55,14 +55,16 @@ export default function HomeScreen({ navigation }) {
     return t('goodEvening');
   };
 
+  const safeConcerns = Array.isArray(concerns) ? concerns : [];
+
   const stats = useMemo(
     () => ({
-      total: concerns.length,
-      pending: concerns.filter((c) => c.status === 'Pending').length,
-      inProgress: concerns.filter((c) => c.status === 'In Progress').length,
-      resolved: concerns.filter((c) => c.status === 'Resolved').length,
+      total: safeConcerns.length,
+      pending: safeConcerns.filter((c) => c.status === 'Pending').length,
+      inProgress: safeConcerns.filter((c) => c.status === 'In Progress').length,
+      resolved: safeConcerns.filter((c) => c.status === 'Resolved').length,
     }),
-    [concerns],
+    [safeConcerns],
   );
 
   const fetchPage = async (p, isRefresh = false) => {
@@ -96,7 +98,7 @@ export default function HomeScreen({ navigation }) {
 
   const filtered = useMemo(
     () =>
-      concerns.filter((c) => {
+      safeConcerns.filter((c) => {
         const match = activeFilter === 'all' || c.status === activeFilter;
         const q = search.toLowerCase();
         const text =
@@ -106,7 +108,7 @@ export default function HomeScreen({ navigation }) {
           c.user_barangay?.toLowerCase().includes(q);
         return match && text;
       }),
-    [concerns, activeFilter, search],
+    [safeConcerns, activeFilter, search],
   );
 
   const onRefresh = () => {
