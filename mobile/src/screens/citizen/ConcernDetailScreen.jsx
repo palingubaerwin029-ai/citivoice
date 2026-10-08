@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -33,7 +33,7 @@ export default function ConcernDetailScreen({ route, navigation }) {
   const { user } = useAuth();
   const { t } = useLanguage();
 
-  const concern = concerns.find((c) => c.id === concernId);
+  const concern = concerns.find((c) => c.id === concernId || String(c.id) === String(concernId));
   const isOwner = concern?.user_id === user?.id;
   const canDelete = isOwner && concern?.status === 'Pending';
   const isUpvoted = false;
@@ -45,7 +45,10 @@ export default function ConcernDetailScreen({ route, navigation }) {
   const [newComment, setNewComment] = useState('');
   const [posting, setPosting] = useState(false);
 
+  const isPositiveIntegerId = Number.isInteger(Number(concernId)) && Number(concernId) > 0;
+
   useEffect(() => {
+    if (!isPositiveIntegerId) return;
     const fetchWorkflowData = async () => {
       try {
         const [aRes, cRes] = await Promise.all([
@@ -59,10 +62,10 @@ export default function ConcernDetailScreen({ route, navigation }) {
       }
     };
     fetchWorkflowData();
-  }, [concernId]);
+  }, [concernId, isPositiveIntegerId]);
 
   const postComment = async () => {
-    if (!newComment.trim()) return;
+    if (!newComment.trim() || !isPositiveIntegerId) return;
     setPosting(true);
     try {
       await mobileApi.post(`/concerns/${concernId}/comments`, { comment: newComment.trim() });
@@ -97,6 +100,20 @@ export default function ConcernDetailScreen({ route, navigation }) {
     } catch {}
   };
 
+  const timelineSteps = concern ? buildTimeline(concern, t) : [];
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (timelineSteps.length > 0) {
+      anim.setValue(0);
+      Animated.timing(anim, {
+        toValue: timelineSteps.length,
+        duration: timelineSteps.length * 400,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [timelineSteps.length]);
+
   if (!concern) {
     return (
       <View style={[styles.notFound, { backgroundColor: colors.bgDark }]}>
@@ -109,16 +126,6 @@ export default function ConcernDetailScreen({ route, navigation }) {
   }
 
   const statusCfg = getStatusConfig(colors)[concern.status] || getStatusConfig(colors)['Pending'];
-  const timelineSteps = buildTimeline(concern, t);
-
-  const [anim] = useState(new Animated.Value(0));
-  useEffect(() => {
-    Animated.timing(anim, {
-      toValue: timelineSteps.length,
-      duration: timelineSteps.length * 400,
-      useNativeDriver: true,
-    }).start();
-  }, []);
 
   const fmt = (ts) => {
     if (!ts) return '—';

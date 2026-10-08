@@ -12,6 +12,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const workflowService = require('./services/workflowService');
+const backupService = require('./services/backupService');
 
 const app = express();
 const server = http.createServer(app);
@@ -143,6 +144,7 @@ app.use('/api/workflow', require('./routes/workflow'));
 app.use('/api/barangays', require('./routes/barangays'));
 app.use('/api/departments', require('./routes/departments'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/backup', require('./routes/backup'));
 
 // ─── Health check ────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
@@ -157,5 +159,10 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`✅ CitiVoice API & Socket running → http://localhost:${PORT}`);
   console.log(`📁 Uploads served at   → http://localhost:${PORT}/uploads`);
+
+  // ─── Start automatic database backup scheduler ───────────────────────────
+  if (process.env.BACKUP_ENABLED !== 'false') {
+    backupService.startScheduler();
+  }
 });
 

@@ -43,7 +43,8 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchDetail = async (id) => {
+  const fetchDetail = async (id = concernId) => {
+    if (!id) return;
     setLoading(true);
     try {
       const data = await mobileApi.get(`/concerns/${id}`);

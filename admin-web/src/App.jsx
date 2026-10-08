@@ -13,6 +13,7 @@ import Reports from './pages/Reports';
 import Login from './pages/Login';
 import Verification from './pages/Verification';
 import Barangays from './pages/Barangays';
+import Backup from './pages/Backup';
 import ToastProvider from './components/ToastProvider';
 
 export default function App() {
@@ -94,6 +95,7 @@ export default function App() {
               <Route path="/users" element={<Users />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/barangays" element={<Barangays />} />
+              <Route path="/backup" element={<Backup />} />
             </Routes>
           </main>
         </div>

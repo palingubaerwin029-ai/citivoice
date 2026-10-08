@@ -13,6 +13,7 @@ import {
   IoSunnyOutline,
   IoMoonOutline,
   IoDocumentTextOutline,
+  IoCloudUploadOutline,
 } from 'react-icons/io5';
 import s from '../styles/Sidebar.module.css';
 import { resolveImageUrl } from '../services/api';
@@ -27,6 +28,8 @@ const NAV = [
   { section: 'Analytics' },
   { path: '/map', icon: <IoMapOutline />, label: 'Map View' },
   { path: '/reports', icon: <IoBarChartOutline />, label: 'Reports' },
+  { section: 'System' },
+  { path: '/backup', icon: <IoCloudUploadOutline />, label: 'Backup' },
 ];
 
 export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
