@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { ToastAndroid } from 'react-native';
+import { ToastAndroid, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ConcernService } from '../services/concernService';
 import { useAuth } from './AuthContext';
@@ -160,7 +160,9 @@ export function ConcernProvider({ children }) {
       
       if (syncedCount > 0) {
         refreshConcerns();
-        ToastAndroid.show(`Synced ${syncedCount} offline report(s)`, ToastAndroid.SHORT);
+        if (Platform.OS === 'android') {
+          ToastAndroid.show(`Synced ${syncedCount} offline report(s)`, ToastAndroid.SHORT);
+        }
       }
     } catch (err) {
       console.log('[Auto-Sync] Error during sync:', err);
