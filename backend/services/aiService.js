@@ -260,14 +260,16 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
     INSTRUCTIONS FOR VISUAL ANALYSIS:
     If an image is attached, prioritize physical evidence shown in the photo over user text.
 
-    CONTENT VALIDATION (DO THIS FIRST, THOROUGHLY):
+    CONTENT VALIDATION (MANDATORY & THOROUGH):
     Check the photo AND the text to decide if this is a genuine municipal concern that fits one of the 4 categories below.
+    - "imageMatchesConcern": boolean (true ONLY if the photo clearly or reasonably depicts the reported municipal problem or public infrastructure; false if the photo shows something else such as a selfie, person, animal/pet, food, bedroom/indoor personal item, fabric, document, meme, screenshot, or unrelated object).
     - "contentFlag": "none" -> a real concern that clearly fits a category (photo and text agree).
     - "contentFlag": "off_topic" -> NOT a typical concern for this platform: selfies, people/pets/food/memes, screenshots, indoor/personal photos,
       random or blank images, product ads, spam/gibberish text, jokes/tests, personal disputes, or a photo that clearly does not match the text.
     - "contentFlag": "inappropriate" -> explicit/sexual/nude, graphic violence/gore, hate speech, harassment, threats, or abusive/profane content.
-    Do not force an unrelated report into a category. If unsure, use "off_topic" only when the photo/text clearly does not show a municipal issue.
-    If the photo and text disagree about the issue, trust the photo.
+    - "alignmentReason": Short 1-sentence explanation of what the photo actually shows and why it does or does not align with the reported concern.
+    
+    Do not force an unrelated report into a category. If the photo does not depict the reported issue, set imageMatchesConcern: false and contentFlag: "off_topic".
     
     LANGUAGE UNDERSTANDING:
     Understand Hiligaynon terms:
@@ -293,8 +295,10 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
     - "Negros Occidental Electric Cooperative (NOCECO)" (for Electricity)
 
     Output a strictly valid JSON object with these keys:
+    - "imageMatchesConcern": Boolean (true if photo matches reported issue, false otherwise).
     - "contentFlag": One of "none", "off_topic", "inappropriate".
     - "validityReason": Short 1-sentence explanation of what the photo/text actually shows and why it is or is not a valid concern.
+    - "alignmentReason": Short 1-sentence explanation of whether the photo aligns with the concern.
     - "validityConfidence": Number 0-100, how confident you are in the contentFlag decision.
     - "category": Must be one of: "Road & Infrastructure", "Electricity", "Drainage", "Waste & Sanitation" (best guess even if flagged).
     - "priorityFactors": Object describing what is OBSERVABLE (be honest, do not exaggerate):
@@ -333,6 +337,19 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
         const validityConfidence =
           typeof result.validityConfidence === 'number' ? result.validityConfidence : 50;
 
+        // Visual alignment: must be explicitly true when photo is analyzed
+        const imageMatchesConcern =
+          imagePath
+            ? result.imageMatchesConcern === true && contentFlag === 'none'
+            : true;
+
+        const alignmentReason =
+          result.alignmentReason ||
+          result.validityReason ||
+          (imageMatchesConcern
+            ? 'The attached photo matches the reported concern.'
+            : 'The attached photo does not align with the reported concern.');
+
         // Priority: rubric from observed factors (fallback to AI's impression), raised by keyword safety floor.
         const rubric = scoreFromFactors(result.priorityFactors);
         const aiPriority = VALID_PRIORITIES.includes(result.priority) ? result.priority : 'Medium';
@@ -369,7 +386,9 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
             : ['Inspect site condition', 'Deploy repair team', 'Update concern status'],
           contentFlag,
           validityReason: result.validityReason || '',
+          alignmentReason,
           validityConfidence,
+          imageMatchesConcern,
         };
       }
     } catch (err) {
@@ -399,7 +418,77 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
     // Local fallback cannot judge photos; leave unflagged for admin review.
     contentFlag: 'none',
     validityReason: '',
+    alignmentReason: '',
     validityConfidence: 0,
+    imageMatchesConcern: true,
+  };
+};
+
+/**
+ * Fast dedicated verification for checking whether an attached photo aligns with a concern.
+ *
+ * @param {string} title
+ * @param {string} description
+ * @param {string} category
+ * @param {string} imagePath - Absolute local path to uploaded image
+ * @returns {Promise<{ isValid: boolean, imageMatchesConcern: boolean, contentFlag: string, reason: string }>}
+ */
+const verifyImageAlignment = async (title, description, category, imagePath) => {
+  if (!imagePath || !groqService.isAvailable() || !groqService.generateJSONWithImage) {
+    return {
+      isValid: true,
+      imageMatchesConcern: true,
+      contentFlag: 'none',
+      reason: 'Image accepted',
+    };
+  }
+
+  const prompt = `
+  You are an official verification officer for the CitiVoice Kabankalan City government portal.
+  The citizen submitted a report with:
+  Title: "${title || ''}"
+  Description: "${description || ''}"
+  Category: "${category || ''}"
+
+  TASK:
+  Examine the attached photo.
+  Determine whether the photo ALIGNS with the reported municipal problem (roads, bridges, drainage, flooding, streetlights, power lines, waste/garbage, or public utilities).
+
+  REJECTION CRITERIA (imageMatchesConcern MUST be false if any apply):
+  - The photo shows people, faces, or selfies.
+  - The photo shows food, drinks, dining, snacks, or cooking.
+  - The photo shows household pets, dogs, cats, or domestic animals (unless reported as dead animal carcass on public road).
+  - The photo shows indoor bedrooms, personal belongings, fabric/textiles, clothes, shoes, electronics, or unrelated home items.
+  - The photo is a screenshot of chat, social media, meme, text document, or wallpaper.
+  - The photo clearly does not match what the user is reporting (e.g., reported "flood on street" but photo shows dry bedroom; reported "pothole" but photo is fabric/furniture).
+  - The photo contains explicit, offensive, or inappropriate content.
+
+  Output strictly valid JSON with these keys:
+  - "imageMatchesConcern": boolean (true ONLY if the photo depicts the reported problem or related public infrastructure; false if mismatched or off-topic).
+  - "contentFlag": "none" (matches genuine concern), "off_topic" (does not match or not a municipal issue), or "inappropriate".
+  - "reason": Clear 1-sentence explanation of what the photo actually shows and why it matches or fails to match the reported concern.
+  `;
+
+  try {
+    const result = await groqService.generateJSONWithImage(prompt, imagePath);
+    if (result) {
+      const matches = result.imageMatchesConcern === true && result.contentFlag === 'none';
+      return {
+        isValid: matches,
+        imageMatchesConcern: matches,
+        contentFlag: result.contentFlag || (matches ? 'none' : 'off_topic'),
+        reason: result.reason || (matches ? 'Photo aligns with the reported issue.' : 'The attached photo does not match the reported concern.'),
+      };
+    }
+  } catch (e) {
+    console.error('[AI] Image alignment verification failed:', e.message);
+  }
+
+  return {
+    isValid: true,
+    imageMatchesConcern: true,
+    contentFlag: 'none',
+    reason: 'Photo accepted',
   };
 };
 
@@ -410,6 +499,7 @@ module.exports = {
   DEPARTMENT_MAP,
   analyzeConcern,
   analyzeFullConcern,
+  verifyImageAlignment,
   routeToDepartment,
   scoreFromFactors,
   keywordFloor,

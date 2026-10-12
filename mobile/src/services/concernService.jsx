@@ -151,6 +151,25 @@ export const ConcernService = {
     });
   },
 
+  // ── AI Image Alignment Check ────────────────────────────────────────────
+  async verifyImageAlignment(imageUri, title = '', description = '', category = '') {
+    const formData = new FormData();
+    formData.append('title', String(title));
+    formData.append('description', String(description));
+    formData.append('category', String(category));
+    await appendImageFile(formData, 'image', imageUri);
+
+    const token = await getToken();
+    const res = await fetch(`${BASE_URL}/concerns/verify-image`, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to verify image');
+    return data;
+  },
+
   // ── AI ID Name Verification Check ───────────────────────────────────────
   async verifyIdName(idImageUrl, name) {
     return apiRequest(`/auth/verify-id-name`, {

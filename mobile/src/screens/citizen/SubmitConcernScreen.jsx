@@ -36,7 +36,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
     High: colors.statusRejected,
   };
 
-  const { addConcern, analyzeDraft, isOffline } = useConcerns();
+  const { addConcern, analyzeDraft, verifyImageAlignment, isOffline } = useConcerns();
   const { t } = useLanguage();
   const CATEGORIES = [
     'Road & Infrastructure',
@@ -68,6 +68,10 @@ export default function SubmitConcernScreen({ navigation, route }) {
     }
   }, [route?.params?.initialDraft]);
   const [imageUri, setImageUri] = useState(null);
+  const [imageVerification, setImageVerification] = useState({
+    status: 'idle', // 'idle' | 'checking' | 'valid' | 'invalid'
+    reason: '',
+  });
   const [location, setLocation] = useState(null);
   const [manualAddress, setManualAddress] = useState('');
 
@@ -91,20 +95,49 @@ export default function SubmitConcernScreen({ navigation, route }) {
     if (errors[key]) setErrors((e) => ({ ...e, [key]: null }));
   };
 
+  const handleSelectImage = async (uri) => {
+    setImageUri(uri);
+    setImageVerification({ status: 'checking', reason: '' });
+
+    if (!isOffline && (form.title || form.description) && verifyImageAlignment) {
+      try {
+        const check = await verifyImageAlignment(uri, form.title, form.description, form.category);
+        if (check && (check.imageMatchesConcern === false || check.contentFlag === 'off_topic' || check.contentFlag === 'inappropriate')) {
+          setImageVerification({
+            status: 'invalid',
+            reason: check.reason || t('photoMismatchWarning'),
+          });
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        } else {
+          setImageVerification({
+            status: 'valid',
+            reason: check.reason || t('photoVerified'),
+          });
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      } catch (err) {
+        console.warn('Background image alignment check error:', err);
+        setImageVerification({ status: 'idle', reason: '' });
+      }
+    } else {
+      setImageVerification({ status: 'idle', reason: '' });
+    }
+  };
+
   const handleImagePicker = () => {
     Alert.alert(t('attachPhoto'), t('attachPhotoPrompt'), [
       {
         text: t('takePhoto'),
         onPress: async () => {
           const uri = await launchCamera({ aspect: [4, 3], quality: 0.7 });
-          if (uri) setImageUri(uri);
+          if (uri) handleSelectImage(uri);
         },
       },
       {
         text: t('chooseGallery'),
         onPress: async () => {
           const uri = await launchImagePicker({ aspect: [4, 3], quality: 0.7 });
-          if (uri) setImageUri(uri);
+          if (uri) handleSelectImage(uri);
         },
       },
       { text: t('cancel'), style: 'cancel' },
@@ -219,6 +252,20 @@ export default function SubmitConcernScreen({ navigation, route }) {
       Alert.alert(t('error'), t('photoRequired'));
       return;
     }
+    if (imageVerification.status === 'invalid') {
+      Alert.alert(
+        t('imageMismatchTitle') || 'Photo Does Not Match Concern',
+        imageVerification.reason ||
+          t('imageMismatchMsg') ||
+          'The attached picture does not align with your reported concern. Please attach a clear photo of the actual issue.',
+        [
+          { text: t('takePhoto') || 'Change Photo', onPress: handleImagePicker },
+          { text: t('cancel') || 'Cancel', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
     const finalLocation =
       location ||
       (manualAddress.trim()
@@ -253,6 +300,25 @@ export default function SubmitConcernScreen({ navigation, route }) {
 
       const rawMsg = err?.message || '';
       let friendlyMsg = t('couldNotSubmit') || 'Could not submit report. Please try again.';
+
+      if (
+        rawMsg.includes('does not align') ||
+        rawMsg.includes('align') ||
+        rawMsg.includes('mismatch') ||
+        rawMsg.includes('IMAGE_MISMATCH') ||
+        rawMsg.includes('inappropriate') ||
+        rawMsg.includes('INAPPROPRIATE_CONTENT')
+      ) {
+        setImageVerification({
+          status: 'invalid',
+          reason: rawMsg,
+        });
+        Alert.alert(
+          t('imageMismatchTitle') || 'Photo Does Not Match Concern',
+          rawMsg || t('imageMismatchMsg')
+        );
+        return;
+      }
 
       if (
         rawMsg.includes('FormDataPart') ||
@@ -491,7 +557,16 @@ export default function SubmitConcernScreen({ navigation, route }) {
                 <TouchableOpacity
                   style={[
                     styles.photoBox,
-                    { backgroundColor: colors.bgCard, borderColor: colors.border },
+                    {
+                      backgroundColor: colors.bgCard,
+                      borderColor:
+                        imageVerification.status === 'invalid'
+                          ? colors.statusRejected
+                          : imageVerification.status === 'valid'
+                            ? colors.accent
+                            : colors.border,
+                      borderWidth: imageVerification.status === 'invalid' ? 2 : 1,
+                    },
                   ]}
                   onPress={handleImagePicker}
                 >
@@ -500,7 +575,10 @@ export default function SubmitConcernScreen({ navigation, route }) {
                       <Image source={{ uri: imageUri }} style={styles.photoPreview} />
                       <TouchableOpacity
                         style={styles.removePhoto}
-                        onPress={() => setImageUri(null)}
+                        onPress={() => {
+                          setImageUri(null);
+                          setImageVerification({ status: 'idle', reason: '' });
+                        }}
                       >
                         <Ionicons name="close-circle" size={28} color={colors.statusRejected} />
                       </TouchableOpacity>
@@ -514,6 +592,73 @@ export default function SubmitConcernScreen({ navigation, route }) {
                     </>
                   )}
                 </TouchableOpacity>
+
+                {/* AI Visual Alignment Feedback */}
+                {imageUri && imageVerification.status === 'checking' && (
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginTop: verticalScale(8),
+                      paddingHorizontal: scale(12),
+                      paddingVertical: verticalScale(8),
+                      borderRadius: 8,
+                      backgroundColor: colors.primary + '18',
+                    }}
+                  >
+                    <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: scale(8) }} />
+                    <Text style={{ fontSize: rf(12), color: colors.primary, flex: 1 }}>
+                      {t('verifyingPhoto')}
+                    </Text>
+                  </View>
+                )}
+
+                {imageUri && imageVerification.status === 'valid' && (
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginTop: verticalScale(8),
+                      paddingHorizontal: scale(12),
+                      paddingVertical: verticalScale(8),
+                      borderRadius: 8,
+                      backgroundColor: colors.accent + '15',
+                      borderWidth: 1,
+                      borderColor: colors.accent + '40',
+                    }}
+                  >
+                    <Ionicons name="checkmark-circle" size={16} color={colors.accent} style={{ marginRight: scale(6) }} />
+                    <Text style={{ fontSize: rf(12), color: colors.accent, fontWeight: '600', flex: 1 }}>
+                      {imageVerification.reason || t('photoVerified')}
+                    </Text>
+                  </View>
+                )}
+
+                {imageUri && imageVerification.status === 'invalid' && (
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
+                      marginTop: verticalScale(8),
+                      paddingHorizontal: scale(12),
+                      paddingVertical: verticalScale(10),
+                      borderRadius: 8,
+                      backgroundColor: colors.statusRejected + '18',
+                      borderWidth: 1,
+                      borderColor: colors.statusRejected,
+                    }}
+                  >
+                    <Ionicons name="warning" size={18} color={colors.statusRejected} style={{ marginRight: scale(8), marginTop: 2 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: rf(13), color: colors.statusRejected, fontWeight: '700', marginBottom: 2 }}>
+                        {t('imageMismatchTitle') || 'Photo Does Not Match Concern'}
+                      </Text>
+                      <Text style={{ fontSize: rf(12), color: colors.textPrimary, lineHeight: 16 }}>
+                        {imageVerification.reason || t('imageMismatchMsg')}
+                      </Text>
+                    </View>
+                  </View>
+                )}
               </View>
 
               {/* Location Section */}

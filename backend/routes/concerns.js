@@ -28,6 +28,7 @@ const {
   getSimilarConcerns,
   linkConcerns,
   analyzeConcernDraft,
+  verifyConcernImage,
 } = require('../controllers/concerns.controller');
 const workflowController = require('../controllers/workflow.controller');
 
@@ -40,11 +41,14 @@ router.get('/map', auth, cacheMiddleware('map_concerns', 60), getMapConcerns);
 // ─── Get single concern (auth required, cached 60s) ──────────────────────────
 router.get('/:id', auth, validateIdParam, cacheMiddleware('concern_detail', 60), getConcern);
 
-// ─── Submit new concern ───────────────────────────────────────────────────────
+// ─── Submit new concern (checks attached picture alignment with AI) ────────────
 router.post('/', auth, upload.single('image'), validateConcern, createConcern);
 
-// ─── AI Pre-submission Check ──────────────────────────────────────────────────
+// ─── AI Pre-submission Check (Text) ──────────────────────────────────────────
 router.post('/analyze', auth, analyzeConcernDraft);
+
+// ─── AI Pre-submission Check (Image alignment) ───────────────────────────────
+router.post('/verify-image', auth, upload.single('image'), verifyConcernImage);
 
 // ─── Update concern (admin only: status, admin_note) ──────────────────────────
 router.put('/:id', auth, requireRole('admin'), upload.single('image'), validateIdParam, editConcern);

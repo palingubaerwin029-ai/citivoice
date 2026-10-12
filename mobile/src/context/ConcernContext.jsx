@@ -275,6 +275,10 @@ export function ConcernProvider({ children }) {
     return await ConcernService.analyzeDraft(title, description);
   };
 
+  const verifyImageAlignment = async (imageUri, title, description, category) => {
+    return await ConcernService.verifyImageAlignment(imageUri, title, description, category);
+  };
+
   return (
     <ConcernContext.Provider
       value={{
@@ -288,6 +292,7 @@ export function ConcernProvider({ children }) {
         toggleUpvote,
         refreshConcerns,
         analyzeDraft,
+        verifyImageAlignment,
         loadFeed,
         loadMyConcerns,
         loadMapData,

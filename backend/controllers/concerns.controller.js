@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { notifyUser, notifyDepartmentOnApproval, dispatchSystemNotification } = require('../services/notificationService');
-const { analyzeFullConcern, routeToDepartment, NOT_TYPICAL_CATEGORY, raisePriority } = require('../services/aiService');
+const { analyzeFullConcern, verifyImageAlignment, routeToDepartment, NOT_TYPICAL_CATEGORY, raisePriority } = require('../services/aiService');
 const { analyzeImage } = require('../services/imageAnalyzer');
 const { findSimilarConcerns } = require('../services/similarityService');
 const { generateText, isAvailable: isGeminiAvailable } = require('../services/groqService');
@@ -163,12 +163,45 @@ const createConcern = async (req, res) => {
     console.log(`[AI] Auto-escalated priority to High (urgency: ${urgencyScore})`);
   }
 
-  // ─── AI content validation ──────────────────────────────────────────────
-  // Clearly inappropriate content is rejected outright and the photo is removed.
+  // ─── AI photo & content alignment validation ──────────────────────────────
+  // If a photo was attached, strictly check that it aligns with the reported concern
+  if (req.file) {
+    const isMismatched =
+      aiResult &&
+      (aiResult.imageMatchesConcern === false ||
+        contentFlag === 'off_topic' ||
+        contentFlag === 'inappropriate');
+
+    if (isMismatched) {
+      try {
+        const filePath = path.join(__dirname, '..', 'uploads', req.file.filename);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      } catch (e) {
+        console.error('[AI] Failed to remove mismatched upload:', e.message);
+      }
+
+      const reasonMsg =
+        contentFlag === 'inappropriate'
+          ? 'Your report was not submitted because the attached photo contains inappropriate content.'
+          : (aiResult?.alignmentReason ||
+             aiResult?.validityReason ||
+             'The attached picture does not align with your reported concern. Please attach a clear photo that directly shows the issue.');
+
+      console.log(`[AI] Rejected concern submission: photo does not align (${reasonMsg})`);
+
+      return res.status(422).json({
+        error: reasonMsg,
+        code: contentFlag === 'inappropriate' ? 'INAPPROPRIATE_CONTENT' : 'IMAGE_MISMATCH',
+        reason: reasonMsg,
+      });
+    }
+  }
+
+  // Clearly inappropriate content in text-only reports is rejected outright
   if (contentFlag === 'inappropriate' && validityConfidence >= 70) {
     if (req.file) {
       try {
-        require('fs').unlinkSync(path.join(__dirname, '..', 'uploads', req.file.filename));
+        fs.unlinkSync(path.join(__dirname, '..', 'uploads', req.file.filename));
       } catch (e) {
         console.error('[AI] Failed to remove rejected upload:', e.message);
       }
@@ -181,7 +214,7 @@ const createConcern = async (req, res) => {
     });
   }
 
-  // Off-topic (or low-confidence inappropriate) reports are saved but labeled for admin review.
+  // Off-topic text-only reports are saved but labeled for admin review.
   const isNotTypical =
     (contentFlag === 'off_topic' && validityConfidence >= 60) ||
     (contentFlag === 'inappropriate' && validityConfidence < 70);
@@ -660,6 +693,30 @@ const analyzeConcernDraft = async (req, res) => {
   }
 };
 
+const verifyConcernImage = async (req, res) => {
+  const { title, description, category } = req.body;
+  if (!req.file) {
+    return res.status(400).json({ error: 'Image is required for verification' });
+  }
+
+  const filePath = path.join(__dirname, '..', 'uploads', req.file.filename);
+  try {
+    const result = await verifyImageAlignment(title, description, category, filePath);
+    // Delete temp upload immediately to save disk space
+    try {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (_) {}
+
+    return res.json(result);
+  } catch (err) {
+    try {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (_) {}
+    console.error('Verify image error:', err);
+    return res.status(500).json({ error: 'Failed to verify image' });
+  }
+};
+
 // ─── Feature 3: Get Similar Concerns ────────────────────────────────────────
 
 const getSimilarConcerns = async (req, res) => {
@@ -886,4 +943,5 @@ module.exports = {
   getSimilarConcerns,
   linkConcerns,
   analyzeConcernDraft,
+  verifyConcernImage,
 };
