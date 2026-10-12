@@ -87,18 +87,20 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext) =>
   if (groqService.isAvailable() && notificationContext) {
     const prompt = `
       You are the official public relations assistant for the Office of the City Mayor, Kabankalan City.
-      Write a short, professional, empathetic, and reassuring notification message to a citizen named ${user.name || 'Citizen'}.
+      Write a short, professional, empathetic, and reassuring notification message for citizen ${user.name || 'Citizen'}.
       Context of Update: ${notificationContext}
       
       Instructions:
-      - Keep it brief (2-3 sentences max).
-      - Use a warm, professional, respectful tone representing the City Government of Kabankalan.
-      - Do not include greetings or sign-offs (they are handled by the official template).
+      - Keep it concise (2-3 sentences max).
+      - Do NOT include greetings, salutations, or the recipient's name at the start (the official email header already displays "Dear [Name]").
+      - Start directly with the official update (e.g., "We would like to inform you that...").
+      - Warm, professional, respectful tone representing the City Government of Kabankalan.
+      - Ensure the message concludes with a complete, fully formed sentence.
     `;
 
     const aiGenerated = await groqService.generateText(prompt, {
-      temperature: 0.6,
-      maxTokens: 200,
+      temperature: 0.5,
+      maxTokens: 1024,
     });
     if (aiGenerated) {
       finalMessage = aiGenerated.trim();

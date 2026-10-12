@@ -2,12 +2,27 @@ const pool = require('../db');
 
 // ─── Concern Assignments ───
 const insertAssignment = async (data) => {
-  const { concern_id, assigned_to, assigned_by, department, status } = data;
+  const { concern_id, assigned_to, assigned_by, department, status, sla_hours = 72, sla_deadline } = data;
+  const deadline =
+    sla_deadline ||
+    new Date(Date.now() + (Number(sla_hours) || 72) * 3600 * 1000)
+      .toISOString()
+      .slice(0, 19)
+      .replace('T', ' ');
+
   const [result] = await pool.query(
     `INSERT INTO concern_assignments 
-     (concern_id, assigned_to, assigned_by, department, status) 
-     VALUES (?, ?, ?, ?, ?)`,
-    [concern_id, assigned_to || null, assigned_by || null, department || null, status || 'assigned']
+     (concern_id, assigned_to, assigned_by, department, status, sla_hours, sla_deadline) 
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      concern_id,
+      assigned_to || null,
+      assigned_by || null,
+      department || null,
+      status || 'assigned',
+      sla_hours || 72,
+      deadline,
+    ]
   );
   return result.insertId;
 };
