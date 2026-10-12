@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth, resolveImageUrl, BASE_URL } from '../../context/AuthContext';
 import { useConcerns } from '../../context/ConcernContext';
@@ -63,7 +63,7 @@ export default function ProfileScreen({ navigation }) {
         uri,
         {
           httpMethod: 'POST',
-          uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+          uploadType: 1, // FileSystemUploadType.MULTIPART
           fieldName: 'avatar',
           headers: {
             Authorization: `Bearer ${token}`,

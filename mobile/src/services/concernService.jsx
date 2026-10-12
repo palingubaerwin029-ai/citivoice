@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { BASE_URL } from '../context/AuthContext';
 
@@ -35,7 +35,7 @@ export const ConcernService = {
       imageUri,
       {
         httpMethod: 'POST',
-        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        uploadType: 1, // FileSystemUploadType.MULTIPART
         fieldName: 'image',
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       }
@@ -68,7 +68,7 @@ export const ConcernService = {
         imageUri,
         {
           httpMethod: 'POST',
-          uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+          uploadType: 1, // FileSystemUploadType.MULTIPART
           fieldName: 'image',
           headers,
           parameters: {
@@ -173,7 +173,7 @@ export const ConcernService = {
       imageUri,
       {
         httpMethod: 'POST',
-        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        uploadType: 1, // FileSystemUploadType.MULTIPART
         fieldName: 'image',
         headers,
         parameters: {
