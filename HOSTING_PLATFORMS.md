@@ -225,6 +225,72 @@ server {
 
 ---
 
+## 🌍 Best Free Domain Options for CitiVoice
+
+If you don't have a paid custom domain yet, here are the best **100% free** domain solutions tested for CitiVoice:
+
+---
+
+### 1. 🏆 Platform Edge Subdomains *(Best for Admin Web — Free HTTPS & Instant Setup)*
+
+When deploying `admin-web` on Jamstack/PaaS platforms, you get a free, permanent subdomain with **automatic SSL certificate provisioning**:
+
+| Provider | Your Free Domain Format | Features |
+| :--- | :--- | :--- |
+| **Vercel** | `citivoice-admin.vercel.app` | ⚡ Fastest global CDN, clean branding, never expires, automatic Let's Encrypt SSL. |
+| **Cloudflare Pages** | `citivoice.pages.dev` | 🛡️ Protected by Cloudflare Enterprise DDoS mitigation, unmetered bandwidth. |
+| **Netlify** | `citivoice.netlify.app` | 🟢 Instant continuous deployment on Git push, automatic HTTPS. |
+| **Render** | `citivoice-admin.onrender.com` | Useful if your backend is also hosted on Render. |
+
+> **Why this is best for the Admin Web:**  
+> These subdomains have high domain reputation, never trigger browser malware/spam warnings, require zero DNS setup, and never expire.
+
+---
+
+### 2. 🦆 DuckDNS *(Best for Backend API & VPS / Docker Deployments)*
+
+If you are running the backend on a Linux VPS (DigitalOcean, AWS Lightsail, Hetzner, or a public IP):
+
+* **Website:** [duckdns.org](https://www.duckdns.org)
+* **Your Domain:** `citivoice-api.duckdns.org`
+* **Cost:** **100% Free forever** (run by a trusted non-profit).
+* **Key Advantages:**
+  - **No Monthly Captcha/Renewals:** Unlike No-IP (which requires monthly manual clicks), DuckDNS subdomains never expire.
+  - **Certbot / Let's Encrypt Compatible:** Easily obtain a valid HTTPS certificate on your Nginx server (`certbot --nginx -d citivoice-api.duckdns.org`).
+  - **Dynamic IP Support:** If your server IP changes, a simple 1-line cron script keeps the DNS updated.
+
+---
+
+### 3. 🎓 Free Real Custom TLD (GitHub Student Developer Pack)
+
+If you are a student with an active school email or ID:
+
+* **Portal:** [GitHub Student Developer Pack](https://education.github.com/pack)
+* **What You Get:**
+  - **1 Free Year `.me` domain** from Namecheap (e.g., `citivoice.me`).
+  - **1 Free Year `.tech` domain** (e.g., `citivoice.tech`).
+  - **1 Free Year `.live` domain** from Name.com.
+* Gives your capstone / thesis project an official, professional top-level domain without paying registrar fees.
+
+---
+
+### ⚠️ Domain Names to Avoid
+
+* **Freenom TLDs (`.tk`, `.ml`, `.ga`, `.cf`, `.gq`):**  
+  Freenom lost registrar accreditation in 2023 due to legal action and no longer issues domains. Furthermore, search engines, antivirus software, and email providers flag these TLDs as suspicious/spam.
+
+---
+
+### 💡 Recommended Setup for CitiVoice
+
+| Component | Recommended Free Domain | How to Configure |
+| :--- | :--- | :--- |
+| **Admin Web Console** | `citivoice.vercel.app` | Deploy via Vercel connecting the `admin-web` folder. |
+| **Backend API & WebSockets** | `citivoice-api.duckdns.org` | Point DuckDNS A record to your VPS IP and run Certbot for HTTPS. |
+| **Mobile App Config** | Connects to `https://citivoice-api.duckdns.org/api` | Set in `mobile/src/services/api.jsx`. |
+
+---
+
 ## 📱 Mobile App Distribution (Expo SDK 57)
 
 To distribute the CitiVoice citizen mobile app:
