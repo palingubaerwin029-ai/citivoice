@@ -112,54 +112,56 @@ const getConcern = async (req, res) => {
 };
 
 const createConcern = async (req, res) => {
-  const {
-    title,
-    description,
-    category,
-    priority,
-    location_address,
-    location_lat,
-    location_lng,
-    user_name,
-    user_barangay,
-  } = req.body;
-
-  const image_url = req.file ? `${BASE_URL()}/uploads/${req.file.filename}` : null;
-
-  let finalCategory = category || 'Other';
-  let finalPriority = priority || 'Medium';
-  let urgencyScore = 50;
-
-  let contentFlag = 'none';
-  let validityReason = '';
-  let validityConfidence = 0;
-
   try {
-    let imageTags = [];
-    let filePath = null;
-    if (req.file) {
-      filePath = path.join(__dirname, '..', 'uploads', req.file.filename);
-      // If Groq Vision is available, it analyzes the image visually directly.
-      // Running CPU-bound TensorFlow.js MobileNet locally blocks the Node.js event loop for 5-8s.
-      if (!isGeminiAvailable()) {
-        imageTags = await analyzeImage(filePath);
-      }
-    }
+    const {
+      title,
+      description,
+      category,
+      priority,
+      location_address,
+      location_lat,
+      location_lng,
+      user_name,
+      user_barangay,
+    } = req.body;
 
-    // Feature 1: AI Auto-Classification
-    const textInput = `Title: ${title}\nDescription: ${description}`;
-    const aiResult = await analyzeFullConcern(textInput, imageTags, filePath);
-    if (aiResult) {
-      finalCategory = aiResult.category || finalCategory;
-      finalPriority = aiResult.priority || finalPriority;
-      urgencyScore = aiResult.urgencyScore || urgencyScore;
-      contentFlag = aiResult.contentFlag || 'none';
-      validityReason = aiResult.validityReason || '';
-      validityConfidence = aiResult.validityConfidence || 0;
+    const image_url = req.file ? `${BASE_URL()}/uploads/${req.file.filename}` : null;
+
+    let finalCategory = category || 'Other';
+    let finalPriority = priority || 'Medium';
+    let urgencyScore = 50;
+
+    let contentFlag = 'none';
+    let validityReason = '';
+    let validityConfidence = 0;
+    let aiResult = null;
+
+    try {
+      let imageTags = [];
+      let filePath = null;
+      if (req.file) {
+        filePath = path.join(__dirname, '..', 'uploads', req.file.filename);
+        // If Groq Vision is available, it analyzes the image visually directly.
+        // Running CPU-bound TensorFlow.js MobileNet locally blocks the Node.js event loop for 5-8s.
+        if (!isGeminiAvailable()) {
+          imageTags = await analyzeImage(filePath);
+        }
+      }
+
+      // Feature 1: AI Auto-Classification
+      const textInput = `Title: ${title}\nDescription: ${description}`;
+      aiResult = await analyzeFullConcern(textInput, imageTags, filePath);
+      if (aiResult) {
+        finalCategory = aiResult.category || finalCategory;
+        finalPriority = aiResult.priority || finalPriority;
+        urgencyScore = aiResult.urgencyScore || urgencyScore;
+        contentFlag = aiResult.contentFlag || 'none';
+        validityReason = aiResult.validityReason || '';
+        validityConfidence = aiResult.validityConfidence || 0;
+      }
+    } catch (e) {
+      console.error('AI Categorization Error:', e);
     }
-  } catch (e) {
-    console.error('AI Categorization Error:', e);
-  }
 
   // Auto-escalate priority if urgency is very high
   if (urgencyScore >= 85 && finalPriority !== 'High') {
@@ -263,8 +265,7 @@ const createConcern = async (req, res) => {
     ? null
     : await workflowService.resolveDepartmentForConcern(finalCategory, finalPriority);
 
-  try {
-    const insertId = await insertConcern({
+  const insertId = await insertConcern({
       title,
       description,
       category: finalCategory,
