@@ -97,6 +97,52 @@ function ConfirmDeleteModal({ filename, onConfirm, onCancel }) {
   );
 }
 
+// ── Force Backup Confirmation Modal ──────────────────────────────────────────
+function ForceBackupModal({ type, reason, lastBackupFile, onConfirm, onCancel }) {
+  const isSql = type === 'sql';
+  return (
+    <div className={s.overlay} onClick={onCancel}>
+      <div className={s.modal} onClick={(e) => e.stopPropagation()} style={{ width: 450 }}>
+        <div className={s.modalTitle} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: 'var(--amber)' }}>ℹ️</span> Database Already Up to Date
+        </div>
+        <div className={s.modalBody}>
+          <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.5 }}>
+            No new citizens, concerns, or updates have been entered into the database since the latest snapshot:
+          </div>
+          {lastBackupFile && (
+            <div
+              style={{
+                marginTop: 10,
+                padding: '8px 12px',
+                background: 'var(--surface-2)',
+                borderRadius: 'var(--r-md)',
+                fontFamily: 'monospace',
+                fontSize: 12,
+                color: 'var(--text-1)',
+                wordBreak: 'break-all',
+              }}
+            >
+              {lastBackupFile}
+            </div>
+          )}
+          <p style={{ marginTop: 12, fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5 }}>
+            CitiVoice automatically skips redundant snapshots to save disk storage. Creating a backup now will duplicate existing data. Do you still want to force a {isSql ? 'SQL' : 'JSON'} backup anyway?
+          </p>
+        </div>
+        <div className={s.modalActions}>
+          <button id="backup-cancel-force" className={`${b.btn} ${b.btnGhost}`} onClick={onCancel}>
+            Cancel (Keep Current)
+          </button>
+          <button id="backup-confirm-force" className={`${b.btn} ${b.btnPrimary}`} onClick={onConfirm}>
+            Force Backup Anyway
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Import Result Modal ───────────────────────────────────────────────────────
 function ImportResultModal({ result, onClose }) {
   const { summary, error } = result || {};
@@ -336,6 +382,8 @@ export default function Backup() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
   const [showGuide, setShowGuide] = useState(false);
+  const [backupStatus, setBackupStatus] = useState(null);
+  const [forcePrompt, setForcePrompt] = useState(null);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
@@ -350,6 +398,9 @@ export default function Backup() {
     try {
       const res = await api.get('/backup');
       setBackups(res.backups || []);
+      if (res.status) {
+        setBackupStatus(res.status);
+      }
     } catch (err) {
       addToast(`Failed to load backups: ${err.message}`, 'error');
     } finally {
@@ -362,12 +413,23 @@ export default function Backup() {
   }, [fetchBackups]);
 
   // ── Trigger DB backup (SQL) ─────────────────────────────────────────────────
-  const handleDbBackup = async () => {
+  const handleDbBackup = async (force = false) => {
+    if (!force && backupStatus && !backupStatus.hasNewData) {
+      setForcePrompt({ type: 'sql' });
+      return;
+    }
+    setForcePrompt(null);
     setRunningDb(true);
     try {
-      const res = await api.post('/backup/db', {});
-      addToast(`DB backup created: ${res.backup?.file} (${fmtSize(res.backup?.size)})`, 'success');
-      await fetchBackups();
+      const res = await api.post('/backup/db', { force });
+      if (res.skipped) {
+        addToast(res.message || 'No new data entered since last backup. Snapshot skipped.', 'info');
+        if (res.status) setBackupStatus(res.status);
+      } else {
+        addToast(`DB backup created: ${res.backup?.file} (${fmtSize(res.backup?.size)})`, 'success');
+        if (res.status) setBackupStatus(res.status);
+        await fetchBackups();
+      }
     } catch (err) {
       addToast(`DB backup failed: ${err.message}`, 'error');
     } finally {
@@ -376,12 +438,23 @@ export default function Backup() {
   };
 
   // ── Trigger JSON export ─────────────────────────────────────────────────────
-  const handleJsonExport = async () => {
+  const handleJsonExport = async (force = false) => {
+    if (!force && backupStatus && !backupStatus.hasNewData) {
+      setForcePrompt({ type: 'json' });
+      return;
+    }
+    setForcePrompt(null);
     setRunningJson(true);
     try {
-      const res = await api.post('/backup/export', {});
-      addToast(`Data export created: ${res.backup?.file} (${fmtSize(res.backup?.size)})`, 'success');
-      await fetchBackups();
+      const res = await api.post('/backup/export', { force });
+      if (res.skipped) {
+        addToast(res.message || 'No new data entered since last backup. Snapshot skipped.', 'info');
+        if (res.status) setBackupStatus(res.status);
+      } else {
+        addToast(`Data export created: ${res.backup?.file} (${fmtSize(res.backup?.size)})`, 'success');
+        if (res.status) setBackupStatus(res.status);
+        await fetchBackups();
+      }
     } catch (err) {
       addToast(`JSON export failed: ${err.message}`, 'error');
     } finally {
@@ -549,7 +622,7 @@ export default function Backup() {
           <button
             id="backup-trigger-db"
             className={`${b.btn} ${b.btnSecondary}`}
-            onClick={handleDbBackup}
+            onClick={() => handleDbBackup(false)}
             disabled={runningDb || runningJson || importing}
             title="Create a complete mysqldump of the MySQL database"
           >
@@ -560,7 +633,7 @@ export default function Backup() {
           <button
             id="backup-trigger-json"
             className={`${b.btn} ${b.btnPrimary}`}
-            onClick={handleJsonExport}
+            onClick={() => handleJsonExport(false)}
             disabled={runningDb || runningJson || importing}
             title="Export citizens and concerns as portable JSON archive"
           >
@@ -606,6 +679,140 @@ export default function Backup() {
             style={{ padding: '8px 12px' }}
           >
             <IoRefreshOutline size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Stat Cards ──────────────────────────────────────────────────────── */}
+      <div className={s.statsRow}>
+        <div className={s.statCard} style={{ '--accent-color': 'var(--blue)' }}>
+          <div className={s.statIconWrap}>
+            <IoFolderOpenOutline color="var(--blue)" />
+          </div>
+          <div className={s.statValue}>
+            {loading ? <Skeleton height="28px" width="50px" /> : <AnimatedCounter value={backups.length} />}
+          </div>
+          <div className={s.statLabel}>Total Snapshots</div>
+          <div className={b.statSubtext}>{sqlCount} SQL • {jsonCount} JSON</div>
+        </div>
+
+        <div className={s.statCard} style={{ '--accent-color': 'var(--blue)' }}>
+          <div className={s.statIconWrap}>
+            <IoServerOutline color="var(--blue)" />
+          </div>
+          <div className={s.statValue}>
+            {loading ? <Skeleton height="28px" width="50px" /> : <AnimatedCounter value={sqlCount} />}
+          </div>
+          <div className={s.statLabel}>SQL Database Dumps</div>
+          <div className={b.statSubtext}>Full MySQL schema & tables</div>
+        </div>
+
+        <div className={s.statCard} style={{ '--accent-color': 'var(--cyan)' }}>
+          <div className={s.statIconWrap}>
+            <IoCloudUploadOutline color="var(--cyan)" />
+          </div>
+          <div className={s.statValue}>
+            {loading ? <Skeleton height="28px" width="50px" /> : <AnimatedCounter value={jsonCount} />}
+          </div>
+          <div className={s.statLabel}>JSON Data Exports</div>
+          <div className={b.statSubtext}>Portable citizen records</div>
+        </div>
+
+        <div className={s.statCard} style={{ '--accent-color': '#a855f7' }}>
+          <div className={s.statIconWrap}>
+            <IoShieldCheckmarkOutline color="#a855f7" />
+          </div>
+          <div className={s.statValue} style={{ fontSize: '22px' }}>
+            {loading ? <Skeleton height="28px" width="70px" /> : fmtSize(totalSize)}
+          </div>
+          <div className={s.statLabel}>Storage Consumed</div>
+          <div className={b.statSubtext}>10 newest archives retained</div>
+        </div>
+
+        <div
+          className={s.statCard}
+          style={{
+            '--accent-color': backupStatus?.hasNewData ? 'var(--amber)' : 'var(--green)',
+          }}
+        >
+          <div className={s.statIconWrap}>
+            {backupStatus?.hasNewData ? (
+              <IoAlertCircleOutline color="var(--amber)" />
+            ) : (
+              <IoCheckmarkCircleOutline color="var(--green)" />
+            )}
+          </div>
+          <div
+            className={s.statValue}
+            style={{
+              fontSize: '20px',
+              color: backupStatus?.hasNewData ? 'var(--amber)' : 'var(--green)',
+            }}
+          >
+            {loading ? (
+              <Skeleton height="28px" width="80px" />
+            ) : backupStatus?.hasNewData ? (
+              'New Data'
+            ) : (
+              'Up to Date'
+            )}
+          </div>
+          <div className={s.statLabel}>Backup Status</div>
+          <div className={b.statSubtext}>
+            {loading
+              ? 'Checking status…'
+              : backupStatus?.hasNewData
+              ? backupStatus?.changes?.totalChanges
+                ? `+${backupStatus.changes.totalChanges} unbacked records`
+                : 'New data entered'
+              : 'No unbacked changes'}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Smart Auto-Backup Banner Card ───────────────────────────────────── */}
+      <div className={b.scheduleCard}>
+        <div className={b.scheduleLeft}>
+          <div className={b.pulseDotWrap}>
+            <div
+              className={b.pulseDot}
+              style={{ background: backupStatus?.hasNewData ? 'var(--amber)' : 'var(--green)' }}
+            />
+            <div
+              className={b.pulseRing}
+              style={{
+                background: backupStatus?.hasNewData ? 'rgba(245, 158, 11, 0.4)' : 'rgba(16, 185, 129, 0.4)',
+              }}
+            />
+          </div>
+          <div className={b.scheduleContent}>
+            <div className={b.scheduleTitleRow}>
+              <span className={b.scheduleTitle}>Smart Auto-Backup Engine</span>
+              <span
+                className={`${b.statusPill} ${
+                  backupStatus?.hasNewData ? b.statusPillPending : b.statusPillSync
+                }`}
+              >
+                {backupStatus?.hasNewData ? '⚡ New Data Entered' : '✓ Synchronized'}
+              </span>
+            </div>
+            <div className={b.scheduleDetail}>
+              {backupStatus?.reason ||
+                'Auto-backup monitors database activity and creates archives only when new citizen data or concerns are entered.'}
+              {backupStatus?.lastBackupAt && (
+                <span>
+                  {' '}
+                  • Last snapshot created {fmtRelative(backupStatus.lastBackupAt)} ({fmtDate(backupStatus.lastBackupAt)})
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className={b.scheduleRight}>
+          <button className={b.guideTriggerBtn} onClick={() => setShowGuide(true)}>
+            <IoHelpCircleOutline size={15} color="var(--blue)" />
+            <span>Restore Guide</span>
           </button>
         </div>
       </div>
@@ -849,6 +1056,22 @@ export default function Backup() {
           filename={confirmDelete}
           onConfirm={confirmDeleteFile}
           onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+
+      {/* ── Force Backup Confirmation Modal ──────────────────────────────────── */}
+      {forcePrompt && (
+        <ForceBackupModal
+          type={forcePrompt.type}
+          reason={backupStatus?.reason}
+          lastBackupFile={backupStatus?.lastBackupFile}
+          onConfirm={() => {
+            const type = forcePrompt.type;
+            setForcePrompt(null);
+            if (type === 'sql') handleDbBackup(true);
+            else handleJsonExport(true);
+          }}
+          onCancel={() => setForcePrompt(null)}
         />
       )}
 

@@ -1,19 +1,28 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { mobileApi, useAuth } from './AuthContext';
 import { SocketService } from '../services/socketService';
 import Toast from 'react-native-root-toast';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// Remote push was removed from Expo Go on Android (SDK 53+); importing the
+// module there throws. Only load it in development/production builds.
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+const pushSupported = !(isExpoGo && Platform.OS === 'android');
+const Notifications = pushSupported ? require('expo-notifications') : null;
+
+if (Notifications) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 const NotificationContext = createContext();
 
@@ -30,6 +39,7 @@ export const NotificationProvider = ({ children }) => {
 
   async function registerForPushNotificationsAsync() {
     let token;
+    if (!Notifications) return;
 
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
@@ -122,16 +132,17 @@ export const NotificationProvider = ({ children }) => {
     });
 
     // Listeners for incoming notifications
-    notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-      // Notification received while app is running
-      fetchUnreadCount();
-    });
+    if (Notifications) {
+      notificationListener.current = Notifications.addNotificationReceivedListener(() => {
+        // Notification received while app is running
+        fetchUnreadCount();
+      });
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      // User tapped the notification
-      // We could navigate to the specific concern here if we had access to navigation
-      fetchUnreadCount();
-    });
+      responseListener.current = Notifications.addNotificationResponseReceivedListener(() => {
+        // User tapped the notification
+        fetchUnreadCount();
+      });
+    }
 
     return () => {
       SocketService.off('new_notification', handleNewNotification);

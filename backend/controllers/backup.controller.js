@@ -11,22 +11,53 @@ const fs = require('fs');
 const backup = require('../services/backupService');
 const pool = require('../db');
 
-// ── GET /api/backup — list all existing backup files ─────────────────────────
+// ── GET /api/backup — list all existing backup files + current status ─────────
 const listBackups = async (req, res) => {
   try {
     const files = backup.listBackups();
-    res.json({ backups: files });
+    const status = await backup.checkForNewData();
+    res.json({ backups: files, status });
   } catch (err) {
     console.error('[Backup] List error:', err);
     res.status(500).json({ error: 'Failed to list backups' });
   }
 };
 
-// ── POST /api/backup/db — trigger a mysqldump now ────────────────────────────
+// ── GET /api/backup/status — check if new data entered since last backup ───────
+const getBackupStatus = async (req, res) => {
+  try {
+    const status = await backup.checkForNewData();
+    res.json(status);
+  } catch (err) {
+    console.error('[Backup] Status check error:', err);
+    res.status(500).json({ error: 'Failed to check backup status' });
+  }
+};
+
+// ── POST /api/backup/db — trigger a mysqldump now (only if new data or forced) ──
 const triggerDbBackup = async (req, res) => {
   try {
+    const force = req.body?.force === true || req.query?.force === 'true';
+    if (!force) {
+      const status = await backup.checkForNewData();
+      if (!status.hasNewData) {
+        return res.json({
+          success: false,
+          skipped: true,
+          message: 'No new data entered since last backup snapshot. Database is up to date.',
+          reason: status.reason,
+          status,
+        });
+      }
+    }
+
     const result = await backup.runMysqldump();
-    res.json({ success: true, backup: { file: result.file, size: result.size, type: 'sql' } });
+    const newStatus = await backup.checkForNewData();
+    res.json({
+      success: true,
+      backup: { file: result.file, size: result.size, type: 'sql' },
+      status: newStatus,
+    });
   } catch (err) {
     console.error('[Backup] mysqldump trigger error:', err);
     // If mysqldump is not available (e.g. no binary on PATH), give a clear message
@@ -42,11 +73,30 @@ const triggerDbBackup = async (req, res) => {
   }
 };
 
-// ── POST /api/backup/export — export users + concerns as JSON ────────────────
+// ── POST /api/backup/export — export users + concerns as JSON (only if new data or forced)
 const triggerJsonExport = async (req, res) => {
   try {
+    const force = req.body?.force === true || req.query?.force === 'true';
+    if (!force) {
+      const status = await backup.checkForNewData();
+      if (!status.hasNewData) {
+        return res.json({
+          success: false,
+          skipped: true,
+          message: 'No new data entered since last backup snapshot. Database is up to date.',
+          reason: status.reason,
+          status,
+        });
+      }
+    }
+
     const result = await backup.runJsonExport();
-    res.json({ success: true, backup: { file: result.file, size: result.size, type: 'json' } });
+    const newStatus = await backup.checkForNewData();
+    res.json({
+      success: true,
+      backup: { file: result.file, size: result.size, type: 'json' },
+      status: newStatus,
+    });
   } catch (err) {
     console.error('[Backup] JSON export trigger error:', err);
     res.status(500).json({ error: `Data export failed: ${err.message}` });
@@ -195,9 +245,11 @@ const importJsonBackup = async (req, res) => {
         await conn.query(
           `INSERT INTO concerns
              (id, user_id, title, category, description, status, priority,
-              location_address, location_lat, location_lng, image_url,
-              resolution_note, created_at, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+              location_address, location_lat, location_lng,
+              image_url, resolved_image_url, user_name, user_barangay,
+              admin_note, approval_notes, approved_by_name, approved_at,
+              upvotes, department, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
            ON DUPLICATE KEY UPDATE
              title            = VALUES(title),
              category         = VALUES(category),
@@ -205,7 +257,9 @@ const importJsonBackup = async (req, res) => {
              status           = VALUES(status),
              priority         = VALUES(priority),
              location_address = VALUES(location_address),
-             resolution_note  = VALUES(resolution_note),
+             admin_note       = VALUES(admin_note),
+             approval_notes   = VALUES(approval_notes),
+             department       = VALUES(department),
              updated_at       = VALUES(updated_at)`,
           [
             c.id, c.user_id || null,
@@ -216,7 +270,11 @@ const importJsonBackup = async (req, res) => {
             c.latitude  || c.location_lat  || null,
             c.longitude || c.location_lng  || null,
             c.image_url || null,
-            c.resolution_note || null,
+            c.resolved_image_url || null,
+            c.user_name || null, c.user_barangay || null,
+            c.admin_note || null, c.approval_notes || null,
+            c.approved_by_name || null, c.approved_at || null,
+            c.upvotes || 0, c.department || null,
             c.created_at || new Date(), c.updated_at || new Date(),
           ],
         );
@@ -253,6 +311,7 @@ const importJsonBackup = async (req, res) => {
 
 module.exports = {
   listBackups,
+  getBackupStatus,
   triggerDbBackup,
   triggerJsonExport,
   downloadBackup,

@@ -92,22 +92,22 @@ export default function SubmitConcernScreen({ navigation, route }) {
   };
 
   const handleImagePicker = () => {
-    Alert.alert('Attach Photo', 'Would you like to take a photo or choose from gallery?', [
+    Alert.alert(t('attachPhoto'), t('attachPhotoPrompt'), [
       {
-        text: 'Take Photo',
+        text: t('takePhoto'),
         onPress: async () => {
           const uri = await launchCamera({ aspect: [4, 3], quality: 0.7 });
           if (uri) setImageUri(uri);
         },
       },
       {
-        text: 'Choose from Gallery',
+        text: t('chooseGallery'),
         onPress: async () => {
           const uri = await launchImagePicker({ aspect: [4, 3], quality: 0.7 });
           if (uri) setImageUri(uri);
         },
       },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('cancel'), style: 'cancel' },
     ]);
   };
 
@@ -155,10 +155,10 @@ export default function SubmitConcernScreen({ navigation, route }) {
           );
         }, 500);
       } else {
-        Alert.alert(t('error'), 'Location not found');
+        Alert.alert(t('error'), t('locationNotFound'));
       }
     } catch (e) {
-      Alert.alert(t('error'), 'Error finding location');
+      Alert.alert(t('error'), t('errorFindingLocation'));
     } finally {
       setGeocoding(false);
     }
@@ -216,7 +216,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
     if (!validateStep1()) return;
 
     if (!imageUri) {
-      Alert.alert(t('error'), 'Please attach a photo of the concern.');
+      Alert.alert(t('error'), t('photoRequired'));
       return;
     }
     const finalLocation =
@@ -226,7 +226,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
         : null);
 
     if (!finalLocation) {
-      Alert.alert(t('error'), 'Please provide the exact location of the concern.');
+      Alert.alert(t('error'), t('locationRequired'));
       return;
     }
 
@@ -332,7 +332,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
                   },
                 ]}
               >
-                {step === 1 ? 'Details' : 'Attach & Send'}
+                {step === 1 ? t('stepDetails') : t('stepAttachAndSend')}
               </Text>
             </View>
             {index < 1 && (
@@ -385,11 +385,11 @@ export default function SubmitConcernScreen({ navigation, route }) {
             <View style={styles.stepContainer}>
               <View style={styles.stepHeaderRow}>
                 <Text style={[styles.stepHeader, { color: colors.textPrimary, marginBottom: 0 }]}>
-                  Tell us more
+                  {t('tellUsMore')}
                 </Text>
               </View>
               <Text style={[styles.stepSub, { color: colors.textSecondary }]}>
-                Provide a title and describe the details
+                {t('tellUsMoreSubtitle')}
               </Text>
 
 
@@ -398,7 +398,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
                 label={t('concernTitle')}
                 value={form.title}
                 onChangeText={(v) => set('title', v)}
-                placeholder="e.g. Large Pothole on Main St."
+                placeholder={t('titlePlaceholder')}
                 error={errors.title}
                 style={{ marginBottom: verticalScale(16) }}
               />
@@ -408,7 +408,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
                 label={t('description')}
                 value={form.description}
                 onChangeText={(v) => set('description', v)}
-                placeholder="Please provide enough details so we can assist quickly..."
+                placeholder={t('descriptionPlaceholder')}
                 multiline
                 numberOfLines={5}
                 inputStyle={{ minHeight: 110, textAlignVertical: 'top' }}
@@ -417,7 +417,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
               />
 
               <PrimaryButton
-                title={aiAnalyzing ? '✨ AI is analyzing...' : 'Next Step →'}
+                title={aiAnalyzing ? t('aiAnalyzingDraft') : t('nextStepBtn')}
                 onPress={nextStep}
                 loading={aiAnalyzing}
                 style={{ marginTop: verticalScale(24) }}
@@ -453,7 +453,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
                     },
                   ]}
                 >
-                  📸 Photo{' '}
+                  {t('photoField')}{' '}
                   <Text style={{ color: colors.statusRejected, fontWeight: '700' }}>*</Text>
                 </Text>
                 <TouchableOpacity
@@ -496,7 +496,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
                     },
                   ]}
                 >
-                  📍 Location{' '}
+                  {t('locationField')}{' '}
                   <Text style={{ color: colors.statusRejected, fontWeight: '700' }}>*</Text>
                 </Text>
 
@@ -534,7 +534,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
                           ? t('gettingLocation')
                           : location
                             ? location.address
-                            : 'Use My Current GPS Location'}
+                            : t('useCurrentGps')}
                       </Text>
                     </TouchableOpacity>
                   </>
@@ -672,14 +672,14 @@ export default function SubmitConcernScreen({ navigation, route }) {
                       fontWeight: '600',
                     }}
                   >
-                    OR WRITE IT
+                    {t('orWriteIt')}
                   </Text>
                   <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
                 </View>
 
                 <InputField
-                  label="Manual Address"
-                  placeholder="e.g. Near Barangay Hall..."
+                  label={t('manualAddress')}
+                  placeholder={t('manualAddressPlaceholder')}
                   value={manualAddress}
                   onChangeText={(text) => {
                     setManualAddress(text);
@@ -697,7 +697,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
 
 
               <PrimaryButton
-                title={loading ? 'Submitting...' : 'Submit Concern'}
+                title={loading ? t('submittingConcern') : t('submitConcern')}
                 onPress={handleSubmit}
                 loading={loading}
                 style={{ marginTop: verticalScale(16) }}

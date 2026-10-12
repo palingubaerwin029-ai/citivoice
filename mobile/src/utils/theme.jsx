@@ -171,7 +171,7 @@ export const getCategoryConfig = (colors) => {
       icon: 'flash',
       color: colors.statusPending || '#F59E0B',
       bg: (colors.statusPending || '#F59E0B') + '1F',
-      label: 'Electric',
+      label: 'Electricity',
     },
     Drainage: {
       icon: 'water',
@@ -197,6 +197,12 @@ export const getCategoryConfig = (colors) => {
       color: colors.statusRejected || '#EF4444',
       bg: (colors.statusRejected || '#EF4444') + '1F',
       label: 'Safety',
+    },
+    'Not a Typical Concern': {
+      icon: 'help-circle',
+      color: colors.textMuted || '#94A3B8',
+      bg: (colors.textMuted || '#94A3B8') + '1F',
+      label: 'Not typical',
     },
     Other: defaultConfig,
   };

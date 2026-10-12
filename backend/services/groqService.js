@@ -57,7 +57,11 @@ const getClient = () => {
     return null;
   }
   try {
-    groqClient = new Groq({ apiKey });
+    groqClient = new Groq({
+      apiKey,
+      timeout: parseInt(process.env.GROQ_TIMEOUT_MS, 10) || 30000,
+      maxRetries: 2,
+    });
     console.log('[AI] Groq client initialized (llama3-8b-8192)');
     return groqClient;
   } catch (err) {
@@ -183,7 +187,7 @@ const generateJSONWithImage = async (prompt, imagePath, options = {}) => {
             ]
           }
         ],
-        model: 'llama-3.2-11b-vision-preview',
+        model: process.env.GROQ_VISION_MODEL || 'meta-llama/llama-4-scout-17b-16e-instruct',
         temperature: options.temperature ?? 0.3,
         max_tokens: options.maxTokens ?? 1024,
         // response_format: { type: 'json_object' } // Groq vision doesn't strictly support json_object mode, but we parse it anyway

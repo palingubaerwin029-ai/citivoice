@@ -11,6 +11,7 @@ const auth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const {
   listBackups,
+  getBackupStatus,
   triggerDbBackup,
   triggerJsonExport,
   downloadBackup,
@@ -33,8 +34,11 @@ const importUpload = multer({
   },
 });
 
-// GET    /api/backup                      — list all backups
+// GET    /api/backup                      — list all backups + current status
 router.get('/', ...adminOnly, listBackups);
+
+// GET    /api/backup/status               — check if new data entered since last backup
+router.get('/status', ...adminOnly, getBackupStatus);
 
 // POST   /api/backup/db                   — run mysqldump now
 router.post('/db', ...adminOnly, triggerDbBackup);

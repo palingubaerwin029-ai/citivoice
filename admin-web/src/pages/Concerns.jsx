@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api, fmtDateShort } from '../services/api';
+import { api, fmtDateShort, resolveImageUrl } from '../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { socket } from '../services/socket';
 import { useToast } from '../components/ToastProvider';
@@ -31,7 +31,24 @@ export default function Concerns() {
   const [sortBy, setSortBy] = useState('newest'); // Note: For full DB sorting, we'd add this to backend. For now, we fetch sorted by newest.
   const [concernPage, setConcernPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 380);
+  const [lightboxImg, setLightboxImg] = useState(null);
+  const [lightboxTitle, setLightboxTitle] = useState('');
   const navigate = useNavigate();
+
+  // Close lightbox on ESC key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setLightboxImg(null);
+    };
+    if (lightboxImg) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [lightboxImg]);
 
   const loadData = () => {
     // We only send status if it's not All
@@ -236,8 +253,57 @@ export default function Concerns() {
                   : displayedConcerns.map((c) => (
                       <tr key={c.id} className={s.tr} onClick={() => navigate(`/concerns/${c.id}`)}>
                         <td className={s.td}>
-                          <div className={cStyles.ticketTitle}>{c.title}</div>
-                          <div className={cStyles.ticketDesc}>{c.description?.slice(0, 55)}...</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            {c.image_url ? (
+                              <div
+                                style={{
+                                  position: 'relative',
+                                  width: 40,
+                                  height: 40,
+                                  borderRadius: 8,
+                                  overflow: 'hidden',
+                                  flexShrink: 0,
+                                  cursor: 'zoom-in',
+                                  border: '1px solid var(--border)',
+                                  background: 'var(--surface-2)',
+                                }}
+                                title="Click to view attached picture"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLightboxImg(resolveImageUrl(c.image_url));
+                                  setLightboxTitle(c.title || 'Concern Photo');
+                                }}
+                              >
+                                <img
+                                  src={resolveImageUrl(c.image_url)}
+                                  alt="Attachment"
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                />
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    background: 'rgba(0,0,0,0.35)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#fff',
+                                    fontSize: 10,
+                                    opacity: 0,
+                                    transition: 'opacity 0.2s',
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
+                                >
+                                  🔍
+                                </div>
+                              </div>
+                            ) : null}
+                            <div style={{ minWidth: 0 }}>
+                              <div className={cStyles.ticketTitle}>{c.title}</div>
+                              <div className={cStyles.ticketDesc}>{c.description?.slice(0, 55)}...</div>
+                            </div>
+                          </div>
                         </td>
                         <td className={s.td}>
                           <div className={cStyles.ticketUser}>{c.user_name || 'Anonymous'}</div>
@@ -308,6 +374,134 @@ export default function Concerns() {
           itemsPerPage={itemsPerPage}
         />
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxImg && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            background: 'rgba(8, 12, 24, 0.92)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            animation: 'fadeIn 0.2s ease',
+          }}
+          onClick={() => setLightboxImg(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 960,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 14,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 20 }}>📸</span>
+              <span style={{ color: '#f8fafc', fontWeight: 600, fontSize: 15, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                {lightboxTitle || 'Attached Picture'}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <a
+                href={lightboxImg}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.12)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  color: '#fff',
+                  padding: '7px 14px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)')}
+              >
+                <span>↗</span> Open Full Tab
+              </a>
+              <button
+                type="button"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.16)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  color: '#fff',
+                  width: 38,
+                  height: 38,
+                  borderRadius: '50%',
+                  fontSize: 18,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.2s',
+                }}
+                onClick={() => setLightboxImg(null)}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.85)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.16)')}
+                title="Close (ESC)"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <div
+            style={{
+              position: 'relative',
+              maxWidth: '92vw',
+              maxHeight: '82vh',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={lightboxImg}
+              alt="Preview"
+              style={{
+                maxWidth: '92vw',
+                maxHeight: '82vh',
+                objectFit: 'contain',
+                borderRadius: 14,
+                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.85)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              marginTop: 14,
+              fontSize: 12,
+              color: 'rgba(255, 255, 255, 0.6)',
+              display: 'flex',
+              gap: 16,
+            }}
+          >
+            <span>💡 Click outside or press <strong style={{ color: '#fff' }}>ESC</strong> to close</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

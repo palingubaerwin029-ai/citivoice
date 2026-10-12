@@ -43,6 +43,27 @@ export default function ConcernDetail() {
   const [resolvedPreview, setResolvedPreview] = useState(null);
   const [clearResolvedImage, setClearResolvedImage] = useState(false);
 
+  // Lightbox viewer state for attached pictures
+  const [lightboxImg, setLightboxImg] = useState(null);
+  const [lightboxTitle, setLightboxTitle] = useState('');
+
+  // Close lightbox on ESC key press & lock background scrolling
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setLightboxImg(null);
+      }
+    };
+    if (lightboxImg) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [lightboxImg]);
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -375,14 +396,111 @@ export default function ConcernDetail() {
           {/* Image */}
           {concern.image_url && (
             <div className={s.card}>
-              <div className={s.cardHeader}>
-                <span className={s.cardTitle}>Attached Photo</span>
+              <div className={s.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 16 }}>📷</span>
+                  <span className={s.cardTitle}>Attached Citizen Photo</span>
+                </div>
+                <button
+                  type="button"
+                  className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '4px 10px', color: 'var(--primary)' }}
+                  onClick={() => {
+                    setLightboxImg(resolveImageUrl(concern.image_url));
+                    setLightboxTitle('Attached Citizen Photo');
+                  }}
+                >
+                  <span>🔍</span> Click to View Full Size
+                </button>
               </div>
-              <img
-                src={resolveImageUrl(concern.image_url)}
-                alt="Concern"
-                style={{ width: '100%', maxHeight: 280, objectFit: 'cover' }}
-              />
+
+              <div
+                style={{
+                  position: 'relative',
+                  cursor: 'zoom-in',
+                  overflow: 'hidden',
+                  background: 'var(--surface-2)',
+                }}
+                onClick={() => {
+                  setLightboxImg(resolveImageUrl(concern.image_url));
+                  setLightboxTitle('Attached Citizen Photo');
+                }}
+                title="Click to view full size"
+              >
+                <img
+                  src={resolveImageUrl(concern.image_url)}
+                  alt="Concern Attachment"
+                  style={{
+                    width: '100%',
+                    maxHeight: 320,
+                    objectFit: 'cover',
+                    display: 'block',
+                    transition: 'transform 0.25s ease, filter 0.25s ease',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                    e.currentTarget.style.filter = 'brightness(0.92)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.filter = 'none';
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 12,
+                    right: 12,
+                    background: 'rgba(15, 23, 42, 0.85)',
+                    backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: '#fff',
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <span>🔍</span> Click to view full image
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: '9px 16px',
+                  fontSize: 12,
+                  color: 'var(--text-3)',
+                  borderTop: '1px solid var(--border)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span>Photo uploaded by citizen during submission</span>
+                <button
+                  type="button"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--primary)',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    padding: 0,
+                  }}
+                  onClick={() => {
+                    setLightboxImg(resolveImageUrl(concern.image_url));
+                    setLightboxTitle('Attached Citizen Photo');
+                  }}
+                >
+                  Expand ↗
+                </button>
+              </div>
             </div>
           )}
 
@@ -415,17 +533,68 @@ export default function ConcernDetail() {
                     {isResolved ? 'Resolved' : concern.status}
                   </span>
                 </div>
-                <a href={resolveImageUrl(concern.resolved_image_url)} target="_blank" rel="noreferrer" style={{ display: 'block' }}>
+                <div
+                  style={{ position: 'relative', cursor: 'zoom-in', overflow: 'hidden' }}
+                  onClick={() => {
+                    setLightboxImg(resolveImageUrl(concern.resolved_image_url));
+                    setLightboxTitle(proofLabel);
+                  }}
+                  title="Click to view full size"
+                >
                   <img
                     src={resolveImageUrl(concern.resolved_image_url)}
                     alt="Proof Photo"
-                    style={{ width: '100%', maxHeight: 300, objectFit: 'cover', cursor: 'zoom-in', transition: 'opacity 0.2s' }}
-                    onMouseOver={e => e.currentTarget.style.opacity = '0.88'}
-                    onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                    style={{
+                      width: '100%',
+                      maxHeight: 320,
+                      objectFit: 'cover',
+                      display: 'block',
+                      transition: 'transform 0.25s ease, filter 0.25s ease',
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                      e.currentTarget.style.filter = 'brightness(0.92)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.filter = 'none';
+                    }}
                   />
-                </a>
-                <div style={{ padding: '8px 16px', fontSize: 11, color: 'var(--text-3)', borderTop: '1px solid var(--border)' }}>
-                  🔗 Click image to open full size · Visible to the citizen in the mobile app
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 12,
+                      right: 12,
+                      background: 'rgba(15, 23, 42, 0.85)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      color: '#fff',
+                      padding: '6px 14px',
+                      borderRadius: 20,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <span>🔍</span> Click to view full proof
+                  </div>
+                </div>
+                <div style={{ padding: '8px 16px', fontSize: 11, color: 'var(--text-3)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Visible to the citizen in the mobile app</span>
+                  <button
+                    type="button"
+                    style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: 11, fontWeight: 600, padding: 0 }}
+                    onClick={() => {
+                      setLightboxImg(resolveImageUrl(concern.resolved_image_url));
+                      setLightboxTitle(proofLabel);
+                    }}
+                  >
+                    Expand ↗
+                  </button>
                 </div>
               </div>
             );
@@ -609,14 +778,49 @@ export default function ConcernDetail() {
                 </div>
 
                 {concern.resolved_image_url && !resolvedPreview && !clearResolvedImage && (
-                  <div style={{ position: 'relative', marginBottom: 8, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                  <div
+                    style={{
+                      position: 'relative',
+                      marginBottom: 8,
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      border: '1px solid var(--border)',
+                      cursor: 'zoom-in',
+                    }}
+                    onClick={() => {
+                      setLightboxImg(resolveImageUrl(concern.resolved_image_url));
+                      setLightboxTitle('Current Proof Photo');
+                    }}
+                    title="Click to view full preview"
+                  >
                     <img
                       src={resolveImageUrl(concern.resolved_image_url)}
                       alt="Resolution Proof"
-                      style={{ width: '100%', maxHeight: 150, objectFit: 'cover' }}
+                      style={{ width: '100%', maxHeight: 150, objectFit: 'cover', display: 'block' }}
                     />
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, color: '#fff' }}>Current proof uploaded</span>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        background: 'rgba(0,0,0,0.65)',
+                        padding: '4px 8px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span
+                        style={{ fontSize: 11, color: '#fff', cursor: 'pointer' }}
+                        onClick={() => {
+                          setLightboxImg(resolveImageUrl(concern.resolved_image_url));
+                          setLightboxTitle('Current Proof Photo');
+                        }}
+                      >
+                        🔍 Click to preview
+                      </span>
                       <button
                         type="button"
                         className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
@@ -630,14 +834,49 @@ export default function ConcernDetail() {
                 )}
 
                 {resolvedPreview && (
-                  <div style={{ position: 'relative', marginBottom: 8, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--primary)' }}>
+                  <div
+                    style={{
+                      position: 'relative',
+                      marginBottom: 8,
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      border: '1px solid var(--primary)',
+                      cursor: 'zoom-in',
+                    }}
+                    onClick={() => {
+                      setLightboxImg(resolvedPreview);
+                      setLightboxTitle('New Proof Preview');
+                    }}
+                    title="Click to view full preview"
+                  >
                     <img
                       src={resolvedPreview}
                       alt="Resolution Proof Preview"
-                      style={{ width: '100%', maxHeight: 150, objectFit: 'cover' }}
+                      style={{ width: '100%', maxHeight: 150, objectFit: 'cover', display: 'block' }}
                     />
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, color: '#fff' }}>New proof selected</span>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        background: 'rgba(0,0,0,0.65)',
+                        padding: '4px 8px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span
+                        style={{ fontSize: 11, color: '#fff', cursor: 'pointer' }}
+                        onClick={() => {
+                          setLightboxImg(resolvedPreview);
+                          setLightboxTitle('New Proof Preview');
+                        }}
+                      >
+                        🔍 Click to preview
+                      </span>
                       <button
                         type="button"
                         className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
@@ -880,6 +1119,136 @@ export default function ConcernDetail() {
           </div>
         </div>
       </div>
+
+      {/* Lightbox Modal for Attached Photos */}
+      {lightboxImg && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            background: 'rgba(8, 12, 24, 0.92)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            animation: 'fadeIn 0.2s ease',
+          }}
+          onClick={() => setLightboxImg(null)}
+        >
+          {/* Top Bar with Title, Open In Tab, and Close button */}
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 960,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 14,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 20 }}>📸</span>
+              <span style={{ color: '#f8fafc', fontWeight: 600, fontSize: 15, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                {lightboxTitle || 'Photo Preview'}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <a
+                href={lightboxImg}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.12)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  color: '#fff',
+                  padding: '7px 14px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)')}
+              >
+                <span>↗</span> Open Full Tab
+              </a>
+              <button
+                type="button"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.16)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  color: '#fff',
+                  width: 38,
+                  height: 38,
+                  borderRadius: '50%',
+                  fontSize: 18,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.2s',
+                }}
+                onClick={() => setLightboxImg(null)}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.85)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.16)')}
+                title="Close (ESC)"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* Centered Image with subtle drop shadow and border */}
+          <div
+            style={{
+              position: 'relative',
+              maxWidth: '92vw',
+              maxHeight: '82vh',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={lightboxImg}
+              alt="Full Preview"
+              style={{
+                maxWidth: '92vw',
+                maxHeight: '82vh',
+                objectFit: 'contain',
+                borderRadius: 14,
+                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.85)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+              }}
+            />
+          </div>
+
+          {/* Footer hint */}
+          <div
+            style={{
+              marginTop: 14,
+              fontSize: 12,
+              color: 'rgba(255, 255, 255, 0.6)',
+              display: 'flex',
+              gap: 16,
+            }}
+          >
+            <span>💡 Click outside or press <strong style={{ color: '#fff' }}>ESC</strong> to close</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

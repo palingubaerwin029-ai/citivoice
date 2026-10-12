@@ -13,9 +13,15 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const workflowService = require('./services/workflowService');
 const backupService = require('./services/backupService');
+const priorityService = require('./services/priorityService');
+const pool = require('./db');
+const compression = require('compression');
 
 const app = express();
 const server = http.createServer(app);
+
+// ─── Gzip responses (JSON lists are large) ───────────────────────────────────
+app.use(compression());
 
 // ─── Security Headers (enhanced) ────────────────────────────────────────────
 app.use(
@@ -41,7 +47,7 @@ app.use(hpp());
 // Global limiter for all API routes
 const globalLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
+  max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 600,
   message: { error: 'Too many requests. Please slow down.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -146,13 +152,25 @@ app.use('/api/departments', require('./routes/departments'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/backup', require('./routes/backup'));
 
-// ─── Health check ────────────────────────────────────────────────────────────
-app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
+// ─── Health check (verifies the database, not just the process) ──────────────
+app.get('/api/health', async (req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok', db: 'up', uptime: Math.round(process.uptime()), time: new Date() });
+  } catch (err) {
+    res.status(503).json({ status: 'degraded', db: 'down', time: new Date() });
+  }
+});
+
+// ─── Unknown API routes ──────────────────────────────────────────────────────
+app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 // ─── Global error handler ───────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(`[${req.id || '-'}] Global error:`, err.stack);
-  res.status(err.status || 500).json({ error: 'Internal server error' });
+  const status = err.status || err.statusCode || 500;
+  // Client errors (bad JSON, upload too large, etc.) keep their message; 5xx stays generic.
+  res.status(status).json({ error: status < 500 ? err.message : 'Internal server error' });
 });
 
 const PORT = process.env.PORT || 5000;
@@ -160,9 +178,36 @@ server.listen(PORT, () => {
   console.log(`✅ CitiVoice API & Socket running → http://localhost:${PORT}`);
   console.log(`📁 Uploads served at   → http://localhost:${PORT}/uploads`);
 
+  priorityService.startScheduler();
+
   // ─── Start automatic database backup scheduler ───────────────────────────
   if (process.env.BACKUP_ENABLED !== 'false') {
     backupService.startScheduler();
   }
+});
+
+// ─── Graceful shutdown & crash visibility ────────────────────────────────────
+const shutdown = (signal) => {
+  console.log(`[Server] ${signal} received — shutting down gracefully...`);
+  backupService.stopScheduler();
+  priorityService.stopScheduler();
+  io.close();
+  server.close(async () => {
+    try {
+      await pool.end();
+    } catch (_) {}
+    process.exit(0);
+  });
+  // Force exit if connections refuse to close
+  setTimeout(() => process.exit(1), 10000).unref();
+};
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('unhandledRejection', (reason) => {
+  console.error('[Server] Unhandled promise rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[Server] Uncaught exception:', err);
+  shutdown('uncaughtException');
 });
 

@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Image,
   Animated,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,6 +60,17 @@ export default function RegisterScreen({ navigation }) {
   const [pwFocused, setPwFocused] = useState(false);
   const strengthAnim = useRef(new Animated.Value(0)).current;
   const [availableBarangays, setAvailableBarangays] = useState([]);
+  const [barangaySearch, setBarangaySearch] = useState('');
+
+  const filteredBarangays = useMemo(() => {
+    const q = barangaySearch.trim().toLowerCase();
+    if (!q) return availableBarangays;
+    const starts = availableBarangays.filter((b) => b.toLowerCase().startsWith(q));
+    const contains = availableBarangays.filter(
+      (b) => !b.toLowerCase().startsWith(q) && b.toLowerCase().includes(q),
+    );
+    return [...starts, ...contains];
+  }, [availableBarangays, barangaySearch]);
 
   useEffect(() => {
     const fetchBarangays = async () => {
@@ -102,27 +114,27 @@ export default function RegisterScreen({ navigation }) {
     let level, label, color;
     if (passed <= 1) {
       level = 0;
-      label = 'Weak';
+      label = t('weak');
       color = colors.danger;
     } else if (passed <= 2) {
       level = 1;
-      label = 'Fair';
+      label = t('fair');
       color = colors.warning;
     } else if (passed <= 3) {
       level = 2;
-      label = 'Good';
+      label = t('good');
       color = colors.accentWarm;
     } else if (passed <= 4) {
       level = 3;
-      label = 'Strong';
+      label = t('strong');
       color = colors.accent;
     } else {
       level = 4;
-      label = 'Excellent';
+      label = t('excellent');
       color = colors.success;
     }
     return { checks, passed, level, label, color };
-  }, [form.password, colors]);
+  }, [form.password, colors, t]);
 
   // Animate strength bar
   useEffect(() => {
@@ -337,7 +349,7 @@ export default function RegisterScreen({ navigation }) {
               label={`${t('fullName').toUpperCase()} (AS ON ID)`}
               value={form.name}
               onChangeText={(v) => set('name', v)}
-              placeholder="e.g. Juan M. Dela Cruz"
+              placeholder={t('namePlaceholder') || 'Example: Juan M. Dela Cruz'}
               autoCapitalize="words"
               leftIcon="person-outline"
               error={errors.name}
@@ -410,11 +422,11 @@ export default function RegisterScreen({ navigation }) {
                 {/* Requirements checklist */}
                 <View style={S.reqList}>
                   {[
-                    { key: 'minLength', label: 'At least 8 characters' },
-                    { key: 'hasUpper', label: 'Uppercase letter (A-Z)' },
-                    { key: 'hasLower', label: 'Lowercase letter (a-z)' },
-                    { key: 'hasNumber', label: 'Number (0-9)' },
-                    { key: 'hasSpecial', label: 'Special character (@$!%*?&)' },
+                    { key: 'minLength', label: t('pwReqLength') },
+                    { key: 'hasUpper', label: t('pwReqUpper') },
+                    { key: 'hasLower', label: t('pwReqLower') },
+                    { key: 'hasNumber', label: t('pwReqNumber') },
+                    { key: 'hasSpecial', label: t('pwReqSpecial') },
                   ].map((req) => {
                     const met = passwordAnalysis.checks[req.key];
                     return (
@@ -461,7 +473,10 @@ export default function RegisterScreen({ navigation }) {
                   { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
                   errors.barangay && { borderColor: colors.danger },
                 ]}
-                onPress={() => setShowPicker((p) => !p)}
+                onPress={() => {
+                  setShowPicker((p) => !p);
+                  setBarangaySearch('');
+                }}
               >
                 <Ionicons name="location-outline" size={16} color={colors.textMuted} />
                 <Text
@@ -499,8 +514,39 @@ export default function RegisterScreen({ navigation }) {
                     { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
                   ]}
                 >
-                  <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
-                    {availableBarangays.map((b) => (
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                      paddingHorizontal: 12,
+                      borderBottomWidth: 1,
+                      borderBottomColor: colors.border,
+                    }}
+                  >
+                    <Ionicons name="search-outline" size={16} color={colors.textMuted} />
+                    <TextInput
+                      value={barangaySearch}
+                      onChangeText={setBarangaySearch}
+                      placeholder={t('searchBarangay')}
+                      placeholderTextColor={colors.textMuted}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      style={{ flex: 1, paddingVertical: 10, color: colors.textPrimary, fontSize: rf(13) }}
+                    />
+                    {barangaySearch.length > 0 && (
+                      <TouchableOpacity onPress={() => setBarangaySearch('')}>
+                        <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                    {filteredBarangays.length === 0 && (
+                      <Text style={{ padding: 14, color: colors.textMuted, fontSize: rf(12) }}>
+                        {t('noBarangayFound')}
+                      </Text>
+                    )}
+                    {filteredBarangays.map((b) => (
                       <TouchableOpacity
                         key={b}
                         style={[
@@ -511,6 +557,7 @@ export default function RegisterScreen({ navigation }) {
                         onPress={() => {
                           set('barangay', b);
                           setShowPicker(false);
+                          setBarangaySearch('');
                         }}
                       >
                         <Text
@@ -537,7 +584,7 @@ export default function RegisterScreen({ navigation }) {
 
             {/* ID Type picker */}
             <View style={{ marginBottom: 14 }}>
-              <Text style={[S.fieldLabel, { color: colors.textMuted }]}>ID TYPE *</Text>
+              <Text style={[S.fieldLabel, { color: colors.textMuted }]}>{`${t('idType').toUpperCase()} *`}</Text>
               <TouchableOpacity
                 style={[
                   S.picker,
@@ -554,7 +601,7 @@ export default function RegisterScreen({ navigation }) {
                     !form.idType && { color: colors.textMuted },
                   ]}
                 >
-                  {form.idType || 'Select government ID type…'}
+                  {form.idType || t('selectIdType')}
                 </Text>
                 <Ionicons
                   name={showIdPicker ? 'chevron-up' : 'chevron-down'}
@@ -620,7 +667,7 @@ export default function RegisterScreen({ navigation }) {
 
             {/* ID Number */}
             <InputField
-              label="ID NUMBER *"
+              label={`${t('idNumber').toUpperCase()} *`}
               value={form.idNumber}
               onChangeText={(v) => {
                 const cleaned = v.replace(/[^A-Z0-9]/gi, '').toUpperCase();
@@ -639,7 +686,7 @@ export default function RegisterScreen({ navigation }) {
 
             {/* ID Photo */}
             <View style={{ marginBottom: 16 }}>
-              <Text style={[S.fieldLabel, { color: colors.textMuted }]}>ID PHOTO *</Text>
+              <Text style={[S.fieldLabel, { color: colors.textMuted }]}>{`${t('idPhoto').toUpperCase()} *`}</Text>
               {form.idImage ? (
                 <View style={{ width: '100%', marginBottom: 16 }}>
                   <Image
@@ -663,7 +710,7 @@ export default function RegisterScreen({ navigation }) {
                     onPress={() => set('idImage', null)}
                   >
                     <Ionicons name="refresh-outline" size={16} color="#fff" />
-                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Retake</Text>
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{t('retake')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -681,10 +728,10 @@ export default function RegisterScreen({ navigation }) {
                     style={{ marginBottom: verticalScale(10), opacity: 0.6 }}
                   />
                   <Text style={[S.photoBoxTitle, { color: colors.textSecondary }]}>
-                    Upload your ID photo
+                    {t('uploadIdPhoto')}
                   </Text>
                   <Text style={[S.photoBoxSub, { color: colors.textMuted }]}>
-                    Make sure the photo is clear and well-lit
+                    {t('photoClearNotice')}
                   </Text>
                   <View style={S.photoActions}>
                     <TouchableOpacity
@@ -698,7 +745,7 @@ export default function RegisterScreen({ navigation }) {
                       onPress={pickPhoto}
                     >
                       <Ionicons name="images-outline" size={18} color={colors.primaryLight} />
-                      <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>Gallery</Text>
+                      <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>{t('gallery')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -711,7 +758,7 @@ export default function RegisterScreen({ navigation }) {
                       onPress={takePhoto}
                     >
                       <Ionicons name="camera-outline" size={18} color={colors.primaryLight} />
-                      <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>Camera</Text>
+                      <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>{t('camera')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -744,7 +791,7 @@ export default function RegisterScreen({ navigation }) {
                         color: aiResult.match ? colors.success : colors.warning,
                       }}
                     >
-                      {aiResult.match ? 'AI Name Verified' : 'AI Name Mismatch Notice'}
+                      {aiResult.match ? t('aiNameVerified') : t('aiNameMismatch')}
                     </Text>
                     <Text style={{ fontSize: rf(11), color: colors.textSecondary }}>
                       {aiResult.extractedName
@@ -781,7 +828,7 @@ export default function RegisterScreen({ navigation }) {
                 color={agreeToTerms ? colors.primaryLight : colors.textMuted} 
               />
               <Text style={{ marginLeft: 10, color: colors.textSecondary, fontSize: rf(13), flex: 1, lineHeight: rf(18) }}>
-                By registering, I agree to the <Text style={{ color: colors.primaryLight, fontWeight: '700' }} onPress={() => navigation.navigate('TermsAndPolicy')}>Terms of Service</Text> and <Text style={{ color: colors.primaryLight, fontWeight: '700' }} onPress={() => navigation.navigate('TermsAndPolicy')}>Privacy Policy</Text>
+                {t('agreeTermsPrefix')} <Text style={{ color: colors.primaryLight, fontWeight: '700' }} onPress={() => navigation.navigate('TermsAndPolicy')}>{t('termsOfService')}</Text> {t('andWord')} <Text style={{ color: colors.primaryLight, fontWeight: '700' }} onPress={() => navigation.navigate('TermsAndPolicy')}>{t('privacyPolicy')}</Text>
               </Text>
             </TouchableOpacity>
             {errors.agreeToTerms && (

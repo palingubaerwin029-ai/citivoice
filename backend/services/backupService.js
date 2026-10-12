@@ -13,6 +13,7 @@
 const { exec, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const pool = require('../db');
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -22,6 +23,7 @@ const BACKUP_DIR = process.env.BACKUP_DIR
 const MAX_BACKUPS = parseInt(process.env.BACKUP_MAX_FILES, 10) || 10; // keep last N
 const INTERVAL_MS =
   parseInt(process.env.BACKUP_INTERVAL_MS, 10) || 24 * 60 * 60 * 1000; // default 24 h
+const STATE_FILE = path.join(BACKUP_DIR, '.backup_state.json');
 
 // Ensure directories exist
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
@@ -35,12 +37,13 @@ const timestamp = () => {
 
 /**
  * Rotate old backups: keep only the newest `MAX_BACKUPS` files.
+ * Ignores dotfiles such as .backup_state.json.
  */
 const rotateBackups = () => {
   try {
     const files = fs
       .readdirSync(BACKUP_DIR)
-      .filter((f) => f.endsWith('.sql') || f.endsWith('.json'))
+      .filter((f) => !f.startsWith('.') && (f.endsWith('.sql') || f.endsWith('.json')))
       .map((f) => ({
         name: f,
         time: fs.statSync(path.join(BACKUP_DIR, f)).mtimeMs,
@@ -61,6 +64,186 @@ const rotateBackups = () => {
   }
 };
 
+// ── Database State & Change Detection ─────────────────────────────────────────
+
+const getSavedBackupState = () => {
+  try {
+    if (fs.existsSync(STATE_FILE)) {
+      const raw = fs.readFileSync(STATE_FILE, 'utf8');
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    console.error('[Backup] Error reading state file:', e.message);
+  }
+  return null;
+};
+
+const saveBackupState = (state) => {
+  try {
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
+  } catch (e) {
+    console.error('[Backup] Failed to save backup state:', e.message);
+  }
+};
+
+/**
+ * Query current database statistics and compute a signature hash.
+ */
+const getCurrentDataSnapshot = async () => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM users) AS users_count,
+        (SELECT COALESCE(MAX(id), 0) FROM users) AS max_user_id,
+        (SELECT COALESCE(MAX(updated_at), '1970-01-01 00:00:00') FROM users) AS max_user_updated,
+        (SELECT COUNT(*) FROM concerns) AS concerns_count,
+        (SELECT COALESCE(MAX(id), 0) FROM concerns) AS max_concern_id,
+        (SELECT COALESCE(MAX(updated_at), '1970-01-01 00:00:00') FROM concerns) AS max_concern_updated,
+        (SELECT COUNT(*) FROM concern_comments) AS comments_count,
+        (SELECT COALESCE(MAX(id), 0) FROM concern_comments) AS max_comment_id,
+        (SELECT COUNT(*) FROM concern_upvotes) AS upvotes_count,
+        (SELECT COUNT(*) FROM audit_log) AS audit_count,
+        (SELECT COALESCE(MAX(id), 0) FROM audit_log) AS max_audit_id
+    `);
+
+    const r = rows[0] || {};
+    const snapshot = {
+      users_count: Number(r.users_count || 0),
+      max_user_id: Number(r.max_user_id || 0),
+      max_user_updated: r.max_user_updated ? new Date(r.max_user_updated).toISOString() : '1970-01-01T00:00:00.000Z',
+      concerns_count: Number(r.concerns_count || 0),
+      max_concern_id: Number(r.max_concern_id || 0),
+      max_concern_updated: r.max_concern_updated ? new Date(r.max_concern_updated).toISOString() : '1970-01-01T00:00:00.000Z',
+      comments_count: Number(r.comments_count || 0),
+      max_comment_id: Number(r.max_comment_id || 0),
+      upvotes_count: Number(r.upvotes_count || 0),
+      audit_count: Number(r.audit_count || 0),
+      max_audit_id: Number(r.max_audit_id || 0),
+    };
+
+    const signature = crypto
+      .createHash('md5')
+      .update(JSON.stringify(snapshot))
+      .digest('hex');
+
+    return { snapshot, signature };
+  } catch (err) {
+    console.error('[Backup] Error fetching data snapshot:', err.message);
+    return null;
+  }
+};
+
+/**
+ * Determine if any new records or modifications have occurred since the last backup.
+ */
+const checkForNewData = async () => {
+  const backups = listBackups();
+  if (backups.length === 0) {
+    return {
+      hasNewData: true,
+      reason: 'No backups exist yet. Initial backup required.',
+      lastBackupFile: null,
+      lastBackupAt: null,
+      changes: { newUsers: 0, newConcerns: 0, updatedUsers: false, updatedConcerns: false, totalChanges: 0 },
+      currentStats: null,
+    };
+  }
+
+  const latestBackup = backups[0];
+  const current = await getCurrentDataSnapshot();
+  if (!current) {
+    return { hasNewData: true, reason: 'Unable to check database state; allowing backup.' };
+  }
+
+  let savedState = getSavedBackupState();
+
+  // If no saved state exists yet, or referenced file was deleted:
+  if (!savedState || (savedState.lastBackupFile && !fs.existsSync(path.join(BACKUP_DIR, savedState.lastBackupFile)))) {
+    const latestBackupTime = new Date(latestBackup.createdAt).getTime();
+    const latestUserTime = new Date(current.snapshot.max_user_updated).getTime();
+    const latestConcernTime = new Date(current.snapshot.max_concern_updated).getTime();
+
+    // If latest backup file on disk is newer than latest modifications in DB:
+    if (latestBackupTime >= latestUserTime && latestBackupTime >= latestConcernTime) {
+      savedState = {
+        lastBackupFile: latestBackup.file,
+        lastBackupAt: latestBackup.createdAt,
+        dataSignature: current.signature,
+        snapshot: current.snapshot,
+      };
+      saveBackupState(savedState);
+    }
+  }
+
+  if (!savedState) {
+    return {
+      hasNewData: true,
+      reason: 'New backup required to establish baseline snapshot state.',
+      lastBackupFile: latestBackup.file,
+      lastBackupAt: latestBackup.createdAt,
+      changes: { totalChanges: 1 },
+      currentStats: current.snapshot,
+    };
+  }
+
+  const prev = savedState.snapshot || {};
+  const cur = current.snapshot;
+
+  const newUsers = Math.max(0, cur.users_count - (prev.users_count || 0));
+  const newConcerns = Math.max(0, cur.concerns_count - (prev.concerns_count || 0));
+  const newComments = Math.max(0, cur.comments_count - (prev.comments_count || 0));
+  const newAudit = Math.max(0, cur.audit_count - (prev.audit_count || 0));
+  const newUpvotes = Math.max(0, cur.upvotes_count - (prev.upvotes_count || 0));
+
+  const updatedUsers = cur.max_user_updated > (prev.max_user_updated || '1970-01-01');
+  const updatedConcerns = cur.max_concern_updated > (prev.max_concern_updated || '1970-01-01');
+
+  const signatureChanged = current.signature !== savedState.dataSignature;
+
+  const hasNewData =
+    signatureChanged ||
+    newUsers > 0 ||
+    newConcerns > 0 ||
+    newComments > 0 ||
+    newAudit > 0 ||
+    newUpvotes > 0 ||
+    updatedUsers ||
+    updatedConcerns;
+
+  const reasons = [];
+  if (newUsers > 0) reasons.push(`${newUsers} new citizen(s)`);
+  if (newConcerns > 0) reasons.push(`${newConcerns} new concern(s)`);
+  if (updatedConcerns) reasons.push('concern updates or status changes');
+  if (updatedUsers) reasons.push('user profile or verification updates');
+  if (newComments > 0) reasons.push(`${newComments} new internal comment(s)`);
+  if (newUpvotes > 0) reasons.push(`${newUpvotes} new upvote(s)`);
+  if (newAudit > 0) reasons.push(`${newAudit} audit log record(s)`);
+
+  const reasonStr = hasNewData
+    ? reasons.length > 0
+      ? `New data detected: ${reasons.join(', ')}`
+      : 'Database changes detected since last backup snapshot'
+    : 'Database is up to date (no new records or updates)';
+
+  return {
+    hasNewData,
+    reason: reasonStr,
+    lastBackupFile: savedState.lastBackupFile || latestBackup.file,
+    lastBackupAt: savedState.lastBackupAt || latestBackup.createdAt,
+    changes: {
+      newUsers,
+      newConcerns,
+      newComments,
+      newAudit,
+      newUpvotes,
+      updatedUsers,
+      updatedConcerns,
+      totalChanges: newUsers + newConcerns + newComments + (updatedConcerns ? 1 : 0) + (updatedUsers ? 1 : 0),
+    },
+    currentStats: cur,
+  };
+};
+
 // ── mysqldump / mariadb-dump ──────────────────────────────────────────────────
 let _dumpToolConfig = null;
 
@@ -68,16 +251,11 @@ const getDumpToolConfig = () => {
   if (_dumpToolConfig) return _dumpToolConfig;
 
   // Detect which binary is available.
-  // Prefer mariadb-dump when available (standard in Alpine Linux / MariaDB client packages),
-  // which avoids the "mysqldump: Deprecated program name" warning.
   const candidates = ['mariadb-dump', 'mysqldump'];
   for (const bin of candidates) {
     try {
       const ver = execSync(`${bin} --version`, { stdio: ['pipe', 'pipe', 'pipe'] }).toString();
       const isMaria = /mariadb/i.test(ver);
-      // MariaDB dump supports --skip-ssl to prevent:
-      // "TLS/SSL error: self-signed certificate in certificate chain"
-      // MySQL 8 mysqldump uses --ssl-mode=DISABLED.
       const sslFlag = isMaria ? '--skip-ssl' : '--ssl-mode=DISABLED';
       _dumpToolConfig = { bin, sslFlag, isMaria };
       console.log(`[Backup] Detected database dump tool: ${bin} (sslFlag: ${sslFlag})`);
@@ -95,8 +273,6 @@ const getDumpToolConfig = () => {
 /**
  * Run mysqldump / mariadb-dump for the entire database and save to backups/db/.
  * Returns a Promise that resolves with { file, size } on success.
- *
- * Requires mariadb-dump or mysqldump to be available on PATH (Docker users: runs inside container).
  */
 const runMysqldump = async () => {
   const host = process.env.DB_HOST || 'localhost';
@@ -108,7 +284,6 @@ const runMysqldump = async () => {
   const tool = getDumpToolConfig();
 
   // If using MariaDB dump against MySQL 8+, ensure user has mysql_native_password
-  // so authentication succeeds without caching_sha2_password plugin mismatch
   if (tool.isMaria && user === 'root' && password) {
     try {
       const escapedPw = password.replace(/'/g, "''");
@@ -147,6 +322,20 @@ const runMysqldump = async () => {
       const size = fs.statSync(filePath).size;
       console.log(`[Backup] ✅  Database backup complete → ${filename} (${(size / 1024).toFixed(1)} KB)`);
       rotateBackups();
+
+      // Update baseline state upon successful backup
+      getCurrentDataSnapshot().then((st) => {
+        if (st) {
+          saveBackupState({
+            lastBackupFile: filename,
+            lastBackupAt: new Date().toISOString(),
+            lastBackupType: 'sql',
+            dataSignature: st.signature,
+            snapshot: st.snapshot,
+          });
+        }
+      });
+
       resolve({ file: filename, path: filePath, size, type: 'sql', ts });
     });
 
@@ -181,9 +370,12 @@ const runJsonExport = async () => {
 
   // Concerns
   const [concerns] = await pool.query(
-    `SELECT id, user_id, category, description, status, priority,
-            location_address, latitude, longitude, image_url,
-            resolution_note, created_at, updated_at
+    `SELECT id, user_id, title, category, description, status, priority,
+            location_address, location_lat, location_lng,
+            location_lat AS latitude, location_lng AS longitude,
+            image_url, resolved_image_url, user_name, user_barangay,
+            admin_note, approval_notes, approved_by_name, approved_at,
+            upvotes, department, created_at, updated_at
      FROM concerns
      ORDER BY id`,
   );
@@ -201,6 +393,19 @@ const runJsonExport = async () => {
 
   console.log(`[Backup] ✅  JSON export complete → ${filename} (${(size / 1024).toFixed(1)} KB)`);
   rotateBackups();
+
+  // Update baseline state upon successful backup
+  const st = await getCurrentDataSnapshot();
+  if (st) {
+    saveBackupState({
+      lastBackupFile: filename,
+      lastBackupAt: new Date().toISOString(),
+      lastBackupType: 'json',
+      dataSignature: st.signature,
+      snapshot: st.snapshot,
+    });
+  }
+
   return { file: filename, path: filePath, size, type: 'json', ts };
 };
 
@@ -210,7 +415,7 @@ const listBackups = () => {
 
   return fs
     .readdirSync(BACKUP_DIR)
-    .filter((f) => f.endsWith('.sql') || f.endsWith('.json'))
+    .filter((f) => !f.startsWith('.') && (f.endsWith('.sql') || f.endsWith('.json')))
     .map((f) => {
       const stat = fs.statSync(path.join(BACKUP_DIR, f));
       const type = f.endsWith('.sql') ? 'sql' : 'json';
@@ -229,30 +434,41 @@ let _scheduledTimer = null;
 
 /**
  * Start the automatic backup scheduler.
- * Runs runMysqldump() every INTERVAL_MS.
+ * Runs only if new data is entered.
  */
 const startScheduler = () => {
   if (_scheduledTimer) return; // already running
 
   console.log(
-    `[Backup] 🕐  Auto-backup scheduler started (interval: ${INTERVAL_MS / 1000}s)`,
+    `[Backup] 🕐  Auto-backup scheduler started (interval: ${INTERVAL_MS / 1000}s, condition: on-new-data-only)`,
   );
 
   const tick = async () => {
     try {
+      const status = await checkForNewData();
+      if (!status.hasNewData) {
+        console.log(`[Backup] ⏭️  Auto-backup skipped: ${status.reason}`);
+        return;
+      }
+
+      console.log(`[Backup] 🆕  New data detected (${status.reason}). Starting scheduled backup...`);
       await runMysqldump();
     } catch (err) {
       console.error('[Backup] Scheduled mysqldump failed:', err.message);
-      // Fallback: try JSON export if mysqldump is unavailable
+      // Fallback: try JSON export if mysqldump is unavailable and new data exists
       try {
-        await runJsonExport();
+        const status = await checkForNewData();
+        if (status.hasNewData) {
+          console.log('[Backup] Attempting fallback JSON export for new data...');
+          await runJsonExport();
+        }
       } catch (e2) {
         console.error('[Backup] Fallback JSON export also failed:', e2.message);
       }
     }
   };
 
-  // Run immediately on first start, then on schedule
+  // Run on startup (only backs up if new data exists), then on schedule
   tick();
   _scheduledTimer = setInterval(tick, INTERVAL_MS);
 };
@@ -269,6 +485,8 @@ module.exports = {
   runMysqldump,
   runJsonExport,
   listBackups,
+  checkForNewData,
+  getCurrentDataSnapshot,
   startScheduler,
   stopScheduler,
   BACKUP_DIR,

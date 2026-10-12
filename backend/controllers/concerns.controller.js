@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { notifyUser, notifyDepartmentOnApproval, dispatchSystemNotification } = require('../services/notificationService');
-const { analyzeFullConcern, routeToDepartment } = require('../services/aiService');
+const { analyzeFullConcern, routeToDepartment, NOT_TYPICAL_CATEGORY, raisePriority } = require('../services/aiService');
 const { analyzeImage } = require('../services/imageAnalyzer');
 const { findSimilarConcerns } = require('../services/similarityService');
 const { generateText, isAvailable: isGeminiAvailable } = require('../services/groqService');
@@ -130,6 +130,10 @@ const createConcern = async (req, res) => {
   let finalPriority = priority || 'Medium';
   let urgencyScore = 50;
 
+  let contentFlag = 'none';
+  let validityReason = '';
+  let validityConfidence = 0;
+
   try {
     let imageTags = [];
     let filePath = null;
@@ -145,6 +149,9 @@ const createConcern = async (req, res) => {
       finalCategory = aiResult.category || finalCategory;
       finalPriority = aiResult.priority || finalPriority;
       urgencyScore = aiResult.urgencyScore || urgencyScore;
+      contentFlag = aiResult.contentFlag || 'none';
+      validityReason = aiResult.validityReason || '';
+      validityConfidence = aiResult.validityConfidence || 0;
     }
   } catch (e) {
     console.error('AI Categorization Error:', e);
@@ -156,8 +163,68 @@ const createConcern = async (req, res) => {
     console.log(`[AI] Auto-escalated priority to High (urgency: ${urgencyScore})`);
   }
 
+  // ─── AI content validation ──────────────────────────────────────────────
+  // Clearly inappropriate content is rejected outright and the photo is removed.
+  if (contentFlag === 'inappropriate' && validityConfidence >= 70) {
+    if (req.file) {
+      try {
+        require('fs').unlinkSync(path.join(__dirname, '..', 'uploads', req.file.filename));
+      } catch (e) {
+        console.error('[AI] Failed to remove rejected upload:', e.message);
+      }
+    }
+    console.log(`[AI] Rejected inappropriate submission from user ${req.user.id}: ${validityReason}`);
+    return res.status(422).json({
+      error:
+        'Your report was not submitted because it appears to contain inappropriate content. Please submit only genuine community concerns.',
+      code: 'INAPPROPRIATE_CONTENT',
+    });
+  }
+
+  // Off-topic (or low-confidence inappropriate) reports are saved but labeled for admin review.
+  const isNotTypical =
+    (contentFlag === 'off_topic' && validityConfidence >= 60) ||
+    (contentFlag === 'inappropriate' && validityConfidence < 70);
+  if (isNotTypical) {
+    finalCategory = NOT_TYPICAL_CATEGORY;
+    finalPriority = 'Low';
+    urgencyScore = 0;
+  }
+
+  // ─── Context signal: repeated reports in the same area raise priority ────
+  if (!isNotTypical) {
+    try {
+      const lat = parseFloat(location_lat);
+      const lng = parseFloat(location_lng);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        const [rows] = await require('../db').query(
+          `SELECT COUNT(*) AS nearby FROM concerns
+           WHERE category = ?
+             AND status IN ('Pending','In Progress')
+             AND created_at > (NOW() - INTERVAL 30 DAY)
+             AND location_lat IS NOT NULL AND location_lng IS NOT NULL
+             AND (6371000 * ACOS(LEAST(1,
+                   COS(RADIANS(?)) * COS(RADIANS(location_lat)) * COS(RADIANS(location_lng) - RADIANS(?))
+                   + SIN(RADIANS(?)) * SIN(RADIANS(location_lat))))) < 150`,
+          [finalCategory, lat, lng, lat],
+        );
+        const nearby = Number(rows[0]?.nearby || 0);
+        const boosted = nearby >= 4 ? 'High' : nearby >= 2 ? raisePriority(finalPriority, 1) : finalPriority;
+        if (boosted !== finalPriority) {
+          console.log(`[AI] Priority raised ${finalPriority} -> ${boosted} (${nearby} similar open reports within 150 m)`);
+          finalPriority = boosted;
+          urgencyScore = Math.max(urgencyScore, boosted === 'High' ? 70 : 40);
+        }
+      }
+    } catch (e) {
+      console.error('[AI] Nearby-report priority check failed:', e.message);
+    }
+  }
+
   // ─── Feature 4: Department Routing (Centralized) ─────────────────────────
-  const department = await workflowService.resolveDepartmentForConcern(finalCategory, finalPriority);
+  const department = isNotTypical
+    ? null
+    : await workflowService.resolveDepartmentForConcern(finalCategory, finalPriority);
 
   try {
     const insertId = await insertConcern({
@@ -176,9 +243,18 @@ const createConcern = async (req, res) => {
     });
     invalidate('concerns', 'concern_detail', 'map_concerns');
 
+    if (isNotTypical) {
+      await updateConcernFields(
+        insertId,
+        ['admin_note = ?'],
+        [`[AI Flag: Not a typical concern] ${validityReason || 'Photo/text does not match a municipal concern category.'} Needs admin review.`],
+      );
+    }
+
     // ─── Feature 3: Duplicate Detection (async, non-blocking) ─────────────
     setImmediate(async () => {
       try {
+        if (isNotTypical) return;
         const allConcerns = await selectAllConcerns();
         const newConcern = await selectConcernById(insertId);
         if (!newConcern) return;
@@ -246,7 +322,7 @@ const createConcern = async (req, res) => {
     // Auto-assign (pass io for admin notifications)
     const io = req.app.get('io');
     try {
-      await workflowService.autoAssign(newConcern, io);
+      if (!isNotTypical) await workflowService.autoAssign(newConcern, io);
     } catch (e) {
       console.error('[Workflow] Auto-assign error:', e);
     }

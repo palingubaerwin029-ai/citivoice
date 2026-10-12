@@ -23,6 +23,71 @@ const VALID_CATEGORIES = [
 
 const VALID_PRIORITIES = ['Low', 'Medium', 'High'];
 
+// Label used when a report is not a typical concern for this platform.
+const NOT_TYPICAL_CATEGORY = 'Not a Typical Concern';
+const CONTENT_FLAGS = ['none', 'off_topic', 'inappropriate'];
+
+// ─── Priority rubric & safety rules ───────────────────────────────────────────────
+
+const PRIORITY_RANK = { Low: 0, Medium: 1, High: 2 };
+const maxPriority = (a, b) => (PRIORITY_RANK[b] > PRIORITY_RANK[a] ? b : a);
+const raisePriority = (p, steps = 1) =>
+  VALID_PRIORITIES[Math.min(2, (PRIORITY_RANK[p] ?? 1) + steps)];
+
+/**
+ * Deterministic priority from factors the AI observed (not a free-form guess).
+ * score = severity(1-5)*12 + hazard 30 + blocks road/service 15 + scope (community 15 / street 8) + worsens quickly 10
+ * High >= 70, Medium >= 40, otherwise Low.
+ * @returns {{ score:number, level:string, reasons:string[] } | null}
+ */
+const scoreFromFactors = (f) => {
+  if (!f || typeof f !== 'object') return null;
+  const severity = Math.min(5, Math.max(1, Math.round(Number(f.severity)) || 0));
+  if (!Number(f.severity)) return null;
+
+  const reasons = [`severity ${severity}/5`];
+  let score = severity * 12;
+  if (f.hazardToLife === true) { score += 30; reasons.push('hazard to life/safety'); }
+  if (f.blocksRoadOrService === true) { score += 15; reasons.push('blocks road or essential service'); }
+  if (f.scope === 'community') { score += 15; reasons.push('affects a wide area'); }
+  else if (f.scope === 'street') { score += 8; reasons.push('affects a street/neighborhood'); }
+  if (f.worsensQuickly === true) { score += 10; reasons.push('likely to worsen quickly'); }
+
+  score = Math.min(100, score);
+  const level = score >= 70 ? 'High' : score >= 40 ? 'Medium' : 'Low';
+  return { score, level, reasons };
+};
+
+// Keyword safety net (English / Tagalog / Hiligaynon). Rules are predictable and never lower a priority.
+const HIGH_KEYWORDS = [
+  'live wire', 'exposed wire', 'dangling wire', 'sparking', 'electrocut', 'nakuryente', 'sunog', 'fire',
+  'sinkhole', 'collapsed', 'collapse', 'landslide', 'gumuho', 'drowning', 'nalunod', 'gas leak',
+  'impassable', 'malalim nga baha', 'malalim na baha', 'deep flood', 'natumba nga poste', 'fallen post',
+  'fallen pole', 'exposed manhole', 'open manhole', 'bukas nga manhole',
+];
+const MEDIUM_KEYWORDS = [
+  'brownout', 'power outage', 'no power', 'walay kuryente', 'wala kuryente', 'flood', 'baha', 'naglapaw',
+  'clogged', 'barado', 'dead animal', 'patay nga sapat', 'burst pipe', 'pothole', 'buslot', 'lubak',
+  'no water', 'walay tubig', 'sewage', 'fallen tree',
+];
+
+const buildKeywordRegex = (words) =>
+  new RegExp(`\\b(${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'i');
+const HIGH_RE = buildKeywordRegex(HIGH_KEYWORDS);
+const MEDIUM_RE = buildKeywordRegex(MEDIUM_KEYWORDS);
+
+/**
+ * @returns {{ floor: 'High'|'Medium'|null, match: string|null }}
+ */
+const keywordFloor = (text) => {
+  const t = String(text || '');
+  const high = t.match(HIGH_RE);
+  if (high) return { floor: 'High', match: high[1].toLowerCase() };
+  const med = t.match(MEDIUM_RE);
+  if (med) return { floor: 'Medium', match: med[1].toLowerCase() };
+  return { floor: null, match: null };
+};
+
 // ─── 1. Department Mapping ──────────────────────────────────────────────────
 
 // ─── 1. Department Mapping ──────────────────────────────────────────────────
@@ -194,6 +259,15 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
     
     INSTRUCTIONS FOR VISUAL ANALYSIS:
     If an image is attached, prioritize physical evidence shown in the photo over user text.
+
+    CONTENT VALIDATION (DO THIS FIRST, THOROUGHLY):
+    Check the photo AND the text to decide if this is a genuine municipal concern that fits one of the 4 categories below.
+    - "contentFlag": "none" -> a real concern that clearly fits a category (photo and text agree).
+    - "contentFlag": "off_topic" -> NOT a typical concern for this platform: selfies, people/pets/food/memes, screenshots, indoor/personal photos,
+      random or blank images, product ads, spam/gibberish text, jokes/tests, personal disputes, or a photo that clearly does not match the text.
+    - "contentFlag": "inappropriate" -> explicit/sexual/nude, graphic violence/gore, hate speech, harassment, threats, or abusive/profane content.
+    Do not force an unrelated report into a category. If unsure, use "off_topic" only when the photo/text clearly does not show a municipal issue.
+    If the photo and text disagree about the issue, trust the photo.
     
     LANGUAGE UNDERSTANDING:
     Understand Hiligaynon terms:
@@ -219,8 +293,19 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
     - "Negros Occidental Electric Cooperative (NOCECO)" (for Electricity)
 
     Output a strictly valid JSON object with these keys:
-    - "category": Must be one of: "Road & Infrastructure", "Electricity", "Drainage", "Waste & Sanitation".
-    - "priority": Must be one of: "Low", "Medium", "High".
+    - "contentFlag": One of "none", "off_topic", "inappropriate".
+    - "validityReason": Short 1-sentence explanation of what the photo/text actually shows and why it is or is not a valid concern.
+    - "validityConfidence": Number 0-100, how confident you are in the contentFlag decision.
+    - "category": Must be one of: "Road & Infrastructure", "Electricity", "Drainage", "Waste & Sanitation" (best guess even if flagged).
+    - "priorityFactors": Object describing what is OBSERVABLE (be honest, do not exaggerate):
+        {
+          "severity": integer 1-5 (1 cosmetic/minor nuisance, 2 minor inconvenience, 3 moderate daily disruption, 4 serious damage or disruption, 5 critical/dangerous),
+          "hazardToLife": boolean (true ONLY for exposed live wire, deep/fast flood, sinkhole, structural collapse, fire risk, open manhole on a walkway, biohazard),
+          "blocksRoadOrService": boolean (road impassable, power/water cut for an area, canal fully blocked),
+          "scope": "single" (one household/spot) | "street" (a street or neighborhood) | "community" (many barangays/main road),
+          "worsensQuickly": boolean (will get much worse within days if not fixed, e.g. growing sinkhole, rising flood, leaking main pipe)
+        }
+    - "priority": Must be one of: "Low", "Medium", "High" (your overall impression; the system recomputes it from priorityFactors).
     - "urgencyScore": Number 0-100 indicating operational urgency.
     - "isSafetyHazard": Boolean (true if exposed live wire, severe flood, impassable road, structural collapse, or biohazard).
     - "aiSummary": A concise 1-sentence executive summary formatted for the Mayor and Department Heads.
@@ -244,16 +329,47 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
         console.log('[AI Engine] Successfully analyzed via Groq AI:', result.category, result.priority);
         const mappedDept = routeToDepartment(result.category, result.priority || 'Medium').department;
 
+        const contentFlag = CONTENT_FLAGS.includes(result.contentFlag) ? result.contentFlag : 'none';
+        const validityConfidence =
+          typeof result.validityConfidence === 'number' ? result.validityConfidence : 50;
+
+        // Priority: rubric from observed factors (fallback to AI's impression), raised by keyword safety floor.
+        const rubric = scoreFromFactors(result.priorityFactors);
+        const aiPriority = VALID_PRIORITIES.includes(result.priority) ? result.priority : 'Medium';
+        let priority = rubric ? rubric.level : aiPriority;
+        const priorityReasons = rubric ? [...rubric.reasons] : ['AI overall impression'];
+        const kw = keywordFloor(text);
+        if (kw.floor && PRIORITY_RANK[kw.floor] > PRIORITY_RANK[priority]) {
+          priority = kw.floor;
+          priorityReasons.push(`safety keyword "${kw.match}"`);
+        }
+
+        let urgencyScore = rubric
+          ? rubric.score
+          : typeof result.urgencyScore === 'number' ? result.urgencyScore : 50;
+        if (priority === 'High') urgencyScore = Math.max(urgencyScore, 70);
+        else if (priority === 'Medium') urgencyScore = Math.min(Math.max(urgencyScore, 40), 69);
+        else urgencyScore = Math.min(urgencyScore, 39);
+
+        const isSafetyHazard =
+          Boolean(result.isSafetyHazard) || result.priorityFactors?.hazardToLife === true || kw.floor === 'High';
+
+        console.log(`[AI Engine] Priority ${priority} (score ${urgencyScore}): ${priorityReasons.join(', ')}`);
+
         return {
           category: result.category,
-          priority: VALID_PRIORITIES.includes(result.priority) ? result.priority : 'Medium',
-          urgencyScore: typeof result.urgencyScore === 'number' ? result.urgencyScore : 50,
-          isSafetyHazard: Boolean(result.isSafetyHazard),
+          priority,
+          urgencyScore,
+          priorityReasons,
+          isSafetyHazard,
           aiSummary: result.aiSummary || `Citizen concern reported under ${result.category}.`,
           recommendedDepartment: result.recommendedDepartment || mappedDept,
           suggestedActionSteps: Array.isArray(result.suggestedActionSteps) && result.suggestedActionSteps.length > 0
             ? result.suggestedActionSteps
             : ['Inspect site condition', 'Deploy repair team', 'Update concern status'],
+          contentFlag,
+          validityReason: result.validityReason || '',
+          validityConfidence,
         };
       }
     } catch (err) {
@@ -264,23 +380,39 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
   // 2. Fallback to local Naive Bayes NLP
   console.log('[AI Engine] Falling back to local Naive Bayes classification.');
   const baseClassification = analyzeConcern(text, imageTags);
+  const fb = keywordFloor(text);
+  const fallbackReasons = ['local model estimate'];
+  if (fb.floor && PRIORITY_RANK[fb.floor] > PRIORITY_RANK[baseClassification.priority]) {
+    baseClassification.priority = fb.floor;
+    fallbackReasons.push(`safety keyword "${fb.match}"`);
+  }
   const mappedDept = routeToDepartment(baseClassification.category, baseClassification.priority).department;
 
   return {
     ...baseClassification,
     urgencyScore: baseClassification.priority === 'High' ? 80 : baseClassification.priority === 'Medium' ? 50 : 30,
+    priorityReasons: fallbackReasons,
     isSafetyHazard: baseClassification.priority === 'High',
     aiSummary: `Citizen concern categorized under ${baseClassification.category} (${baseClassification.priority} Priority).`,
     recommendedDepartment: mappedDept,
     suggestedActionSteps: ['Conduct site inspection', 'Coordinate with department head', 'Resolve report'],
+    // Local fallback cannot judge photos; leave unflagged for admin review.
+    contentFlag: 'none',
+    validityReason: '',
+    validityConfidence: 0,
   };
 };
 
 module.exports = {
   VALID_CATEGORIES,
+  NOT_TYPICAL_CATEGORY,
   VALID_PRIORITIES,
   DEPARTMENT_MAP,
   analyzeConcern,
   analyzeFullConcern,
   routeToDepartment,
+  scoreFromFactors,
+  keywordFloor,
+  maxPriority,
+  raisePriority,
 };
