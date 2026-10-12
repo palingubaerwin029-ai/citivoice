@@ -33,20 +33,24 @@ const appendImageFile = async (formData, fieldName, uri) => {
   const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
 
   try {
-    // In modern Expo SDK (WinterCG fetch), local file URIs must be converted to Blob
+    // In modern Expo SDK, local file URIs can be converted to Blob
     const response = await fetch(uri);
     const blob = await response.blob();
-    const typedBlob = blob.slice ? blob.slice(0, blob.size, type) : blob;
-    formData.append(fieldName, typedBlob, filename);
+    if (blob && blob.size > 0) {
+      // Append original blob directly without slicing to avoid RN BlobModule buffer corruption
+      formData.append(fieldName, blob, filename);
+      return;
+    }
   } catch (err) {
-    console.warn('[ConcernService] Blob conversion fallback:', err);
-    // Fallback for legacy React Native runtime
-    formData.append(fieldName, {
-      uri,
-      name: filename,
-      type,
-    });
+    console.warn('[ConcernService] Blob conversion error:', err);
   }
+
+  // Standard React Native fallback
+  formData.append(fieldName, {
+    uri,
+    name: filename,
+    type,
+  });
 };
 
 export const ConcernService = {
