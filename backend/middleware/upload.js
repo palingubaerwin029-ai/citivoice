@@ -8,22 +8,45 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
+    let ext = path.extname(file.originalname || '').toLowerCase();
+    if (!ext || ext === '' || ext === '.blob') {
+      if (file.mimetype === 'image/png') ext = '.png';
+      else if (file.mimetype === 'image/webp') ext = '.webp';
+      else if (file.mimetype === 'image/gif') ext = '.gif';
+      else ext = '.jpeg';
+    }
     const name = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
     cb(null, name);
   },
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedExts = /\.(jpe?g|png|gif|webp)$/i;
-  const allowedMimes = /^image\/(jpe?g|png|gif|webp)$/i;
-  const ext = path.extname(file.originalname).toLowerCase();
-  const extOk = allowedExts.test(ext);
-  const mimeOk = allowedMimes.test(file.mimetype) || file.mimetype === 'application/octet-stream' || !file.mimetype;
+  console.log('[Upload] Incoming file in fileFilter:', {
+    originalname: file.originalname,
+    mimetype: file.mimetype,
+  });
 
-  if (extOk && mimeOk) {
+  const allowedExts = /\.(jpe?g|png|gif|webp|heic|heif)$/i;
+  const allowedMimes = /^image\/(jpe?g|png|gif|webp|heic|heif)$/i;
+  const ext = path.extname(file.originalname || '').toLowerCase();
+
+  // Android/Expo fetch(uri).blob() often sends text/plain or application/octet-stream.
+  // As long as the extension is an allowed image extension OR the mime is an image mime (or empty/blob),
+  // we accept it here and let verifyImageSignature strictly validate the genuine magic bytes on disk.
+  const extOk = allowedExts.test(ext);
+  const mimeOk =
+    !file.mimetype ||
+    file.mimetype === 'application/octet-stream' ||
+    file.mimetype === 'text/plain' ||
+    allowedMimes.test(file.mimetype) ||
+    file.mimetype.startsWith('image/');
+
+  const isBlobOrNoExt = !ext || ext === '' || ext === '.blob';
+
+  if (extOk || isBlobOrNoExt || mimeOk) {
     cb(null, true);
   } else {
+    console.warn(`[Upload] Rejected in fileFilter: ext=${ext}, mime=${file.mimetype}, originalname=${file.originalname}`);
     const err = new Error('Only image files (jpeg, jpg, png, gif, webp) are allowed');
     err.status = 400;
     cb(err);
@@ -72,6 +95,21 @@ const verifyImageSignature = (req, res, next) => {
       console.warn(`[Upload] Rejected invalid signature: ${hex} (${req.file.originalname}, ${stat.size} bytes)`);
       fs.unlinkSync(filePath);
       return res.status(400).json({ error: 'Invalid file signature. File may be corrupted or not a supported image.' });
+    }
+
+    // Ensure proper file extension on disk based on detected magic bytes
+    let currentExt = path.extname(req.file.path).toLowerCase();
+    if (!currentExt || currentExt === '' || currentExt === '.blob') {
+      let correctExt = '.jpeg';
+      if (hex.startsWith('89504E47')) correctExt = '.png';
+      else if (hex.startsWith('47494638')) correctExt = '.gif';
+      else if (hex.startsWith('52494646')) correctExt = '.webp';
+      else if (hex.startsWith('FFD8')) correctExt = '.jpeg';
+
+      const newPath = req.file.path + correctExt;
+      fs.renameSync(req.file.path, newPath);
+      req.file.path = newPath;
+      req.file.filename = req.file.filename + correctExt;
     }
 
     next();
