@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
 
 import { BASE_URL } from '../context/AuthContext';
 
@@ -25,48 +26,25 @@ const apiRequest = async (path, options = {}) => {
   return data;
 };
 
-const appendImageFile = async (formData, fieldName, uri) => {
-  if (!uri) return;
-  const filename = uri.split('/').pop() || 'photo.jpg';
-  const match = /\.(\w+)$/.exec(filename);
-  const ext = match ? match[1].toLowerCase() : 'jpg';
-  const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-
-  try {
-    // In modern Expo SDK, local file URIs can be converted to Blob
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    if (blob && blob.size > 0) {
-      // Append original blob directly without slicing to avoid RN BlobModule buffer corruption
-      formData.append(fieldName, blob, filename);
-      return;
-    }
-  } catch (err) {
-    console.warn('[ConcernService] Blob conversion error:', err);
-  }
-
-  // Standard React Native fallback
-  formData.append(fieldName, {
-    uri,
-    name: filename,
-    type,
-  });
-};
-
 export const ConcernService = {
   // ── Upload an image to the backend ──────────────────────────────────────
   async uploadImage(imageUri) {
-    const formData = new FormData();
-    await appendImageFile(formData, 'image', imageUri);
-
     const token = await getToken();
-    const res = await fetch(`${BASE_URL}/concerns/upload/id-image`, {
-      method: 'POST',
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: formData,
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    const uploadResult = await FileSystem.uploadAsync(
+      `${BASE_URL}/concerns/upload/id-image`,
+      imageUri,
+      {
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: 'image',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      }
+    );
+    let data = {};
+    try {
+      data = JSON.parse(uploadResult.body);
+    } catch (_) {}
+    if (uploadResult.status >= 400) throw new Error(data.error || 'Upload failed');
     return data.url; // returns the hosted image URL
   },
 
@@ -81,26 +59,56 @@ export const ConcernService = {
     userName,
     userBarangay,
   }) {
-    const formData = new FormData();
-    formData.append('title', String(title || ''));
-    formData.append('description', String(description || ''));
-    formData.append('category', String(category || ''));
-    formData.append('priority', String(priority || 'Medium'));
-    formData.append('user_name', String(userName || ''));
-    formData.append('user_barangay', String(userBarangay || ''));
-    formData.append('location_address', String(location?.address || ''));
-    if (location?.latitude) formData.append('location_lat', String(location.latitude));
-    if (location?.longitude) formData.append('location_lng', String(location.longitude));
+    const token = await getToken();
+    const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
     if (imageUri) {
-      await appendImageFile(formData, 'image', imageUri);
+      const uploadResult = await FileSystem.uploadAsync(
+        `${BASE_URL}/concerns`,
+        imageUri,
+        {
+          httpMethod: 'POST',
+          uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+          fieldName: 'image',
+          headers,
+          parameters: {
+            title: String(title || ''),
+            description: String(description || ''),
+            category: String(category || ''),
+            priority: String(priority || 'Medium'),
+            user_name: String(userName || ''),
+            user_barangay: String(userBarangay || ''),
+            location_address: String(location?.address || ''),
+            location_lat: location?.latitude ? String(location.latitude) : '',
+            location_lng: location?.longitude ? String(location.longitude) : '',
+          },
+        }
+      );
+      let data = {};
+      try {
+        data = JSON.parse(uploadResult.body);
+      } catch (_) {}
+      if (uploadResult.status >= 400) {
+        throw new Error(data.error || 'Failed to submit concern');
+      }
+      return data;
     }
 
-    const token = await getToken();
+    // Text-only submission without image
     const res = await fetch(`${BASE_URL}/concerns`, {
       method: 'POST',
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: formData,
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: String(title || ''),
+        description: String(description || ''),
+        category: String(category || ''),
+        priority: String(priority || 'Medium'),
+        user_name: String(userName || ''),
+        user_barangay: String(userBarangay || ''),
+        location_address: String(location?.address || ''),
+        location_lat: location?.latitude ? location.latitude : null,
+        location_lng: location?.longitude ? location.longitude : null,
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to submit concern');
@@ -157,20 +165,31 @@ export const ConcernService = {
 
   // ── AI Image Alignment Check ────────────────────────────────────────────
   async verifyImageAlignment(imageUri, title = '', description = '', category = '') {
-    const formData = new FormData();
-    formData.append('title', String(title));
-    formData.append('description', String(description));
-    formData.append('category', String(category));
-    await appendImageFile(formData, 'image', imageUri);
-
     const token = await getToken();
-    const res = await fetch(`${BASE_URL}/concerns/verify-image`, {
-      method: 'POST',
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: formData,
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to verify image');
+    const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+
+    const uploadResult = await FileSystem.uploadAsync(
+      `${BASE_URL}/concerns/verify-image`,
+      imageUri,
+      {
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: 'image',
+        headers,
+        parameters: {
+          title: String(title || ''),
+          description: String(description || ''),
+          category: String(category || ''),
+        },
+      }
+    );
+    let data = {};
+    try {
+      data = JSON.parse(uploadResult.body);
+    } catch (_) {}
+    if (uploadResult.status >= 400) {
+      throw new Error(data.error || 'Failed to verify image');
+    }
     return data;
   },
 

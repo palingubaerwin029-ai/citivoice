@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth, resolveImageUrl, BASE_URL } from '../../context/AuthContext';
 import { useConcerns } from '../../context/ConcernContext';
@@ -57,37 +58,23 @@ export default function ProfileScreen({ navigation }) {
     setUploadingAvatar(true);
     try {
       const token = await AsyncStorage.getItem('cv_token');
-      const formData = new FormData();
-      const filename = uri.split('/').pop() || 'avatar.jpg';
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1].toLowerCase()}` : `image/jpeg`;
-
-      try {
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        if (blob && blob.size > 0) {
-          formData.append('avatar', blob, filename);
-        } else {
-          formData.append('avatar', { uri, name: filename, type });
+      const uploadResult = await FileSystem.uploadAsync(
+        `${BASE_URL}/users/${user.id}/avatar`,
+        uri,
+        {
+          httpMethod: 'POST',
+          uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+          fieldName: 'avatar',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      } catch (e) {
-        formData.append('avatar', {
-          uri,
-          name: filename,
-          type,
-        });
-      }
-
-      const res = await fetch(`${BASE_URL}/users/${user.id}/avatar`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to upload avatar');
+      );
+      let data = {};
+      try {
+        data = JSON.parse(uploadResult.body);
+      } catch (_) {}
+      if (uploadResult.status >= 400) throw new Error(data.error || 'Failed to upload avatar');
 
       await updateUserLocal(data);
     } catch (err) {
