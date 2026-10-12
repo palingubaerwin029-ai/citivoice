@@ -29,13 +29,15 @@ const appendImageFile = async (formData, fieldName, uri) => {
   if (!uri) return;
   const filename = uri.split('/').pop() || 'photo.jpg';
   const match = /\.(\w+)$/.exec(filename);
-  const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
+  const ext = match ? match[1].toLowerCase() : 'jpg';
+  const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
 
   try {
     // In modern Expo SDK (WinterCG fetch), local file URIs must be converted to Blob
     const response = await fetch(uri);
     const blob = await response.blob();
-    formData.append(fieldName, blob, filename);
+    const typedBlob = blob.slice ? blob.slice(0, blob.size, type) : blob;
+    formData.append(fieldName, typedBlob, filename);
   } catch (err) {
     console.warn('[ConcernService] Blob conversion fallback:', err);
     // Fallback for legacy React Native runtime

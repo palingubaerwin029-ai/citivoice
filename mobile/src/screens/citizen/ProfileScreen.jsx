@@ -65,7 +65,8 @@ export default function ProfileScreen({ navigation }) {
       try {
         const response = await fetch(uri);
         const blob = await response.blob();
-        formData.append('avatar', blob, filename);
+        const typedBlob = blob.slice ? blob.slice(0, blob.size, type) : blob;
+        formData.append('avatar', typedBlob, filename);
       } catch (e) {
         formData.append('avatar', {
           uri,

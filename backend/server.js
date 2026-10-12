@@ -168,7 +168,11 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 // ─── Global error handler ───────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(`[${req.id || '-'}] Global error:`, err.stack);
-  const status = err.status || err.statusCode || 500;
+  const isMulterOrUploadError =
+    err.name === 'MulterError' ||
+    (err.message && err.message.toLowerCase().includes('only image files')) ||
+    (err.message && err.message.toLowerCase().includes('file too large'));
+  const status = err.status || err.statusCode || (isMulterOrUploadError ? 400 : 500);
   // Client errors (bad JSON, upload too large, etc.) keep their message; 5xx stays generic.
   res.status(status).json({ error: status < 500 ? err.message : 'Internal server error' });
 });

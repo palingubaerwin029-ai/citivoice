@@ -96,7 +96,7 @@ const generateText = async (prompt, options = {}) => {
     try {
       const result = await client.chat.completions.create({
         messages: [{ role: 'user', content: prompt }],
-        model: 'llama-3.3-70b-versatile',
+        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
         temperature: options.temperature ?? 0.7,
         max_tokens: options.maxTokens ?? 1024,
       });
@@ -125,7 +125,7 @@ const generateJSON = async (prompt, options = {}) => {
     try {
       const result = await client.chat.completions.create({
         messages: [{ role: 'user', content: prompt + "\n\nRespond strictly in valid JSON." }],
-        model: 'llama-3.3-70b-versatile',
+        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
         temperature: options.temperature ?? 0.3,
         max_tokens: options.maxTokens ?? 1024,
         response_format: { type: 'json_object' }
@@ -187,7 +187,7 @@ const generateJSONWithImage = async (prompt, imagePath, options = {}) => {
             ]
           }
         ],
-        model: process.env.GROQ_VISION_MODEL || 'meta-llama/llama-4-scout-17b-16e-instruct',
+        model: process.env.GROQ_VISION_MODEL || 'llama-3.2-11b-vision-preview',
         temperature: options.temperature ?? 0.3,
         max_tokens: options.maxTokens ?? 1024,
         // response_format: { type: 'json_object' } // Groq vision doesn't strictly support json_object mode, but we parse it anyway
