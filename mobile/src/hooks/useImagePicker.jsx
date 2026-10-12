@@ -12,7 +12,7 @@ export function useImagePicker() {
     const defaultOptions = {
       mediaTypes: ['images'],
       allowsEditing: true,
-      quality: 0.85,
+      quality: 0.6,
     };
 
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -35,7 +35,7 @@ export function useImagePicker() {
 
     const defaultOptions = {
       allowsEditing: true,
-      quality: 0.85,
+      quality: 0.6,
     };
 
     const result = await ImagePicker.launchCameraAsync({

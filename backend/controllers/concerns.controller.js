@@ -139,7 +139,11 @@ const createConcern = async (req, res) => {
     let filePath = null;
     if (req.file) {
       filePath = path.join(__dirname, '..', 'uploads', req.file.filename);
-      imageTags = await analyzeImage(filePath);
+      // If Groq Vision is available, it analyzes the image visually directly.
+      // Running CPU-bound TensorFlow.js MobileNet locally blocks the Node.js event loop for 5-8s.
+      if (!isGeminiAvailable()) {
+        imageTags = await analyzeImage(filePath);
+      }
     }
 
     // Feature 1: AI Auto-Classification

@@ -129,14 +129,14 @@ export default function SubmitConcernScreen({ navigation, route }) {
       {
         text: t('takePhoto'),
         onPress: async () => {
-          const uri = await launchCamera({ aspect: [4, 3], quality: 0.7 });
+          const uri = await launchCamera({ aspect: [4, 3], quality: 0.6 });
           if (uri) handleSelectImage(uri);
         },
       },
       {
         text: t('chooseGallery'),
         onPress: async () => {
-          const uri = await launchImagePicker({ aspect: [4, 3], quality: 0.7 });
+          const uri = await launchImagePicker({ aspect: [4, 3], quality: 0.6 });
           if (uri) handleSelectImage(uri);
         },
       },
