@@ -174,6 +174,9 @@ export function ConcernProvider({ children }) {
 
   // ── Manual refresh (pull-to-refresh) ───────────────────────────────────
   const refreshConcerns = async () => {
+    if (!isOffline && user?.id) {
+      syncOfflineConcerns();
+    }
     await Promise.all([
       loadFeed(1, 10, true),
       loadMyConcerns(1, 10, true)
@@ -236,7 +239,12 @@ export function ConcernProvider({ children }) {
         
         // Optimistically add to UI state
         setConcerns(prev => [optimisticOfflineItem, ...prev]);
-        setMyConcerns(prev => [optimisticOfflineItem, ...prev]);
+        // If we are actually online (transient socket timeout), schedule an auto-sync retry
+        if (!isOffline) {
+          setTimeout(() => {
+            syncOfflineConcerns();
+          }, 2000);
+        }
         
         return { offline: true };
       }
