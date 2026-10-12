@@ -85,6 +85,146 @@ If Kabankalan City or a government LGU officially adopts CitiVoice for public pr
 
 ---
 
+## 💻 Web App Deployment (Admin Console — React SPA)
+
+The CitiVoice Admin Console (`admin-web`) is a React Single-Page Application (SPA) that communicates with the backend via REST API and WebSockets. In production, it compiles into static HTML, JavaScript, and CSS assets.
+
+You can deploy the Web App using any of the following three proven methods:
+
+---
+
+### Method A: Docker + Nginx on Cloud VPS *(Recommended — Included in Repo)*
+
+Since CitiVoice includes a multi-stage [Dockerfile](file:///c:/project/citivoice/admin-web/Dockerfile) and [nginx.conf](file:///c:/project/citivoice/admin-web/nginx.conf), you can serve the admin console directly on your VPS alongside the database and backend.
+
+#### 1. Configure the Environment & Build
+Pass your production API URL at build time:
+```bash
+# In your project root, set the API URL in .env
+REACT_APP_API_URL=https://api.yourdomain.com/api
+
+# Build and start the admin container
+docker compose up -d --build admin-web
+```
+*The container will build the React bundle and serve it via an ultra-lightweight Alpine Nginx image on port `8080`.*
+
+#### 2. Configure Host Nginx Reverse Proxy & SSL (Domain Setup)
+On your VPS, route public traffic to the Docker containers with Let's Encrypt SSL:
+
+```nginx
+# /etc/nginx/sites-available/citivoice-admin
+server {
+    server_name admin.yourdomain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Enable the site and issue a free SSL certificate:
+```bash
+sudo ln -s /etc/nginx/sites-available/citivoice-admin /etc/nginx/sites-enabled/
+sudo certbot --nginx -d admin.yourdomain.com
+```
+
+---
+
+### Method B: Global Edge CDN (Vercel / Netlify / Cloudflare Pages) *(100% Free Tier)*
+
+If you want the admin dashboard delivered with global CDN speed and zero server maintenance, deploy it to a Jamstack platform for free while keeping the backend on your VPS/PaaS.
+
+#### Configuration Settings for Vercel / Netlify / Cloudflare Pages:
+| Setting | Value |
+| :--- | :--- |
+| **Framework Preset** | Create React App |
+| **Root Directory** | `admin-web` |
+| **Build Command** | `npm run build` |
+| **Output Directory** | `build` |
+| **Environment Variable** | `REACT_APP_API_URL=https://api.yourdomain.com/api` |
+
+#### SPA Routing Fallback Rule (Avoid 404 on Page Refresh):
+Because React uses client-side routing (`/concerns/12`, `/users`, etc.), any page refresh needs to route to `index.html`:
+* **For Vercel:** Add `admin-web/vercel.json`:
+  ```json
+  {
+    "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  }
+  ```
+* **For Netlify:** Add `admin-web/public/_redirects`:
+  ```text
+  /*    /index.html   200
+  ```
+* **For Cloudflare Pages:** Add `admin-web/public/_routes.json` or automatic SPA setting.
+
+---
+
+### Method C: Standalone Static Host on Linux VPS (Without Docker)
+
+If you are running the backend natively via Node.js/PM2 on a Linux server without Docker:
+
+```bash
+# 1. Build the production bundle
+cd admin-web
+REACT_APP_API_URL=https://api.yourdomain.com/api npm run build
+
+# 2. Copy the build output to web root
+sudo mkdir -p /var/www/citivoice-admin
+sudo cp -r build/* /var/www/citivoice-admin/
+
+# 3. Configure Nginx to serve static files
+sudo nano /etc/nginx/sites-available/citivoice-admin
+```
+
+Add this server block:
+```nginx
+server {
+    listen 80;
+    server_name admin.yourdomain.com;
+    root /var/www/citivoice-admin;
+    index index.html;
+
+    # Support React client-side routing
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Cache static assets for high speed
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, no-transform";
+    }
+}
+```
+
+---
+
+### ⚠️ Web App Production Checklist
+
+1. **HTTPS Matching (No Mixed Content):**  
+   If your Admin Web runs on `https://admin.yourdomain.com`, `REACT_APP_API_URL` **must also use `https://`**. Browsers block HTTP API requests made from HTTPS sites.
+2. **Backend CORS Whitelist:**  
+   In your `backend/.env`, ensure your admin web domain is added to `ALLOWED_ORIGINS`:
+   ```env
+   ALLOWED_ORIGINS=https://admin.yourdomain.com,http://localhost:3000
+   ```
+3. **WebSockets Reverse Proxy:**  
+   Ensure your backend Nginx reverse proxy configuration has WebSocket headers (`Upgrade`, `Connection "upgrade"`) so Socket.IO real-time alerts function properly on the admin web:
+   ```nginx
+   location /socket.io/ {
+       proxy_pass http://127.0.0.1:5000/socket.io/;
+       proxy_http_version 1.1;
+       proxy_set_header Upgrade $http_upgrade;
+       proxy_set_header Connection "upgrade";
+   }
+   ```
+
+---
+
 ## 📱 Mobile App Distribution (Expo SDK 57)
 
 To distribute the CitiVoice citizen mobile app:
