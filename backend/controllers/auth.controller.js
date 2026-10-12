@@ -28,11 +28,17 @@ const login = async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await selectByEmail(email);
-    if (!user) return res.status(401).json({ error: 'auth/user-not-found' });
+    const valid = user ? await bcrypt.compare(password, user.password_hash) : false;
 
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: 'auth/wrong-password' });
-    const token = sign({ id: user.id, role: user.role });
+    // Unified credential check to prevent account/email enumeration
+    if (!user || !valid) {
+      return res.status(401).json({
+        error: 'auth/invalid-credential',
+        message: 'Invalid email or password.',
+      });
+    }
+
+    const token = sign({ id: user.id, role: user.role, name: user.name });
     res.json({ token, user: safe(user) });
   } catch (err) {
     console.error('Login error:', err);
@@ -102,7 +108,7 @@ const register = async (req, res) => {
       idImageUrl,
     );
     const newUser = await selectById(insertId);
-    const token = sign({ id: newUser.id, role: newUser.role });
+    const token = sign({ id: newUser.id, role: newUser.role, name: newUser.name });
     res.status(201).json({ token, user: safe(newUser) });
   } catch (err) {
     console.error('Register error:', err);

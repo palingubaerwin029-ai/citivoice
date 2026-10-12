@@ -10,7 +10,7 @@
  *   4. Listing existing backups from disk
  */
 
-const { exec, execSync } = require('child_process');
+const { exec, execSync, spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -299,12 +299,23 @@ const runMysqldump = async () => {
     const filename = `backup_${ts}_full.sql`;
     const filePath = path.join(BACKUP_DIR, filename);
 
-    const passwordArg = password ? `-p"${password.replace(/"/g, '\\"')}"` : '';
-    const cmd = `${tool.bin} -h ${host} -P ${port} -u ${user} ${passwordArg} ${tool.sslFlag} --single-transaction --routines --triggers ${database}`;
+    const args = [
+      '-h', host,
+      '-P', String(port),
+      '-u', user,
+      tool.sslFlag,
+      '--single-transaction',
+      '--routines',
+      '--triggers',
+      database,
+    ];
 
     console.log(`[Backup] ⏳  Starting database backup (${tool.bin}) → ${filename}`);
 
-    const child = exec(cmd, { maxBuffer: 256 * 1024 * 1024 });
+    const env = { ...process.env };
+    if (password) env.MYSQL_PWD = password;
+
+    const child = spawn(tool.bin, args, { env });
 
     const writeStream = fs.createWriteStream(filePath);
     child.stdout.pipe(writeStream);

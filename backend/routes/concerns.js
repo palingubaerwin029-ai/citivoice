@@ -1,9 +1,19 @@
 const router = require('express').Router();
+const rateLimit = require('express-rate-limit');
 const auth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const upload = require('../middleware/upload');
 const { cacheMiddleware } = require('../middleware/cache');
 const { validateConcern, validateIdParam } = require('../middleware/validate');
+
+// Strict rate limiter for unauthenticated ID document upload to prevent disk DoS
+const idUploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // max 10 uploads per IP per 15 mins
+  message: { error: 'Too many ID upload attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const {
   listConcerns,
   getMapConcerns,
@@ -58,7 +68,7 @@ router.get('/:id/similar', auth, requireRole('admin'), validateIdParam, getSimil
 router.post('/:id/link', auth, requireRole('admin'), validateIdParam, linkConcerns);
 
 // ─── Upload ID image (mobile verification) ────────────────────────────────────
-router.post('/upload/id-image', upload.single('image'), uploadIdImage);
+router.post('/upload/id-image', idUploadLimiter, upload.single('image'), uploadIdImage);
 
 // ─── Workflow Tracking ────────────────────────────────────────────────────────
 router.get('/:id/assignments', auth, validateIdParam, workflowController.getAssignments);
