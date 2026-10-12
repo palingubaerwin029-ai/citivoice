@@ -140,8 +140,12 @@ export const translations = {
     passwordMin: 'At least 6 characters',
     moreDetail: 'Please provide more detail (min 20 chars)',
     loginFailed: 'Login Failed',
-    registrationFailed: 'Registration Failed',
     error: 'Error',
+    couldNotSubmit: 'Could not submit report. Please check your connection and try again.',
+    uploadError: 'There was a problem processing or uploading the attached photo. Please check your internet or try selecting the photo again.',
+    networkError: 'Internet connection error. Please check your mobile data or Wi-Fi signal and try again.',
+    imageInvalidError: 'The selected image file is corrupted or unsupported. Please take or pick a different photo.',
+    fileTooLargeError: 'The photo file is too large (limit: 10MB). Please choose a smaller photo.',
 
     // Map
     concernsMap: 'Concerns Map',
@@ -395,8 +399,12 @@ export const translations = {
     passwordMin: 'Hindi bababa sa 6 na karakter',
     moreDetail: 'Mangyaring magbigay ng mas maraming detalye (hindi bababa sa 20 character)',
     loginFailed: 'Hindi Makapag-login',
-    registrationFailed: 'Hindi Makapag-rehistro',
     error: 'May Problema',
+    couldNotSubmit: 'Hindi maipadala ang report. Pakisuri ang iyong koneksyon at subukang muli.',
+    uploadError: 'Nagkaproblema sa pagbasa o pag-upload ng litrato. Pakisuri ang iyong internet o subukang piliin muli ang litrato.',
+    networkError: 'Problema sa koneksyon sa internet. Pakisuri ang iyong data o Wi-Fi at subukang muli.',
+    imageInvalidError: 'Hindi mabasa o sira ang file ng litrato. Mangyaring pumili o kumuha ng ibang litrato.',
+    fileTooLargeError: 'Masyadong malaki ang litrato (limitasyon: 10MB). Pumili ng mas maliit na litrato.',
 
     // Map
     concernsMap: 'Mapa ng mga Alalahanin',
@@ -649,8 +657,12 @@ export const translations = {
     passwordMin: 'Kinahanglan 6 ka letra/numero pataas',
     moreDetail: 'Palihog dugangan ang detalye (indi magnubo sa 20 ka character)',
     loginFailed: 'Indi Maka-login',
-    registrationFailed: 'Indi Maka-register',
     error: 'May Problema',
+    couldNotSubmit: 'Indi mapadala ang report. Palihog tsekyar ang imo koneksyon kag tilawi liwat.',
+    uploadError: 'May problema sa pagbasa ukon pag-upload sang litrato. Palihog tsekyar ang imo internet ukon tilawi liwat pili ang litrato.',
+    networkError: 'Problema sa koneksyon sang internet. Palihog tsekyar ang imo mobile data ukon Wi-Fi kag tilawi liwat.',
+    imageInvalidError: 'Indi mabasa ukon guba ang file sang litrato. Palihog magkuha ukon magpili sang liwat nga litrato.',
+    fileTooLargeError: 'Tuman kadaku ang litrato (limitasyon: 10MB). Magpili sang mas gamay nga litrato.',
 
     // Map
     concernsMap: 'Mapa sang mga Report',

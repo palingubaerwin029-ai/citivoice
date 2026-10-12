@@ -249,7 +249,39 @@ export default function SubmitConcernScreen({ navigation, route }) {
       setSubmitted(true);
     } catch (err) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(t('error'), err.message || 'Could not submit concern.');
+      console.warn('[SubmitConcern] Submission error:', err);
+
+      const rawMsg = err?.message || '';
+      let friendlyMsg = t('couldNotSubmit') || 'Could not submit report. Please try again.';
+
+      if (
+        rawMsg.includes('FormDataPart') ||
+        rawMsg.includes('Upload failed') ||
+        rawMsg.includes('upload') ||
+        rawMsg.includes('photo') ||
+        rawMsg.includes('image')
+      ) {
+        friendlyMsg = t('uploadError');
+      } else if (
+        rawMsg.includes('Network') ||
+        rawMsg.includes('Failed to fetch') ||
+        rawMsg.includes('timeout') ||
+        rawMsg.includes('ECONNREFUSED')
+      ) {
+        friendlyMsg = t('networkError');
+      } else if (rawMsg.includes('413') || rawMsg.includes('too large')) {
+        friendlyMsg = t('fileTooLargeError');
+      } else if (
+        rawMsg.includes('signature') ||
+        rawMsg.includes('corrupted') ||
+        rawMsg.includes('Only image files')
+      ) {
+        friendlyMsg = t('imageInvalidError');
+      } else if (rawMsg) {
+        friendlyMsg = rawMsg;
+      }
+
+      Alert.alert(t('error') || 'May Problema', friendlyMsg);
     } finally {
       setLoading(false);
     }

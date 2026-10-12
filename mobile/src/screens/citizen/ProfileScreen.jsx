@@ -58,15 +58,21 @@ export default function ProfileScreen({ navigation }) {
     try {
       const token = await AsyncStorage.getItem('cv_token');
       const formData = new FormData();
-      const filename = uri.split('/').pop();
+      const filename = uri.split('/').pop() || 'avatar.jpg';
       const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : `image/jpeg`;
+      const type = match ? `image/${match[1].toLowerCase()}` : `image/jpeg`;
 
-      formData.append('avatar', {
-        uri,
-        name: filename || 'avatar.jpg',
-        type,
-      });
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        formData.append('avatar', blob, filename);
+      } catch (e) {
+        formData.append('avatar', {
+          uri,
+          name: filename,
+          type,
+        });
+      }
 
       const res = await fetch(`${BASE_URL}/users/${user.id}/avatar`, {
         method: 'POST',

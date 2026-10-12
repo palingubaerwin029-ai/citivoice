@@ -25,15 +25,33 @@ const apiRequest = async (path, options = {}) => {
   return data;
 };
 
+const appendImageFile = async (formData, fieldName, uri) => {
+  if (!uri) return;
+  const filename = uri.split('/').pop() || 'photo.jpg';
+  const match = /\.(\w+)$/.exec(filename);
+  const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
+
+  try {
+    // In modern Expo SDK (WinterCG fetch), local file URIs must be converted to Blob
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    formData.append(fieldName, blob, filename);
+  } catch (err) {
+    console.warn('[ConcernService] Blob conversion fallback:', err);
+    // Fallback for legacy React Native runtime
+    formData.append(fieldName, {
+      uri,
+      name: filename,
+      type,
+    });
+  }
+};
+
 export const ConcernService = {
   // ── Upload an image to the backend ──────────────────────────────────────
   async uploadImage(imageUri) {
-    const filename = imageUri.split('/').pop();
-    const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : 'image/jpeg';
-
     const formData = new FormData();
-    formData.append('image', { uri: imageUri, name: filename, type });
+    await appendImageFile(formData, 'image', imageUri);
 
     const token = await getToken();
     const res = await fetch(`${BASE_URL}/concerns/upload/id-image`, {
@@ -58,21 +76,18 @@ export const ConcernService = {
     userBarangay,
   }) {
     const formData = new FormData();
-    formData.append('title', title);
-    formData.append('description', description);
-    formData.append('category', category);
-    formData.append('priority', priority || 'Medium');
-    formData.append('user_name', userName || '');
-    formData.append('user_barangay', userBarangay || '');
-    formData.append('location_address', location?.address || '');
+    formData.append('title', String(title || ''));
+    formData.append('description', String(description || ''));
+    formData.append('category', String(category || ''));
+    formData.append('priority', String(priority || 'Medium'));
+    formData.append('user_name', String(userName || ''));
+    formData.append('user_barangay', String(userBarangay || ''));
+    formData.append('location_address', String(location?.address || ''));
     if (location?.latitude) formData.append('location_lat', String(location.latitude));
     if (location?.longitude) formData.append('location_lng', String(location.longitude));
 
     if (imageUri) {
-      const filename = imageUri.split('/').pop();
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : 'image/jpeg';
-      formData.append('image', { uri: imageUri, name: filename, type });
+      await appendImageFile(formData, 'image', imageUri);
     }
 
     const token = await getToken();
