@@ -29,10 +29,21 @@ const CAT_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#F97
 const TT = {
   contentStyle: {
     background: 'var(--surface)',
-    border: '1px solid var(--border)',
+    border: '1px solid var(--border-md)',
     borderRadius: 10,
     color: 'var(--text-1)',
     fontSize: 12,
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+  },
+  itemStyle: {
+    color: 'var(--text-1)',
+    fontSize: 12,
+    fontWeight: 500,
+  },
+  labelStyle: {
+    color: 'var(--text-1)',
+    fontSize: 12,
+    fontWeight: 600,
   },
   cursor: { fill: 'rgba(120,150,200,0.05)' },
 };

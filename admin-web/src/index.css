@@ -192,6 +192,25 @@ select {
   animation-fill-mode: both;
 }
 
+/* ── Recharts Tooltip Styling (High visibility text in dark & light modes) ── */
+.recharts-default-tooltip {
+  background: var(--surface) !important;
+  border: 1px solid var(--border-md) !important;
+  border-radius: 10px !important;
+  color: var(--text-1) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+.recharts-tooltip-item,
+.recharts-tooltip-item-name,
+.recharts-tooltip-item-separator,
+.recharts-tooltip-item-value,
+.recharts-tooltip-label {
+  color: var(--text-1) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
 @media print {
   :root {
     --bg: #FFFFFF;
