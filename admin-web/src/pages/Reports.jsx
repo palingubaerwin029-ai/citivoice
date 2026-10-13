@@ -371,7 +371,7 @@ export default function Reports() {
                   </table>
 
                   <h4 style={{ margin: '20px 0 10px', fontSize: 14, fontWeight: 700 }}>
-                    Top Barangay Concerns & Most Concerned Barangay
+                    Most Concerned Barangay
                   </h4>
                   <table className={r.printTable}>
                     <thead>
@@ -548,10 +548,10 @@ export default function Reports() {
       <div className={r.flexLayout}>
         <div className={`${s.card} ${r.flex1}`}>
           <div className={s.cardHeader}>
-            <span className={s.cardTitle}>Top Barangay Concerns</span>
+            <span className={s.cardTitle}>Most Concerned Barangay</span>
             {mostConcernedBarangay && (
               <span className={r.badgeMostConcerned}>
-                🚨 Most Concerned: {mostConcernedBarangay.name}
+                Rank #1: {mostConcernedBarangay.isTie ? `${mostConcernedBarangay.tiedNames.join(' & ')} (Tied)` : mostConcernedBarangay.name} ({mostConcernedBarangay.count} concerns)
               </span>
             )}
           </div>

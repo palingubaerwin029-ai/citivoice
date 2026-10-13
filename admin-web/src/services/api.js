@@ -59,33 +59,59 @@ export const resolveImageUrl = (url) => {
   return match ? `${API_HOST}${match[0]}` : url;
 };
 
-// Utility: Extract/derive barangay only from concern's location_address, falling back to user_barangay
+// Kabankalan City barangay reference coordinates (centroids) for accurate pinned location matching
+const KABANKALAN_BARANGAY_COORDS = [
+  { name: 'Barangay 1', lat: 9.998, lng: 122.814 },
+  { name: 'Barangay 2', lat: 10.001, lng: 122.812 },
+  { name: 'Barangay 3', lat: 9.995, lng: 122.816 },
+  { name: 'Barangay 4', lat: 9.992, lng: 122.818 },
+  { name: 'Barangay 5', lat: 10.005, lng: 122.816 },
+  { name: 'Barangay 6', lat: 10.008, lng: 122.820 },
+  { name: 'Barangay 7', lat: 10.012, lng: 122.825 },
+  { name: 'Barangay 8', lat: 10.015, lng: 122.830 },
+  { name: 'Barangay 9', lat: 10.000, lng: 122.808 },
+  { name: 'Bantayan', lat: 9.988, lng: 122.822 },
+  { name: 'Binicuil', lat: 9.965, lng: 122.805 },
+  { name: 'Camansi', lat: 9.940, lng: 122.880 },
+  { name: 'Camingawan', lat: 9.820, lng: 122.950 },
+  { name: 'Camugao', lat: 9.955, lng: 122.835 },
+  { name: 'Carol-an', lat: 9.860, lng: 122.920 },
+  { name: 'Daan Banua', lat: 10.010, lng: 122.785 },
+  { name: 'Hilamonan', lat: 10.005, lng: 122.845 },
+  { name: 'Inapoy', lat: 9.810, lng: 122.880 },
+  { name: 'Linao', lat: 10.020, lng: 122.800 },
+  { name: 'Locotan', lat: 9.930, lng: 122.840 },
+  { name: 'Magballo', lat: 9.850, lng: 122.830 },
+  { name: 'Oringao', lat: 9.891, lng: 122.866 },
+  { name: 'Orong', lat: 9.910, lng: 122.800 },
+  { name: 'Pinaguinpinan', lat: 9.950, lng: 122.780 },
+  { name: 'Salong', lat: 9.970, lng: 122.760 },
+  { name: 'Tabao', lat: 10.030, lng: 122.830 },
+  { name: 'Tabugon', lat: 9.780, lng: 122.850 },
+  { name: 'Tagoc', lat: 9.930, lng: 122.770 },
+  { name: 'Tagukon', lat: 9.740, lng: 122.830 },
+  { name: 'Talubangi', lat: 10.015, lng: 122.825 },
+  { name: 'Tampalon', lat: 9.900, lng: 122.920 },
+  { name: 'Tan-awan', lat: 9.840, lng: 122.980 },
+  { name: 'Tapi', lat: 9.870, lng: 122.800 }
+];
+
+// Utility: Extract/derive barangay strictly from concern's pinned location (address and GPS coordinates), NEVER from user_barangay
 export const getPinBarangay = (c) => {
   if (!c) return 'Barangay 1';
 
   const address = (c.location_address || '').trim();
 
+  // 1. Check if pinned address explicitly mentions a known Kabankalan barangay
   if (address) {
-    // 1. Check against known barangay list (Kabankalan City barangays)
-    const knownBarangays = [
-      'Poblacion 1', 'Poblacion 2', 'Poblacion 3', 'Poblacion 4',
-      'Poblacion 5', 'Poblacion 6', 'Poblacion 7', 'Poblacion 8',
-      'Barangay 1', 'Barangay 2', 'Barangay 3', 'Barangay 4',
-      'Barangay 5', 'Barangay 6', 'Barangay 7', 'Barangay 8', 'Barangay 9',
-      'Bantayan', 'Binicuil', 'Camansi', 'Camingawan', 'Camugao', 'Carol-an',
-      'Daan Banua', 'Hilamonan', 'Inapoy', 'Linao', 'Locotan', 'Magballo',
-      'Oringao', 'Orong', 'Pinaguinpinan', 'Salong', 'Tabao', 'Tabugon', 'Tagoc',
-      'Tagukon', 'Talubangi', 'Tampalon', 'Tan-awan', 'Tapi', 'Guinzadan'
-    ];
-
-    for (const brgy of knownBarangays) {
-      const regex = new RegExp(`\\b${brgy}\\b`, 'i');
+    for (const b of KABANKALAN_BARANGAY_COORDS) {
+      const regex = new RegExp(`\\b${b.name}\\b`, 'i');
       if (regex.test(address)) {
-        return brgy;
+        return b.name;
       }
     }
 
-    // 2. Regex check for "Barangay <Name/Number>", "Brgy. <Name/Number>", "Poblacion <Number>"
+    // Regex check for "Barangay <Name/Number>", "Brgy. <Name/Number>", "Poblacion <Number>"
     const match = address.match(/(?:Barangay|Brgy\.?|Poblacion)\s+([A-Za-z0-9\s-]+?)(?:,|\.|$)/i);
     if (match && match[1]) {
       const trimmed = match[1].trim();
@@ -99,10 +125,22 @@ export const getPinBarangay = (c) => {
     }
   }
 
-  // 3. Fall back to c.user_barangay if location_address has no explicit barangay phrase
-  if (c.user_barangay && c.user_barangay.trim()) {
-    return c.user_barangay.trim();
+  // 2. Derive strictly from the pinned GPS coordinates (location_lat, location_lng)
+  const lat = parseFloat(c.location_lat);
+  const lng = parseFloat(c.location_lng);
+  if (!isNaN(lat) && !isNaN(lng)) {
+    let nearest = null;
+    let minD = Infinity;
+    for (const b of KABANKALAN_BARANGAY_COORDS) {
+      const d = Math.hypot(b.lat - lat, b.lng - lng);
+      if (d < minD) {
+        minD = d;
+        nearest = b.name;
+      }
+    }
+    if (nearest) return nearest;
   }
 
   return 'Barangay 1';
 };
+
