@@ -811,7 +811,7 @@
 
 /* ── Print Styles ── */
 .printOnly {
-  display: none;
+  display: none !important;
 }
 
 @media print {

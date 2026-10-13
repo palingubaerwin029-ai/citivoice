@@ -238,7 +238,7 @@ export default function Reports() {
       </div>
 
       {/* Print Header - Page 1 */}
-      <div className={`${s.printOnly} ${r.printHeader}`}>
+      <div className={`${s.printOnly} ${r.printOnly} ${r.printHeader}`}>
         <div className={r.printHeaderInner}>
           <div className={r.printLogoBlock}>
             <div className={r.printEmblem}>🏛️</div>
@@ -493,7 +493,7 @@ export default function Reports() {
       <div className={r.pageBreak} />
 
       {/* Page 2 Running Header */}
-      <div className={`${s.printOnly} ${r.printPage2Header}`}>
+      <div className={`${s.printOnly} ${r.printOnly} ${r.printPage2Header}`}>
         <div className={r.printPage2Left}>
           <span className={r.printPage2Brand}>CITIVOICE · CITY OF KABANKALAN</span>
           <span className={r.printPage2Sep}>|</span>
@@ -704,7 +704,7 @@ export default function Reports() {
       </div>
 
       {/* Official Certification Block - Print Only */}
-      <div className={`${s.printOnly} ${r.printCertification}`}>
+      <div className={`${s.printOnly} ${r.printOnly} ${r.printCertification}`}>
         <div className={r.certCol}>
           <div className={r.certLabel}>Prepared by:</div>
           <div className={r.certLine}></div>

@@ -16,10 +16,11 @@
   font-weight: 600;
 }
 
-.printHeader {
-  margin-bottom: 14px;
-  border-bottom: 2px solid #111;
-  padding-bottom: 8px;
+.printOnly,
+.printHeader,
+.printPage2Header,
+.printCertification {
+  display: none !important;
 }
 
 .printHeaderInner {
@@ -87,17 +88,7 @@
   color: #444;
 }
 
-/* Page 2 Running Header */
-.printPage2Header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1.5px solid #333;
-  padding-bottom: 6px;
-  margin-bottom: 10px;
-  font-size: 10px;
-}
-
+/* Page 2 Running Header Styles */
 .printPage2Left {
   display: flex;
   align-items: center;
@@ -126,18 +117,6 @@
   border: 1px solid #bfdbfe;
   padding: 2px 8px;
   border-radius: 4px;
-}
-
-/* Certification Sign-off Block */
-.printCertification {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed #bbb;
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  break-inside: avoid !important;
-  page-break-inside: avoid !important;
 }
 
 .certCol {
@@ -177,6 +156,38 @@
   @page {
     size: A4 portrait;
     margin: 8mm 10mm;
+  }
+
+  .printOnly {
+    display: block !important;
+  }
+
+  .printHeader {
+    display: block !important;
+    margin-bottom: 14px !important;
+    border-bottom: 2px solid #111 !important;
+    padding-bottom: 8px !important;
+  }
+
+  .printPage2Header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 1.5px solid #333 !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 10px !important;
+    font-size: 10px !important;
+  }
+
+  .printCertification {
+    display: flex !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    margin-top: 10px !important;
+    padding-top: 10px !important;
+    border-top: 1px dashed #bbb !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   .pageBreak {
