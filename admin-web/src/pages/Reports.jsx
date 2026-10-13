@@ -514,32 +514,6 @@ export default function Reports() {
             )}
           </div>
           <div style={{ padding: '12px 16px 16px' }}>
-            {mostConcernedBarangay && (
-              <div className={r.mostConcernedBanner}>
-                <div>
-                  <div className={r.mostConcernedHeader}>
-                    <span>🚨</span>
-                    <span className={r.mostConcernedTag}>Most Concerned Barangay</span>
-                  </div>
-                  <div className={r.mostConcernedName}>
-                    {mostConcernedBarangay.isTie
-                      ? `${mostConcernedBarangay.tiedNames.join(' & ')} (Tied)`
-                      : mostConcernedBarangay.name}
-                  </div>
-                  <div className={r.mostConcernedSub}>
-                    Primary issue:{' '}
-                    <strong style={{ color: 'var(--text-1)' }}>
-                      {mostConcernedBarangay.topCategory}
-                    </strong>{' '}
-                    · {mostConcernedBarangay.pct}% of total city concerns
-                  </div>
-                </div>
-                <div className={r.mostConcernedCountBadge}>
-                  <div>{mostConcernedBarangay.count}</div>
-                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.85 }}>CONCERNS</div>
-                </div>
-              </div>
-            )}
 
             {brgData.length === 0 ? (
               <div className={r.emptyState}>No data yet</div>
