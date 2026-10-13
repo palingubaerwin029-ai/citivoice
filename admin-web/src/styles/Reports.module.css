@@ -218,7 +218,7 @@
 
   :global(.statsRow) {
     display: grid !important;
-    grid-template-columns: repeat(6, 1fr) !important;
+    grid-template-columns: repeat(5, 1fr) !important;
     gap: 6px !important;
     margin-bottom: 8px !important;
   }

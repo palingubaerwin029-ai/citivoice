@@ -201,22 +201,6 @@ export default function Reports() {
       sub: `${total ? Math.round((hiPrio / total) * 100) : 0}% of total`,
     },
     { label: 'In Progress', value: inProgress, color: '#60A5FA', sub: 'Active now' },
-    {
-      label: 'Most Concerned Barangay',
-      value: mostConcernedBarangay
-        ? mostConcernedBarangay.isTie
-          ? `${mostConcernedBarangay.name}*`
-          : mostConcernedBarangay.name
-        : 'None',
-      color: '#EF4444',
-      sub: mostConcernedBarangay
-        ? `${mostConcernedBarangay.count} concerns reported${
-            mostConcernedBarangay.isTie
-              ? ` (Tied with ${mostConcernedBarangay.tiedNames.slice(1).join(', ')})`
-              : ` (${mostConcernedBarangay.pct}% of city total)`
-          }`
-        : 'No concerns in range',
-    },
   ];
 
   return (
