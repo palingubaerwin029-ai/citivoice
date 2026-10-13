@@ -63,7 +63,7 @@ export default function Reports() {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
-    Promise.all([api.get('/concerns'), api.get('/users')])
+    Promise.all([api.get('/concerns', { limit: 1000 }), api.get('/users')])
       .then(([c, u]) => {
         setConcerns(c.data || []);
         setUsers(u.data || []);
@@ -150,15 +150,42 @@ export default function Reports() {
     return Object.values(m).sort((a, b) => a.month.localeCompare(b.month));
   })();
 
-  const brgData = Object.entries(
-    filtered.reduce((a, c) => {
-      const brgy = getPinBarangay(c);
-      if (brgy) a[brgy] = (a[brgy] || 0) + 1;
-      return a;
-    }, {}),
-  )
-    .sort((a, b) => b[1] - a[1])
+  // Group concerns by barangay with category breakdowns
+  const brgyStats = filtered.reduce((acc, c) => {
+    const brgy = getPinBarangay(c);
+    if (!brgy) return acc;
+    if (!acc[brgy]) {
+      acc[brgy] = {
+        name: brgy,
+        total: 0,
+        categories: {},
+        highPriority: 0,
+      };
+    }
+    acc[brgy].total++;
+    const cat = c.category ? c.category.split(' ')[0] : 'Other';
+    acc[brgy].categories[cat] = (acc[brgy].categories[cat] || 0) + 1;
+    if (c.priority === 'High') acc[brgy].highPriority++;
+    return acc;
+  }, {});
+
+  const brgData = Object.values(brgyStats)
+    .sort((a, b) => b.total - a.total)
     .slice(0, 10);
+
+  const mostConcernedBarangay =
+    brgData.length > 0
+      ? {
+          name: brgData[0].name,
+          count: brgData[0].total,
+          pct: total ? Math.round((brgData[0].total / total) * 100) : 0,
+          topCategory:
+            Object.entries(brgData[0].categories).sort((a, b) => b[1] - a[1])[0]?.[0] || 'General',
+          isTie: brgData.length > 1 && brgData[0].total === brgData[1].total,
+          tiedNames: brgData.filter((b) => b.total === brgData[0].total).map((b) => b.name),
+        }
+      : null;
+
   const topUp = [...filtered].sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0)).slice(0, 5);
 
   if (loading) return <div className={s.loading}>Loading analytics…</div>;
@@ -174,7 +201,22 @@ export default function Reports() {
       sub: `${total ? Math.round((hiPrio / total) * 100) : 0}% of total`,
     },
     { label: 'In Progress', value: inProgress, color: '#60A5FA', sub: 'Active now' },
-    { label: 'Citizens', value: users.length, color: '#8B5CF6', sub: 'Registered' },
+    {
+      label: 'Most Concerned Barangay',
+      value: mostConcernedBarangay
+        ? mostConcernedBarangay.isTie
+          ? `${mostConcernedBarangay.name}*`
+          : mostConcernedBarangay.name
+        : 'None',
+      color: '#EF4444',
+      sub: mostConcernedBarangay
+        ? `${mostConcernedBarangay.count} concerns reported${
+            mostConcernedBarangay.isTie
+              ? ` (Tied with ${mostConcernedBarangay.tiedNames.slice(1).join(', ')})`
+              : ` (${mostConcernedBarangay.pct}% of city total)`
+          }`
+        : 'No concerns in range',
+    },
   ];
 
   return (
@@ -329,25 +371,47 @@ export default function Reports() {
                   </table>
 
                   <h4 style={{ margin: '20px 0 10px', fontSize: 14, fontWeight: 700 }}>
-                    Top Barangays by Concerns Reported
+                    Top Barangay Concerns & Most Concerned Barangay
                   </h4>
                   <table className={r.printTable}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #ccc' }}>
                         <th style={{ padding: '8px 0' }}>Rank</th>
                         <th style={{ padding: '8px 0' }}>Barangay</th>
-                        <th style={{ padding: '8px 0' }}>Total Reports</th>
-                        <th style={{ padding: '8px 0' }}>Percentage</th>
+                        <th style={{ padding: '8px 0' }}>Total Concerns</th>
+                        <th style={{ padding: '8px 0' }}>Primary Category</th>
+                        <th style={{ padding: '8px 0' }}>Share of Total</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {brgData.map(([brgy, count], i) => {
-                        const pct = total ? Math.round((count / total) * 100) : 0;
+                      {brgData.map((item, i) => {
+                        const pct = total ? Math.round((item.total / total) * 100) : 0;
+                        const isTop = i === 0;
+                        const topCat = Object.entries(item.categories).sort((a, b) => b[1] - a[1])[0];
                         return (
-                          <tr key={brgy} style={{ borderBottom: '1px solid #eee' }}>
+                          <tr
+                            key={item.name}
+                            style={{
+                              borderBottom: '1px solid #eee',
+                              background: isTop ? '#FFF5F5' : 'transparent',
+                            }}
+                          >
                             <td style={{ padding: '8px 0', fontWeight: 600 }}>#{i + 1}</td>
-                            <td style={{ padding: '8px 0' }}>{brgy}</td>
-                            <td style={{ padding: '8px 0', fontWeight: 700 }}>{count}</td>
+                            <td style={{ padding: '8px 0', fontWeight: isTop ? 700 : 500 }}>
+                              {item.name} {isTop ? '(Most Concerned)' : ''}
+                            </td>
+                            <td
+                              style={{
+                                padding: '8px 0',
+                                fontWeight: 700,
+                                color: isTop ? '#EF4444' : 'inherit',
+                              }}
+                            >
+                              {item.total}
+                            </td>
+                            <td style={{ padding: '8px 0' }}>
+                              {topCat ? `${topCat[0]} (${topCat[1]})` : '—'}
+                            </td>
                             <td style={{ padding: '8px 0' }}>{pct}%</td>
                           </tr>
                         );
@@ -484,29 +548,81 @@ export default function Reports() {
       <div className={r.flexLayout}>
         <div className={`${s.card} ${r.flex1}`}>
           <div className={s.cardHeader}>
-            <span className={s.cardTitle}>Top Barangays</span>
+            <span className={s.cardTitle}>Top Barangay Concerns</span>
+            {mostConcernedBarangay && (
+              <span className={r.badgeMostConcerned}>
+                🚨 Most Concerned: {mostConcernedBarangay.name}
+              </span>
+            )}
           </div>
-          <div style={{ padding: '8px 16px 16px' }}>
+          <div style={{ padding: '12px 16px 16px' }}>
+            {mostConcernedBarangay && (
+              <div className={r.mostConcernedBanner}>
+                <div>
+                  <div className={r.mostConcernedHeader}>
+                    <span>🚨</span>
+                    <span className={r.mostConcernedTag}>Most Concerned Barangay</span>
+                  </div>
+                  <div className={r.mostConcernedName}>
+                    {mostConcernedBarangay.isTie
+                      ? `${mostConcernedBarangay.tiedNames.join(' & ')} (Tied)`
+                      : mostConcernedBarangay.name}
+                  </div>
+                  <div className={r.mostConcernedSub}>
+                    Primary issue:{' '}
+                    <strong style={{ color: 'var(--text-1)' }}>
+                      {mostConcernedBarangay.topCategory}
+                    </strong>{' '}
+                    · {mostConcernedBarangay.pct}% of total city concerns
+                  </div>
+                </div>
+                <div className={r.mostConcernedCountBadge}>
+                  <div>{mostConcernedBarangay.count}</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.85 }}>CONCERNS</div>
+                </div>
+              </div>
+            )}
+
             {brgData.length === 0 ? (
               <div className={r.emptyState}>No data yet</div>
             ) : (
-              brgData.map(([brgy, count], i) => {
-                const pct = total ? Math.round((count / total) * 100) : 0;
+              brgData.map((item, i) => {
+                const pct = total ? Math.round((item.total / total) * 100) : 0;
+                const isTop =
+                  i === 0 ||
+                  (mostConcernedBarangay?.isTie && item.total === mostConcernedBarangay.count);
+                const topCat = Object.entries(item.categories).sort((a, b) => b[1] - a[1])[0];
                 return (
-                  <div key={brgy} className={r.rankItem}>
+                  <div key={item.name} className={r.rankItem}>
                     <div className={r.rankHeader}>
                       <span className={r.rankName}>
                         <span className={r.rankNumber}>#{i + 1}</span>
-                        {brgy}
+                        <strong>{item.name}</strong>
+                        {isTop && (
+                          <span className={r.badgeMostConcerned}>
+                            Most Concerned
+                          </span>
+                        )}
                       </span>
-                      <span className={r.rankValue}>{count}</span>
+                      <span className={r.rankValue}>
+                        {item.total} {item.total === 1 ? 'concern' : 'concerns'} ({pct}%)
+                      </span>
                     </div>
-                    <div className={s.progressTrack} style={{ height: 5 }}>
+                    <div className={s.progressTrack} style={{ height: 6 }}>
                       <div
                         className={s.progressFill}
-                        style={{ height: 5, background: CC[i % CC.length], width: `${pct}%` }}
+                        style={{
+                          height: 6,
+                          background: isTop ? '#EF4444' : CC[i % CC.length],
+                          width: `${pct}%`,
+                        }}
                       />
                     </div>
+                    {topCat && (
+                      <div className={r.brgyCatPill}>
+                        Top issue: {topCat[0]} ({topCat[1]})
+                      </div>
+                    )}
                   </div>
                 );
               })
