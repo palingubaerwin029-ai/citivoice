@@ -17,9 +17,156 @@
 }
 
 .printHeader {
-  margin-bottom: 30px;
-  border-bottom: 2px solid #000;
-  padding-bottom: 20px;
+  margin-bottom: 14px;
+  border-bottom: 2px solid #111;
+  padding-bottom: 8px;
+}
+
+.printHeaderInner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.printLogoBlock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.printEmblem {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.printGovTitle {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #555;
+  font-weight: 600;
+}
+
+.printCityTitle {
+  font-size: 16px;
+  font-weight: 900;
+  color: #111;
+  margin: 1px 0;
+  letter-spacing: 0.5px;
+}
+
+.printSystemTitle {
+  font-size: 10px;
+  font-weight: 700;
+  color: #2563eb;
+  letter-spacing: 0.3px;
+}
+
+.printMetaBlock {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.printMetaBadge {
+  display: inline-block;
+  align-self: flex-end;
+  background: #111;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.printMetaDate {
+  font-size: 10px;
+  color: #444;
+}
+
+/* Page 2 Running Header */
+.printPage2Header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1.5px solid #333;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  font-size: 10px;
+}
+
+.printPage2Left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.printPage2Brand {
+  font-weight: 800;
+  color: #111;
+  letter-spacing: 0.4px;
+}
+
+.printPage2Sep {
+  color: #999;
+}
+
+.printPage2Section {
+  color: #444;
+  font-weight: 600;
+}
+
+.printPage2Right {
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* Certification Sign-off Block */
+.printCertification {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #bbb;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}
+
+.certCol {
+  flex: 1;
+  text-align: center;
+}
+
+.certLabel {
+  font-size: 9px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 22px;
+}
+
+.certLine {
+  border-bottom: 1px solid #333;
+  margin-bottom: 4px;
+}
+
+.certName {
+  font-size: 10px;
+  font-weight: 700;
+  color: #111;
+}
+
+.certSub {
+  font-size: 8.5px;
+  color: #666;
 }
 
 .pageBreak {
@@ -27,19 +174,173 @@
 }
 
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+
   .pageBreak {
     display: block !important;
-    break-after: page !important;
-    page-break-after: always !important;
+    break-before: page !important;
+    page-break-before: always !important;
+    clear: both !important;
     height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+    border: none !important;
   }
 
   .flexLayout {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 10px !important;
+    margin-bottom: 8px !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
     overflow: visible !important;
+  }
+
+  .flex2 {
+    flex: 1.8 !important;
+  }
+
+  .flex1 {
+    flex: 1 !important;
+  }
+
+  /* Compact card styling for print to guarantee exact 2-page fit */
+  :global(.card) {
+    padding: 8px 12px !important;
+    margin-bottom: 8px !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+  }
+
+  :global(.statsRow) {
+    display: grid !important;
+    grid-template-columns: repeat(6, 1fr) !important;
+    gap: 6px !important;
+    margin-bottom: 8px !important;
+  }
+
+  :global(.statCard) {
+    padding: 6px 8px !important;
+    margin-bottom: 0 !important;
+    min-height: auto !important;
+    border: 1px solid #ddd !important;
+  }
+
+  :global(.statValue) {
+    font-size: 16px !important;
+    margin-bottom: 2px !important;
+  }
+
+  :global(.statLabel) {
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+  }
+
+  :global(.cardHeader) {
+    padding-bottom: 6px !important;
+    margin-bottom: 6px !important;
+  }
+
+  :global(.cardTitle) {
+    font-size: 12px !important;
+  }
+
+  .cardContent {
+    padding: 4px 6px !important;
+  }
+
+  .printTable th,
+  .printTable td {
+    padding: 4px 6px !important;
+    font-size: 11px !important;
+  }
+
+  .legendRow,
+  .prioLegendRow {
+    gap: 4px !important;
+    font-size: 10px !important;
+  }
+
+  .mostConcernedBanner {
+    padding: 6px 10px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .mostConcernedName {
+    font-size: 13px !important;
+  }
+
+  .mostConcernedSub {
+    font-size: 10px !important;
+  }
+
+  .mostConcernedCountBadge {
+    padding: 3px 8px !important;
+    font-size: 11px !important;
+  }
+
+  .rankItem {
+    margin-bottom: 4px !important;
+  }
+
+  .rankHeader {
+    font-size: 11px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .brgyCatPill {
+    font-size: 9.5px !important;
+    margin-top: 1px !important;
+  }
+
+  .upvotedItem {
+    padding: 5px 8px !important;
+  }
+
+  .upvotedTitle {
+    font-size: 11px !important;
+  }
+
+  .upvotedMeta {
+    font-size: 9.5px !important;
+  }
+
+  .summaryFooter {
+    padding: 8px 12px !important;
+    gap: 12px !important;
+  }
+
+  .summaryTitle {
+    font-size: 13px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .summaryDesc {
+    font-size: 10px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .summaryLegendList {
+    gap: 10px !important;
+  }
+
+  .summaryLegendLabel,
+  .summaryLegendValue {
+    font-size: 10px !important;
+  }
+
+  .summaryRate {
+    font-size: 36px !important;
+  }
+
+  .summaryRateLabel {
+    font-size: 10px !important;
+    margin-top: 2px !important;
+    margin-bottom: 4px !important;
   }
 }
 

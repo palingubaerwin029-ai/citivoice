@@ -253,15 +253,26 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* Print Header (Only visible when printing) */}
+      {/* Print Header - Page 1 */}
       <div className={`${s.printOnly} ${r.printHeader}`}>
-        <div className={s.flexBetween}>
-          <div>
-            <p style={{ margin: 0, color: '#666' }}>
-              Generated on {new Date().toLocaleString()} · Range: {startDate} to {endDate}
-            </p>
+        <div className={r.printHeaderInner}>
+          <div className={r.printLogoBlock}>
+            <div className={r.printEmblem}>🏛️</div>
+            <div>
+              <div className={r.printGovTitle}>Republic of the Philippines · Province of Negros Occidental</div>
+              <h1 className={r.printCityTitle}>CITY GOVERNMENT OF KABANKALAN</h1>
+              <div className={r.printSystemTitle}>CITIVOICE CITIZEN CONCERN & RESOLUTION MONITORING SYSTEM</div>
+            </div>
           </div>
-          <div style={{ fontSize: 40 }}>📢</div>
+          <div className={r.printMetaBlock}>
+            <div className={r.printMetaBadge}>EXECUTIVE ANALYTICS REPORT</div>
+            <div className={r.printMetaDate}>
+              <strong>Period:</strong> {startDate} to {endDate}
+            </div>
+            <div className={r.printMetaDate}>
+              <strong>Generated:</strong> {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -369,55 +380,6 @@ export default function Reports() {
                       ))}
                     </tbody>
                   </table>
-
-                  <h4 style={{ margin: '20px 0 10px', fontSize: 14, fontWeight: 700 }}>
-                    Most Concerned Barangay
-                  </h4>
-                  <table className={r.printTable}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #ccc' }}>
-                        <th style={{ padding: '8px 0' }}>Rank</th>
-                        <th style={{ padding: '8px 0' }}>Barangay</th>
-                        <th style={{ padding: '8px 0' }}>Total Concerns</th>
-                        <th style={{ padding: '8px 0' }}>Primary Category</th>
-                        <th style={{ padding: '8px 0' }}>Share of Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {brgData.map((item, i) => {
-                        const pct = total ? Math.round((item.total / total) * 100) : 0;
-                        const isTop = i === 0;
-                        const topCat = Object.entries(item.categories).sort((a, b) => b[1] - a[1])[0];
-                        return (
-                          <tr
-                            key={item.name}
-                            style={{
-                              borderBottom: '1px solid #eee',
-                              background: isTop ? '#FFF5F5' : 'transparent',
-                            }}
-                          >
-                            <td style={{ padding: '8px 0', fontWeight: 600 }}>#{i + 1}</td>
-                            <td style={{ padding: '8px 0', fontWeight: isTop ? 700 : 500 }}>
-                              {item.name} {isTop ? '(Most Concerned)' : ''}
-                            </td>
-                            <td
-                              style={{
-                                padding: '8px 0',
-                                fontWeight: 700,
-                                color: isTop ? '#EF4444' : 'inherit',
-                              }}
-                            >
-                              {item.total}
-                            </td>
-                            <td style={{ padding: '8px 0' }}>
-                              {topCat ? `${topCat[0]} (${topCat[1]})` : '—'}
-                            </td>
-                            <td style={{ padding: '8px 0' }}>{pct}%</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
                 </div>
               </>
             )}
@@ -459,8 +421,7 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* Explicit Page Break for Print (Guarantees clean 2-page print report without cutting cards) */}
-      <div className={r.pageBreak} />
+
 
       {/* Row 2 */}
       <div className={r.flexLayout}>
@@ -542,6 +503,19 @@ export default function Reports() {
             })}
           </div>
         </div>
+      </div>
+
+      {/* Explicit Page Break for Print (Guarantees strict 2-page fit) */}
+      <div className={r.pageBreak} />
+
+      {/* Page 2 Running Header */}
+      <div className={`${s.printOnly} ${r.printPage2Header}`}>
+        <div className={r.printPage2Left}>
+          <span className={r.printPage2Brand}>CITIVOICE · CITY OF KABANKALAN</span>
+          <span className={r.printPage2Sep}>|</span>
+          <span className={r.printPage2Section}>Section 2: Barangay Breakdown & Community Priorities</span>
+        </div>
+        <div className={r.printPage2Right}>Page 2 of 2</div>
       </div>
 
       {/* Row 3 */}
@@ -694,6 +668,28 @@ export default function Reports() {
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Official Certification Block - Print Only */}
+      <div className={`${s.printOnly} ${r.printCertification}`}>
+        <div className={r.certCol}>
+          <div className={r.certLabel}>Prepared by:</div>
+          <div className={r.certLine}></div>
+          <div className={r.certName}>System Administrator</div>
+          <div className={r.certSub}>CitiVoice Kabankalan MIS</div>
+        </div>
+        <div className={r.certCol}>
+          <div className={r.certLabel}>Verified by:</div>
+          <div className={r.certLine}></div>
+          <div className={r.certName}>Public Information & Concerns Office</div>
+          <div className={r.certSub}>City Government of Kabankalan</div>
+        </div>
+        <div className={r.certCol}>
+          <div className={r.certLabel}>Noted by:</div>
+          <div className={r.certLine}></div>
+          <div className={r.certName}>Office of the City Mayor</div>
+          <div className={r.certSub}>Kabankalan City, Negros Occidental</div>
         </div>
       </div>
     </div>
