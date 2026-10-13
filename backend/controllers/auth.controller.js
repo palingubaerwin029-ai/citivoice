@@ -11,11 +11,23 @@ const {
   updateResetOtp,
   updatePasswordByEmail,
   checkExistingIdNumber,
+  upsertRegistrationOtp,
+  getRegistrationOtp,
+  markRegistrationEmailVerified,
+  deleteRegistrationOtp,
 } = require('../models/user.model');
+const { OAuth2Client } = require('google-auth-library');
 const { sendEmail } = require('../services/notificationService');
 const { verifyNameOnId } = require('../services/idVerificationService');
 
 const JWT_SECRET = process.env.JWT_SECRET;
+
+// Comma-separated OAuth client IDs whose ID tokens we accept (usually just the Web client ID)
+const GOOGLE_CLIENT_IDS = (process.env.GOOGLE_CLIENT_IDS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+const googleClient = new OAuth2Client();
 
 const sign = (payload) => jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 
@@ -46,8 +58,178 @@ const login = async (req, res) => {
   }
 };
 
+// ── Google Sign-In (login only — email must already be registered) ─────────
+const googleLogin = async (req, res) => {
+  if (GOOGLE_CLIENT_IDS.length === 0) {
+    return res.status(503).json({ error: 'Google sign-in is not configured on the server.' });
+  }
+
+  const { idToken } = req.body || {};
+  if (!idToken || typeof idToken !== 'string') {
+    return res.status(400).json({ error: 'idToken is required.' });
+  }
+
+  let payload;
+  try {
+    // Verifies Google's signature, expiry, issuer and that the token was issued for OUR app
+    const ticket = await googleClient.verifyIdToken({ idToken, audience: GOOGLE_CLIENT_IDS });
+    payload = ticket.getPayload();
+  } catch (err) {
+    console.warn('[Google Login] Token verification failed:', err.message);
+    return res.status(401).json({ error: 'auth/invalid-google-token', message: 'Google sign-in failed. Please try again.' });
+  }
+
+  if (!payload?.email || !payload.email_verified) {
+    return res.status(401).json({ error: 'auth/unverified-google-email', message: 'Your Google email is not verified.' });
+  }
+
+  try {
+    const email = payload.email.toLowerCase();
+    const user = await selectByEmail(email);
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'auth/not-registered',
+        message: 'This Google account is not registered in CitiVoice. Please sign up first.',
+        email,
+        name: payload.name || '',
+      });
+    }
+
+    const token = sign({ id: user.id, role: user.role, name: user.name });
+    res.json({ token, user: safe(user) });
+  } catch (err) {
+    console.error('Google login error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// ── Send Registration Email OTP ──────────────────────────────────────────────
+const sendRegistrationOtp = async (req, res) => {
+  const { email } = req.body || {};
+  if (!email || !/\S+@\S+\.\S+/.test(email)) {
+    return res.status(400).json({ error: 'Please enter a valid email address.' });
+  }
+
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check if email already registered
+    const existing = await selectByEmail(cleanEmail);
+    if (existing) {
+      return res.status(400).json({
+        error: 'auth/email-already-in-use',
+        message: 'This email is already registered. Please sign in instead.',
+      });
+    }
+
+    // Cooldown check (prevent spamming: 45s between OTP requests)
+    const existingOtp = await getRegistrationOtp(cleanEmail);
+    if (existingOtp && existingOtp.updated_at) {
+      const secondsSinceLast = (Date.now() - new Date(existingOtp.updated_at).getTime()) / 1000;
+      if (secondsSinceLast < 45) {
+        const waitSec = Math.ceil(45 - secondsSinceLast);
+        return res.status(429).json({
+          error: `Please wait ${waitSec}s before requesting a new code.`,
+          retryAfter: waitSec,
+        });
+      }
+    }
+
+    // Generate 6-digit numeric OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await upsertRegistrationOtp(cleanEmail, hashedOtp, expiresAt);
+
+    // Send email with official CitiVoice branding
+    const htmlBody = `
+      <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px 20px; background-color: #0f172a; color: #e2e8f0; max-width: 580px; margin: auto; border-radius: 16px; border: 1px solid #1e293b;">
+        <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 32px 20px; text-align: center; border-radius: 12px; margin-bottom: 28px;">
+          <h1 style="color: white; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">CitiVoice</h1>
+          <p style="color: rgba(255,255,255,0.85); margin: 6px 0 0 0; font-size: 13px; font-weight: 500;">Kabankalan City Citizen Portal</p>
+        </div>
+        <div style="padding: 0 10px;">
+          <h2 style="font-size: 20px; color: #f8fafc; margin-top: 0;">Verify Your Email Address</h2>
+          <p style="font-size: 14px; color: #94a3b8; line-height: 1.6;">Thank you for registering with CitiVoice. To ensure your account security and verify that you own this email, enter the 6-digit code below in the registration form:</p>
+          <div style="background: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155; margin: 24px 0; text-align: center;">
+            <p style="font-size: 38px; font-weight: 800; letter-spacing: 10px; color: #38bdf8; margin: 0; font-family: monospace;">${otp}</p>
+          </div>
+          <p style="font-size: 13px; color: #64748b; line-height: 1.5;">This verification code will expire in <strong style="color: #cbd5e1;">10 minutes</strong>. If you did not request this, you can safely ignore this email.</p>
+        </div>
+        <div style="margin-top: 36px; padding-top: 20px; border-top: 1px solid #1e293b; text-align: center;">
+          <p style="font-size: 11px; color: #64748b; margin: 0;">City Government of Kabankalan — Office of the City Mayor</p>
+        </div>
+      </div>
+    `;
+
+    await sendEmail(cleanEmail, 'CitiVoice — Email Verification Code', htmlBody);
+
+    res.json({ success: true, message: 'Verification code sent to your email.' });
+  } catch (err) {
+    console.error('Send registration OTP error:', err);
+    res.status(500).json({ error: 'Failed to send verification code. Please try again.' });
+  }
+};
+
+// ── Verify Registration Email OTP ────────────────────────────────────────────
+const verifyRegistrationOtp = async (req, res) => {
+  const { email, otp } = req.body || {};
+  if (!email || !otp) {
+    return res.status(400).json({ error: 'Email and 6-digit code are required.' });
+  }
+
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const record = await getRegistrationOtp(cleanEmail);
+
+    if (!record || !record.otp_hash || !record.expires_at) {
+      return res.status(400).json({ error: 'No verification code was requested for this email. Please request a new code.' });
+    }
+
+    if (new Date() > new Date(record.expires_at)) {
+      return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+    }
+
+    const isValid = await bcrypt.compare(String(otp).trim(), record.otp_hash);
+    if (!isValid) {
+      return res.status(400).json({ error: 'Invalid verification code. Please check and try again.' });
+    }
+
+    // Mark as verified in DB
+    await markRegistrationEmailVerified(cleanEmail);
+
+    // Sign a temporary 1-hour verification token
+    const verificationToken = jwt.sign(
+      { email: cleanEmail, type: 'registration_email_verified' },
+      JWT_SECRET,
+      { expiresIn: '1h' },
+    );
+
+    res.json({
+      success: true,
+      verificationToken,
+      message: 'Email verified successfully!',
+    });
+  } catch (err) {
+    console.error('Verify registration OTP error:', err);
+    res.status(500).json({ error: 'Verification failed. Please try again.' });
+  }
+};
+
 const register = async (req, res) => {
-  const { name, email, password, phone, barangay, idType, idNumber, idImageUrl } = req.body;
+  const {
+    name,
+    email,
+    password,
+    phone,
+    barangay,
+    idType,
+    idNumber,
+    idImageUrl,
+    verificationToken,
+  } = req.body;
   try {
     const existingName = await selectByName(name);
     if (existingName) return res.status(400).json({ error: 'Name already registered' });
@@ -108,6 +290,12 @@ const register = async (req, res) => {
       idImageUrl,
     );
     const newUser = await selectById(insertId);
+
+    // Clean up temporary registration OTP record
+    try {
+      await deleteRegistrationOtp(email);
+    } catch (_) {}
+
     const token = sign({ id: newUser.id, role: newUser.role, name: newUser.name });
     res.status(201).json({ token, user: safe(newUser) });
   } catch (err) {
@@ -244,6 +432,9 @@ const verifyIdName = async (req, res) => {
 
 module.exports = {
   login,
+  googleLogin,
+  sendRegistrationOtp,
+  verifyRegistrationOtp,
   register,
   getMe,
   forgotPassword,

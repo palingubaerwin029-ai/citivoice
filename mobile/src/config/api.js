@@ -4,11 +4,14 @@ const getBaseUrl = () => {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
-  const hostUri = Constants?.expoConfig?.hostUri;
-  if (hostUri) {
-    return `http://${hostUri.split(':')[0]}:5000/api`;
+  const host =
+    Constants?.expoConfig?.hostUri ||
+    Constants?.manifest2?.extra?.expoGo?.debuggerHost ||
+    Constants?.manifest?.debuggerHost;
+  if (host) {
+    return `http://${host.split(':')[0]}:5000/api`;
   }
-  return 'http://10.0.2.2:5000/api'; 
+  return 'http://10.112.173.178:5000/api'; 
 };
 
 export const BASE_URL = getBaseUrl();

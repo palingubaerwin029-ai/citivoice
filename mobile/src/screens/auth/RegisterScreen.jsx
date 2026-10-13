@@ -11,6 +11,7 @@ import {
   Image,
   Animated,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,14 +36,18 @@ const ID_TYPES = [
   'PRC ID',
 ];
 
-export default function RegisterScreen({ navigation }) {
+export default function RegisterScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { register } = useAuth();
   const { t, language, changeLanguage } = useLanguage();
 
+  // Pre-filled when redirected from "Continue with Google" with an unregistered Gmail
+  const prefill = route?.params || {};
+  const isGooglePreVerified = Boolean(prefill?.isGoogleVerified || (prefill?.email && prefill?.name));
+
   const [form, setForm] = useState({
-    name: '',
-    email: '',
+    name: prefill.name || '',
+    email: prefill.email || '',
     password: '',
     phone: '',
     barangay: '',
@@ -61,6 +66,86 @@ export default function RegisterScreen({ navigation }) {
   const strengthAnim = useRef(new Animated.Value(0)).current;
   const [availableBarangays, setAvailableBarangays] = useState([]);
   const [barangaySearch, setBarangaySearch] = useState('');
+
+  // Email verification state
+  const [emailVerified, setEmailVerified] = useState(isGooglePreVerified);
+  const [verificationToken, setVerificationToken] = useState(isGooglePreVerified ? 'google_verified' : null);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(0);
+  const [otpError, setOtpError] = useState(null);
+  const [otpSuccess, setOtpSuccess] = useState(null);
+
+  // Cooldown timer
+  useEffect(() => {
+    if (otpCooldown <= 0) return;
+    const timer = setTimeout(() => setOtpCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [otpCooldown]);
+
+  const handleSendOtp = async () => {
+    const cleanEmail = form.email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setErrors((prev) => ({ ...prev, email: t('required') }));
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(cleanEmail)) {
+      setErrors((prev) => ({ ...prev, email: t('invalidEmail') }));
+      return;
+    }
+    if (!cleanEmail.endsWith('@gmail.com')) {
+      setErrors((prev) => ({ ...prev, email: 'Email must be a Gmail address (@gmail.com)' }));
+      return;
+    }
+
+    setSendingOtp(true);
+    setOtpError(null);
+    setOtpSuccess(null);
+    try {
+      await mobileApi.post('/auth/send-registration-otp', { email: cleanEmail });
+      setOtpSent(true);
+      setOtpCooldown(60);
+      setOtpSuccess(`Verification code sent to ${cleanEmail}`);
+    } catch (err) {
+      const msg = err?.data?.message || err?.message || 'Failed to send verification code.';
+      setOtpError(msg);
+      setErrors((prev) => ({ ...prev, email: msg }));
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode || otpCode.trim().length !== 6) {
+      setOtpError('Please enter the 6-digit code sent to your email.');
+      return;
+    }
+
+    setVerifyingOtp(true);
+    setOtpError(null);
+    try {
+      const res = await mobileApi.post('/auth/verify-registration-otp', {
+        email: form.email.trim().toLowerCase(),
+        otp: otpCode.trim(),
+      });
+      setEmailVerified(true);
+      setVerificationToken(res.verificationToken || 'verified');
+      setOtpSent(false);
+      setOtpSuccess(null);
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.email;
+        return next;
+      });
+    } catch (err) {
+      const msg = err?.data?.error || err?.data?.message || err?.message || 'Invalid or expired code.';
+      setOtpError(msg);
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
 
   const filteredBarangays = useMemo(() => {
     const q = barangaySearch.trim().toLowerCase();
@@ -160,6 +245,7 @@ export default function RegisterScreen({ navigation }) {
     if (!form.email.trim()) e.email = t('required');
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = t('invalidEmail');
     else if (!form.email.trim().toLowerCase().endsWith('@gmail.com')) e.email = 'Email must be a Gmail address (@gmail.com)';
+    else if (!emailVerified) e.email = 'Please verify your email address before continuing.';
     if (!form.password) e.password = t('required');
     else if (form.password.length < 8) e.password = 'Password must be at least 8 characters.';
     else if (
@@ -203,6 +289,10 @@ export default function RegisterScreen({ navigation }) {
 
   const handleRegister = async () => {
     if (!validate()) return;
+    if (!emailVerified) {
+      setError('Please verify your email address with the 6-digit code first.');
+      return;
+    }
     setLoading(true);
     try {
       const idImageUrl = await ConcernService.uploadImage(form.idImage);
@@ -217,7 +307,7 @@ export default function RegisterScreen({ navigation }) {
         return;
       }
 
-      await register({ ...form, idImageUrl });
+      await register({ ...form, idImageUrl, verificationToken });
       navigation.navigate('VerifyIdentity');
     } catch (err) {
       const map = {
@@ -355,16 +445,281 @@ export default function RegisterScreen({ navigation }) {
               error={errors.name}
             />
 
-            <InputField
-              label={t('email').toUpperCase()}
-              value={form.email}
-              onChangeText={(v) => set('email', v)}
-              placeholder="you@gmail.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              leftIcon="mail-outline"
-              error={errors.email}
-            />
+            {/* Email Field with Inline Verification Action */}
+            <View style={{ marginBottom: verticalScale(16) }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: verticalScale(6),
+                }}
+              >
+                <Text style={[S.fieldLabel, { color: colors.textMuted, marginBottom: 0 }]}>
+                  {t('email').toUpperCase()} *
+                </Text>
+
+                {emailVerified ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(4) }}>
+                    <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+                    <Text style={{ fontSize: rf(11), fontWeight: '700', color: colors.success }}>
+                      {isGooglePreVerified ? 'Verified by Google' : 'Email Verified'}
+                    </Text>
+                    {!isGooglePreVerified && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setEmailVerified(false);
+                          setVerificationToken(null);
+                          setOtpSent(false);
+                          setOtpCode('');
+                          setOtpSuccess(null);
+                          setOtpError(null);
+                        }}
+                        style={{ marginLeft: scale(6) }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: rf(11),
+                            color: colors.primaryLight,
+                            textDecorationLine: 'underline',
+                          }}
+                        >
+                          Change
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    onPress={handleSendOtp}
+                    disabled={sendingOtp || otpCooldown > 0}
+                    style={{
+                      paddingHorizontal: scale(10),
+                      paddingVertical: verticalScale(4),
+                      backgroundColor: otpCooldown > 0 ? colors.bgCardAlt : colors.primary + '22',
+                      borderColor: otpCooldown > 0 ? colors.border : colors.primary,
+                      borderWidth: 1,
+                      borderRadius: RADIUS.sm,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: rf(11),
+                        fontWeight: '700',
+                        color: otpCooldown > 0 ? colors.textMuted : colors.primaryLight,
+                      }}
+                    >
+                      {sendingOtp
+                        ? 'Sending...'
+                        : otpCooldown > 0
+                        ? `Resend (${otpCooldown}s)`
+                        : otpSent
+                        ? 'Resend Code'
+                        : 'Verify Email'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View
+                style={[
+                  S.inputWrap,
+                  {
+                    backgroundColor: colors.bgCardAlt,
+                    borderColor: errors.email
+                      ? colors.danger
+                      : emailVerified
+                      ? colors.success
+                      : colors.border,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="mail-outline"
+                  size={16}
+                  color={emailVerified ? colors.success : colors.textMuted}
+                  style={{ marginRight: scale(8) }}
+                />
+                <TextInput
+                  style={[
+                    S.input,
+                    { color: colors.textPrimary },
+                    emailVerified && { opacity: 0.8 },
+                  ]}
+                  value={form.email}
+                  editable={!emailVerified}
+                  onChangeText={(v) => {
+                    set('email', v);
+                    if (errors.email) setErrors((prev) => ({ ...prev, email: null }));
+                    if (otpError) setOtpError(null);
+                  }}
+                  placeholder="you@gmail.com"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {emailVerified && (
+                  <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                )}
+              </View>
+              {errors.email && (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: scale(5),
+                    marginTop: verticalScale(5),
+                  }}
+                >
+                  <Ionicons name="alert-circle" size={12} color={colors.statusRejected} />
+                  <Text style={{ color: colors.statusRejected, fontSize: rf(11) }}>
+                    {errors.email}
+                  </Text>
+                </View>
+              )}
+
+              {/* Inline OTP Verification Card */}
+              {otpSent && !emailVerified && (
+                <View
+                  style={{
+                    marginTop: verticalScale(10),
+                    padding: scale(14),
+                    borderRadius: RADIUS.md,
+                    backgroundColor: colors.bgCardAlt,
+                    borderWidth: 1,
+                    borderColor: colors.primary + '55',
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: scale(6),
+                      marginBottom: verticalScale(6),
+                    }}
+                  >
+                    <Ionicons name="mail-unread-outline" size={16} color={colors.primaryLight} />
+                    <Text
+                      style={{
+                        fontSize: rf(12),
+                        fontWeight: '700',
+                        color: colors.textPrimary,
+                        flex: 1,
+                      }}
+                    >
+                      Enter 6-Digit Verification Code
+                    </Text>
+                  </View>
+                  <Text
+                    style={{
+                      fontSize: rf(11.5),
+                      color: colors.textSecondary,
+                      marginBottom: verticalScale(10),
+                      lineHeight: rf(16),
+                    }}
+                  >
+                    We sent a code to{' '}
+                    <Text style={{ fontWeight: '700', color: colors.textPrimary }}>
+                      {form.email}
+                    </Text>
+                    . Check your inbox (or spam).
+                  </Text>
+
+                  <View style={{ flexDirection: 'row', gap: scale(8), alignItems: 'center' }}>
+                    <View
+                      style={[
+                        S.inputWrap,
+                        {
+                          flex: 1,
+                          backgroundColor: colors.bgCard,
+                          borderColor: otpError ? colors.danger : colors.border,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name="key-outline"
+                        size={16}
+                        color={colors.textMuted}
+                        style={{ marginRight: scale(6) }}
+                      />
+                      <TextInput
+                        style={[
+                          S.input,
+                          {
+                            color: colors.textPrimary,
+                            letterSpacing: 4,
+                            fontWeight: '700',
+                            fontSize: rf(15),
+                          },
+                        ]}
+                        value={otpCode}
+                        onChangeText={(v) => {
+                          setOtpCode(v.replace(/\D/g, '').slice(0, 6));
+                          if (otpError) setOtpError(null);
+                        }}
+                        placeholder="123456"
+                        placeholderTextColor={colors.textMuted}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                      />
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={handleVerifyOtp}
+                      disabled={verifyingOtp || otpCode.length !== 6}
+                      style={{
+                        backgroundColor: otpCode.length === 6 ? colors.success : colors.bgCard,
+                        borderColor: otpCode.length === 6 ? colors.success : colors.border,
+                        borderWidth: 1,
+                        borderRadius: RADIUS.md,
+                        paddingHorizontal: scale(16),
+                        height: verticalScale(46),
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {verifyingOtp ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <Text
+                          style={{
+                            color: otpCode.length === 6 ? '#fff' : colors.textMuted,
+                            fontWeight: '700',
+                            fontSize: rf(13),
+                          }}
+                        >
+                          Verify
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+
+                  {otpError && (
+                    <Text
+                      style={{
+                        color: colors.danger,
+                        fontSize: rf(11),
+                        marginTop: verticalScale(6),
+                      }}
+                    >
+                      ⚠ {otpError}
+                    </Text>
+                  )}
+                  {otpSuccess && (
+                    <Text
+                      style={{
+                        color: colors.success,
+                        fontSize: rf(11),
+                        marginTop: verticalScale(6),
+                      }}
+                    >
+                      ✓ {otpSuccess}
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
 
             <InputField
               label={t('password').toUpperCase()}
@@ -964,6 +1319,19 @@ const S = StyleSheet.create({
     marginBottom: verticalScale(8),
   },
 
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: RADIUS.md,
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(13),
+    borderWidth: 1,
+  },
+  input: {
+    flex: 1,
+    fontSize: rf(14),
+    padding: 0,
+  },
   picker: {
     flexDirection: 'row',
     alignItems: 'center',

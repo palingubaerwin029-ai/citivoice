@@ -2,6 +2,7 @@
   "expo": {
     "name": "CitiVoice",
     "slug": "citivoice",
+    "scheme": "citivoice",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -55,7 +56,8 @@
         }
       ],
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-web-browser"
     ]
   }
 }

@@ -22,7 +22,13 @@ const apiRequest = async (path, options = {}) => {
   };
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Request failed');
+  if (!res.ok) {
+    const error = new Error(data.error || 'Request failed');
+    error.code = data.error;
+    error.status = res.status;
+    error.data = data;
+    throw error;
+  }
   return data;
 };
 
@@ -56,11 +62,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   // ── Login ──────────────────────────────────────────────────────────────
-  const login = async (email, password) => {
-    const { token, user: userData } = await apiRequest('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
+  const startSession = async ({ token, user: userData }) => {
     await AsyncStorage.setItem('cv_token', token);
     await AsyncStorage.setItem('cv_user', JSON.stringify(userData));
     const isBlocked =
@@ -69,6 +71,23 @@ export function AuthProvider({ children }) {
     setUser(fullUser);
     SocketService.connect();
     return fullUser;
+  };
+
+  const login = async (email, password) => {
+    const result = await apiRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    return startSession(result);
+  };
+
+  // ── Google Login (backend only accepts already-registered emails) ───
+  const loginWithGoogle = async (idToken) => {
+    const result = await apiRequest('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ idToken }),
+    });
+    return startSession(result);
   };
 
   // ── Register ───────────────────────────────────────────────────────────
@@ -81,6 +100,7 @@ export function AuthProvider({ children }) {
     idType,
     idNumber,
     idImageUrl,
+    verificationToken,
   }) => {
     const { token, user: userData } = await apiRequest('/auth/register', {
       method: 'POST',
@@ -93,6 +113,7 @@ export function AuthProvider({ children }) {
         idType,
         idNumber,
         idImageUrl,
+        verificationToken,
       }),
     });
     await AsyncStorage.setItem('cv_token', token);
@@ -136,6 +157,7 @@ export function AuthProvider({ children }) {
         user,
         loading,
         login,
+        loginWithGoogle,
         register,
         logout,
         submitVerification,

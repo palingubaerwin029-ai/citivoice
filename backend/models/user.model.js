@@ -213,6 +213,49 @@ const selectAdminsByDepartment = async (departmentName) => {
   }
 };
 
+// ── Pre-registration Email Verification helpers ──────────────────────────────
+let emailVerificationsTableReady = false;
+const ensureEmailVerificationsTable = async () => {
+  if (emailVerificationsTableReady) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS email_verifications (
+      email       VARCHAR(255) PRIMARY KEY,
+      otp_hash    VARCHAR(255) NOT NULL,
+      expires_at  DATETIME     NOT NULL,
+      is_verified TINYINT(1)   DEFAULT 0,
+      created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+  emailVerificationsTableReady = true;
+};
+
+const upsertRegistrationOtp = async (email, hashedOtp, expiresAt) => {
+  await ensureEmailVerificationsTable();
+  await pool.query(
+    `INSERT INTO email_verifications (email, otp_hash, expires_at, is_verified, updated_at)
+     VALUES (?, ?, ?, 0, NOW())
+     ON DUPLICATE KEY UPDATE otp_hash = VALUES(otp_hash), expires_at = VALUES(expires_at), is_verified = 0, updated_at = NOW()`,
+    [email.toLowerCase(), hashedOtp, expiresAt],
+  );
+};
+
+const getRegistrationOtp = async (email) => {
+  await ensureEmailVerificationsTable();
+  const [rows] = await pool.query('SELECT * FROM email_verifications WHERE email = ?', [email.toLowerCase()]);
+  return rows[0] || null;
+};
+
+const markRegistrationEmailVerified = async (email) => {
+  await ensureEmailVerificationsTable();
+  await pool.query('UPDATE email_verifications SET is_verified = 1, updated_at = NOW() WHERE email = ?', [email.toLowerCase()]);
+};
+
+const deleteRegistrationOtp = async (email) => {
+  await ensureEmailVerificationsTable();
+  await pool.query('DELETE FROM email_verifications WHERE email = ?', [email.toLowerCase()]);
+};
+
 module.exports = {
   selectByEmail,
   selectByName,
@@ -232,4 +275,8 @@ module.exports = {
   updatePasswordByEmail,
   updateUserAvatar,
   selectAdminsByDepartment,
+  upsertRegistrationOtp,
+  getRegistrationOtp,
+  markRegistrationEmailVerified,
+  deleteRegistrationOtp,
 };

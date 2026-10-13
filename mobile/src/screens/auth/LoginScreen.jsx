@@ -20,6 +20,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { RADIUS, SHADOWS } from '../../utils/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf } from '../../utils/responsive';
+import { isGoogleSignInAvailable, getGoogleIdToken } from '../../services/googleAuth';
 
 const LANGS = [
   { code: 'en', label: 'EN' },
@@ -185,16 +186,18 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
 // ── Main Login Screen ──────────────────────────────────────────────────────
 export default function LoginScreen({ navigation }) {
   const { colors } = useTheme();
-  const { login, logout, user } = useAuth();
+  const { login, loginWithGoogle, logout, user } = useAuth();
   const { t, language, changeLanguage } = useLanguage();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState(null);
   const errorBannerAnim = useRef(new Animated.Value(0)).current;
+  const googleAvailable = isGoogleSignInAvailable();
 
   // Animate error banner in/out
   useEffect(() => {
@@ -299,6 +302,37 @@ export default function LoginScreen({ navigation }) {
       setServerError(typeof err === 'string' ? err : errorText);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── Google Sign-In: only works for Gmail accounts already registered ──
+  const handleGoogleLogin = async () => {
+    setServerError(null);
+    setGoogleLoading(true);
+    try {
+      const idToken = await getGoogleIdToken();
+      if (!idToken) return; // user cancelled the account picker
+      await loginWithGoogle(idToken);
+      // Verification gate / navigator routing is handled the same way as password login
+    } catch (err) {
+      if (err?.code === 'auth/not-registered') {
+        const gEmail = err.data?.email || '';
+        setServerError(
+          `${gEmail || 'This Google account'} is not registered yet. Please create an account first.`,
+        );
+        navigation.navigate('Register', { email: gEmail, name: err.data?.name || '' });
+        return;
+      }
+      const msg =
+        err?.data?.message ||
+        (err?.code === 'PLAY_SERVICES_NOT_AVAILABLE'
+          ? 'Google Play Services is not available on this device.'
+          : null) ||
+        err?.message ||
+        'Google sign-in failed. Please try again.';
+      setServerError(msg);
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -499,6 +533,38 @@ export default function LoginScreen({ navigation }) {
               )}
             </TouchableOpacity>
 
+            {/* Google Sign-In (registered accounts only) */}
+            {googleAvailable && (
+              <>
+                <View style={S.dividerRow}>
+                  <View style={[S.dividerLine, { backgroundColor: colors.border }]} />
+                  <Text style={[S.dividerText, { color: colors.textMuted }]}>OR</Text>
+                  <View style={[S.dividerLine, { backgroundColor: colors.border }]} />
+                </View>
+                <TouchableOpacity
+                  style={[
+                    S.googleBtn,
+                    { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                    (googleLoading || loading) && { opacity: 0.65 },
+                  ]}
+                  onPress={handleGoogleLogin}
+                  disabled={googleLoading || loading}
+                  activeOpacity={0.85}
+                >
+                  {googleLoading ? (
+                    <ActivityIndicator color={colors.textPrimary} />
+                  ) : (
+                    <>
+                      <Ionicons name="logo-google" size={18} color="#EA4335" />
+                      <Text style={[S.googleText, { color: colors.textPrimary }]}>
+                        Continue with Google
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+
             {/* Register link */}
             <View style={S.registerRow}>
               <Text style={[S.registerText, { color: colors.textSecondary }]}>
@@ -652,6 +718,26 @@ const S = StyleSheet.create({
     ...SHADOWS.button,
   },
   submitText: { color: '#fff', fontSize: rf(15), fontWeight: '700' },
+
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(10),
+    marginTop: verticalScale(18),
+    marginBottom: verticalScale(14),
+  },
+  dividerLine: { flex: 1, height: 1 },
+  dividerText: { fontSize: rf(11), fontWeight: '700', letterSpacing: 1 },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: scale(10),
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    height: verticalScale(50),
+  },
+  googleText: { fontSize: rf(14.5), fontWeight: '700' },
 
   registerRow: {
     flexDirection: 'row',

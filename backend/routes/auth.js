@@ -1,5 +1,15 @@
 const router = require('express').Router();
-const { login, register, getMe, forgotPassword, resetPassword, verifyIdName } = require('../controllers/auth.controller');
+const {
+  login,
+  googleLogin,
+  sendRegistrationOtp,
+  verifyRegistrationOtp,
+  register,
+  getMe,
+  forgotPassword,
+  resetPassword,
+  verifyIdName,
+} = require('../controllers/auth.controller');
 const auth = require('../middleware/auth');
 const {
   validateLogin,
@@ -10,6 +20,13 @@ const {
 
 // ─── Login (admin + mobile) ───────────────────────────────────────────────────
 router.post('/login', validateLogin, login);
+
+// ─── Google Sign-In (only for already-registered emails) ────────────────────────
+router.post('/google', googleLogin);
+
+// ─── Registration Email Verification (OTP) ───────────────────────────────────
+router.post('/send-registration-otp', sendRegistrationOtp);
+router.post('/verify-registration-otp', verifyRegistrationOtp);
 
 // ─── Register (mobile citizens) ──────────────────────────────────────────────
 router.post('/register', validateRegister, register);

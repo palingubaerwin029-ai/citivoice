@@ -28,6 +28,16 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at          DATETIME            NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- ─── Pre-registration Email Verifications ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS email_verifications (
+  email       VARCHAR(255) PRIMARY KEY,
+  otp_hash    VARCHAR(255) NOT NULL,
+  expires_at  DATETIME     NOT NULL,
+  is_verified TINYINT(1)   DEFAULT 0,
+  created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- ─── Barangays ────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS barangays (
   id         INT AUTO_INCREMENT PRIMARY KEY,
