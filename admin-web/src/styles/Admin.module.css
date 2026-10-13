@@ -870,17 +870,39 @@
 
   .statsRow {
     display: flex !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+    width: 100% !important;
   }
 
-  .card,
   .statCard {
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-    border: 1px solid #eee !important;
+    flex: 1 !important;
+    padding: 6px 10px !important;
+    margin-bottom: 0 !important;
+    min-height: auto !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
     background: #fff !important;
     box-shadow: none !important;
-    margin-bottom: 10px !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .card {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    border: 1px solid #d1d5db !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    margin-bottom: 8px !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+  }
+
+  .cardHeader {
+    padding: 6px 12px !important;
+    border-bottom: 1px solid #e5e7eb !important;
   }
 
   .statValue,

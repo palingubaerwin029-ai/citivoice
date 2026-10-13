@@ -208,45 +208,45 @@
     flex: 1 !important;
   }
 
-  /* Compact card styling for print to guarantee exact 2-page fit */
-  :global(.card) {
-    padding: 8px 12px !important;
-    margin-bottom: 8px !important;
-    border: 1px solid #ddd !important;
+  .card {
+    border: 1px solid #d1d5db !important;
+    background: #fff !important;
     box-shadow: none !important;
-  }
-
-  :global(.statsRow) {
-    display: grid !important;
-    grid-template-columns: repeat(5, 1fr) !important;
-    gap: 6px !important;
     margin-bottom: 8px !important;
+    border-radius: 6px !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
-  :global(.statCard) {
-    padding: 6px 8px !important;
+  .statsRow {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+    width: 100% !important;
+  }
+
+  .statCard {
+    flex: 1 !important;
+    padding: 6px 10px !important;
     margin-bottom: 0 !important;
     min-height: auto !important;
-    border: 1px solid #ddd !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
   }
 
-  :global(.statValue) {
-    font-size: 16px !important;
-    margin-bottom: 2px !important;
+  .cardHeader {
+    padding: 6px 12px !important;
+    border-bottom: 1px solid #e5e7eb !important;
   }
 
-  :global(.statLabel) {
-    font-size: 10px !important;
-    line-height: 1.1 !important;
-  }
-
-  :global(.cardHeader) {
-    padding-bottom: 6px !important;
-    margin-bottom: 6px !important;
-  }
-
-  :global(.cardTitle) {
+  .cardTitle {
     font-size: 12px !important;
+  }
+
+  /* Recharts sizing in print to prevent stretching */
+  :global(.recharts-responsive-container) {
+    max-height: 140px !important;
   }
 
   .cardContent {
@@ -342,6 +342,26 @@
     margin-top: 2px !important;
     margin-bottom: 4px !important;
   }
+}
+
+.card {
+  position: relative;
+}
+
+.statsRow {
+  position: relative;
+}
+
+.statCard {
+  position: relative;
+}
+
+.cardHeader {
+  position: relative;
+}
+
+.cardTitle {
+  position: relative;
 }
 
 .flexLayout {

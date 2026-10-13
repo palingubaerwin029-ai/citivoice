@@ -260,9 +260,9 @@ export default function Reports() {
         </div>
       </div>
 
-      <div className={s.statsRow}>
+      <div className={`${s.statsRow} ${r.statsRow}`}>
         {KPIS.map((k, i) => (
-          <div key={i} className={s.statCard} style={{ '--accent-color': k.color }}>
+          <div key={i} className={`${s.statCard} ${r.statCard}`} style={{ '--accent-color': k.color }}>
             <div className={s.statValue}>{k.value}</div>
             <div className={s.statLabel}>{k.label}</div>
             <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6 }}>{k.sub}</div>
@@ -272,9 +272,9 @@ export default function Reports() {
 
       {/* Row 1 */}
       <div className={r.flexLayout}>
-        <div className={`${s.card} ${r.flex2}`}>
-          <div className={s.cardHeader}>
-            <span className={s.cardTitle}>Monthly Submission Trend</span>
+        <div className={`${s.card} ${r.card} ${r.flex2}`}>
+          <div className={`${s.cardHeader} ${r.cardHeader}`}>
+            <span className={`${s.cardTitle} ${r.cardTitle}`}>Monthly Submission Trend</span>
           </div>
           <div className={r.cardContent}>
             {monthly.length === 0 ? (
@@ -369,9 +369,9 @@ export default function Reports() {
             )}
           </div>
         </div>
-        <div className={`${s.card} ${r.flex1}`}>
-          <div className={s.cardHeader}>
-            <span className={s.cardTitle}>Status Distribution</span>
+        <div className={`${s.card} ${r.card} ${r.flex1}`}>
+          <div className={`${s.cardHeader} ${r.cardHeader}`}>
+            <span className={`${s.cardTitle} ${r.cardTitle}`}>Status Distribution</span>
           </div>
           <ResponsiveContainer width="100%" height={160}>
             <PieChart>
@@ -409,9 +409,9 @@ export default function Reports() {
 
       {/* Row 2 */}
       <div className={r.flexLayout}>
-        <div className={`${s.card} ${r.flex2}`}>
-          <div className={s.cardHeader}>
-            <span className={s.cardTitle}>Concerns by Category</span>
+        <div className={`${s.card} ${r.card} ${r.flex2}`}>
+          <div className={`${s.cardHeader} ${r.cardHeader}`}>
+            <span className={`${s.cardTitle} ${r.cardTitle}`}>Concerns by Category</span>
           </div>
           <div className={r.cardContent}>
             <ResponsiveContainer width="100%" height={200}>
@@ -443,9 +443,9 @@ export default function Reports() {
             </ResponsiveContainer>
           </div>
         </div>
-        <div className={`${s.card} ${r.flex1}`}>
-          <div className={s.cardHeader}>
-            <span className={s.cardTitle}>Priority Breakdown</span>
+        <div className={`${s.card} ${r.card} ${r.flex1}`}>
+          <div className={`${s.cardHeader} ${r.cardHeader}`}>
+            <span className={`${s.cardTitle} ${r.cardTitle}`}>Priority Breakdown</span>
           </div>
           <ResponsiveContainer width="100%" height={160}>
             <PieChart>
@@ -504,9 +504,9 @@ export default function Reports() {
 
       {/* Row 3 */}
       <div className={r.flexLayout}>
-        <div className={`${s.card} ${r.flex1}`}>
-          <div className={s.cardHeader}>
-            <span className={s.cardTitle}>Most Concerned Barangay</span>
+        <div className={`${s.card} ${r.card} ${r.flex1}`}>
+          <div className={`${s.cardHeader} ${r.cardHeader}`}>
+            <span className={`${s.cardTitle} ${r.cardTitle}`}>Most Concerned Barangay</span>
             {mostConcernedBarangay && (
               <span className={r.badgeMostConcerned}>
                 Rank #1: {mostConcernedBarangay.isTie ? `${mostConcernedBarangay.tiedNames.join(' & ')} (Tied)` : mostConcernedBarangay.name} ({mostConcernedBarangay.count} concerns)
@@ -544,52 +544,100 @@ export default function Reports() {
             {brgData.length === 0 ? (
               <div className={r.emptyState}>No data yet</div>
             ) : (
-              brgData.map((item, i) => {
-                const pct = total ? Math.round((item.total / total) * 100) : 0;
-                const isTop =
-                  i === 0 ||
-                  (mostConcernedBarangay?.isTie && item.total === mostConcernedBarangay.count);
-                const topCat = Object.entries(item.categories).sort((a, b) => b[1] - a[1])[0];
-                return (
-                  <div key={item.name} className={r.rankItem}>
-                    <div className={r.rankHeader}>
-                      <span className={r.rankName}>
-                        <span className={r.rankNumber}>#{i + 1}</span>
-                        <strong>{item.name}</strong>
-                        {isTop && (
-                          <span className={r.badgeMostConcerned}>
-                            Most Concerned
+              <>
+                <div className={s.noPrint}>
+                  {brgData.map((item, i) => {
+                    const pct = total ? Math.round((item.total / total) * 100) : 0;
+                    const isTop =
+                      i === 0 ||
+                      (mostConcernedBarangay?.isTie && item.total === mostConcernedBarangay.count);
+                    const topCat = Object.entries(item.categories).sort((a, b) => b[1] - a[1])[0];
+                    return (
+                      <div key={item.name} className={r.rankItem}>
+                        <div className={r.rankHeader}>
+                          <span className={r.rankName}>
+                            <span className={r.rankNumber}>#{i + 1}</span>
+                            <strong>{item.name}</strong>
+                            {isTop && (
+                              <span className={r.badgeMostConcerned}>
+                                Most Concerned
+                              </span>
+                            )}
                           </span>
+                          <span className={r.rankValue}>
+                            {item.total} {item.total === 1 ? 'concern' : 'concerns'} ({pct}%)
+                          </span>
+                        </div>
+                        <div className={s.progressTrack} style={{ height: 6 }}>
+                          <div
+                            className={s.progressFill}
+                            style={{
+                              height: 6,
+                              background: isTop ? '#EF4444' : CC[i % CC.length],
+                              width: `${pct}%`,
+                            }}
+                          />
+                        </div>
+                        {topCat && (
+                          <div className={r.brgyCatPill}>
+                            Top issue: {topCat[0]} ({topCat[1]})
+                          </div>
                         )}
-                      </span>
-                      <span className={r.rankValue}>
-                        {item.total} {item.total === 1 ? 'concern' : 'concerns'} ({pct}%)
-                      </span>
-                    </div>
-                    <div className={s.progressTrack} style={{ height: 6 }}>
-                      <div
-                        className={s.progressFill}
-                        style={{
-                          height: 6,
-                          background: isTop ? '#EF4444' : CC[i % CC.length],
-                          width: `${pct}%`,
-                        }}
-                      />
-                    </div>
-                    {topCat && (
-                      <div className={r.brgyCatPill}>
-                        Top issue: {topCat[0]} ({topCat[1]})
                       </div>
-                    )}
-                  </div>
-                );
-              })
+                    );
+                  })}
+                </div>
+
+                <div className={s.printOnly}>
+                  <table className={r.printTable}>
+                    <thead>
+                      <tr>
+                        <th style={{ width: '12%' }}>Rank</th>
+                        <th style={{ width: '38%' }}>Barangay</th>
+                        <th style={{ width: '16%' }}>Concerns</th>
+                        <th style={{ width: '22%' }}>Top Issue</th>
+                        <th style={{ width: '12%' }}>Share</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {brgData.map((item, i) => {
+                        const pct = total ? Math.round((item.total / total) * 100) : 0;
+                        const isTop = i === 0;
+                        const topCat = Object.entries(item.categories).sort((a, b) => b[1] - a[1])[0];
+                        return (
+                          <tr
+                            key={item.name}
+                            style={{
+                              background: isTop ? '#FFF5F5' : 'transparent',
+                            }}
+                          >
+                            <td style={{ fontWeight: 600 }}>#{i + 1}</td>
+                            <td style={{ fontWeight: isTop ? 700 : 500 }}>
+                              {item.name} {isTop ? '★' : ''}
+                            </td>
+                            <td
+                              style={{
+                                fontWeight: 700,
+                                color: isTop ? '#EF4444' : 'inherit',
+                              }}
+                            >
+                              {item.total}
+                            </td>
+                            <td>{topCat ? topCat[0] : '—'}</td>
+                            <td>{pct}%</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </div>
-        <div className={`${s.card} ${r.flex1}`}>
-          <div className={s.cardHeader}>
-            <span className={s.cardTitle}>Most Upvoted Concerns</span>
+        <div className={`${s.card} ${r.card} ${r.flex1}`}>
+          <div className={`${s.cardHeader} ${r.cardHeader}`}>
+            <span className={`${s.cardTitle} ${r.cardTitle}`}>Most Upvoted Concerns</span>
           </div>
           <div>
             {topUp.length === 0 ? (
@@ -618,7 +666,7 @@ export default function Reports() {
       </div>
 
       {/* Summary */}
-      <div className={s.card}>
+      <div className={`${s.card} ${r.card}`}>
         <div className={r.summaryFooter}>
           <div className={r.summaryLeft}>
             <h3 className={r.summaryTitle}>Overall Resolution Performance</h3>
