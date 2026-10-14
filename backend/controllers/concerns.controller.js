@@ -12,6 +12,7 @@ const workflowModel = require('../models/workflow.model');
 const {
   selectAllConcerns,
   countConcerns,
+  selectConcernStats,
   selectMapConcerns,
   selectConcernById,
   checkUpvote,
@@ -85,6 +86,25 @@ const getMapConcerns = async (req, res) => {
   } catch (err) {
     console.error('Map concerns error:', err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const getConcernStats = async (req, res) => {
+  try {
+    const targetUserId = req.query.userId ? parseInt(req.query.userId, 10) : (req.user?.role === 'citizen' ? req.user.id : null);
+    const [city, mine] = await Promise.all([
+      selectConcernStats(null),
+      targetUserId ? selectConcernStats(targetUserId) : (req.user?.id ? selectConcernStats(req.user.id) : null),
+    ]);
+
+    res.json({
+      city,
+      mine: mine || { total: 0, pending: 0, inProgress: 0, resolved: 0, rejected: 0, urgent: 0 },
+      ...city,
+    });
+  } catch (err) {
+    console.error('getConcernStats error:', err);
+    res.status(500).json({ error: 'Failed to fetch concern statistics' });
   }
 };
 
@@ -363,6 +383,7 @@ const createConcern = async (req, res) => {
     if (io) {
       io.to('admin').emit('new_concern', newConcern);
       io.to(`user:${req.user.id}`).emit('new_concern', newConcern);
+      io.emit('concern_stats_updated', { concernId: newConcern.id, userId: req.user.id });
     }
 
     res.status(201).json(newConcern);
@@ -558,6 +579,7 @@ const editConcern = async (req, res) => {
       if (updatedConcern.user_id) {
         io.to(`user:${updatedConcern.user_id}`).emit('concern_status_changed', updatedConcern);
       }
+      io.emit('concern_stats_updated', { concernId: updatedConcern.id, userId: updatedConcern.user_id });
     }
 
     res.json(updatedConcern);
@@ -584,6 +606,13 @@ const removeConcern = async (req, res) => {
     if (imageUrl) deleteImageFile(imageUrl);
     await deleteConcernAndUpvotes(req.params.id);
     invalidate('concerns', 'concern_detail', 'map_concerns');
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('concern_deleted', { id: req.params.id, userId: concern.user_id });
+      io.emit('concern_stats_updated', { id: req.params.id, userId: concern.user_id });
+    }
+
     res.json({ success: true });
   } catch (err) {
     console.error('Concern delete error:', err);
@@ -904,6 +933,7 @@ const approveConcern = async (req, res) => {
     // Broadcast socket event to admins
     if (req.app.get('io')) {
       req.app.get('io').to('admin').emit('concern_approved', updatedConcern);
+      req.app.get('io').emit('concern_stats_updated', { concernId: updatedConcern.id, userId: updatedConcern.user_id });
     }
 
     res.json({
@@ -920,6 +950,7 @@ const approveConcern = async (req, res) => {
 module.exports = {
   listConcerns,
   getMapConcerns,
+  getConcernStats,
   getConcern,
   createConcern,
   editConcern,

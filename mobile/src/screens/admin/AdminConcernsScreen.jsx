@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ConcernService } from '../../services/concernService';
+import { SocketService } from '../../services/socketService';
 import { getStatusConfig, getCategoryConfig, RADIUS, SHADOWS } from '../../utils/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
@@ -34,12 +35,27 @@ export default function AdminConcernsScreen({ navigation }) {
   const [showSort, setShowSort] = useState(false);
   const [viewMode, setViewMode] = useState('concerns'); // 'concerns' or 'citizens'
   const [selectedCitizen, setSelectedCitizen] = useState(null);
+  const [statsData, setStatsData] = useState({
+    total: 0,
+    pending: 0,
+    inProgress: 0,
+    resolved: 0,
+    rejected: 0,
+  });
 
   const loadData = async () => {
     try {
-      const res = await ConcernService.getConcerns({ limit: 100 });
+      const [res, statsRes] = await Promise.all([
+        ConcernService.getConcerns({ limit: 100 }),
+        ConcernService.getStats(),
+      ]);
       const items = Array.isArray(res) ? res : res?.data || [];
       setConcerns(items);
+      if (statsRes?.city) {
+        setStatsData(statsRes.city);
+      } else if (statsRes?.total !== undefined) {
+        setStatsData(statsRes);
+      }
     } catch {
     } finally {
       setLoading(false);
@@ -50,7 +66,24 @@ export default function AdminConcernsScreen({ navigation }) {
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 30000);
-    return () => clearInterval(interval);
+
+    const onUpdate = () => loadData();
+    SocketService.on('concern_stats_updated', onUpdate);
+    SocketService.on('new_concern', onUpdate);
+    SocketService.on('concern_status_changed', onUpdate);
+    SocketService.on('update_concern', onUpdate);
+    SocketService.on('concern_approved', onUpdate);
+    SocketService.on('concern_deleted', onUpdate);
+
+    return () => {
+      clearInterval(interval);
+      SocketService.off('concern_stats_updated', onUpdate);
+      SocketService.off('new_concern', onUpdate);
+      SocketService.off('concern_status_changed', onUpdate);
+      SocketService.off('update_concern', onUpdate);
+      SocketService.off('concern_approved', onUpdate);
+      SocketService.off('concern_deleted', onUpdate);
+    };
   }, []);
 
   const safeConcerns = Array.isArray(concerns) ? concerns : [];
@@ -336,7 +369,12 @@ export default function AdminConcernsScreen({ navigation }) {
                 const active = statusFilter === f;
                 const color = getStatusConfig(colors)[f]?.color || colors.primary;
                 const count =
-                  f === 'All' ? safeConcerns.length : safeConcerns.filter((c) => c.status === f).length;
+                  f === 'All' ? (statsData.total || safeConcerns.length) :
+                  f === 'Pending' ? (statsData.pending ?? safeConcerns.filter((c) => c.status === f).length) :
+                  f === 'In Progress' ? (statsData.inProgress ?? safeConcerns.filter((c) => c.status === f).length) :
+                  f === 'Resolved' ? (statsData.resolved ?? safeConcerns.filter((c) => c.status === f).length) :
+                  f === 'Rejected' ? (statsData.rejected ?? safeConcerns.filter((c) => c.status === f).length) :
+                  safeConcerns.filter((c) => c.status === f).length;
                 return (
                   <TouchableOpacity
                     key={f}

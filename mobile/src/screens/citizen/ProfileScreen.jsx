@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet, Modal, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,10 +18,17 @@ import { LANGUAGES } from '../../i18n/translations';
 export default function ProfileScreen({ navigation }) {
   const { colors, theme, toggleTheme } = useTheme();
   const { user, logout, updateUserLocal } = useAuth();
-  const { myConcerns } = useConcerns();
+  const { myConcerns, myStats, fetchStats } = useConcerns();
   const { t, language, changeLanguage } = useLanguage();
   const [showLang, setShowLang] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // Refresh exact stats on focus
+  useFocusEffect(
+    useCallback(() => {
+      if (fetchStats) fetchStats();
+    }, [fetchStats])
+  );
 
   const initials =
     user?.name
@@ -86,10 +94,10 @@ export default function ProfileScreen({ navigation }) {
   };
   const safeMyConcerns = Array.isArray(myConcerns) ? myConcerns : [];
   const stats = {
-    total: safeMyConcerns.length,
-    pending: safeMyConcerns.filter((c) => c.status === 'Pending').length,
-    inProgress: safeMyConcerns.filter((c) => c.status === 'In Progress').length,
-    resolved: safeMyConcerns.filter((c) => c.status === 'Resolved').length,
+    total: myStats?.total ?? safeMyConcerns.length,
+    pending: myStats?.pending ?? safeMyConcerns.filter((c) => c.status === 'Pending').length,
+    inProgress: myStats?.inProgress ?? safeMyConcerns.filter((c) => c.status === 'In Progress').length,
+    resolved: myStats?.resolved ?? safeMyConcerns.filter((c) => c.status === 'Resolved').length,
   };
   const memberSince = (user?.created_at ? new Date(user.created_at) : null)?.toLocaleDateString(
     'en-PH',

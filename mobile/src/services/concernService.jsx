@@ -155,6 +155,12 @@ export const ConcernService = {
     return apiRequest(`/concerns/${id}`, { method: 'DELETE' });
   },
 
+  // ── Get concern statistics (accurate DB totals) ─────────────────────────
+  async getStats(userId = null) {
+    const params = userId ? { userId } : {};
+    return apiRequest('/concerns/stats', { params });
+  },
+
   // ── AI Pre-submission Check ─────────────────────────────────────────────
   async analyzeDraft(title, description) {
     return apiRequest(`/concerns/analyze`, {

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { ToastAndroid, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ConcernService } from '../services/concernService';
+import { SocketService } from '../services/socketService';
 import { useAuth } from './AuthContext';
 import { useNetwork } from './NetworkContext';
 
@@ -12,6 +13,22 @@ const ConcernContext = createContext(null);
 export function ConcernProvider({ children }) {
   const [concerns, setConcerns] = useState([]);
   const [myConcerns, setMyConcerns] = useState([]);
+  const [cityStats, setCityStats] = useState({
+    total: 0,
+    pending: 0,
+    inProgress: 0,
+    resolved: 0,
+    rejected: 0,
+    urgent: 0,
+  });
+  const [myStats, setMyStats] = useState({
+    total: 0,
+    pending: 0,
+    inProgress: 0,
+    resolved: 0,
+    rejected: 0,
+    urgent: 0,
+  });
   const [loading, setLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const { isOffline } = useNetwork();
@@ -94,16 +111,77 @@ export function ConcernProvider({ children }) {
     }
   };
 
+  const fetchStats = async () => {
+    if (!user?.id) return null;
+    try {
+      const res = await ConcernService.getStats();
+      if (res) {
+        if (res.city) {
+          setCityStats({
+            total: Number(res.city.total || 0),
+            pending: Number(res.city.pending || 0),
+            inProgress: Number(res.city.inProgress || 0),
+            resolved: Number(res.city.resolved || 0),
+            rejected: Number(res.city.rejected || 0),
+            urgent: Number(res.city.urgent || 0),
+          });
+        }
+        if (res.mine) {
+          setMyStats({
+            total: Number(res.mine.total || 0),
+            pending: Number(res.mine.pending || 0),
+            inProgress: Number(res.mine.inProgress || 0),
+            resolved: Number(res.mine.resolved || 0),
+            rejected: Number(res.mine.rejected || 0),
+            urgent: Number(res.mine.urgent || 0),
+          });
+        }
+      }
+      return res;
+    } catch (err) {
+      console.log('Failed to fetch concern stats', err);
+      return null;
+    }
+  };
+
   // ── Initial load ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!user?.id) {
       setConcerns([]);
       setMyConcerns([]);
+      setCityStats({ total: 0, pending: 0, inProgress: 0, resolved: 0, rejected: 0, urgent: 0 });
+      setMyStats({ total: 0, pending: 0, inProgress: 0, resolved: 0, rejected: 0, urgent: 0 });
       setLoading(false);
       return;
     }
     loadFeed(1, 10, true);
     loadMyConcerns(1, 10, true);
+    fetchStats();
+  }, [user?.id]);
+
+  // ── Real-time Socket Event Listeners for Live Accurate Stats ────────────
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const handleStatsUpdate = () => {
+      fetchStats();
+    };
+
+    SocketService.on('concern_stats_updated', handleStatsUpdate);
+    SocketService.on('new_concern', handleStatsUpdate);
+    SocketService.on('concern_status_changed', handleStatsUpdate);
+    SocketService.on('update_concern', handleStatsUpdate);
+    SocketService.on('concern_approved', handleStatsUpdate);
+    SocketService.on('concern_deleted', handleStatsUpdate);
+
+    return () => {
+      SocketService.off('concern_stats_updated', handleStatsUpdate);
+      SocketService.off('new_concern', handleStatsUpdate);
+      SocketService.off('concern_status_changed', handleStatsUpdate);
+      SocketService.off('update_concern', handleStatsUpdate);
+      SocketService.off('concern_approved', handleStatsUpdate);
+      SocketService.off('concern_deleted', handleStatsUpdate);
+    };
   }, [user?.id]);
 
   const syncingRef = useRef(false);
@@ -179,7 +257,8 @@ export function ConcernProvider({ children }) {
     }
     await Promise.all([
       loadFeed(1, 10, true),
-      loadMyConcerns(1, 10, true)
+      loadMyConcerns(1, 10, true),
+      fetchStats(),
     ]);
   };
 
@@ -292,6 +371,9 @@ export function ConcernProvider({ children }) {
       value={{
         concerns,
         myConcerns,
+        cityStats,
+        myStats,
+        fetchStats,
         loading,
         isOffline,    // forwarded from NetworkContext for convenience
         addConcern,

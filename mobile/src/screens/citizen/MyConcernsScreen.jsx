@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useConcerns } from '../../context/ConcernContext';
 import { useLanguage } from '../../context/LanguageContext';
 import ConcernCard from '../../components/ConcernCard';
@@ -28,13 +29,20 @@ export default function MyConcernsScreen({ navigation }) {
     Rejected: colors.statusRejected,
   };
 
-  const { myConcerns, loadMyConcerns, loading } = useConcerns();
+  const { myConcerns, myStats, fetchStats, loadMyConcerns, loading } = useConcerns();
   const { t } = useLanguage();
   const [activeFilter, setActiveFilter] = useState('All');
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+
+  // Refresh exact concern stats whenever MyConcernsScreen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (fetchStats) fetchStats();
+    }, [fetchStats])
+  );
 
   const fetchPage = async (p, isRefresh = false) => {
     if (isRefresh) {
@@ -67,6 +75,7 @@ export default function MyConcernsScreen({ navigation }) {
   const onRefresh = () => {
     setPage(1);
     fetchPage(1, true);
+    if (fetchStats) fetchStats();
   };
 
   const safeMyConcerns = Array.isArray(myConcerns) ? myConcerns : [];
@@ -75,10 +84,10 @@ export default function MyConcernsScreen({ navigation }) {
     activeFilter === 'All' ? safeMyConcerns : safeMyConcerns.filter((c) => c.status === activeFilter);
 
   const stats = {
-    total: safeMyConcerns.length,
-    pending: safeMyConcerns.filter((c) => c.status === 'Pending').length,
-    inProgress: safeMyConcerns.filter((c) => c.status === 'In Progress').length,
-    resolved: safeMyConcerns.filter((c) => c.status === 'Resolved').length,
+    total: myStats?.total ?? safeMyConcerns.length,
+    pending: myStats?.pending ?? safeMyConcerns.filter((c) => c.status === 'Pending').length,
+    inProgress: myStats?.inProgress ?? safeMyConcerns.filter((c) => c.status === 'In Progress').length,
+    resolved: myStats?.resolved ?? safeMyConcerns.filter((c) => c.status === 'Resolved').length,
   };
 
   return (

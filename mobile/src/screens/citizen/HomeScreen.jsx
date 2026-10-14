@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import { useConcerns } from '../../context/ConcernContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -27,7 +28,7 @@ import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive'
 
 export default function HomeScreen({ navigation }) {
   const { colors, theme } = useTheme();
-  const { concerns, loading, toggleUpvote, loadFeed } = useConcerns();
+  const { concerns, cityStats, fetchStats, loading, toggleUpvote, loadFeed } = useConcerns();
 
   const FILTER_COLOR = {
     all: colors.primaryLight,
@@ -46,6 +47,13 @@ export default function HomeScreen({ navigation }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
+  // Refresh exact concern stats whenever HomeScreen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (fetchStats) fetchStats();
+    }, [fetchStats])
+  );
+
   const firstName = user?.name?.split(' ')[0] || 'there';
 
   const greeting = () => {
@@ -59,12 +67,12 @@ export default function HomeScreen({ navigation }) {
 
   const stats = useMemo(
     () => ({
-      total: safeConcerns.length,
-      pending: safeConcerns.filter((c) => c.status === 'Pending').length,
-      inProgress: safeConcerns.filter((c) => c.status === 'In Progress').length,
-      resolved: safeConcerns.filter((c) => c.status === 'Resolved').length,
+      total: cityStats?.total ?? safeConcerns.length,
+      pending: cityStats?.pending ?? safeConcerns.filter((c) => c.status === 'Pending').length,
+      inProgress: cityStats?.inProgress ?? safeConcerns.filter((c) => c.status === 'In Progress').length,
+      resolved: cityStats?.resolved ?? safeConcerns.filter((c) => c.status === 'Resolved').length,
     }),
-    [safeConcerns],
+    [cityStats, safeConcerns],
   );
 
   const fetchPage = async (p, isRefresh = false) => {
@@ -115,6 +123,7 @@ export default function HomeScreen({ navigation }) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPage(1);
     fetchPage(1, true);
+    if (fetchStats) fetchStats();
   };
 
   const renderSkeletons = () => (
@@ -297,7 +306,15 @@ export default function HomeScreen({ navigation }) {
             </View>
 
             <Text style={[S.resultCount, { color: colors.textMuted }]}>
-              {filtered.length} {filtered.length !== 1 ? t('concerns') : t('concern')}
+              {search
+                ? `${filtered.length} ${filtered.length !== 1 ? t('concerns') : t('concern')}`
+                : activeFilter === 'all'
+                  ? `${stats.total} ${stats.total !== 1 ? t('concerns') : t('concern')}`
+                  : activeFilter === 'Pending'
+                    ? `${stats.pending} ${stats.pending !== 1 ? t('concerns') : t('concern')}`
+                    : activeFilter === 'In Progress'
+                      ? `${stats.inProgress} ${stats.inProgress !== 1 ? t('concerns') : t('concern')}`
+                      : `${stats.resolved} ${stats.resolved !== 1 ? t('concerns') : t('concern')}`}
             </Text>
           </>
         }

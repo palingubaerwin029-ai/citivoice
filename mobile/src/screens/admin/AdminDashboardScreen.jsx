@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ConcernService } from '../../services/concernService';
+import { SocketService } from '../../services/socketService';
 import { useAuth } from '../../context/AuthContext';
 import { getStatusConfig, getCategoryConfig, RADIUS, SHADOWS } from '../../utils/theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -20,14 +21,30 @@ export default function AdminDashboardScreen({ navigation }) {
   const { colors } = useTheme();
   const { user } = useAuth();
   const [concerns, setConcerns] = useState([]);
+  const [statsData, setStatsData] = useState({
+    total: 0,
+    pending: 0,
+    inProgress: 0,
+    resolved: 0,
+    rejected: 0,
+    urgent: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {
     try {
-      const res = await ConcernService.getConcerns({ limit: 100 });
+      const [res, statsRes] = await Promise.all([
+        ConcernService.getConcerns({ limit: 50 }),
+        ConcernService.getStats(),
+      ]);
       const items = Array.isArray(res) ? res : res?.data || [];
       setConcerns(items);
+      if (statsRes?.city) {
+        setStatsData(statsRes.city);
+      } else if (statsRes?.total !== undefined) {
+        setStatsData(statsRes);
+      }
     } catch {
     } finally {
       setLoading(false);
@@ -39,17 +56,34 @@ export default function AdminDashboardScreen({ navigation }) {
     loadData();
     // Auto refresh every 30 seconds
     const interval = setInterval(loadData, 30000);
-    return () => clearInterval(interval);
+
+    const onUpdate = () => loadData();
+    SocketService.on('concern_stats_updated', onUpdate);
+    SocketService.on('new_concern', onUpdate);
+    SocketService.on('concern_status_changed', onUpdate);
+    SocketService.on('update_concern', onUpdate);
+    SocketService.on('concern_approved', onUpdate);
+    SocketService.on('concern_deleted', onUpdate);
+
+    return () => {
+      clearInterval(interval);
+      SocketService.off('concern_stats_updated', onUpdate);
+      SocketService.off('new_concern', onUpdate);
+      SocketService.off('concern_status_changed', onUpdate);
+      SocketService.off('update_concern', onUpdate);
+      SocketService.off('concern_approved', onUpdate);
+      SocketService.off('concern_deleted', onUpdate);
+    };
   }, []);
 
   const safeConcerns = Array.isArray(concerns) ? concerns : [];
 
   const stats = {
-    total: safeConcerns.length,
-    pending: safeConcerns.filter((c) => c.status === 'Pending').length,
-    inProgress: safeConcerns.filter((c) => c.status === 'In Progress').length,
-    resolved: safeConcerns.filter((c) => c.status === 'Resolved').length,
-    rejected: safeConcerns.filter((c) => c.status === 'Rejected').length,
+    total: statsData.total || safeConcerns.length,
+    pending: statsData.pending || safeConcerns.filter((c) => c.status === 'Pending').length,
+    inProgress: statsData.inProgress || safeConcerns.filter((c) => c.status === 'In Progress').length,
+    resolved: statsData.resolved || safeConcerns.filter((c) => c.status === 'Resolved').length,
+    rejected: statsData.rejected || safeConcerns.filter((c) => c.status === 'Rejected').length,
   };
   const resolutionRate = stats.total ? Math.round((stats.resolved / stats.total) * 100) : 0;
 

@@ -45,6 +45,34 @@ const countConcerns = async (userId = null, status = null, category = null) => {
   return rows[0].total;
 };
 
+const selectConcernStats = async (userId = null) => {
+  let query = `
+    SELECT 
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending,
+      SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) as inProgress,
+      SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as resolved,
+      SUM(CASE WHEN status = 'Rejected' THEN 1 ELSE 0 END) as rejected,
+      SUM(CASE WHEN priority = 'High' AND status = 'Pending' THEN 1 ELSE 0 END) as urgent
+    FROM concerns
+  `;
+  const params = [];
+  if (userId) {
+    query += ' WHERE user_id = ?';
+    params.push(userId);
+  }
+  const [rows] = await pool.query(query, params);
+  const r = rows[0] || {};
+  return {
+    total: Number(r.total || 0),
+    pending: Number(r.pending || 0),
+    inProgress: Number(r.inProgress || 0),
+    resolved: Number(r.resolved || 0),
+    rejected: Number(r.rejected || 0),
+    urgent: Number(r.urgent || 0),
+  };
+};
+
 const selectMapConcerns = async () => {
   // Data needed for map markers AND the bottom-sheet card when a marker is tapped
   const [rows] = await pool.query(
@@ -204,6 +232,7 @@ const selectLinkedConcerns = async (concernId) => {
 module.exports = {
   selectAllConcerns,
   countConcerns,
+  selectConcernStats,
   selectMapConcerns,
   selectConcernById,
   checkUpvote,

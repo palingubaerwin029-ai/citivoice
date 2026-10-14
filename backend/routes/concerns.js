@@ -17,6 +17,7 @@ const idUploadLimiter = rateLimit({
 const {
   listConcerns,
   getMapConcerns,
+  getConcernStats,
   getConcern,
   createConcern,
   editConcern,
@@ -34,6 +35,9 @@ const workflowController = require('../controllers/workflow.controller');
 
 // ─── List all concerns (auth required, cached 60s) ────────────────────────────
 router.get('/', auth, cacheMiddleware('concerns', 60), listConcerns);
+
+// ─── Get concern statistics (auth required, live DB counts) ───────────────────
+router.get('/stats', auth, getConcernStats);
 
 // ─── Get map concerns (auth required, cached 60s) ─────────────────────────────
 router.get('/map', auth, cacheMiddleware('map_concerns', 60), getMapConcerns);
