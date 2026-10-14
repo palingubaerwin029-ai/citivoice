@@ -98,6 +98,7 @@ export default function ProfileScreen({ navigation }) {
     pending: myStats?.pending ?? safeMyConcerns.filter((c) => c.status === 'Pending').length,
     inProgress: myStats?.inProgress ?? safeMyConcerns.filter((c) => c.status === 'In Progress').length,
     resolved: myStats?.resolved ?? safeMyConcerns.filter((c) => c.status === 'Resolved').length,
+    rejected: myStats?.rejected ?? safeMyConcerns.filter((c) => c.status === 'Rejected').length,
   };
   const memberSince = (user?.created_at ? new Date(user.created_at) : null)?.toLocaleDateString(
     'en-PH',

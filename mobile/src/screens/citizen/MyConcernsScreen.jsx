@@ -16,6 +16,7 @@ const FILTER_KEYS = [
   { key: 'Pending', tKey: 'pending', icon: 'time-outline' },
   { key: 'In Progress', tKey: 'active', icon: 'refresh-outline' },
   { key: 'Resolved', tKey: 'resolved', icon: 'checkmark-circle-outline' },
+  { key: 'Rejected', tKey: 'rejected', icon: 'close-circle-outline' },
 ];
 
 export default function MyConcernsScreen({ navigation }) {
@@ -88,6 +89,7 @@ export default function MyConcernsScreen({ navigation }) {
     pending: myStats?.pending ?? safeMyConcerns.filter((c) => c.status === 'Pending').length,
     inProgress: myStats?.inProgress ?? safeMyConcerns.filter((c) => c.status === 'In Progress').length,
     resolved: myStats?.resolved ?? safeMyConcerns.filter((c) => c.status === 'Resolved').length,
+    rejected: myStats?.rejected ?? safeMyConcerns.filter((c) => c.status === 'Rejected').length,
   };
 
   return (
@@ -144,6 +146,13 @@ export default function MyConcernsScreen({ navigation }) {
                   value: stats.resolved,
                   icon: 'checkmark-circle-outline',
                   color: colors.statusResolved,
+                },
+                {
+                  label: 'Rejected',
+                  tKey: 'rejected',
+                  value: stats.rejected,
+                  icon: 'close-circle-outline',
+                  color: colors.statusRejected,
                 },
               ].map((s, i) => {
                 const isActive = activeFilter === s.label;

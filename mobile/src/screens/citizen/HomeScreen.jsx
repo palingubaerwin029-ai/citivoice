@@ -35,6 +35,7 @@ export default function HomeScreen({ navigation }) {
     Pending: colors.statusPending,
     'In Progress': colors.statusInProgress,
     Resolved: colors.statusResolved,
+    Rejected: colors.statusRejected,
   };
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -71,6 +72,7 @@ export default function HomeScreen({ navigation }) {
       pending: cityStats?.pending ?? safeConcerns.filter((c) => c.status === 'Pending').length,
       inProgress: cityStats?.inProgress ?? safeConcerns.filter((c) => c.status === 'In Progress').length,
       resolved: cityStats?.resolved ?? safeConcerns.filter((c) => c.status === 'Resolved').length,
+      rejected: cityStats?.rejected ?? safeConcerns.filter((c) => c.status === 'Rejected').length,
     }),
     [cityStats, safeConcerns],
   );
@@ -232,28 +234,39 @@ export default function HomeScreen({ navigation }) {
             >
               {[
                 {
+                  key: 'all',
                   label: t('all'),
                   value: stats.total,
                   icon: 'apps-outline',
                   color: colors.primaryLight,
                 },
                 {
+                  key: 'Pending',
                   label: t('pending'),
                   value: stats.pending,
                   icon: 'time-outline',
                   color: colors.statusPending,
                 },
                 {
+                  key: 'In Progress',
                   label: t('active'),
                   value: stats.inProgress,
                   icon: 'refresh-outline',
                   color: colors.statusInProgress,
                 },
                 {
+                  key: 'Resolved',
                   label: t('resolved'),
                   value: stats.resolved,
                   icon: 'checkmark-circle-outline',
                   color: colors.statusResolved,
+                },
+                {
+                  key: 'Rejected',
+                  label: t('rejected'),
+                  value: stats.rejected,
+                  icon: 'close-circle-outline',
+                  color: colors.statusRejected,
                 },
               ].map((s, i) => (
                 <TouchableOpacity
@@ -261,18 +274,12 @@ export default function HomeScreen({ navigation }) {
                   style={[
                     S.statItem,
                     { backgroundColor: colors.bgCard, borderColor: colors.border },
+                    activeFilter === s.key && {
+                      borderColor: s.color,
+                      backgroundColor: s.color + '15',
+                    },
                   ]}
-                  onPress={() =>
-                    setActiveFilter(
-                      s.label === t('all')
-                        ? 'all'
-                        : s.label === t('pending')
-                          ? 'Pending'
-                          : s.label === t('active')
-                            ? 'In Progress'
-                            : 'Resolved',
-                    )
-                  }
+                  onPress={() => setActiveFilter(s.key)}
                   activeOpacity={0.8}
                 >
                   <View style={[S.statIconBox, { backgroundColor: s.color + '22' }]}>
@@ -314,7 +321,9 @@ export default function HomeScreen({ navigation }) {
                     ? `${stats.pending} ${stats.pending !== 1 ? t('concerns') : t('concern')}`
                     : activeFilter === 'In Progress'
                       ? `${stats.inProgress} ${stats.inProgress !== 1 ? t('concerns') : t('concern')}`
-                      : `${stats.resolved} ${stats.resolved !== 1 ? t('concerns') : t('concern')}`}
+                      : activeFilter === 'Resolved'
+                        ? `${stats.resolved} ${stats.resolved !== 1 ? t('concerns') : t('concern')}`
+                        : `${stats.rejected} ${stats.rejected !== 1 ? t('concerns') : t('concern')}`}
             </Text>
           </>
         }
