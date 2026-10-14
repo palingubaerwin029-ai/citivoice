@@ -766,7 +766,7 @@ export const translations = {
     offlineModeActive: 'Offline mode · Mag-sync ang mga ulat pag balik ang internet.',
     backOnline: 'Online na Liwat ✓',
     backOnlineNotice: 'Nabalik na ang koneksyon sa internet.',
-    checkConnection: 'Susihin',
+    checkConnection: 'I-check',
     // Registration & ID Verification
     searchBarangay: 'Pangitaa ang barangay…',
     noBarangayFound: 'Wala sang barangay nga nakita',
