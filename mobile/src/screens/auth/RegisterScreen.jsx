@@ -336,18 +336,18 @@ export default function RegisterScreen({ navigation, route }) {
         setForm((prev) => {
           let updated = false;
           const next = { ...prev };
-          const resolvedType = (!prev.idType && res.detectedIdType && ID_CONFIGS[res.detectedIdType])
+          const resolvedType = (res.detectedIdType && ID_CONFIGS[res.detectedIdType])
             ? res.detectedIdType
             : prev.idType;
 
-          if (!prev.idType && resolvedType) {
+          if (resolvedType && (!prev.idType || prev.idType !== resolvedType)) {
             next.idType = resolvedType;
             updated = true;
           }
 
-          const cfg = ID_CONFIGS[resolvedType] || DEFAULT_ID_CONFIG;
+          const cfg = ID_CONFIGS[next.idType || resolvedType] || DEFAULT_ID_CONFIG;
 
-          if (!prev.idNumber && res.extractedIdNumber) {
+          if (res.extractedIdNumber && (!prev.idNumber || prev.idNumber !== cfg.format(res.extractedIdNumber))) {
             next.idNumber = cfg.format(res.extractedIdNumber);
             updated = true;
           }
@@ -358,6 +358,15 @@ export default function RegisterScreen({ navigation, route }) {
           }
 
           return updated ? next : prev;
+        });
+
+        // Clear any ID validation errors since fields are now populated
+        setErrors((prev) => {
+          const next = { ...prev };
+          if (res.detectedIdType) delete next.idType;
+          if (res.extractedIdNumber) delete next.idNumber;
+          if (res.extractedName) delete next.name;
+          return next;
         });
       }
       return { uploadedUrl, res };
@@ -1325,307 +1334,21 @@ export default function RegisterScreen({ navigation, route }) {
                 </View>
               )}
 
-              {/* AI Verification Loading Card */}
+              {/* Subtle scanning status indicator */}
               {aiVerifying && (
                 <View
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: scale(10),
-                    padding: scale(12),
-                    borderRadius: RADIUS.md,
-                    marginTop: verticalScale(10),
-                    backgroundColor: colors.primary + '14',
-                    borderWidth: 1,
-                    borderColor: colors.primary + '44',
+                    gap: scale(8),
+                    marginTop: verticalScale(8),
+                    paddingVertical: verticalScale(4),
                   }}
                 >
                   <ActivityIndicator size="small" color={colors.primaryLight} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: rf(12), fontWeight: '700', color: colors.primaryLight }}>
-                      {t('aiScanningId')}
-                    </Text>
-                    <Text style={{ fontSize: rf(11), color: colors.textSecondary, marginTop: 2 }}>
-                      Extracting cardholder name and ID number from card...
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* AI Verification Review Card */}
-              {aiResult && !aiVerifying && (
-                <View
-                  style={{
-                    padding: scale(12),
-                    borderRadius: RADIUS.md,
-                    marginTop: verticalScale(10),
-                    backgroundColor: colors.bgCardAlt,
-                    borderWidth: 1,
-                    borderColor: (aiResult.nameMatch && aiResult.numberMatch) ? colors.success + '44' : colors.border,
-                    gap: verticalScale(8),
-                  }}
-                >
-                  {/* Card Header */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6) }}>
-                      <Ionicons name="scan-circle-outline" size={18} color={colors.primaryLight} />
-                      <Text style={{ fontSize: rf(12), fontWeight: '700', color: colors.textPrimary }}>
-                        AI Card Analysis
-                      </Text>
-                    </View>
-                    {aiResult.confidence ? (
-                      <View
-                        style={{
-                          backgroundColor: colors.primary + '20',
-                          paddingHorizontal: scale(8),
-                          paddingVertical: 2,
-                          borderRadius: 10,
-                        }}
-                      >
-                        <Text style={{ fontSize: rf(10), fontWeight: '700', color: colors.primaryLight }}>
-                          {aiResult.confidence}% confidence
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-
-                  {/* Detected ID Type suggestion */}
-                  {aiResult.detectedIdType && aiResult.detectedIdType !== form.idType && (
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        backgroundColor: colors.warning + '14',
-                        borderColor: colors.warning + '33',
-                        borderWidth: 1,
-                        borderRadius: RADIUS.sm,
-                        padding: scale(8),
-                      }}
-                    >
-                      <Text style={{ fontSize: rf(11), color: colors.warning, flex: 1 }}>
-                        Detected as <Text style={{ fontWeight: '700' }}>{aiResult.detectedIdType}</Text>
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => {
-                          const cfg = ID_CONFIGS[aiResult.detectedIdType] || DEFAULT_ID_CONFIG;
-                          setForm((prev) => ({
-                            ...prev,
-                            idType: aiResult.detectedIdType,
-                            idNumber: prev.idNumber ? cfg.format(prev.idNumber) : '',
-                          }));
-                        }}
-                        style={{
-                          backgroundColor: colors.warning,
-                          paddingHorizontal: scale(8),
-                          paddingVertical: 3,
-                          borderRadius: 6,
-                        }}
-                      >
-                        <Text style={{ fontSize: rf(10.5), fontWeight: '700', color: '#fff' }}>Use Type</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                  {/* Name verification row */}
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      paddingVertical: verticalScale(4),
-                      borderTopWidth: 1,
-                      borderTopColor: colors.border,
-                    }}
-                  >
-                    <View style={{ flex: 1, marginRight: scale(8) }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(5) }}>
-                        <Ionicons
-                          name={aiResult.nameMatch ? 'checkmark-circle' : 'alert-circle'}
-                          size={15}
-                          color={aiResult.nameMatch ? colors.success : colors.warning}
-                        />
-                        <Text
-                          style={{
-                            fontSize: rf(11.5),
-                            fontWeight: '700',
-                            color: aiResult.nameMatch ? colors.success : colors.warning,
-                          }}
-                        >
-                          {aiResult.nameMatch ? t('aiNameVerified') : t('aiNameMismatch')}
-                        </Text>
-                      </View>
-                      <Text
-                        style={{
-                          fontSize: rf(10.5),
-                          color: colors.textSecondary,
-                          marginTop: 2,
-                          marginLeft: scale(20),
-                        }}
-                      >
-                        {aiResult.extractedName
-                          ? `Card Name: "${aiResult.extractedName}"`
-                          : 'Name not clearly visible on card'}
-                      </Text>
-                    </View>
-                    {!aiResult.nameMatch && aiResult.extractedName && (
-                      <TouchableOpacity
-                        onPress={() => {
-                          set('name', aiResult.extractedName);
-                          setAiResult((prev) => (prev ? { ...prev, nameMatch: true } : prev));
-                        }}
-                        style={{
-                          backgroundColor: colors.primary,
-                          paddingHorizontal: scale(10),
-                          paddingVertical: verticalScale(5),
-                          borderRadius: 6,
-                        }}
-                      >
-                        <Text style={{ fontSize: rf(11), fontWeight: '700', color: '#fff' }}>Use Name</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  {/* ID Number verification row */}
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      paddingVertical: verticalScale(4),
-                      borderTopWidth: 1,
-                      borderTopColor: colors.border,
-                    }}
-                  >
-                    <View style={{ flex: 1, marginRight: scale(8) }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(5) }}>
-                        <Ionicons
-                          name={
-                            aiResult.numberMatch
-                              ? 'checkmark-circle'
-                              : aiResult.extractedIdNumber
-                              ? 'alert-circle'
-                              : 'information-circle'
-                          }
-                          size={15}
-                          color={
-                            aiResult.numberMatch
-                              ? colors.success
-                              : aiResult.extractedIdNumber
-                              ? colors.warning
-                              : colors.textMuted
-                          }
-                        />
-                        <Text
-                          style={{
-                            fontSize: rf(11.5),
-                            fontWeight: '700',
-                            color: aiResult.numberMatch
-                              ? colors.success
-                              : aiResult.extractedIdNumber
-                              ? colors.warning
-                              : colors.textMuted,
-                          }}
-                        >
-                          {aiResult.numberMatch
-                            ? t('aiNumberVerified')
-                            : aiResult.extractedIdNumber
-                            ? t('aiNumberMismatch')
-                            : 'ID number unreadable'}
-                        </Text>
-                      </View>
-                      <Text
-                        style={{
-                          fontSize: rf(10.5),
-                          color: colors.textSecondary,
-                          marginTop: 2,
-                          marginLeft: scale(20),
-                        }}
-                      >
-                        {aiResult.extractedIdNumber
-                          ? `Card ID#: "${(ID_CONFIGS[aiResult.detectedIdType || form.idType] || DEFAULT_ID_CONFIG).format(aiResult.extractedIdNumber)}"`
-                          : 'Make sure the ID number is visible and not blurred'}
-                      </Text>
-                    </View>
-                    {!aiResult.numberMatch && aiResult.extractedIdNumber && (
-                      <TouchableOpacity
-                        onPress={() => {
-                          const targetType = aiResult.detectedIdType || form.idType;
-                          const cfg = ID_CONFIGS[targetType] || DEFAULT_ID_CONFIG;
-                          const formatted = cfg.format(aiResult.extractedIdNumber);
-                          setForm((prev) => ({
-                            ...prev,
-                            idType: targetType || prev.idType,
-                            idNumber: formatted,
-                          }));
-                          setAiResult((prev) => (prev ? { ...prev, numberMatch: true } : prev));
-                        }}
-                        style={{
-                          backgroundColor: colors.primary,
-                          paddingHorizontal: scale(10),
-                          paddingVertical: verticalScale(5),
-                          borderRadius: 6,
-                        }}
-                      >
-                        <Text style={{ fontSize: rf(11), fontWeight: '700', color: '#fff' }}>Use ID#</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  {/* Actions: Apply Scanned Details & Re-scan */}
-                  <View style={{ flexDirection: 'row', gap: scale(8), marginTop: verticalScale(4) }}>
-                    {(!aiResult.nameMatch || !aiResult.numberMatch) &&
-                      (aiResult.extractedName || aiResult.extractedIdNumber) && (
-                        <TouchableOpacity
-                          onPress={() => {
-                            const targetType = aiResult.detectedIdType || form.idType;
-                            const cfg = ID_CONFIGS[targetType] || DEFAULT_ID_CONFIG;
-                            const formatted = aiResult.extractedIdNumber
-                              ? cfg.format(aiResult.extractedIdNumber)
-                              : form.idNumber;
-                            setForm((prev) => ({
-                              ...prev,
-                              name: aiResult.extractedName || prev.name,
-                              idType: targetType || prev.idType,
-                              idNumber: formatted,
-                            }));
-                            setAiResult((prev) =>
-                              prev ? { ...prev, nameMatch: true, numberMatch: true } : prev
-                            );
-                          }}
-                          style={{
-                            flex: 1,
-                            backgroundColor: colors.primary + '18',
-                            borderColor: colors.primary,
-                            borderWidth: 1,
-                            paddingVertical: verticalScale(6),
-                            borderRadius: RADIUS.sm,
-                            alignItems: 'center',
-                          }}
-                        >
-                          <Text style={{ fontSize: rf(11), fontWeight: '700', color: colors.primaryLight }}>
-                            {t('useScannedDetails')}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    <TouchableOpacity
-                      onPress={() => scanIdAI(form.idImage, form.name, form.idNumber, form.idType)}
-                      style={{
-                        paddingHorizontal: scale(12),
-                        paddingVertical: verticalScale(6),
-                        borderRadius: RADIUS.sm,
-                        backgroundColor: colors.bgCard,
-                        borderColor: colors.border,
-                        borderWidth: 1,
-                        alignItems: 'center',
-                        flexDirection: 'row',
-                        gap: scale(4),
-                      }}
-                    >
-                      <Ionicons name="refresh-outline" size={14} color={colors.textSecondary} />
-                      <Text style={{ fontSize: rf(11), color: colors.textSecondary }}>Re-scan</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <Text style={{ fontSize: rf(11.5), color: colors.textSecondary }}>
+                    {t('aiScanningId')}
+                  </Text>
                 </View>
               )}
 
