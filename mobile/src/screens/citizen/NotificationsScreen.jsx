@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { mobileApi } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { useConcerns } from '../../context/ConcernContext';
 import { EmptyState } from '../../components/UI';
 import { useLanguage } from '../../context/LanguageContext';
 import { RADIUS, SHADOWS } from '../../utils/theme';
@@ -15,12 +16,19 @@ export default function NotificationsScreen({ navigation }) {
   const [notifications, setNotifications] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const { fetchUnreadCount } = useNotifications();
+  const { concerns } = useConcerns();
   const { t } = useLanguage();
+
+  const isLinkedNotification = (n) => {
+    const text = `${n.title || ''} ${n.message || ''}`.toLowerCase();
+    return text.includes('linked') || text.includes('duplicate');
+  };
 
   const loadNotifications = async () => {
     try {
       const res = await mobileApi.get('/notifications');
-      setNotifications(res);
+      const filtered = (res || []).filter((n) => !isLinkedNotification(n));
+      setNotifications(filtered);
       // After loading, we update the app badge
       fetchUnreadCount();
     } catch (err) {
@@ -58,7 +66,90 @@ export default function NotificationsScreen({ navigation }) {
     }
   };
 
+  const handleDeleteSingle = (id) => {
+    Alert.alert(
+      'Delete Notification',
+      'Are you sure you want to delete this notification?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await mobileApi.delete(`/notifications/${id}`);
+              setNotifications((prev) => prev.filter((n) => n.id !== id));
+              fetchUnreadCount();
+            } catch (err) {
+              console.log('Error deleting notification', err);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleClearAll = () => {
+    Alert.alert(
+      'Clear Notifications',
+      'Are you sure you want to delete all notifications?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await mobileApi.delete('/notifications');
+              setNotifications([]);
+              fetchUnreadCount();
+            } catch (err) {
+              console.log('Error deleting all notifications', err);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const hasUnread = notifications.some((n) => !n.is_read);
+
+  const resolveConcernId = (item) => {
+    // Explicitly exclude linked or duplicate concern notifications
+    const text = `${item.title || ''} ${item.message || ''}`.toLowerCase();
+    if (text.includes('linked') || text.includes('duplicate')) {
+      return null;
+    }
+
+    if (item.concern_id) return item.concern_id;
+    if (item.concernId) return item.concernId;
+
+    // Only match user's own concern: "Your concern \"<Title>\""
+    const ownConcernMatch = item.message?.match(/Your concern ["“]([^"”]+)["”]/i);
+    if (ownConcernMatch && concerns && concerns.length) {
+      const matched = concerns.find(
+        (c) => c.title?.trim().toLowerCase() === ownConcernMatch[1]?.trim().toLowerCase()
+      );
+      if (matched) return matched.id;
+    }
+
+    return null;
+  };
+
+  const handleNotificationPress = async (item) => {
+    // 1. Mark as read immediately if not yet read
+    if (!item.is_read) {
+      handleMarkAsRead(item.id);
+    }
+
+    // 2. Resolve concern ID (only for citizen's own concern, not linked concerns)
+    const targetConcernId = resolveConcernId(item);
+
+    // 3. Navigate directly to the citizen's concern
+    if (targetConcernId) {
+      navigation.navigate('ConcernDetail', { concernId: targetConcernId });
+    }
+  };
 
   const timeAgo = (dateStr) => {
     if (!dateStr) return '';
@@ -117,13 +208,26 @@ export default function NotificationsScreen({ navigation }) {
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={[S.headerTitle, { color: colors.textPrimary }]}>{t('notifications')}</Text>
-        {hasUnread ? (
-          <TouchableOpacity onPress={handleMarkAllRead}>
-            <Text style={[S.markAllText, { color: colors.primary }]}>{t('markAllRead')}</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={{ width: scale(60) }} />
-        )}
+
+        <View style={S.headerRight}>
+          {hasUnread ? (
+            <TouchableOpacity onPress={handleMarkAllRead} style={S.markAllBtn}>
+              <Text style={[S.markAllText, { color: colors.primary }]}>{t('markAllRead')}</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {notifications.length > 0 ? (
+            <TouchableOpacity
+              onPress={handleClearAll}
+              style={S.deleteHeaderBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="trash-outline" size={20} color={colors.danger || '#ef4444'} />
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: scale(24) }} />
+          )}
+        </View>
       </View>
 
       <FlatList
@@ -144,6 +248,7 @@ export default function NotificationsScreen({ navigation }) {
         }
         renderItem={({ item }) => {
           const { icon, color, bg } = getNotificationIcon(item.title, item.is_read);
+
           return (
             <TouchableOpacity
               style={[
@@ -151,12 +256,13 @@ export default function NotificationsScreen({ navigation }) {
                 { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
                 !item.is_read && { backgroundColor: colors.bgCard, borderColor: color + '44' },
               ]}
-              onPress={() => !item.is_read && handleMarkAsRead(item.id)}
-              activeOpacity={0.8}
+              onPress={() => handleNotificationPress(item)}
+              activeOpacity={0.7}
             >
               <View style={[S.iconBox, { backgroundColor: bg }]}>
                 <Ionicons name={icon} size={20} color={color} />
               </View>
+
               <View style={S.content}>
                 <View style={S.titleRow}>
                   <Text
@@ -169,10 +275,21 @@ export default function NotificationsScreen({ navigation }) {
                   >
                     {item.title}
                   </Text>
-                  <Text style={[S.time, { color: colors.textMuted }]}>
-                    {timeAgo(item.created_at)}
-                  </Text>
+
+                  <View style={S.metaRow}>
+                    <Text style={[S.time, { color: colors.textMuted }]}>
+                      {timeAgo(item.created_at)}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteSingle(item.id)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      style={S.deleteSingleBtn}
+                    >
+                      <Ionicons name="trash-outline" size={15} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
+
                 <Text
                   style={[
                     S.message,
@@ -184,7 +301,10 @@ export default function NotificationsScreen({ navigation }) {
                   {item.message}
                 </Text>
               </View>
-              {!item.is_read && <View style={[S.unreadDot, { backgroundColor: color }]} />}
+
+              {!item.is_read ? (
+                <View style={[S.unreadDot, { backgroundColor: color }]} />
+              ) : null}
             </TouchableOpacity>
           );
         }}
@@ -205,7 +325,18 @@ const S = StyleSheet.create({
   },
   backBtn: { padding: scale(4) },
   headerTitle: { fontSize: rf(18), fontWeight: '800' },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(12),
+  },
+  markAllBtn: {
+    paddingVertical: verticalScale(4),
+  },
   markAllText: { fontSize: rf(13), fontWeight: '600' },
+  deleteHeaderBtn: {
+    padding: scale(4),
+  },
 
   list: {
     paddingHorizontal: scale(16),
@@ -216,18 +347,20 @@ const S = StyleSheet.create({
 
   card: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: scale(12),
     padding: scale(14),
     borderRadius: moderateScale(14),
     borderWidth: 1,
   },
-  cardUnread: {},
   iconBox: {
-    width: scale(36),
-    height: scale(36),
-    borderRadius: scale(18),
+    width: scale(38),
+    height: scale(38),
+    borderRadius: scale(19),
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'flex-start',
+    marginTop: verticalScale(2),
   },
   content: { flex: 1 },
   titleRow: {
@@ -237,14 +370,19 @@ const S = StyleSheet.create({
     marginBottom: verticalScale(4),
   },
   title: { fontSize: rf(14), fontWeight: '600', flex: 1, marginRight: scale(8) },
-  titleUnread: {},
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+  },
   time: { fontSize: rf(11) },
+  deleteSingleBtn: {
+    padding: scale(2),
+  },
   message: { fontSize: rf(13), lineHeight: rf(19) },
   unreadDot: {
     width: scale(8),
     height: scale(8),
     borderRadius: scale(4),
-    alignSelf: 'center',
-    marginLeft: scale(8),
   },
 });

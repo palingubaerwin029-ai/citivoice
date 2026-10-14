@@ -46,7 +46,7 @@ const notifyAssignedAdmin = async (admin, concern, io) => {
 
   // In-app notification
   try {
-    await insertNotification(admin.id, title, message);
+    await insertNotification(admin.id, title, message, concern.id);
   } catch (err) {
     console.error('[Workflow] Failed to insert admin notification:', err.message);
   }

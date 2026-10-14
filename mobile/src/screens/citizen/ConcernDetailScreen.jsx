@@ -33,7 +33,16 @@ export default function ConcernDetailScreen({ route, navigation }) {
   const { user } = useAuth();
   const { t } = useLanguage();
 
-  const concern = concerns.find((c) => c.id === concernId || String(c.id) === String(concernId));
+  const parsedId = Number(concernId);
+  const isPositiveIntegerId = Number.isInteger(parsedId) && parsedId > 0;
+
+  const contextConcern = concerns.find(
+    (c) => c.id === concernId || String(c.id) === String(concernId)
+  );
+  const [fetchedConcern, setFetchedConcern] = useState(null);
+  const [loadingConcern, setLoadingConcern] = useState(!contextConcern && isPositiveIntegerId);
+
+  const concern = contextConcern || fetchedConcern;
   const isOwner = concern?.user_id === user?.id;
   const canDelete = isOwner && concern?.status === 'Pending';
   const isUpvoted = false;
@@ -45,23 +54,41 @@ export default function ConcernDetailScreen({ route, navigation }) {
   const [newComment, setNewComment] = useState('');
   const [posting, setPosting] = useState(false);
 
-  const isPositiveIntegerId = Number.isInteger(Number(concernId)) && Number(concernId) > 0;
-
   useEffect(() => {
     if (!isPositiveIntegerId) return;
-    const fetchWorkflowData = async () => {
+    let isMounted = true;
+
+    const fetchConcernData = async () => {
       try {
-        const [aRes, cRes] = await Promise.all([
+        if (!contextConcern) setLoadingConcern(true);
+        const [concernRes, aRes, cRes] = await Promise.allSettled([
+          mobileApi.get(`/concerns/${concernId}`),
           mobileApi.get(`/concerns/${concernId}/assignments`),
           mobileApi.get(`/concerns/${concernId}/comments`),
         ]);
-        setAssignments(aRes.data || aRes || []);
-        setComments(cRes.data || cRes || []);
+
+        if (isMounted) {
+          if (concernRes.status === 'fulfilled' && concernRes.value) {
+            setFetchedConcern(concernRes.value);
+          }
+          if (aRes.status === 'fulfilled') {
+            setAssignments(aRes.value?.data || aRes.value || []);
+          }
+          if (cRes.status === 'fulfilled') {
+            setComments(cRes.value?.data || cRes.value || []);
+          }
+        }
       } catch (err) {
-        console.log('Failed to fetch workflow data', err);
+        console.log('Failed to fetch concern workflow data', err);
+      } finally {
+        if (isMounted) setLoadingConcern(false);
       }
     };
-    fetchWorkflowData();
+
+    fetchConcernData();
+    return () => {
+      isMounted = false;
+    };
   }, [concernId, isPositiveIntegerId]);
 
   const postComment = async () => {
@@ -119,14 +146,81 @@ export default function ConcernDetailScreen({ route, navigation }) {
     }
   }, [timelineSteps.length]);
 
+  if (loadingConcern && !concern) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.bgDark }]}
+        edges={['top', 'bottom']}
+      >
+        <View
+          style={[
+            styles.customHeader,
+            { backgroundColor: colors.bgCard, borderBottomColor: colors.border },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('Feed');
+              }
+            }}
+            style={styles.headerBtn}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+            {t('concernDetail')}
+          </Text>
+          <View style={{ width: scale(40) }} />
+        </View>
+        <View style={[styles.notFound, { backgroundColor: colors.bgDark }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.notFoundText, { color: colors.textSecondary, marginTop: verticalScale(14) }]}>
+            Loading concern details...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (!concern) {
     return (
-      <View style={[styles.notFound, { backgroundColor: colors.bgDark }]}>
-        <Text style={{ fontSize: 40 }}>🔍</Text>
-        <Text style={[styles.notFoundText, { color: colors.textSecondary }]}>
-          {t('concernNotFound')}
-        </Text>
-      </View>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.bgDark }]}
+        edges={['top', 'bottom']}
+      >
+        <View
+          style={[
+            styles.customHeader,
+            { backgroundColor: colors.bgCard, borderBottomColor: colors.border },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('Feed');
+              }
+            }}
+            style={styles.headerBtn}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+            {t('concernDetail')}
+          </Text>
+          <View style={{ width: scale(40) }} />
+        </View>
+        <View style={[styles.notFound, { backgroundColor: colors.bgDark }]}>
+          <Text style={{ fontSize: rf(40) }}>🔍</Text>
+          <Text style={[styles.notFoundText, { color: colors.textSecondary, marginTop: verticalScale(12) }]}>
+            {t('concernNotFound')}
+          </Text>
+        </View>
+      </SafeAreaView>
     );
   }
 

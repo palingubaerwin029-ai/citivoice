@@ -3,6 +3,8 @@ const {
   selectUnreadCount,
   updateNotificationRead,
   updateAllNotificationsRead,
+  deleteNotification,
+  deleteAllNotifications,
 } = require('../models/notification.model');
 
 const getNotifications = async (req, res) => {
@@ -46,9 +48,32 @@ const markAllRead = async (req, res) => {
   }
 };
 
+const removeNotification = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await deleteNotification(id, req.user.id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete notification' });
+  }
+};
+
+const removeAllNotifications = async (req, res) => {
+  try {
+    await deleteAllNotifications(req.user.id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete all notifications' });
+  }
+};
+
 module.exports = {
   getNotifications,
   getUnreadCount,
   markRead,
   markAllRead,
+  removeNotification,
+  removeAllNotifications,
 };

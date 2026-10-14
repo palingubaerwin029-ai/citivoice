@@ -160,6 +160,7 @@ export const translations = {
     allCaughtUp: 'All Caught Up',
     noNotifications: 'You have no notifications at the moment.',
     justNow: 'Just now',
+    viewConcern: 'View concern',
 
     // Events
     communityBoard: 'Community Board',
@@ -429,6 +430,7 @@ export const translations = {
     allCaughtUp: 'Wala Nang Bago',
     noNotifications: 'Wala kang notipikasyon sa ngayon.',
     justNow: 'Ngayon lang',
+    viewConcern: 'Tingnan ang concern',
 
     // Events
     communityBoard: 'Community Board',
@@ -697,6 +699,7 @@ export const translations = {
     allCaughtUp: 'Wala Na Bag-o',
     noNotifications: 'Wala ka sang notification subong.',
     justNow: 'Karon lang',
+    viewConcern: 'Lantawa ang concern',
 
     // Events
     communityBoard: 'Community Board',

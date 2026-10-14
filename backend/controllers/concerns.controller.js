@@ -338,13 +338,7 @@ const createConcern = async (req, res) => {
 
           console.log(`[AI] Auto-merged duplicate concern #${insertId} with original #${originalConcernId} (Applied status: ${originalStatus})`);
 
-          if (newConcern.user_id) {
-            await insertNotification(
-              newConcern.user_id,
-              'Concern Linked & Status Applied',
-              `Your recent report was identified as a duplicate of "${originalTitle}". Its status has been synchronized to "${originalStatus}".`
-            );
-          }
+
         }
 
         if (similar.length > 0) {
@@ -474,13 +468,7 @@ const editConcern = async (req, res) => {
             await updateConcernFields(dup.id, dupFields, dupValues);
             console.log(`[Duplicate Cascade] Applied status (${status || 'updated'}) to linked duplicate concern #${dup.id}`);
 
-            if (dup.user_id && status) {
-              await insertNotification(
-                dup.user_id,
-                'Linked Concern Updated',
-                `The primary report (#${req.params.id}) linked to your concern was updated to "${status}".`
-              );
-            }
+
           }
         }
       } catch (cascadeErr) {
@@ -512,7 +500,8 @@ const editConcern = async (req, res) => {
           title: 'Concern Updated',
           message: `Your concern "${concern.title}" has been updated to ${status}. Check the app for details.`,
           socketRoom: `user:${concern.user_id}`,
-          io: req.app.get('io')
+          io: req.app.get('io'),
+          concernId: concern.id,
         });
       }
       if (admin_note) {
@@ -522,7 +511,8 @@ const editConcern = async (req, res) => {
           title: 'New Official Response',
           message: `An admin has officially responded to your concern: "${concern.title}". Check the app to view the update.`,
           socketRoom: `user:${concern.user_id}`,
-          io: req.app.get('io')
+          io: req.app.get('io'),
+          concernId: concern.id,
         });
       }
       // Notify citizen when a proof photo is attached
@@ -540,7 +530,8 @@ const editConcern = async (req, res) => {
           title: proofTitle,
           message: proofMessage,
           socketRoom: `user:${concern.user_id}`,
-          io: req.app.get('io')
+          io: req.app.get('io'),
+          concernId: concern.id,
         });
       }
     }
@@ -804,13 +795,7 @@ const linkConcerns = async (req, res) => {
         await updateConcernFields(sourceId, fieldsToUpdate, valuesToUpdate);
         invalidate('concerns', 'concern_detail', 'map_concerns');
 
-        if (sourceConcern.user_id) {
-          await insertNotification(
-            sourceConcern.user_id,
-            'Concern Status Synchronized',
-            `Your report "${sourceConcern.title}" was linked as a duplicate of "${targetConcern.title}". Status updated to "${targetConcern.status}".`
-          );
-        }
+
       }
     }
 
@@ -850,13 +835,7 @@ const approveConcern = async (req, res) => {
           dupValues.push(target_department);
         }
         await updateConcernFields(dup.id, dupFields, dupValues);
-        if (dup.user_id) {
-          await insertNotification(
-            dup.user_id,
-            'Linked Concern Approved',
-            `The primary report "${concern.title}" linked to your concern was approved and set to "In Progress".`
-          );
-        }
+
       }
     } catch (cascadeErr) {
       console.error('[Duplicate Cascade Error on Approve]:', cascadeErr.message);
@@ -902,19 +881,23 @@ const approveConcern = async (req, res) => {
       await insertNotification(
         updatedConcern.user_id,
         'Concern Approved & Forwarded',
-        `Your concern "${updatedConcern.title}" has been approved by ${req.user.name} and forwarded to ${updatedConcern.department || 'the responsible department'}!`
+        `Your concern "${updatedConcern.title}" has been approved by ${req.user.name} and forwarded to ${updatedConcern.department || 'the responsible department'}!`,
+        updatedConcern.id
       );
       if (req.app.get('io')) {
         req.app.get('io').to(`user:${updatedConcern.user_id}`).emit('new_notification', {
           title: 'Concern Approved & Forwarded',
-          message: `Your concern "${updatedConcern.title}" was approved and forwarded to ${updatedConcern.department || 'the responsible department'}.`
+          message: `Your concern "${updatedConcern.title}" was approved and forwarded to ${updatedConcern.department || 'the responsible department'}.`,
+          concern_id: updatedConcern.id,
+          concernId: updatedConcern.id,
         });
       }
       notifyUser(
         updatedConcern,
         'Concern Approved & Forwarded',
         `Great news! Your concern "${updatedConcern.title}" has been officially approved and sent to ${updatedConcern.department || 'the city department'} for resolution.`,
-        `The citizen's concern titled "${updatedConcern.title}" was approved by ${req.user.name} and sent to ${updatedConcern.department}.`
+        `The citizen's concern titled "${updatedConcern.title}" was approved by ${req.user.name} and sent to ${updatedConcern.department}.`,
+        updatedConcern.id
       );
     }
 

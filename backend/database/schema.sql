@@ -113,11 +113,13 @@ CREATE TABLE IF NOT EXISTS concern_links (
 CREATE TABLE IF NOT EXISTS notifications (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   user_id     INT          NOT NULL,
+  concern_id  INT          DEFAULT NULL,
   title       VARCHAR(255) NOT NULL,
   message     TEXT         NOT NULL,
   is_read     BOOLEAN      DEFAULT false,
   created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (concern_id) REFERENCES concerns(id) ON DELETE CASCADE
 );
 
 

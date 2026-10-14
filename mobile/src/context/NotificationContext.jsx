@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import { mobileApi, useAuth } from './AuthContext';
 import { SocketService } from '../services/socketService';
 import Toast from 'react-native-root-toast';
+import { navigateToConcern } from '../navigation/navigationRef';
 
 // Remote push was removed from Expo Go on Android (SDK 53+); importing the
 // module there throws. Only load it in development/production builds.
@@ -106,6 +107,9 @@ export const NotificationProvider = ({ children }) => {
 
     // Real-time socket updates
     const handleNewNotification = (data) => {
+      const text = `${data?.title || ''} ${data?.message || ''}`.toLowerCase();
+      if (text.includes('linked') || text.includes('duplicate')) return;
+
       setUnreadCount((prev) => prev + 1);
       
       // Show in-app toast for socket notifications
@@ -117,6 +121,12 @@ export const NotificationProvider = ({ children }) => {
           animation: true,
           hideOnPress: true,
           delay: 0,
+          onPress: () => {
+            const cid = data.concern_id || data.concernId;
+            if (cid) {
+              navigateToConcern(cid, user?.role === 'admin');
+            }
+          },
         });
       }
     };
@@ -138,10 +148,28 @@ export const NotificationProvider = ({ children }) => {
         fetchUnreadCount();
       });
 
-      responseListener.current = Notifications.addNotificationResponseReceivedListener(() => {
+      responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
         // User tapped the notification
         fetchUnreadCount();
+        const pushData = response?.notification?.request?.content?.data;
+        const cid = pushData?.concern_id || pushData?.concernId;
+        if (cid) {
+          navigateToConcern(cid, user?.role === 'admin');
+        }
       });
+
+      // Cold start handling when app was opened by tapping a notification
+      Notifications.getLastNotificationResponseAsync().then((response) => {
+        if (response) {
+          const pushData = response?.notification?.request?.content?.data;
+          const cid = pushData?.concern_id || pushData?.concernId;
+          if (cid) {
+            setTimeout(() => {
+              navigateToConcern(cid, user?.role === 'admin');
+            }, 600);
+          }
+        }
+      }).catch(() => {});
     }
 
     return () => {

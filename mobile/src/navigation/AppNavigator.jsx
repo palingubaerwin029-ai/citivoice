@@ -9,6 +9,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { RADIUS } from '../utils/theme';
 import { useTheme } from '../context/ThemeContext';
 import NetworkBanner from '../components/NetworkBanner';
+import { navigationRef } from './navigationRef';
 
 // ── Auth ───────────────────────────────────────────────────────────────────
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -288,7 +289,7 @@ export default function AppNavigator() {
 
   return (
     <View style={{ flex: 1 }}>
-      <NavigationContainer theme={navTheme}>
+      <NavigationContainer ref={navigationRef} theme={navTheme}>
         {
           !user ? (
             <AuthStack /> // Not logged in

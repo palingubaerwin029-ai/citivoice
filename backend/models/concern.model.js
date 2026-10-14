@@ -155,14 +155,11 @@ const addUpvote = async (concernId, userId) => {
   await pool.query('UPDATE concerns SET upvotes = upvotes + 1 WHERE id = ?', [concernId]);
 };
 
-// Also adding insertNotification here temporarily or we can create notification model.
-// Let's create it in notification.model.js when we get there. We'll use a direct query here or create notification model now.
-const insertNotification = async (userId, title, message) => {
-  await pool.query('INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)', [
-    userId,
-    title,
-    message,
-  ]);
+const insertNotification = async (userId, title, message, concernId = null) => {
+  await pool.query(
+    'INSERT INTO notifications (user_id, title, message, concern_id) VALUES (?, ?, ?, ?)',
+    [userId, title, message, concernId || null]
+  );
 };
 
 // ─── AI Feature: Concern Links (duplicate/similar tracking) ─────────────────

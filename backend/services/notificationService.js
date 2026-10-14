@@ -76,7 +76,7 @@ const escapeHTML = (str) => {
  * @param {String} defaultMessage - The standard message (used as fallback or context)
  * @param {String} notificationContext - Context for the AI to generate a better message
  */
-const notifyUser = async (user, subject, defaultMessage, notificationContext) => {
+const notifyUser = async (user, subject, defaultMessage, notificationContext, concernId = null) => {
   if (!user) return;
 
   const safeName = escapeHTML(user.name || 'Citizen');
@@ -165,10 +165,9 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext) =>
   // Determine user contacts (handling cases where they might be empty)
   const emailPromise = user.email ? sendEmail(user.email, subject, htmlBody) : Promise.resolve();
 
-
-
   // Push Notification via Expo
   let pushPromise = Promise.resolve();
+  const targetConcernId = concernId || (user.user_id ? user.id : null);
   if (user.fcm_token && Expo.isExpoPushToken(user.fcm_token)) {
     const messages = [
       {
@@ -176,7 +175,11 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext) =>
         sound: 'default',
         title: subject,
         body: finalMessage,
-        data: { subject },
+        data: {
+          subject,
+          concern_id: targetConcernId,
+          concernId: targetConcernId,
+        },
       },
     ];
 
@@ -360,21 +363,48 @@ const dispatchSystemNotification = async ({
   message,
   socketRoom,
   io,
-  contextData = {}
+  contextData = {},
+  concernId = null,
 }) => {
-  try {
-    if (userId) {
+  const targetConcernId =
+    concernId ||
+    contextData?.concernId ||
+    contextData?.concern_id ||
+    (userObj && userObj.user_id ? userObj.id : null) ||
+    (userObj && userObj.id && !userObj.email ? userObj.id : null);
+
+  // 1. Database notification
+  if (userId) {
+    try {
       const { insertNotification } = require('../models/concern.model');
-      await insertNotification(userId, title, message);
+      await insertNotification(userId, title, message, targetConcernId);
+    } catch (dbErr) {
+      console.error('❌ Failed to insert DB notification:', dbErr.message);
     }
-    if (io && socketRoom) {
-      io.to(socketRoom).emit('new_notification', { title, message, ...contextData });
+  }
+
+  // 2. Real-time socket notification
+  if (io && socketRoom) {
+    try {
+      io.to(socketRoom).emit('new_notification', {
+        title,
+        message,
+        concern_id: targetConcernId,
+        concernId: targetConcernId,
+        ...contextData,
+      });
+    } catch (sockErr) {
+      console.error('❌ Failed to emit socket notification:', sockErr.message);
     }
-    if (userObj) {
-      await notifyUser(userObj, title, message, message);
+  }
+
+  // 3. Push and Email notification
+  if (userObj) {
+    try {
+      await notifyUser(userObj, title, message, message, targetConcernId);
+    } catch (pushErr) {
+      console.error('❌ Failed to send push/email notification:', pushErr.message);
     }
-  } catch (err) {
-    console.error('❌ Failed system notification dispatch:', err.message);
   }
 };
 
