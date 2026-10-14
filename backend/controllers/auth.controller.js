@@ -252,7 +252,8 @@ const register = async (req, res) => {
     // ── AI Name Verification (server-side enforcement) ───────────────────
     if (idImageUrl) {
       const uploadsDir = path.join(__dirname, '..', 'uploads');
-      const imageName = idImageUrl.replace(/^\/?(uploads\/)?/, '');
+      const cleanUrl = String(idImageUrl).split('?')[0];
+      const imageName = path.basename(cleanUrl);
       const imagePath = path.join(uploadsDir, imageName);
 
       try {
@@ -426,8 +427,8 @@ const verifyIdName = async (req, res) => {
 
   try {
     const uploadsDir = path.join(__dirname, '..', 'uploads');
-    // idImageUrl comes as "/uploads/filename.jpg" or just "filename.jpg"
-    const imageName = idImageUrl.replace(/^\/?(?:uploads\/)?/, '');
+    const cleanUrl = String(idImageUrl).split('?')[0];
+    const imageName = path.basename(cleanUrl);
     const imagePath = path.join(uploadsDir, imageName);
 
     const result = await verifyIdCard(imagePath, name || '', idNumber || '', idType || '');

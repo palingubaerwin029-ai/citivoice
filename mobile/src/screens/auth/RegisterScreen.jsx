@@ -1543,15 +1543,21 @@ export default function RegisterScreen({ navigation, route }) {
                         }}
                       >
                         {aiResult.extractedIdNumber
-                          ? `Card ID#: "${activeIdConfig.format(aiResult.extractedIdNumber)}"`
+                          ? `Card ID#: "${(ID_CONFIGS[aiResult.detectedIdType || form.idType] || DEFAULT_ID_CONFIG).format(aiResult.extractedIdNumber)}"`
                           : 'Make sure the ID number is visible and not blurred'}
                       </Text>
                     </View>
                     {!aiResult.numberMatch && aiResult.extractedIdNumber && (
                       <TouchableOpacity
                         onPress={() => {
-                          const formatted = activeIdConfig.format(aiResult.extractedIdNumber);
-                          set('idNumber', formatted);
+                          const targetType = aiResult.detectedIdType || form.idType;
+                          const cfg = ID_CONFIGS[targetType] || DEFAULT_ID_CONFIG;
+                          const formatted = cfg.format(aiResult.extractedIdNumber);
+                          setForm((prev) => ({
+                            ...prev,
+                            idType: targetType || prev.idType,
+                            idNumber: formatted,
+                          }));
                           setAiResult((prev) => (prev ? { ...prev, numberMatch: true } : prev));
                         }}
                         style={{
@@ -1572,13 +1578,17 @@ export default function RegisterScreen({ navigation, route }) {
                       (aiResult.extractedName || aiResult.extractedIdNumber) && (
                         <TouchableOpacity
                           onPress={() => {
-                            if (aiResult.extractedName) set('name', aiResult.extractedName);
-                            if (aiResult.extractedIdNumber) {
-                              set('idNumber', activeIdConfig.format(aiResult.extractedIdNumber));
-                            }
-                            if (aiResult.detectedIdType && ID_CONFIGS[aiResult.detectedIdType]) {
-                              set('idType', aiResult.detectedIdType);
-                            }
+                            const targetType = aiResult.detectedIdType || form.idType;
+                            const cfg = ID_CONFIGS[targetType] || DEFAULT_ID_CONFIG;
+                            const formatted = aiResult.extractedIdNumber
+                              ? cfg.format(aiResult.extractedIdNumber)
+                              : form.idNumber;
+                            setForm((prev) => ({
+                              ...prev,
+                              name: aiResult.extractedName || prev.name,
+                              idType: targetType || prev.idType,
+                              idNumber: formatted,
+                            }));
                             setAiResult((prev) =>
                               prev ? { ...prev, nameMatch: true, numberMatch: true } : prev
                             );

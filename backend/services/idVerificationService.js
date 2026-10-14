@@ -129,19 +129,18 @@ function compareNames(typedName, extractedName) {
 
   // Calculate confidence based on token matching
   const maxTokens = Math.max(typedTokens.length, extractedTokens.length);
-  const minTokens = Math.min(typedTokens.length, extractedTokens.length);
   const tokenConfidence = Math.round((matchedCount / maxTokens) * 100);
 
-  // If user typed fewer tokens (e.g., omitted middle name), be more lenient
-  const leniency = matchedCount >= minTokens && matchedCount >= 2;
+  // If user typed fewer tokens (e.g. omitted middle name), and all typed tokens match ID
+  const leniency = matchedCount >= typedTokens.length && matchedCount >= 2;
 
-  if (tokenConfidence >= 70 || (leniency && matchedCount >= 2)) {
-    const finalConfidence = Math.max(tokenConfidence, fullSimilarity);
+  if (tokenConfidence >= 70 || leniency) {
+    const finalConfidence = leniency ? Math.max(tokenConfidence, 92) : Math.max(tokenConfidence, fullSimilarity);
     return {
-      match: finalConfidence >= 70,
-      confidence: finalConfidence,
+      match: true,
+      confidence: Math.min(100, finalConfidence),
       reason: leniency
-        ? 'Core name tokens match (middle name may differ)'
+        ? 'Core name tokens match (first and last name verified)'
         : 'Token-based fuzzy match',
     };
   }
@@ -313,18 +312,18 @@ async function verifyIdCard(imagePath, typedName = '', typedIdNumber = '', typed
     };
   }
 
-  // Compare name
-  const nameComp = typedName?.trim()
-    ? compareNames(typedName.trim(), extractedName || '')
-    : { match: true, confidence: 100, reason: 'No name typed' };
-
-  // Compare ID number if typed
-  const numComp = typedIdNumber?.trim()
-    ? compareIdNumbers(typedIdNumber.trim(), extractedIdNumber || '')
-    : { match: true, confidence: 100, reason: 'No ID number typed' };
-
   const hasNameInput = Boolean(typedName?.trim());
   const hasNumInput = Boolean(typedIdNumber?.trim());
+
+  // Compare name
+  const nameComp = hasNameInput
+    ? compareNames(typedName.trim(), extractedName || '')
+    : { match: Boolean(extractedName), confidence: extractedName ? 95 : 0, reason: extractedName ? 'Scanned name from ID' : 'No name on card' };
+
+  // Compare ID number if typed
+  const numComp = hasNumInput
+    ? compareIdNumbers(typedIdNumber.trim(), extractedIdNumber || '')
+    : { match: Boolean(extractedIdNumber), confidence: extractedIdNumber ? 95 : 0, reason: extractedIdNumber ? 'Scanned ID number from ID' : 'No ID number on card' };
 
   let overallMatch = true;
   if (hasNameInput && !nameComp.match) overallMatch = false;
@@ -347,10 +346,23 @@ async function verifyIdCard(imagePath, typedName = '', typedIdNumber = '', typed
     reason = `ID number on card ("${extractedIdNumber}") does not match your entered ID number.`;
   }
 
-  const confidence = Math.round(
-    ((hasNameInput ? nameComp.confidence : 100) + (hasNumInput ? numComp.confidence : 100)) /
-      ((hasNameInput ? 1 : 0) + (hasNumInput ? 1 : 0) || 1)
-  );
+  let totalConf = 0;
+  let itemsCount = 0;
+  if (hasNameInput) {
+    totalConf += nameComp.confidence;
+    itemsCount++;
+  } else if (extractedName) {
+    totalConf += 95;
+    itemsCount++;
+  }
+  if (hasNumInput) {
+    totalConf += numComp.confidence;
+    itemsCount++;
+  } else if (extractedIdNumber) {
+    totalConf += 95;
+    itemsCount++;
+  }
+  const confidence = itemsCount > 0 ? Math.min(100, Math.round(totalConf / itemsCount)) : 90;
 
   return {
     match: overallMatch,
