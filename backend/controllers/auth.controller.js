@@ -18,7 +18,7 @@ const {
 } = require('../models/user.model');
 const { OAuth2Client } = require('google-auth-library');
 const { sendEmail } = require('../services/notificationService');
-const { verifyNameOnId } = require('../services/idVerificationService');
+const { verifyNameOnId, verifyIdCard } = require('../services/idVerificationService');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -256,12 +256,20 @@ const register = async (req, res) => {
       const imagePath = path.join(uploadsDir, imageName);
 
       try {
-        const verification = await verifyNameOnId(imagePath, name);
-        if (!verification.match && verification.extractedName) {
-          return res.status(400).json({
-            error: 'The name you entered does not match the name on your ID.',
-            idVerification: verification,
-          });
+        const verification = await verifyIdCard(imagePath, name, idNumber, idType);
+        if (!verification.match) {
+          if (verification.extractedName && !verification.nameMatch) {
+            return res.status(400).json({
+              error: `The name you entered does not match the name on your ID (${verification.extractedName}).`,
+              idVerification: verification,
+            });
+          }
+          if (verification.extractedIdNumber && !verification.numberMatch) {
+            return res.status(400).json({
+              error: `The ID number you entered does not match the number on your ID (${verification.extractedIdNumber}).`,
+              idVerification: verification,
+            });
+          }
         }
       } catch (verifyErr) {
         // Log but don't block registration if AI service is completely down
@@ -408,12 +416,12 @@ const resetPassword = async (req, res) => {
   }
 };
 
-// ── Verify ID Name (AI check before registration) ──────────────────────────
+// ── Verify ID Details (AI check for name and ID number) ───────────────────
 const verifyIdName = async (req, res) => {
-  const { idImageUrl, name } = req.body;
+  const { idImageUrl, name, idNumber, idType } = req.body;
 
-  if (!idImageUrl || !name) {
-    return res.status(400).json({ error: 'Both idImageUrl and name are required.' });
+  if (!idImageUrl) {
+    return res.status(400).json({ error: 'idImageUrl is required.' });
   }
 
   try {
@@ -422,11 +430,11 @@ const verifyIdName = async (req, res) => {
     const imageName = idImageUrl.replace(/^\/?(?:uploads\/)?/, '');
     const imagePath = path.join(uploadsDir, imageName);
 
-    const result = await verifyNameOnId(imagePath, name);
+    const result = await verifyIdCard(imagePath, name || '', idNumber || '', idType || '');
     res.json(result);
   } catch (err) {
-    console.error('Verify ID name error:', err);
-    res.status(500).json({ error: 'Failed to verify ID name.' });
+    console.error('Verify ID details error:', err);
+    res.status(500).json({ error: 'Failed to verify ID details.' });
   }
 };
 

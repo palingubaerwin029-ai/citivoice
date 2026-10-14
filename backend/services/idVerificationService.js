@@ -155,47 +155,49 @@ function compareNames(typedName, extractedName) {
 
 // ── Groq Vision AI Extraction ────────────────────────────────────────────────
 
-const EXTRACTION_PROMPT = `You are analyzing a Philippine government ID card image. Your task is to extract the FULL NAME of the person shown on this ID.
-
-Rules:
-- Extract the complete full name exactly as printed on the ID
-- Include first name, middle name (if present), and last name
-- If the name uses "LAST NAME, FIRST NAME MIDDLE NAME" format, reorder it to "FIRST NAME MIDDLE NAME LAST NAME"
-- Do NOT include titles (Mr., Mrs., Dr.) or ID numbers
-- If you cannot read the name clearly, set "readable" to false
+const EXTRACTION_PROMPT = `You are an expert OCR and identity document analyzer for Philippine government-issued IDs.
+Analyze this government ID card image carefully. Your task is to extract:
+1. "fullName": The cardholder's complete legal full name. Reorder to "FIRST NAME MIDDLE NAME LAST NAME" if formatted as "LAST NAME, FIRST NAME MIDDLE NAME". Do NOT include titles (Mr., Mrs., Hon., Dr., Engr.).
+2. "idNumber": The official card number or identification number printed on the ID (e.g. PhilSys Card Number, Driver's License Number, SSS/UMID CRN, Passport Number, PhilHealth Number, TIN, Postal ID PRN, Voter's VIN, PRC License Number). Keep all digits, letters, and separators exactly as printed.
+3. "idType": The specific Philippine ID type detected (e.g. "PhilSys (National ID)", "Driver's License", "Philippine Passport", "SSS ID", "GSIS ID", "PhilHealth ID", "TIN ID", "Postal ID", "Voter's ID", "PRC ID", "Barangay ID", "Senior Citizen / PWD ID").
+4. "readable": true if the text can be read, false if too blurry, cropped, glare-heavy, or unreadable.
 
 Return a JSON object with this exact structure:
 {
-  "fullName": "the extracted full name",
+  "fullName": "extracted full name or null",
+  "idNumber": "extracted ID number or null",
+  "idType": "identified ID type or null",
   "readable": true,
   "confidence": "high" | "medium" | "low"
 }`;
 
 /**
- * Extract the name from an ID image using Groq Vision AI.
+ * Extract name, ID number, and ID type using Groq Vision AI.
  *
  * @param {string} imagePath - Absolute path to the ID image file
- * @returns {Promise<{ fullName: string|null, readable: boolean, confidence: string }>}
+ * @returns {Promise<{ fullName: string|null, idNumber: string|null, idType: string|null, readable: boolean, confidence: string }>}
  */
-async function extractNameWithGroq(imagePath) {
+async function extractIdDetailsWithGroq(imagePath) {
   try {
     if (!groqService.isAvailable()) {
       console.log('[ID Verify] Groq not available, skipping vision extraction');
       return null;
     }
 
-    console.log('[ID Verify] Extracting name via Groq Vision AI...');
+    console.log('[ID Verify] Extracting ID card details via Groq Vision AI...');
     const result = await groqService.generateJSONWithImage(EXTRACTION_PROMPT, imagePath, {
       temperature: 0.1,
-      maxTokens: 256,
+      maxTokens: 384,
     });
 
-    if (!result || !result.fullName) {
-      console.log('[ID Verify] Groq Vision returned no name');
+    if (!result) {
+      console.log('[ID Verify] Groq Vision returned empty result');
       return null;
     }
 
-    console.log(`[ID Verify] Groq extracted name: "${result.fullName}" (confidence: ${result.confidence})`);
+    console.log(
+      `[ID Verify] Groq extracted -> Name: "${result.fullName}", ID#: "${result.idNumber}", Type: "${result.idType}" (confidence: ${result.confidence})`
+    );
     return result;
   } catch (err) {
     console.error('[ID Verify] Groq Vision extraction error:', err.message);
@@ -203,71 +205,188 @@ async function extractNameWithGroq(imagePath) {
   }
 }
 
-
-// ── Main Verification Function ───────────────────────────────────────────────
+// ── ID Number Normalization & Fuzzy Matching ─────────────────────────────────
 
 /**
- * Verify that the name typed by the user matches the name on their uploaded ID.
- *
- * @param {string} imagePath - Absolute path to the uploaded ID image
- * @param {string} typedName - The name the user typed in the registration form
- * @returns {Promise<{ match: boolean, confidence: number, extractedName: string|null, reason: string, method: string }>}
+ * Normalize an ID number by stripping non-alphanumeric characters and uppercasing.
  */
-async function verifyNameOnId(imagePath, typedName) {
-  if (!typedName || !typedName.trim()) {
-    return {
-      match: false,
-      confidence: 0,
-      extractedName: null,
-      reason: 'No name provided',
-      method: 'none',
-    };
+function normalizeIdNumber(num) {
+  if (!num) return '';
+  return String(num).toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+/**
+ * Compare two ID numbers with OCR error tolerance.
+ */
+function compareIdNumbers(typedId, extractedId) {
+  const normTyped = normalizeIdNumber(typedId);
+  const normExtracted = normalizeIdNumber(extractedId);
+
+  if (!normTyped && !normExtracted) {
+    return { match: true, confidence: 100, reason: 'No ID number specified' };
+  }
+  if (!normTyped || !normExtracted) {
+    return { match: false, confidence: 0, reason: 'ID number missing' };
   }
 
+  // Exact match
+  if (normTyped === normExtracted) {
+    return { match: true, confidence: 100, reason: 'Exact ID number match' };
+  }
+
+  // Handle common OCR substitutions (O/0, I/1, S/5, B/8, Z/2)
+  const replaceConfusable = (s) =>
+    s.replace(/O/g, '0').replace(/I/g, '1').replace(/S/g, '5').replace(/B/g, '8').replace(/Z/g, '2');
+
+  if (replaceConfusable(normTyped) === replaceConfusable(normExtracted)) {
+    return { match: true, confidence: 95, reason: 'Matched with OCR character tolerance' };
+  }
+
+  // Substring matching (handles leading/trailing check digits or prefix differences)
+  if (normTyped.includes(normExtracted) || normExtracted.includes(normTyped)) {
+    const minLen = Math.min(normTyped.length, normExtracted.length);
+    if (minLen >= 6) {
+      return { match: true, confidence: 88, reason: 'Core ID number sequence matches' };
+    }
+  }
+
+  const sim = stringSimilarity(normTyped, normExtracted);
+  return {
+    match: sim >= 80,
+    confidence: sim,
+    reason: sim >= 80 ? 'High similarity ID number match' : 'ID number does not match card',
+  };
+}
+
+// ── Main Verification Functions ──────────────────────────────────────────────
+
+/**
+ * Verify both the name and ID number from an uploaded ID card against user input.
+ *
+ * @param {string} imagePath - Absolute path to uploaded ID image
+ * @param {string} typedName - The name the user typed
+ * @param {string} [typedIdNumber] - The ID number the user typed
+ * @param {string} [typedIdType] - The selected ID type
+ * @returns {Promise<{
+ *   match: boolean,
+ *   nameMatch: boolean,
+ *   numberMatch: boolean,
+ *   confidence: number,
+ *   extractedName: string|null,
+ *   extractedIdNumber: string|null,
+ *   detectedIdType: string|null,
+ *   reason: string,
+ *   method: string
+ * }>}
+ */
+async function verifyIdCard(imagePath, typedName = '', typedIdNumber = '', typedIdType = '') {
   if (!imagePath || !fs.existsSync(imagePath)) {
     return {
       match: false,
+      nameMatch: false,
+      numberMatch: false,
       confidence: 0,
       extractedName: null,
-      reason: 'ID image not found',
+      extractedIdNumber: null,
+      detectedIdType: null,
+      reason: 'ID image not found on server.',
       method: 'none',
     };
   }
 
-  // Extract name using Groq Vision AI
-  let extractedName = null;
-  const method = 'groq_vision';
+  const groqResult = await extractIdDetailsWithGroq(imagePath);
+  const extractedName = groqResult?.fullName || null;
+  const extractedIdNumber = groqResult?.idNumber || null;
+  const detectedIdType = groqResult?.idType || null;
 
-  const groqResult = await extractNameWithGroq(imagePath);
-  if (groqResult && groqResult.fullName && groqResult.readable !== false) {
-    extractedName = groqResult.fullName;
-  }
-
-  // If AI could not extract a name
-  if (!extractedName) {
+  if (!extractedName && !extractedIdNumber) {
     return {
       match: false,
+      nameMatch: false,
+      numberMatch: false,
       confidence: 0,
       extractedName: null,
-      reason: 'Could not read the name from the ID. Please upload a clearer photo.',
-      method,
+      extractedIdNumber: null,
+      detectedIdType,
+      reason: 'Could not clearly read the details from the ID. Please upload a clearer, well-lit photo.',
+      method: 'groq_vision',
     };
   }
 
-  // Compare the names
-  const comparison = compareNames(typedName, extractedName);
+  // Compare name
+  const nameComp = typedName?.trim()
+    ? compareNames(typedName.trim(), extractedName || '')
+    : { match: true, confidence: 100, reason: 'No name typed' };
+
+  // Compare ID number if typed
+  const numComp = typedIdNumber?.trim()
+    ? compareIdNumbers(typedIdNumber.trim(), extractedIdNumber || '')
+    : { match: true, confidence: 100, reason: 'No ID number typed' };
+
+  const hasNameInput = Boolean(typedName?.trim());
+  const hasNumInput = Boolean(typedIdNumber?.trim());
+
+  let overallMatch = true;
+  if (hasNameInput && !nameComp.match) overallMatch = false;
+  if (hasNumInput && !numComp.match) overallMatch = false;
+
+  let reason = 'ID details successfully scanned.';
+  if (hasNameInput && hasNumInput) {
+    if (nameComp.match && numComp.match) {
+      reason = 'Both your name and ID number match the card.';
+    } else if (!nameComp.match && !numComp.match) {
+      reason = `Name ("${extractedName}") and ID number ("${extractedIdNumber}") on card differ from input.`;
+    } else if (!nameComp.match) {
+      reason = `Name on card ("${extractedName}") does not match your entered name.`;
+    } else {
+      reason = `ID number on card ("${extractedIdNumber}") does not match your entered ID number.`;
+    }
+  } else if (hasNameInput && !nameComp.match) {
+    reason = `Name on card ("${extractedName}") does not match your entered name.`;
+  } else if (hasNumInput && !numComp.match) {
+    reason = `ID number on card ("${extractedIdNumber}") does not match your entered ID number.`;
+  }
+
+  const confidence = Math.round(
+    ((hasNameInput ? nameComp.confidence : 100) + (hasNumInput ? numComp.confidence : 100)) /
+      ((hasNameInput ? 1 : 0) + (hasNumInput ? 1 : 0) || 1)
+  );
 
   return {
-    match: comparison.match,
-    confidence: comparison.confidence,
+    match: overallMatch,
+    nameMatch: nameComp.match,
+    numberMatch: numComp.match,
+    confidence,
     extractedName,
-    reason: comparison.reason,
-    method,
+    extractedIdNumber,
+    detectedIdType,
+    reason,
+    method: 'groq_vision',
+  };
+}
+
+/**
+ * Backward-compatible helper for verifying only the name.
+ */
+async function verifyNameOnId(imagePath, typedName) {
+  const res = await verifyIdCard(imagePath, typedName, '', '');
+  return {
+    match: res.nameMatch,
+    confidence: res.confidence,
+    extractedName: res.extractedName,
+    extractedIdNumber: res.extractedIdNumber,
+    detectedIdType: res.detectedIdType,
+    reason: res.reason,
+    method: res.method,
   };
 }
 
 module.exports = {
+  verifyIdCard,
   verifyNameOnId,
   compareNames,
+  compareIdNumbers,
   normalizeName,
+  normalizeIdNumber,
+  extractIdDetailsWithGroq,
 };

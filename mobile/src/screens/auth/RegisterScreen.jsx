@@ -25,16 +25,152 @@ import { scale, verticalScale, rf } from '../../utils/responsive';
 import { useImagePicker } from '../../hooks/useImagePicker';
 import { ConcernService } from '../../services/concernService';
 
-const ID_TYPES = [
-  'PhilSys (National ID)',
-  "Driver's License",
-  'Philippine Passport',
-  'SSS ID',
-  'GSIS ID',
-  'Postal ID',
-  "Voter's ID",
-  'PRC ID',
-];
+export const ID_CONFIGS = {
+  'PhilSys (National ID)': {
+    placeholder: '1234-5678-9012-3456',
+    hint: '16 digits (e.g. 1234-5678-9012-3456)',
+    keyboardType: 'numeric',
+    maxLength: 19,
+    format: (v) => {
+      const clean = v.replace(/\D/g, '').slice(0, 16);
+      return clean.match(/.{1,4}/g)?.join('-') || clean;
+    },
+    isValid: (v) => v.replace(/\D/g, '').length === 16,
+  },
+  "Driver's License": {
+    placeholder: 'A01-23-456789',
+    hint: '1 letter + 8 digits (e.g. A01-23-456789)',
+    keyboardType: 'default',
+    maxLength: 13,
+    format: (v) => {
+      const clean = v.replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 11);
+      let res = '';
+      if (clean.length > 0) res += clean.slice(0, 3);
+      if (clean.length > 3) res += '-' + clean.slice(3, 5);
+      if (clean.length > 5) res += '-' + clean.slice(5, 11);
+      return res;
+    },
+    isValid: (v) => v.replace(/[^A-Z0-9]/g, '').length >= 9,
+  },
+  'Philippine Passport': {
+    placeholder: 'P1234567A',
+    hint: '1-2 letters + 7 digits (e.g. P1234567A)',
+    keyboardType: 'default',
+    maxLength: 9,
+    format: (v) => v.replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 9),
+    isValid: (v) => v.replace(/[^A-Z0-9]/g, '').length >= 8,
+  },
+  'SSS ID': {
+    placeholder: '01-2345678-9',
+    hint: '10 digits (e.g. 01-2345678-9)',
+    keyboardType: 'numeric',
+    maxLength: 12,
+    format: (v) => {
+      const clean = v.replace(/\D/g, '').slice(0, 10);
+      let res = '';
+      if (clean.length > 0) res += clean.slice(0, 2);
+      if (clean.length > 2) res += '-' + clean.slice(2, 9);
+      if (clean.length > 9) res += '-' + clean.slice(9, 10);
+      return res;
+    },
+    isValid: (v) => v.replace(/\D/g, '').length === 10,
+  },
+  'GSIS ID': {
+    placeholder: '0111-1234567-8',
+    hint: 'CRN or 11-12 digits (e.g. 0111-1234567-8)',
+    keyboardType: 'numeric',
+    maxLength: 14,
+    format: (v) => {
+      const clean = v.replace(/\D/g, '').slice(0, 12);
+      let res = '';
+      if (clean.length > 0) res += clean.slice(0, 4);
+      if (clean.length > 4) res += '-' + clean.slice(4, 11);
+      if (clean.length > 11) res += '-' + clean.slice(11, 12);
+      return res;
+    },
+    isValid: (v) => v.replace(/\D/g, '').length >= 10,
+  },
+  'PhilHealth ID': {
+    placeholder: '12-345678901-2',
+    hint: '12 digits (e.g. 12-345678901-2)',
+    keyboardType: 'numeric',
+    maxLength: 14,
+    format: (v) => {
+      const clean = v.replace(/\D/g, '').slice(0, 12);
+      let res = '';
+      if (clean.length > 0) res += clean.slice(0, 2);
+      if (clean.length > 2) res += '-' + clean.slice(2, 11);
+      if (clean.length > 11) res += '-' + clean.slice(11, 12);
+      return res;
+    },
+    isValid: (v) => v.replace(/\D/g, '').length === 12,
+  },
+  'TIN ID': {
+    placeholder: '123-456-789-000',
+    hint: '9 to 12 digits (e.g. 123-456-789-000)',
+    keyboardType: 'numeric',
+    maxLength: 15,
+    format: (v) => {
+      const clean = v.replace(/\D/g, '').slice(0, 12);
+      return clean.match(/.{1,3}/g)?.join('-') || clean;
+    },
+    isValid: (v) => v.replace(/\D/g, '').length >= 9,
+  },
+  'Postal ID': {
+    placeholder: '1234-5678-9012',
+    hint: '12 digits (e.g. 1234-5678-9012)',
+    keyboardType: 'numeric',
+    maxLength: 14,
+    format: (v) => {
+      const clean = v.replace(/\D/g, '').slice(0, 12);
+      return clean.match(/.{1,4}/g)?.join('-') || clean;
+    },
+    isValid: (v) => v.replace(/\D/g, '').length >= 10,
+  },
+  "Voter's ID": {
+    placeholder: '1234-5678A-B12345',
+    hint: 'Voter Identification Number (VIN)',
+    keyboardType: 'default',
+    maxLength: 20,
+    format: (v) => v.replace(/[^A-Z0-9-]/gi, '').toUpperCase().slice(0, 20),
+    isValid: (v) => v.replace(/[^A-Z0-9]/g, '').length >= 10,
+  },
+  'PRC ID': {
+    placeholder: '1234567',
+    hint: '7 digits (e.g. 1234567)',
+    keyboardType: 'numeric',
+    maxLength: 7,
+    format: (v) => v.replace(/\D/g, '').slice(0, 7),
+    isValid: (v) => v.replace(/\D/g, '').length === 7,
+  },
+  'Barangay ID': {
+    placeholder: 'BRGY-12345',
+    hint: 'Barangay resident ID number',
+    keyboardType: 'default',
+    maxLength: 20,
+    format: (v) => v.toUpperCase().slice(0, 20),
+    isValid: (v) => v.trim().length >= 4,
+  },
+  'Senior Citizen / PWD ID': {
+    placeholder: 'OSCA-12345',
+    hint: 'Control/ID number',
+    keyboardType: 'default',
+    maxLength: 20,
+    format: (v) => v.toUpperCase().slice(0, 20),
+    isValid: (v) => v.trim().length >= 4,
+  },
+};
+
+export const DEFAULT_ID_CONFIG = {
+  placeholder: 'Enter ID Number',
+  hint: 'Official government ID number',
+  keyboardType: 'default',
+  maxLength: 25,
+  format: (v) => v.toUpperCase().slice(0, 25),
+  isValid: (v) => v.trim().length >= 4,
+};
+
+export const ID_TYPES = Object.keys(ID_CONFIGS);
 
 export default function RegisterScreen({ navigation, route }) {
   const { colors } = useTheme();
@@ -173,16 +309,79 @@ export default function RegisterScreen({ navigation, route }) {
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
+  const activeIdConfig = useMemo(() => ID_CONFIGS[form.idType] || DEFAULT_ID_CONFIG, [form.idType]);
+
+  const [aiVerifying, setAiVerifying] = useState(false);
+  const [aiResult, setAiResult] = useState(null);
+
   const { pickImage: launchImagePicker, takePhoto: launchCamera } = useImagePicker();
+
+  const scanIdAI = async (imageUri, currentName = form.name, currentIdNumber = form.idNumber, currentIdType = form.idType) => {
+    const targetUri = imageUri || form.idImage;
+    if (!targetUri) return null;
+    setAiVerifying(true);
+    setAiResult(null);
+    try {
+      const uploadedUrl = await ConcernService.uploadImage(targetUri);
+      const res = await ConcernService.verifyIdName(
+        uploadedUrl,
+        (currentName || '').trim(),
+        (currentIdNumber || '').trim(),
+        (currentIdType || '').trim()
+      );
+      setAiResult(res);
+      setAiVerifying(false);
+
+      if (res) {
+        setForm((prev) => {
+          let updated = false;
+          const next = { ...prev };
+          const resolvedType = (!prev.idType && res.detectedIdType && ID_CONFIGS[res.detectedIdType])
+            ? res.detectedIdType
+            : prev.idType;
+
+          if (!prev.idType && resolvedType) {
+            next.idType = resolvedType;
+            updated = true;
+          }
+
+          const cfg = ID_CONFIGS[resolvedType] || DEFAULT_ID_CONFIG;
+
+          if (!prev.idNumber && res.extractedIdNumber) {
+            next.idNumber = cfg.format(res.extractedIdNumber);
+            updated = true;
+          }
+
+          if (!prev.name && res.extractedName) {
+            next.name = res.extractedName;
+            updated = true;
+          }
+
+          return updated ? next : prev;
+        });
+      }
+      return { uploadedUrl, res };
+    } catch (err) {
+      console.log('AI verification error:', err);
+      setAiVerifying(false);
+      return null;
+    }
+  };
 
   const pickPhoto = async () => {
     const uri = await launchImagePicker();
-    if (uri) set('idImage', uri);
+    if (uri) {
+      set('idImage', uri);
+      scanIdAI(uri);
+    }
   };
 
   const takePhoto = async () => {
     const uri = await launchCamera();
-    if (uri) set('idImage', uri);
+    if (uri) {
+      set('idImage', uri);
+      scanIdAI(uri);
+    }
   };
 
   // Password strength analysis
@@ -255,36 +454,15 @@ export default function RegisterScreen({ navigation, route }) {
     }
     if (!form.barangay) e.barangay = t('selectBarangay');
     if (!form.idType) e.idType = 'Please select an ID type';
-    if (!form.idNumber.trim()) e.idNumber = 'Enter your ID number';
+    if (!form.idNumber.trim()) {
+      e.idNumber = 'Enter your ID number';
+    } else if (activeIdConfig.isValid && !activeIdConfig.isValid(form.idNumber)) {
+      e.idNumber = `Invalid format (${activeIdConfig.hint})`;
+    }
     if (!form.idImage) e.idImage = 'Please upload a photo of your ID';
     if (!agreeToTerms) e.agreeToTerms = 'You must agree to the Terms and Privacy Policy';
     setErrors(e);
     return !Object.keys(e).length;
-  };
-
-  const [aiVerifying, setAiVerifying] = useState(false);
-  const [aiResult, setAiResult] = useState(null);
-
-  useEffect(() => {
-    // Reset AI result when image or name changes drastically
-    setAiResult(null);
-  }, [form.idImage]);
-
-  const verifyIdNameAI = async (imageUri, nameStr) => {
-    if (!imageUri || !nameStr.trim()) return null;
-    setAiVerifying(true);
-    setAiResult(null);
-    try {
-      const uploadedUrl = await ConcernService.uploadImage(imageUri);
-      const res = await ConcernService.verifyIdName(uploadedUrl, nameStr.trim());
-      setAiResult(res);
-      setAiVerifying(false);
-      return { uploadedUrl, res };
-    } catch (err) {
-      console.log('AI verification error:', err);
-      setAiVerifying(false);
-      return null;
-    }
   };
 
   const handleRegister = async () => {
@@ -297,14 +475,26 @@ export default function RegisterScreen({ navigation, route }) {
     try {
       const idImageUrl = await ConcernService.uploadImage(form.idImage);
 
-      // Verify ID name with AI
-      const verifyRes = await ConcernService.verifyIdName(idImageUrl, form.name.trim());
+      // Verify ID name & ID number with AI
+      const verifyRes = await ConcernService.verifyIdName(
+        idImageUrl,
+        form.name.trim(),
+        form.idNumber.trim(),
+        form.idType.trim()
+      );
       setAiResult(verifyRes);
 
-      if (verifyRes && !verifyRes.match && verifyRes.extractedName) {
-        setLoading(false);
-        setError(`AI Name Mismatch: The name on your ID (${verifyRes.extractedName}) does not match '${form.name}'. Please ensure your full name matches your ID.`);
-        return;
+      if (verifyRes) {
+        if (!verifyRes.nameMatch && verifyRes.extractedName) {
+          setLoading(false);
+          setError(`AI Name Mismatch: The name on your ID ("${verifyRes.extractedName}") does not match "${form.name}". Tap "Use Name" below or update your name.`);
+          return;
+        }
+        if (verifyRes.extractedIdNumber && !verifyRes.numberMatch) {
+          setLoading(false);
+          setError(`AI ID Number Mismatch: The number on your ID ("${verifyRes.extractedIdNumber}") does not match "${form.idNumber}". Tap "Use ID#" below or correct your number.`);
+          return;
+        }
       }
 
       await register({ ...form, idImageUrl, verificationToken });
@@ -994,7 +1184,12 @@ export default function RegisterScreen({ navigation, route }) {
                           form.idType === tItem && { backgroundColor: colors.primary + '18' },
                         ]}
                         onPress={() => {
-                          set('idType', tItem);
+                          const cfg = ID_CONFIGS[tItem] || DEFAULT_ID_CONFIG;
+                          setForm((prev) => ({
+                            ...prev,
+                            idType: tItem,
+                            idNumber: prev.idNumber ? cfg.format(prev.idNumber) : '',
+                          }));
                           setShowIdPicker(false);
                         }}
                       >
@@ -1021,23 +1216,31 @@ export default function RegisterScreen({ navigation, route }) {
             </View>
 
             {/* ID Number */}
-            <InputField
-              label={`${t('idNumber').toUpperCase()} *`}
-              value={form.idNumber}
-              onChangeText={(v) => {
-                const cleaned = v.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-                let formatted = '';
-                for (let i = 0; i < cleaned.length; i++) {
-                  if (i > 0 && i % 4 === 0) formatted += '-';
-                  formatted += cleaned[i];
-                }
-                set('idNumber', formatted);
-              }}
-              placeholder="XXXX-XXXX-XXXX"
-              maxLength={25}
-              leftIcon="key-outline"
-              error={errors.idNumber}
-            />
+            <View style={{ marginBottom: 14 }}>
+              <InputField
+                label={`${t('idNumber').toUpperCase()} *`}
+                value={form.idNumber}
+                onChangeText={(v) => {
+                  const formatted = activeIdConfig.format(v);
+                  set('idNumber', formatted);
+                  if (errors.idNumber) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.idNumber;
+                      return next;
+                    });
+                  }
+                }}
+                placeholder={activeIdConfig.placeholder}
+                maxLength={activeIdConfig.maxLength}
+                keyboardType={activeIdConfig.keyboardType}
+                leftIcon="key-outline"
+                error={errors.idNumber}
+              />
+              <Text style={{ fontSize: rf(11), color: colors.textMuted, marginTop: -6, marginLeft: 4 }}>
+                {activeIdConfig.hint}
+              </Text>
+            </View>
 
             {/* ID Photo */}
             <View style={{ marginBottom: 16 }}>
@@ -1062,7 +1265,10 @@ export default function RegisterScreen({ navigation, route }) {
                       alignItems: 'center',
                       gap: 4,
                     }}
-                    onPress={() => set('idImage', null)}
+                    onPress={() => {
+                      set('idImage', null);
+                      setAiResult(null);
+                    }}
                   >
                     <Ionicons name="refresh-outline" size={16} color="#fff" />
                     <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{t('retake')}</Text>
@@ -1118,41 +1324,297 @@ export default function RegisterScreen({ navigation, route }) {
                   </View>
                 </View>
               )}
-              {/* AI Verification Badge */}
-              {aiResult && (
+
+              {/* AI Verification Loading Card */}
+              {aiVerifying && (
                 <View
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 8,
-                    padding: 10,
-                    borderRadius: 10,
-                    marginTop: 8,
-                    backgroundColor: aiResult.match ? colors.success + '18' : colors.warning + '18',
+                    gap: scale(10),
+                    padding: scale(12),
+                    borderRadius: RADIUS.md,
+                    marginTop: verticalScale(10),
+                    backgroundColor: colors.primary + '14',
                     borderWidth: 1,
-                    borderColor: aiResult.match ? colors.success + '44' : colors.warning + '44',
+                    borderColor: colors.primary + '44',
                   }}
                 >
-                  <Ionicons
-                    name={aiResult.match ? 'checkmark-circle' : 'alert-circle'}
-                    size={18}
-                    color={aiResult.match ? colors.success : colors.warning}
-                  />
+                  <ActivityIndicator size="small" color={colors.primaryLight} />
                   <View style={{ flex: 1 }}>
-                    <Text
+                    <Text style={{ fontSize: rf(12), fontWeight: '700', color: colors.primaryLight }}>
+                      {t('aiScanningId')}
+                    </Text>
+                    <Text style={{ fontSize: rf(11), color: colors.textSecondary, marginTop: 2 }}>
+                      Extracting cardholder name and ID number from card...
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* AI Verification Review Card */}
+              {aiResult && !aiVerifying && (
+                <View
+                  style={{
+                    padding: scale(12),
+                    borderRadius: RADIUS.md,
+                    marginTop: verticalScale(10),
+                    backgroundColor: colors.bgCardAlt,
+                    borderWidth: 1,
+                    borderColor: (aiResult.nameMatch && aiResult.numberMatch) ? colors.success + '44' : colors.border,
+                    gap: verticalScale(8),
+                  }}
+                >
+                  {/* Card Header */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6) }}>
+                      <Ionicons name="scan-circle-outline" size={18} color={colors.primaryLight} />
+                      <Text style={{ fontSize: rf(12), fontWeight: '700', color: colors.textPrimary }}>
+                        AI Card Analysis
+                      </Text>
+                    </View>
+                    {aiResult.confidence ? (
+                      <View
+                        style={{
+                          backgroundColor: colors.primary + '20',
+                          paddingHorizontal: scale(8),
+                          paddingVertical: 2,
+                          borderRadius: 10,
+                        }}
+                      >
+                        <Text style={{ fontSize: rf(10), fontWeight: '700', color: colors.primaryLight }}>
+                          {aiResult.confidence}% confidence
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  {/* Detected ID Type suggestion */}
+                  {aiResult.detectedIdType && aiResult.detectedIdType !== form.idType && (
+                    <View
                       style={{
-                        fontSize: rf(12),
-                        fontWeight: '700',
-                        color: aiResult.match ? colors.success : colors.warning,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        backgroundColor: colors.warning + '14',
+                        borderColor: colors.warning + '33',
+                        borderWidth: 1,
+                        borderRadius: RADIUS.sm,
+                        padding: scale(8),
                       }}
                     >
-                      {aiResult.match ? t('aiNameVerified') : t('aiNameMismatch')}
-                    </Text>
-                    <Text style={{ fontSize: rf(11), color: colors.textSecondary }}>
-                      {aiResult.extractedName
-                        ? `ID Name: "${aiResult.extractedName}" (${aiResult.confidence}% match)`
-                        : aiResult.reason}
-                    </Text>
+                      <Text style={{ fontSize: rf(11), color: colors.warning, flex: 1 }}>
+                        Detected as <Text style={{ fontWeight: '700' }}>{aiResult.detectedIdType}</Text>
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          const cfg = ID_CONFIGS[aiResult.detectedIdType] || DEFAULT_ID_CONFIG;
+                          setForm((prev) => ({
+                            ...prev,
+                            idType: aiResult.detectedIdType,
+                            idNumber: prev.idNumber ? cfg.format(prev.idNumber) : '',
+                          }));
+                        }}
+                        style={{
+                          backgroundColor: colors.warning,
+                          paddingHorizontal: scale(8),
+                          paddingVertical: 3,
+                          borderRadius: 6,
+                        }}
+                      >
+                        <Text style={{ fontSize: rf(10.5), fontWeight: '700', color: '#fff' }}>Use Type</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {/* Name verification row */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingVertical: verticalScale(4),
+                      borderTopWidth: 1,
+                      borderTopColor: colors.border,
+                    }}
+                  >
+                    <View style={{ flex: 1, marginRight: scale(8) }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(5) }}>
+                        <Ionicons
+                          name={aiResult.nameMatch ? 'checkmark-circle' : 'alert-circle'}
+                          size={15}
+                          color={aiResult.nameMatch ? colors.success : colors.warning}
+                        />
+                        <Text
+                          style={{
+                            fontSize: rf(11.5),
+                            fontWeight: '700',
+                            color: aiResult.nameMatch ? colors.success : colors.warning,
+                          }}
+                        >
+                          {aiResult.nameMatch ? t('aiNameVerified') : t('aiNameMismatch')}
+                        </Text>
+                      </View>
+                      <Text
+                        style={{
+                          fontSize: rf(10.5),
+                          color: colors.textSecondary,
+                          marginTop: 2,
+                          marginLeft: scale(20),
+                        }}
+                      >
+                        {aiResult.extractedName
+                          ? `Card Name: "${aiResult.extractedName}"`
+                          : 'Name not clearly visible on card'}
+                      </Text>
+                    </View>
+                    {!aiResult.nameMatch && aiResult.extractedName && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          set('name', aiResult.extractedName);
+                          setAiResult((prev) => (prev ? { ...prev, nameMatch: true } : prev));
+                        }}
+                        style={{
+                          backgroundColor: colors.primary,
+                          paddingHorizontal: scale(10),
+                          paddingVertical: verticalScale(5),
+                          borderRadius: 6,
+                        }}
+                      >
+                        <Text style={{ fontSize: rf(11), fontWeight: '700', color: '#fff' }}>Use Name</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* ID Number verification row */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingVertical: verticalScale(4),
+                      borderTopWidth: 1,
+                      borderTopColor: colors.border,
+                    }}
+                  >
+                    <View style={{ flex: 1, marginRight: scale(8) }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(5) }}>
+                        <Ionicons
+                          name={
+                            aiResult.numberMatch
+                              ? 'checkmark-circle'
+                              : aiResult.extractedIdNumber
+                              ? 'alert-circle'
+                              : 'information-circle'
+                          }
+                          size={15}
+                          color={
+                            aiResult.numberMatch
+                              ? colors.success
+                              : aiResult.extractedIdNumber
+                              ? colors.warning
+                              : colors.textMuted
+                          }
+                        />
+                        <Text
+                          style={{
+                            fontSize: rf(11.5),
+                            fontWeight: '700',
+                            color: aiResult.numberMatch
+                              ? colors.success
+                              : aiResult.extractedIdNumber
+                              ? colors.warning
+                              : colors.textMuted,
+                          }}
+                        >
+                          {aiResult.numberMatch
+                            ? t('aiNumberVerified')
+                            : aiResult.extractedIdNumber
+                            ? t('aiNumberMismatch')
+                            : 'ID number unreadable'}
+                        </Text>
+                      </View>
+                      <Text
+                        style={{
+                          fontSize: rf(10.5),
+                          color: colors.textSecondary,
+                          marginTop: 2,
+                          marginLeft: scale(20),
+                        }}
+                      >
+                        {aiResult.extractedIdNumber
+                          ? `Card ID#: "${activeIdConfig.format(aiResult.extractedIdNumber)}"`
+                          : 'Make sure the ID number is visible and not blurred'}
+                      </Text>
+                    </View>
+                    {!aiResult.numberMatch && aiResult.extractedIdNumber && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          const formatted = activeIdConfig.format(aiResult.extractedIdNumber);
+                          set('idNumber', formatted);
+                          setAiResult((prev) => (prev ? { ...prev, numberMatch: true } : prev));
+                        }}
+                        style={{
+                          backgroundColor: colors.primary,
+                          paddingHorizontal: scale(10),
+                          paddingVertical: verticalScale(5),
+                          borderRadius: 6,
+                        }}
+                      >
+                        <Text style={{ fontSize: rf(11), fontWeight: '700', color: '#fff' }}>Use ID#</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* Actions: Apply Scanned Details & Re-scan */}
+                  <View style={{ flexDirection: 'row', gap: scale(8), marginTop: verticalScale(4) }}>
+                    {(!aiResult.nameMatch || !aiResult.numberMatch) &&
+                      (aiResult.extractedName || aiResult.extractedIdNumber) && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            if (aiResult.extractedName) set('name', aiResult.extractedName);
+                            if (aiResult.extractedIdNumber) {
+                              set('idNumber', activeIdConfig.format(aiResult.extractedIdNumber));
+                            }
+                            if (aiResult.detectedIdType && ID_CONFIGS[aiResult.detectedIdType]) {
+                              set('idType', aiResult.detectedIdType);
+                            }
+                            setAiResult((prev) =>
+                              prev ? { ...prev, nameMatch: true, numberMatch: true } : prev
+                            );
+                          }}
+                          style={{
+                            flex: 1,
+                            backgroundColor: colors.primary + '18',
+                            borderColor: colors.primary,
+                            borderWidth: 1,
+                            paddingVertical: verticalScale(6),
+                            borderRadius: RADIUS.sm,
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Text style={{ fontSize: rf(11), fontWeight: '700', color: colors.primaryLight }}>
+                            {t('useScannedDetails')}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    <TouchableOpacity
+                      onPress={() => scanIdAI(form.idImage, form.name, form.idNumber, form.idType)}
+                      style={{
+                        paddingHorizontal: scale(12),
+                        paddingVertical: verticalScale(6),
+                        borderRadius: RADIUS.sm,
+                        backgroundColor: colors.bgCard,
+                        borderColor: colors.border,
+                        borderWidth: 1,
+                        alignItems: 'center',
+                        flexDirection: 'row',
+                        gap: scale(4),
+                      }}
+                    >
+                      <Ionicons name="refresh-outline" size={14} color={colors.textSecondary} />
+                      <Text style={{ fontSize: rf(11), color: colors.textSecondary }}>Re-scan</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               )}

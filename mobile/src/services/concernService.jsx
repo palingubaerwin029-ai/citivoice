@@ -199,11 +199,11 @@ export const ConcernService = {
     return data;
   },
 
-  // ── AI ID Name Verification Check ───────────────────────────────────────
-  async verifyIdName(idImageUrl, name) {
+  // ── AI ID Details Verification Check (Name & ID Number) ────────────────
+  async verifyIdName(idImageUrl, name = '', idNumber = '', idType = '') {
     return apiRequest(`/auth/verify-id-name`, {
       method: 'POST',
-      body: JSON.stringify({ idImageUrl, name }),
+      body: JSON.stringify({ idImageUrl, name, idNumber, idType }),
     });
   },
 };
