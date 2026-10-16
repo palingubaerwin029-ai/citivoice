@@ -1,595 +1,822 @@
-.dateFilterRow {
+/* ══════════════════════════════════════════════════
+   Excel-Type Spreadsheet View for CitiVoice Reports
+   ══════════════════════════════════════════════════ */
+
+/* ── Screen Excel Top Bar ── */
+.excelTopBar {
   display: flex;
-  gap: 10px;
+  justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 16px 20px;
+  border-radius: var(--r-lg, 12px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.dateFilterGroup {
+.excelBrandGroup {
   display: flex;
-  gap: 8px;
   align-items: center;
+  gap: 14px;
 }
 
-.dateFilterLabel {
+.excelBadge {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #107c41, #0b5a2f);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(16, 124, 65, 0.28);
+  flex-shrink: 0;
+}
+
+.excelIcon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.excelExt {
+  font-size: 8.5px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  margin-top: 1px;
+}
+
+.excelTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.excelSubtitle {
+  font-size: 12.5px;
   color: var(--text-3);
+  margin: 3px 0 0;
+}
+
+.excelActionGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btnPrint {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #107c41;
+  color: #ffffff;
+  border: none;
   font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(16, 124, 65, 0.25);
+}
+
+.btnPrint:hover {
+  background: #0d6334;
+  box-shadow: 0 4px 12px rgba(16, 124, 65, 0.35);
+  transform: translateY(-1px);
+}
+
+.btnRefresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-2, #f3f4f6);
+  color: var(--text-1);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnRefresh:hover {
+  background: var(--surface-3, #e5e7eb);
+  color: var(--text-1);
+}
+
+.btnIcon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ── Quick KPI Summary Ribbon (Excel formula / status strip style) ── */
+.summaryRibbon {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 16px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  gap: 16px;
+}
+
+.ribbonCell {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.ribbonLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+
+.ribbonValue {
+  font-size: 15px;
+  font-weight: 800;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-1);
+}
+
+.valSuccess {
+  color: #10b981;
+}
+
+.valInfo {
+  color: #3b82f6;
+}
+
+.valWarning {
+  color: #f59e0b;
+}
+
+.valDanger {
+  color: #ef4444;
+}
+
+.valHigh {
+  color: #ec4899;
+}
+
+.ribbonDivider {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* ── Filter Toolbar ── */
+.filterToolbar {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+}
+
+.filterDropdownGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.filterItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filterLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.filterSelect {
+  padding: 6px 10px;
+  background: var(--surface-2, #f9fafb);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--text-1);
+  outline: none;
+  cursor: pointer;
+}
+
+.filterSelect:focus {
+  border-color: #107c41;
+}
+
+.dateRangeGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filterDate {
+  padding: 5px 8px;
+  background: var(--surface-2, #f9fafb);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-1);
+  outline: none;
+  font-family: inherit;
+}
+
+.filterDate:focus {
+  border-color: #107c41;
+}
+
+.dateDash {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.resetBtn {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: #ef4444;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: auto;
+}
+
+.resetBtn:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: #ef4444;
+}
+
+/* ── Excel Grid Container & Table ── */
+.gridContainer {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  max-height: 680px;
+}
+
+.excelTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+  table-layout: auto;
+}
+
+/* Main Table Header */
+.headerRow {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface-3, #e9ecef);
+}
+
+.thIndex {
+  width: 40px;
+  min-width: 40px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  background: var(--surface-3, #e5e7eb);
+  border-right: 1px solid var(--border);
+  border-bottom: 2px solid var(--border-md, #cbd5e1);
+  padding: 8px 4px;
+}
+
+.th,
+.thSortable,
+.thAction {
+  padding: 8px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-1);
+  border-right: 1px solid var(--border);
+  border-bottom: 2px solid var(--border-md, #cbd5e1);
+  white-space: nowrap;
+  background: inherit;
+}
+
+.thSortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.thSortable:hover {
+  background: rgba(16, 124, 65, 0.08);
+  color: #107c41;
+}
+
+.sortMuted {
+  font-size: 10px;
+  color: var(--text-3);
+  margin-left: 4px;
+  opacity: 0.6;
+}
+
+.sortActive {
+  font-size: 10px;
+  color: #107c41;
+  font-weight: 900;
+  margin-left: 4px;
+}
+
+/* Excel Data Rows */
+.excelRow {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s ease;
+  cursor: pointer;
+}
+
+.excelRow:nth-child(even) {
+  background: rgba(0, 0, 0, 0.015);
+}
+
+.excelRow:hover {
+  background: rgba(16, 124, 65, 0.05) !important;
+}
+
+.rowSelected {
+  background: rgba(16, 124, 65, 0.1) !important;
+  outline: 1.5px solid #107c41;
+}
+
+/* Row Number Cell */
+.rowIndexCell {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  background: var(--surface-2, #f9fafb);
+  border-right: 1px solid var(--border);
+  padding: 8px 4px;
+  font-family: var(--font-mono, monospace);
+  user-select: none;
+}
+
+/* General Data Cells */
+.excelRow td {
+  border-right: 1px solid var(--border);
+  padding: 8px 12px;
+  vertical-align: middle;
+}
+
+.dateCell {
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--text-2);
+  font-family: var(--font-mono, monospace);
+}
+
+.titleCell {
+  max-width: 240px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.descCell {
+  max-width: 260px;
+  color: var(--text-2);
+}
+
+.cellTextClamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.categoryCell {
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+
+.brgyCell {
+  white-space: nowrap;
+}
+
+.brgyTag {
+  font-weight: 600;
+  color: var(--text-1);
+  font-size: 11.5px;
+}
+
+.priorityCell,
+.statusCell {
+  white-space: nowrap;
+  font-size: 11.5px;
+}
+
+.prioTextHigh {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.prioTextMed {
+  color: #d97706;
   font-weight: 600;
 }
 
-.printOnly,
+.prioTextLow {
+  color: #059669;
+  font-weight: 600;
+}
+
+.statusTextResolved {
+  color: #059669;
+  font-weight: 700;
+}
+
+.statusTextInProgress {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.statusTextPending {
+  color: #d97706;
+  font-weight: 700;
+}
+
+.statusTextRejected {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.reporterCell {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+
+.actionCell {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btnViewRecord {
+  background: var(--surface-2, #f3f4f6);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnViewRecord:hover {
+  background: #107c41;
+  color: #ffffff;
+  border-color: #107c41;
+}
+
+/* ── Excel Bottom Status & Pagination Bar ── */
+.excelFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--surface-2, #f9fafb);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.footerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+}
+
+.recordCountText {
+  color: var(--text-2);
+}
+
+.selectionInfo {
+  color: #107c41;
+  font-weight: 600;
+}
+
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pageSizeSelector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pageSizeLabel {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.pageSizeSelect {
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  font-size: 12px;
+  color: var(--text-1);
+  outline: none;
+}
+
+.paginationButtons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pgBtn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  min-width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pgBtn:hover:not(:disabled) {
+  background: #107c41;
+  color: #ffffff;
+  border-color: #107c41;
+}
+
+.pgBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pageIndicator {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin: 0 4px;
+}
+
+/* ── States (Loading & Empty) ── */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 12px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.loadingSpinner {
+  font-size: 24px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 36px;
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
+
+.emptyTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+
+.emptySubtitle {
+  font-size: 12.5px;
+  color: var(--text-3);
+  max-width: 360px;
+  margin-bottom: 14px;
+}
+
+.btnResetEmpty {
+  background: #107c41;
+  color: #ffffff;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btnResetEmpty:hover {
+  background: #0d6334;
+}
+
+/* ══════════════════════════════════════════════════
+   Print Styling (Official Tabular Sheet Printout)
+   ══════════════════════════════════════════════════ */
 .printHeader,
-.printPage2Header,
 .printCertification {
   display: none !important;
 }
 
-.printHeaderInner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.printLogoBlock {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.printEmblem {
-  font-size: 30px;
-  line-height: 1;
-}
-
-.printGovTitle {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #555;
-  font-weight: 600;
-}
-
-.printCityTitle {
-  font-size: 16px;
-  font-weight: 900;
-  color: #111;
-  margin: 1px 0;
-  letter-spacing: 0.5px;
-}
-
-.printSystemTitle {
-  font-size: 10px;
-  font-weight: 700;
-  color: #2563eb;
-  letter-spacing: 0.3px;
-}
-
-.printMetaBlock {
-  text-align: right;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.printMetaBadge {
-  display: inline-block;
-  align-self: flex-end;
-  background: #111;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 3px;
-  letter-spacing: 0.5px;
-  margin-bottom: 2px;
-}
-
-.printMetaDate {
-  font-size: 10px;
-  color: #444;
-}
-
-/* Page 2 Running Header Styles */
-.printPage2Left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.printPage2Brand {
-  font-weight: 800;
-  color: #111;
-  letter-spacing: 0.4px;
-}
-
-.printPage2Sep {
-  color: #999;
-}
-
-.printPage2Section {
-  color: #444;
-  font-weight: 600;
-}
-
-.printPage2Right {
-  font-weight: 700;
-  color: #2563eb;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.certCol {
-  flex: 1;
-  text-align: center;
-}
-
-.certLabel {
-  font-size: 9px;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  margin-bottom: 22px;
-}
-
-.certLine {
-  border-bottom: 1px solid #333;
-  margin-bottom: 4px;
-}
-
-.certName {
-  font-size: 10px;
-  font-weight: 700;
-  color: #111;
-}
-
-.certSub {
-  font-size: 8.5px;
-  color: #666;
-}
-
-.pageBreak {
-  display: none;
-}
-
 @media print {
   @page {
-    size: A4 portrait;
+    size: landscape;
     margin: 8mm 10mm;
   }
 
-  .printOnly {
-    display: block !important;
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
   }
 
   .printHeader {
     display: block !important;
-    margin-bottom: 14px !important;
-    border-bottom: 2px solid #111 !important;
+    margin-bottom: 12px !important;
+    border-bottom: 2px solid #000000 !important;
     padding-bottom: 8px !important;
   }
 
-  .printPage2Header {
+  .printHeaderInner {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    border-bottom: 1.5px solid #333 !important;
-    padding-bottom: 6px !important;
-    margin-bottom: 10px !important;
-    font-size: 10px !important;
   }
+
+  .printLogoBlock {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+
+  .printEmblem {
+    font-size: 32px !important;
+  }
+
+  .printGovTitle {
+    font-size: 9px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    color: #444444 !important;
+    font-weight: 600 !important;
+  }
+
+  .printCityTitle {
+    font-size: 16px !important;
+    font-weight: 900 !important;
+    color: #000000 !important;
+    margin: 1px 0 !important;
+  }
+
+  .printSystemTitle {
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    color: #107c41 !important;
+    letter-spacing: 0.4px !important;
+  }
+
+  .printMetaBlock {
+    text-align: right !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  .printMetaBadge {
+    display: inline-block !important;
+    align-self: flex-end !important;
+    background: #000000 !important;
+    color: #ffffff !important;
+    font-size: 8.5px !important;
+    font-weight: 800 !important;
+    padding: 2px 6px !important;
+    border-radius: 3px !important;
+  }
+
+  .printMetaDate {
+    font-size: 9.5px !important;
+    color: #333333 !important;
+  }
+
+  .gridContainer {
+    border: 1px solid #444444 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .tableWrapper {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .excelTable {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9.5px !important;
+  }
+
+  .excelTable th,
+  .excelTable td {
+    border: 1px solid #666666 !important;
+    padding: 4px 6px !important;
+    color: #000000 !important;
+    background: transparent !important;
+  }
+
+  .headerRow th {
+    background: #e5e7eb !important;
+    font-weight: 800 !important;
+    border-bottom: 2px solid #000000 !important;
+  }
+
 
   .printCertification {
     display: flex !important;
     justify-content: space-between !important;
-    gap: 16px !important;
-    margin-top: 10px !important;
-    padding-top: 10px !important;
-    border-top: 1px dashed #bbb !important;
-    break-inside: avoid !important;
+    gap: 20px !important;
+    margin-top: 24px !important;
+    padding-top: 14px !important;
+    border-top: 1px dashed #777777 !important;
     page-break-inside: avoid !important;
-  }
-
-  .pageBreak {
-    display: block !important;
-    break-before: page !important;
-    page-break-before: always !important;
-    clear: both !important;
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-  }
-
-  .flexLayout {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 10px !important;
-    margin-bottom: 8px !important;
     break-inside: avoid !important;
-    page-break-inside: avoid !important;
-    overflow: visible !important;
   }
 
-  .flex2 {
-    flex: 1.8 !important;
-  }
-
-  .flex1 {
+  .certCol {
     flex: 1 !important;
+    text-align: center !important;
   }
 
-  .card {
-    border: 1px solid #d1d5db !important;
-    background: #fff !important;
-    box-shadow: none !important;
-    margin-bottom: 8px !important;
-    border-radius: 6px !important;
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
+  .certLabel {
+    font-size: 9px !important;
+    color: #555555 !important;
+    text-transform: uppercase !important;
+    margin-bottom: 24px !important;
   }
 
-  .statsRow {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 8px !important;
-    margin-bottom: 8px !important;
-    width: 100% !important;
-  }
-
-  .statCard {
-    flex: 1 !important;
-    padding: 6px 10px !important;
-    margin-bottom: 0 !important;
-    min-height: auto !important;
-    border: 1px solid #d1d5db !important;
-    border-radius: 6px !important;
-  }
-
-  .cardHeader {
-    padding: 6px 12px !important;
-    border-bottom: 1px solid #e5e7eb !important;
-  }
-
-  .cardTitle {
-    font-size: 12px !important;
-  }
-
-  /* Recharts sizing in print to prevent stretching */
-  :global(.recharts-responsive-container) {
-    max-height: 140px !important;
-  }
-
-  .cardContent {
-    padding: 4px 6px !important;
-  }
-
-  .printTable th,
-  .printTable td {
-    padding: 4px 6px !important;
-    font-size: 11px !important;
-  }
-
-  .legendRow,
-  .prioLegendRow {
-    gap: 4px !important;
-    font-size: 10px !important;
-  }
-
-
-
-  .rankItem {
+  .certLine {
+    border-bottom: 1px solid #000000 !important;
     margin-bottom: 4px !important;
   }
 
-  .rankHeader {
-    font-size: 11px !important;
-    margin-bottom: 2px !important;
-  }
-
-  .brgyCatPill {
-    font-size: 9.5px !important;
-    margin-top: 1px !important;
-  }
-
-  .upvotedItem {
-    padding: 5px 8px !important;
-  }
-
-  .upvotedTitle {
-    font-size: 11px !important;
-  }
-
-  .upvotedMeta {
-    font-size: 9.5px !important;
-  }
-
-  .summaryFooter {
-    padding: 8px 12px !important;
-    gap: 12px !important;
-  }
-
-  .summaryTitle {
-    font-size: 13px !important;
-    margin-bottom: 2px !important;
-  }
-
-  .summaryDesc {
+  .certName {
     font-size: 10px !important;
-    margin-bottom: 6px !important;
+    font-weight: 700 !important;
+    color: #000000 !important;
   }
 
-  .summaryLegendList {
-    gap: 10px !important;
+  .certSub {
+    font-size: 8.5px !important;
+    color: #555555 !important;
   }
-
-  .summaryLegendLabel,
-  .summaryLegendValue {
-    font-size: 10px !important;
-  }
-
-  .summaryRate {
-    font-size: 36px !important;
-  }
-
-  .summaryRateLabel {
-    font-size: 10px !important;
-    margin-top: 2px !important;
-    margin-bottom: 4px !important;
-  }
-}
-
-.card {
-  position: relative;
-}
-
-.statsRow {
-  position: relative;
-}
-
-.statCard {
-  position: relative;
-}
-
-.cardHeader {
-  position: relative;
-}
-
-.cardTitle {
-  position: relative;
-}
-
-.flexLayout {
-  display: flex;
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
-.flex2 {
-  flex: 2;
-}
-
-.flex1 {
-  flex: 1;
-}
-
-.cardContent {
-  padding: 12px 12px 8px;
-}
-
-.emptyState {
-  padding: 40px;
-  text-align: center;
-  color: var(--text-3);
-  font-size: 13px;
-}
-
-.printTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  text-align: left;
-}
-
-.printTable th {
-  padding: 8px 0;
-  border-bottom: 1px solid #ccc;
-}
-
-.printTable td {
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.legendRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.legendName {
-  color: var(--text-2);
-  flex: 1;
-}
-
-.legendValue {
-  font-weight: 700;
-}
-
-.prioLegendRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.prioName {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-2);
-  min-width: 52px;
-}
-
-.prioValue {
-  font-size: 12px;
-  font-weight: 700;
-  min-width: 22px;
-  text-align: right;
-}
-
-.rankItem {
-  margin-bottom: 12px;
-}
-
-.rankHeader {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-  font-size: 13px;
-}
-
-.rankName {
-  color: var(--text-1);
-}
-
-.rankNumber {
-  color: var(--text-3);
-  margin-right: 8px;
-  font-size: 11px;
-}
-
-.rankValue {
-  color: var(--blue-light);
-  font-weight: 700;
-}
-
-.upvotedItem {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 16px;
-  border-bottom: 1px solid var(--border);
-  text-decoration: none;
-}
-
-.upvotedRank {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  background: var(--surface-3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-3);
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.upvotedInfo {
-  flex: 1;
-  min-width: 0;
-}
-
-.upvotedTitle {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-1);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.upvotedMeta {
-  font-size: 11px;
-  color: var(--text-3);
-  margin-top: 2px;
-}
-
-.summaryFooter {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  flex-wrap: wrap;
-  gap: 24px;
-}
-
-.summaryLeft {
-  flex: 1;
-  min-width: 220px;
-}
-
-.summaryTitle {
-  color: var(--text-1);
-  font-size: 16px;
-  font-weight: 700;
-  margin: 0 0 6px;
-}
-
-.summaryDesc {
-  color: var(--text-3);
-  font-size: 13px;
-  margin: 0 0 16px;
-}
-
-.summaryLegendList {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.summaryLegendItem {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.summaryLegendLabel {
-  color: var(--text-3);
-  font-size: 13px;
-}
-
-.summaryLegendValue {
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.summaryRight {
-  text-align: center;
-  min-width: 160px;
-}
-
-.summaryRate {
-  font-size: 60px;
-  font-weight: 900;
-  color: #10B981;
-  line-height: 1;
-}
-
-.summaryRateLabel {
-  color: var(--text-3);
-  font-size: 13px;
-  margin-top: 6px;
-  margin-bottom: 12px;
-}
-
-
-
-.badgeMostConcerned {
-  font-size: 10px;
-  font-weight: 700;
-  background: rgba(239, 68, 68, 0.15);
-  color: #EF4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 4px;
-  padding: 1px 6px;
-  margin-left: 6px;
-  vertical-align: middle;
-}
-
-.brgyCatPill {
-  font-size: 11px;
-  color: var(--text-3);
-  margin-top: 3px;
 }

@@ -88,11 +88,10 @@ export default function ConcernDetail() {
   const [targetDeptComment, setTargetDeptComment] = useState('');
   const [addingComment, setAddingComment] = useState(false);
 
-  // Approval & Email state
-  const [approvalNotes, setApprovalNotes] = useState('');
-  const [approvalTargetDept, setApprovalTargetDept] = useState('');
-  const [approving, setApproving] = useState(false);
-  const [approvalSuccess, setApprovalSuccess] = useState(null);
+  // Admin validation & forwarding to Mayor's Office state
+  const [forwardingToMayor, setForwardingToMayor] = useState(false);
+  const [validationDept, setValidationDept] = useState('');
+  const [forwardSuccess, setForwardSuccess] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -120,12 +119,11 @@ export default function ConcernDetail() {
         setSelCategory(cData.category || 'Other');
         setSelPriority(cData.priority || 'Medium');
         setNote(cData.admin_note || '');
-        setApprovalNotes(cData.approval_notes || 'Approved for immediate evaluation and action.');
-        setApprovalTargetDept(cData.department || (deptList && deptList[0]?.name) || "City Engineer's Office (CEO)");
         setAssignments(aData || []);
         setComments(comData || []);
         setAuditLog(audData || []);
         setDepartments(deptList || []);
+        setValidationDept(cData.department || (deptList[0]?.name || ''));
 
         // After loading concern, load similar ones
         if (cData.id) loadSimilarConcerns(cData.id);
@@ -134,6 +132,25 @@ export default function ConcernDetail() {
       .finally(() => setLoading(false));
 
   }, [id]);
+
+  const handleValidateAndForwardToMayor = async () => {
+    setForwardingToMayor(true);
+    try {
+      const res = await api.post(`/concerns/${id}/forward-to-mayor`, {
+        department: validationDept || concern.department || undefined,
+        admin_note: note.trim() || undefined,
+      });
+      if (res.concern) {
+        setConcern(res.concern);
+        setForwardSuccess(true);
+        setTimeout(() => setForwardSuccess(false), 4000);
+      }
+    } catch (err) {
+      alert('Validation & forwarding failed: ' + err.message);
+    } finally {
+      setForwardingToMayor(false);
+    }
+  };
 
   const loadSimilarConcerns = (concernId) => {
     setLoadingSimilar(true);
@@ -200,34 +217,6 @@ export default function ConcernDetail() {
       alert('AI generation failed: ' + err.message);
     }
     setAiGenerating(false);
-  };
-
-  const handleApproveAndDispatch = async () => {
-    setApproving(true);
-    setApprovalSuccess(null);
-    try {
-      const res = await api.post(`/concerns/${id}/approve`, {
-        approval_notes: approvalNotes.trim(),
-        target_department: approvalTargetDept
-      });
-      if (res.success) {
-        setConcern(res.concern);
-        setSelStatus(res.concern.status || 'In Progress');
-        setApprovalSuccess(`✅ Concern Approved! Email notice dispatched to ${res.department_notified}.`);
-        
-        // Refresh audit log & assignments
-        const [newAudit, newAssignments] = await Promise.all([
-          api.get(`/concerns/${id}/audit`),
-          api.get(`/concerns/${id}/assignments`)
-        ]);
-        setAuditLog(newAudit || []);
-        setAssignments(newAssignments || []);
-      }
-    } catch (err) {
-      alert('Failed to approve concern: ' + (err.message || 'Unknown error'));
-    } finally {
-      setApproving(false);
-    }
   };
 
   const handleAddComment = async () => {
@@ -344,6 +333,37 @@ export default function ConcernDetail() {
                 >
                   {concern.category}
                 </span>
+                {concern.is_validated ? (
+                  <span
+                    className={s.badge}
+                    style={{
+                      background: 'rgba(16,185,129,0.15)',
+                      color: '#10B981',
+                      border: '1px solid rgba(16,185,129,0.3)',
+                      fontSize: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <span>🛡️</span> Validated for Mayor's Office
+                  </span>
+                ) : (
+                  <span
+                    className={s.badge}
+                    style={{
+                      background: 'rgba(245,158,11,0.15)',
+                      color: '#F59E0B',
+                      border: '1px solid rgba(245,158,11,0.3)',
+                      fontSize: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <span>⏳</span> Awaiting Admin Validation
+                  </span>
+                )}
               </div>
               <h2
                 style={{
@@ -363,18 +383,36 @@ export default function ConcernDetail() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
               { icon: '👤', label: 'Submitted by', value: concern.user_name },
-              { icon: '📍', label: 'Barangay', value: concern.user_barangay },
+              {
+                icon: '📍',
+                label: 'Barangay (Click for Map)',
+                value: concern.user_barangay || 'N/A',
+                clickable: true,
+                onClick: () =>
+                  navigate(
+                    `/map?concernId=${concern.id}&lat=${concern.location_lat || ''}&lng=${concern.location_lng || ''}`
+                  ),
+              },
               { icon: '📅', label: 'Date Filed', value: fmtDate(concern.created_at) },
               { icon: '👍', label: 'Community Votes', value: `${concern.upvotes || 0} upvotes` },
             ].map((m, i) => (
-              <div key={i} className={`${s.card} ${cd.metaCard}`}>
+              <div
+                key={i}
+                className={`${s.card} ${cd.metaCard}`}
+                style={m.clickable ? { cursor: 'pointer', transition: 'all 0.2s ease' } : {}}
+                onClick={m.onClick}
+                title={m.clickable ? 'Click to view on MapView' : undefined}
+              >
                 <span style={{ fontSize: 18 }}>{m.icon}</span>
                 <div>
                   <div className={s.sectionLabel} style={{ marginBottom: 3 }}>
                     {m.label}
                   </div>
-                  <div className={s.textPrimary} style={{ fontSize: 13 }}>
-                    {m.value}
+                  <div
+                    className={s.textPrimary}
+                    style={{ fontSize: 13, color: m.clickable ? 'var(--blue-light, #3b82f6)' : undefined }}
+                  >
+                    {m.value} {m.clickable && '↗'}
                   </div>
                 </div>
               </div>
@@ -602,23 +640,83 @@ export default function ConcernDetail() {
 
 
           {/* Location */}
-          {concern.location_address && (
-            <div className={s.card}>
-              <div className={s.cardHeader}>
-                <span className={s.cardTitle}>Location</span>
+          {(concern.location_address || concern.location_lat || concern.user_barangay) && (
+            <div
+              className={s.card}
+              onClick={() => {
+                navigate(
+                  `/map?concernId=${concern.id}&lat=${concern.location_lat || ''}&lng=${concern.location_lng || ''}`
+                );
+              }}
+              style={{
+                cursor: 'pointer',
+                border: '1px solid var(--border)',
+                transition: 'all 0.2s ease',
+              }}
+              title="Click to view and navigate on MapView"
+            >
+              <div
+                className={s.cardHeader}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 16 }}>📍</span>
+                  <span className={s.cardTitle}>Location</span>
+                </div>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--primary)',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <span>Open in MapView</span>
+                  <span>↗</span>
+                </span>
               </div>
-              <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 22 }}>📌</span>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)' }}>
-                    {concern.location_address}
+              <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 10,
+                    background: 'rgba(26, 107, 255, 0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 22,
+                    flexShrink: 0,
+                    border: '1px solid rgba(26, 107, 255, 0.25)',
+                  }}
+                >
+                  📌
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', lineHeight: 1.4 }}>
+                    {concern.location_address || `Barangay ${concern.user_barangay || 'Kabankalan City'}`}
                   </div>
-                  {concern.location_lat && (
-                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 3 }}>
-                      {parseFloat(concern.location_lat).toFixed(5)},{' '}
-                      {parseFloat(concern.location_lng).toFixed(5)}
-                    </div>
-                  )}
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: 'var(--blue-light, #3b82f6)',
+                      marginTop: 4,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {concern.location_lat && concern.location_lng && (
+                      <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                        {parseFloat(concern.location_lat).toFixed(5)},{' '}
+                        {parseFloat(concern.location_lng).toFixed(5)}
+                      </span>
+                    )}
+                    <span style={{ color: 'var(--text-3)' }}>&bull; Click to open interactive map &amp; route</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -661,64 +759,176 @@ export default function ConcernDetail() {
         {/* ── Right: Integrated Executive Action Hub ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           
-          {/* Integrated Action Hub */}
-          <div className={s.card} style={{ border: '1px solid rgba(59,130,246,0.4)', background: 'var(--surface-1)' }}>
-            <div className={s.cardHeader} style={{ borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' }}>
-              <span className={s.cardTitle} style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 200, lineHeight: 1.3 }}>
-                🏛️ Executive Action & Response Hub
-              </span>
-              <span style={{ fontSize: 10, background: 'rgba(59,130,246,0.15)', color: 'var(--primary)', padding: '2px 8px', borderRadius: 99, fontWeight: 700, whiteSpace: 'nowrap', alignSelf: 'flex-start', marginTop: 2 }}>
-                Unified Controls
-              </span>
+          {/* Admin Validation & Mayor's Office Forwarding Card */}
+          {concern.is_validated ? (
+            <div
+              className={s.card}
+              style={{
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              <div style={{ padding: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 8,
+                      background: 'rgba(16, 185, 129, 0.18)',
+                      border: '1px solid rgba(16, 185, 129, 0.35)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 18,
+                      color: '#10B981',
+                      flexShrink: 0,
+                    }}
+                  >
+                    🛡️
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#10B981' }}>
+                      Validated & Forwarded to Mayor's Office
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                      Available in Mayor's Portal for Executive Directive
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    borderRadius: 8,
+                    padding: '10px 12px',
+                    fontSize: 12,
+                    color: 'var(--text-2)',
+                    lineHeight: 1.6,
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                  }}
+                >
+                  <div>
+                    <span style={{ color: 'var(--text-3)' }}>Validated by Admin:</span>{' '}
+                    <strong style={{ color: '#fff' }}>{concern.validated_by_name || 'System Admin'}</strong>
+                  </div>
+                  {concern.validated_at && (
+                    <div>
+                      <span style={{ color: 'var(--text-3)' }}>Validated on:</span>{' '}
+                      <span>{fmtDate(concern.validated_at)}</span>
+                    </div>
+                  )}
+                  <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    {concern.approved_at ? (
+                      <div style={{ color: '#38bdf8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>🏛️</span>
+                        <span>Mayoral Directive Dispatched ({fmtDateShort(concern.approved_at)})</span>
+                      </div>
+                    ) : (
+                      <div style={{ color: '#F59E0B', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>⏳</span>
+                        <span>Awaiting Mayoral Review & Executive Directive</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div
+              className={s.card}
+              style={{
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              <div style={{ padding: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 8,
+                      background: 'rgba(245, 158, 11, 0.18)',
+                      border: '1px solid rgba(245, 158, 11, 0.35)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 18,
+                      color: '#F59E0B',
+                      flexShrink: 0,
+                    }}
+                  >
+                    🛡️
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#F59E0B' }}>
+                      Admin Validation Required
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                      Must validate before forwarding to Mayor's Office
+                    </div>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5, margin: '0 0 12px 0' }}>
+                  Citizen concerns must be checked and validated by the Admin before appearing on the Mayor's desk for executive approval and department dispatch.
+                </p>
+
+                <div style={{ marginBottom: 12 }}>
+                  <label className={s.sectionLabel} style={{ marginBottom: 4, display: 'block', fontSize: 11 }}>
+                    Assigned City Department:
+                  </label>
+                  <select
+                    className={s.select}
+                    style={{ width: '100%', fontSize: 12 }}
+                    value={validationDept || concern.department || ''}
+                    onChange={(e) => setValidationDept(e.target.value)}
+                  >
+                    {departments.map((d) => (
+                      <option key={d.id || d.name} value={d.name}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {forwardSuccess ? (
+                  <div className={s.successBanner} style={{ marginTop: 8 }}>
+                    ✅ Validated & forwarded to Mayor's Office!
+                  </div>
+                ) : (
+                  <button
+                    className={`${s.btn} ${s.btnPrimary}`}
+                    style={{
+                      width: '100%',
+                      justifyContent: 'center',
+                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                      borderColor: '#10B981',
+                      fontWeight: 700,
+                      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                    }}
+                    onClick={handleValidateAndForwardToMayor}
+                    disabled={forwardingToMayor}
+                  >
+                    {forwardingToMayor ? 'Validating...' : '🛡️ Validate & Forward to Mayor\'s Office'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Status & Citizen Response Card */}
+          <div className={s.card}>
+            <div className={s.cardHeader}>
+              <span className={s.cardTitle}>Set Concern Status & Response</span>
             </div>
             <div style={{ padding: '16px' }}>
-              
-              {/* Executive Approval Badge & Dispatch */}
-              {concern.approved_at ? (
-                <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', padding: '10px 12px', borderRadius: 8, marginBottom: 16, fontSize: 12, color: 'var(--green)' }}>
-                  <strong>✅ Officially Approved</strong>
-                  <div style={{ marginTop: 2, fontSize: 11, opacity: 0.9 }}>
-                    Approved on {fmtDate(concern.approved_at)} by <strong>{concern.approved_by_name || "City Admin"}</strong>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)', padding: '12px', borderRadius: 8, marginBottom: 16 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)' }}>⚡ Fast-Track Executive Approval</span>
-                    <button
-                      className={`${s.btn} ${s.btnPrimary} ${s.btnSm}`}
-                      style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', width: '100%', justifyContent: 'center' }}
-                      onClick={handleApproveAndDispatch}
-                      disabled={approving}
-                    >
-                      {approving ? 'Processing...' : '⚡ Approve & Email Department'}
-                    </button>
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6 }}>
-                    Approving automatically alerts the assigned department office email.
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
-                    <select
-                      className={s.select}
-                      style={{ fontSize: 11, padding: '6px 8px', width: '100%', minWidth: 0, textOverflow: 'ellipsis' }}
-                      value={approvalTargetDept}
-                      onChange={(e) => setApprovalTargetDept(e.target.value)}
-                    >
-                      {departments.map((d) => (
-                        <option key={d.id} value={d.name}>
-                          Target: {d.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
 
-              {approvalSuccess && (
-                <div className={s.successBanner} style={{ marginBottom: 14 }}>
-                  {approvalSuccess}
-                </div>
-              )}
 
               {/* Status Selector */}
               <div style={{ marginBottom: 14 }}>

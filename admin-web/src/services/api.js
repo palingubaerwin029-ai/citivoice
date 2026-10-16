@@ -51,16 +51,48 @@ export const maskEmail = (email) => {
 };
 
 // Utility: resolve image URLs — always use current API host, even if DB stored a tunnel/different host
-const API_HOST = BASE_URL.replace(/\/api$/, '');
+export const getApiHost = () => {
+  if (typeof window !== 'undefined' && window.location) {
+    const loc = window.location;
+    // If accessing through Docker or network IP, align backend host with current browser host
+    if (loc.hostname && loc.hostname !== 'localhost' && loc.hostname !== '127.0.0.1') {
+      return `${loc.protocol}//${loc.hostname}:5000`;
+    }
+  }
+  return (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+};
+
 export const resolveImageUrl = (url) => {
   if (!url) return null;
-  if (url.startsWith('data:')) return url;
-  const match = url.match(/\/uploads\/.+$/);
-  return match ? `${API_HOST}${match[0]}` : url;
+  const str = String(url).trim();
+  if (!str) return null;
+  if (str.startsWith('data:')) return str;
+
+  const host = getApiHost();
+  const normalized = str.replace(/\\/g, '/');
+
+  const match = normalized.match(/(?:\/|^)uploads\/(.+)$/i);
+  if (match) {
+    return `${host}/uploads/${match[1]}`;
+  }
+
+  if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+    if (normalized.includes('/uploads/')) {
+      const fn = normalized.split('/uploads/')[1];
+      return `${host}/uploads/${fn}`;
+    }
+    return normalized;
+  }
+
+  if (normalized.match(/^[a-zA-Z0-9_-]+\.(jpe?g|png|gif|webp|heic)$/i)) {
+    return `${host}/uploads/${normalized}`;
+  }
+
+  return normalized.startsWith('/') ? `${host}${normalized}` : `${host}/${normalized}`;
 };
 
 // Kabankalan City barangay reference coordinates (centroids) for accurate pinned location matching
-const KABANKALAN_BARANGAY_COORDS = [
+export const KABANKALAN_BARANGAY_COORDS = [
   { name: 'Barangay 1', lat: 9.998, lng: 122.814 },
   { name: 'Barangay 2', lat: 10.001, lng: 122.812 },
   { name: 'Barangay 3', lat: 9.995, lng: 122.816 },

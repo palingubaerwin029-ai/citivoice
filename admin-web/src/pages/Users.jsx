@@ -66,10 +66,31 @@ export default function Users() {
 
 
   const [lightboxImg, setLightboxImg] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [idImgError, setIdImgError] = useState(false);
 
   // Note: we can't get ALL barangays dynamically without a separate endpoint if we paginate.
   // For now, let's hardcode a few or rely on a static list if needed.
   const barangays = ['All', 'Barangay 1', 'Barangay 2', 'Barangay 3', 'Barangay 4'];
+
+  const handleDeleteConfirmed = async () => {
+    if (!userToDelete) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/users/${userToDelete.id}`);
+      if (selected?.id === userToDelete.id) {
+        setSelected(null);
+      }
+      setUserToDelete(null);
+      loadUsers();
+      loadStats();
+    } catch (err) {
+      alert(err.message || 'Failed to delete user');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const loadStats = () => {
     api.get('/users/verification-stats')
@@ -318,10 +339,33 @@ export default function Users() {
                       <td className={s.td} style={{ fontSize: 11, color: 'var(--text-3)' }}>
                         {fmtDateShort(u.created_at)}
                       </td>
-                      <td className={s.td}>
-                        <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}>
-                          {isSel ? 'Close' : 'View'}
-                        </button>
+                      <td className={s.td} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <button
+                            className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
+                            onClick={() => {
+                              setSelected(isSel ? null : u);
+                              setIdImgError(false);
+                            }}
+                          >
+                            {isSel ? 'Close' : 'View'}
+                          </button>
+                          <button
+                            className={`${s.btn} ${s.btnSm}`}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.25)',
+                              color: '#EF4444',
+                              padding: '5px 8px',
+                              cursor: 'pointer',
+                              borderRadius: 'var(--r-sm)',
+                            }}
+                            title={`Delete citizen ${u.name}`}
+                            onClick={() => setUserToDelete(u)}
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -451,39 +495,66 @@ export default function Users() {
 
                   {selected.id_image_url ? (
                     <div style={{ marginBottom: 16 }}>
-                      <div className={u.recentTitle} style={{ fontSize: 10, marginBottom: 6 }}>Submitted Document</div>
-                      <div 
-                        className={u.idImageWrap} 
-                        style={{ position: 'relative', borderRadius: 'var(--r-md)', overflow: 'hidden', cursor: 'zoom-in' }}
-                        onClick={() => setLightboxImg(resolveImageUrl(selected.id_image_url))}
-                      >
-                        <img 
-                          src={resolveImageUrl(selected.id_image_url)} 
-                          alt="ID Preview" 
-                          style={{ width: '100%', maxHeight: 150, objectFit: 'cover', display: 'block' }}
-                        />
-                        <div 
-                          style={{
-                            position: 'absolute',
-                            inset: 0,
-                            background: 'rgba(0,0,0,0.4)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#fff',
-                            fontSize: 11,
-                            fontWeight: 600,
-                            opacity: 0,
-                            transition: 'opacity 0.2s',
-                          }}
-                          className={u.idImageHoverText}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <div className={u.recentTitle} style={{ fontSize: 10, margin: 0 }}>Submitted Document</div>
+                        <a 
+                          href={resolveImageUrl(selected.id_image_url)} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          style={{ fontSize: 11, color: 'var(--blue-light)', textDecoration: 'none' }}
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          🔍 Click to preview
-                        </div>
+                          Open in tab ↗
+                        </a>
                       </div>
+                      {!idImgError ? (
+                        <div 
+                          className={u.idImageWrap} 
+                          style={{ position: 'relative', borderRadius: 'var(--r-md)', overflow: 'hidden', cursor: 'zoom-in', background: 'var(--surface-2)', minHeight: 80 }}
+                          onClick={() => setLightboxImg(resolveImageUrl(selected.id_image_url))}
+                        >
+                          <img 
+                            src={resolveImageUrl(selected.id_image_url)} 
+                            alt="ID Preview" 
+                            style={{ width: '100%', maxHeight: 180, objectFit: 'contain', display: 'block', background: '#000' }}
+                            onError={() => setIdImgError(true)}
+                          />
+                          <div 
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              background: 'rgba(0,0,0,0.4)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#fff',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              opacity: 0,
+                              transition: 'opacity 0.2s',
+                            }}
+                            className={u.idImageHoverText}
+                          >
+                            🔍 Click to preview
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ padding: '12px', background: 'rgba(239,68,68,0.08)', border: '1px dashed rgba(239,68,68,0.3)', borderRadius: 'var(--r-md)', textAlign: 'center' }}>
+                          <p style={{ margin: '0 0 6px 0', fontSize: 12, color: '#EF4444' }}>Preview failed to load</p>
+                          <a 
+                            href={resolveImageUrl(selected.id_image_url)} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className={`${s.btn} ${s.btnSm}`}
+                            style={{ fontSize: 11, display: 'inline-block' }}
+                          >
+                            View Direct Image Link
+                          </a>
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div style={{ color: 'var(--text-3)', fontSize: 11, fontStyle: 'italic', marginBottom: 12 }}>
+                    <div style={{ color: 'var(--text-3)', fontSize: 11, fontStyle: 'italic', marginBottom: 12, padding: '10px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)' }}>
                       No verification document submitted.
                     </div>
                   )}
@@ -512,6 +583,26 @@ export default function Users() {
                     </a>
                   ))}
                   {userConcerns.length === 0 && <p className={u.recentEmpty}>No concerns yet</p>}
+                </div>
+
+                {/* Danger Zone: Delete User */}
+                <div style={{ padding: '16px 18px', borderTop: '1px solid var(--border)', background: 'rgba(239, 68, 68, 0.04)' }}>
+                  <button
+                    className={`${s.btn}`}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#EF4444',
+                      fontWeight: 600,
+                      justifyContent: 'center',
+                      gap: 8,
+                      padding: '9px 14px',
+                    }}
+                    onClick={() => setUserToDelete(selected)}
+                  >
+                    🗑️ Delete Citizen Account
+                  </button>
                 </div>
               </div>
             </div>
@@ -569,6 +660,92 @@ export default function Users() {
           >
             ✕
           </button>
+        </div>
+      )}
+
+      {/* Confirm Delete Citizen Modal */}
+      {userToDelete && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            zIndex: 10001,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(3px)',
+            padding: 20,
+          }}
+          onClick={() => !deleting && setUserToDelete(null)}
+        >
+          <div
+            className={s.card}
+            style={{
+              maxWidth: 440,
+              width: '100%',
+              padding: 24,
+              boxShadow: 'var(--shadow-xl)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              background: 'var(--surface)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 22,
+                  color: '#EF4444',
+                }}
+              >
+                ⚠️
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-1)' }}>
+                  Delete Citizen Account
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-3)' }}>
+                  This action is permanent and cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, margin: '0 0 20px' }}>
+              Are you sure you want to delete <strong>{userToDelete.name}</strong> ({userToDelete.email})? 
+              Their account, ID records, and preferences will be permanently removed.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                className={`${s.btn} ${s.btnGhost}`}
+                onClick={() => setUserToDelete(null)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                className={s.btn}
+                style={{
+                  background: '#EF4444',
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: 600,
+                  opacity: deleting ? 0.6 : 1,
+                }}
+                onClick={handleDeleteConfirmed}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete Account'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

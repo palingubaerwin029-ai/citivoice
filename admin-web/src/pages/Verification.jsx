@@ -60,6 +60,7 @@ export default function Verification() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const [lightboxImg, setLightboxImg] = useState(null);
+  const [idImgError, setIdImgError] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 350);
@@ -151,6 +152,16 @@ export default function Verification() {
     act(async () => {
       await api.patch(`/users/${selected.id}/revoke`);
       setSelected(null);
+    });
+  };
+
+  const handleDeleteUser = (u = selected) => {
+    if (!u) return;
+    if (!window.confirm(`Permanently delete citizen "${u.name}" (${u.email})? This action cannot be undone.`)) return;
+    act(async () => {
+      await api.delete(`/users/${u.id}`);
+      showToast(`🗑️ Citizen account deleted`, 'success');
+      if (selected?.id === u.id) setSelected(null);
     });
   };
 
@@ -351,7 +362,7 @@ export default function Verification() {
                         {fmtDateShort(u.submitted_at)}
                       </td>
                       <td className={s.td}>
-                        <div style={{ display: 'flex', gap: 6 }}>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                           <button
                             className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
                             onClick={() => {
@@ -375,6 +386,24 @@ export default function Verification() {
                                 ✓
                               </button>
                             )}
+                          <button
+                            className={`${s.btn} ${s.btnSm}`}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.25)',
+                              color: '#EF4444',
+                              padding: '5px 8px',
+                              cursor: 'pointer',
+                              borderRadius: 'var(--r-sm)',
+                            }}
+                            title={`Delete citizen ${u.name}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteUser(u);
+                            }}
+                          >
+                            🗑️
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -565,15 +594,45 @@ export default function Verification() {
                     )}
                   </div>
                   {selected.id_image_url ? (
-                    <div
-                      className={v.idPhotoWrap}
-                      onClick={() => setLightboxImg(resolveImageUrl(selected.id_image_url))}
-                    >
-                      <img
-                        src={resolveImageUrl(selected.id_image_url)}
-                        alt="ID"
-                        className={v.idPhotoImg}
-                      />
+                    <div>
+                      {!idImgError ? (
+                        <div
+                          className={v.idPhotoWrap}
+                          style={{ minHeight: 90, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onClick={() => setLightboxImg(resolveImageUrl(selected.id_image_url))}
+                        >
+                          <img
+                            src={resolveImageUrl(selected.id_image_url)}
+                            alt="ID"
+                            className={v.idPhotoImg}
+                            onError={() => setIdImgError(true)}
+                          />
+                        </div>
+                      ) : (
+                        <div style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.08)', border: '1px dashed rgba(239, 68, 68, 0.3)', borderRadius: 'var(--r-md)', textAlign: 'center' }}>
+                          <p style={{ margin: '0 0 8px 0', fontSize: 12, color: '#EF4444' }}>⚠️ Image preview could not be loaded</p>
+                          <a
+                            href={resolveImageUrl(selected.id_image_url)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`${s.btn} ${s.btnSm}`}
+                            style={{ fontSize: 11, display: 'inline-block' }}
+                          >
+                            Open Direct Image Link ↗
+                          </a>
+                        </div>
+                      )}
+                      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+                        <a
+                          href={resolveImageUrl(selected.id_image_url)}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ fontSize: 11, color: 'var(--blue-light)', textDecoration: 'none' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Open original in new tab ↗
+                        </a>
+                      </div>
                     </div>
                   ) : (
                     <div className={v.idPhotoEmpty}>
@@ -651,6 +710,27 @@ export default function Verification() {
                     </>
                   )}
 
+                  {/* Delete User */}
+                  <div style={{ marginTop: currentStatus !== 'verified' ? 14 : 0, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                    <button
+                      className={s.btn}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        color: '#EF4444',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        justifyContent: 'center',
+                        gap: 6,
+                        padding: '8px 12px',
+                      }}
+                      onClick={() => handleDeleteUser(selected)}
+                      disabled={saving}
+                    >
+                      🗑️ Delete Citizen Account
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

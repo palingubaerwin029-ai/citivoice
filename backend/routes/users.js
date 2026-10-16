@@ -16,6 +16,7 @@ const {
   updateFcmToken,
   uploadAvatar,
   getVerificationStats,
+  deleteCitizen,
 } = require('../controllers/users.controller');
 const upload = require('../middleware/upload');
 
@@ -29,6 +30,9 @@ router.get('/:id', auth, validateIdParam, getUser);
 
 // ─── Update user (auth required, ownership check) ─────────────────────────────
 router.put('/:id', auth, validateIdParam, validateUpdateUser, updateUser);
+
+// ─── Delete user (admin only) ─────────────────────────────────────────────────
+router.delete('/:id', auth, requireRole('admin'), validateIdParam, deleteCitizen);
 
 // ─── Verify user (admin only) ─────────────────────────────────────────────────
 router.patch('/:id/verify', auth, requireRole('admin'), validateIdParam, verifyUser);

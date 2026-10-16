@@ -32,8 +32,8 @@ export default function Login({ onLogin }) {
 
   const completeLogin = useCallback(
     ({ token, user }) => {
-      if (user.role !== 'admin') {
-        setError('Access denied. Administrator accounts only.');
+      if (user.role !== 'admin' && user.role !== 'mayor' && user.role !== 'vice_mayor') {
+        setError('Access denied. Administrator and Executive accounts only.');
         return;
       }
       onLogin(user, token);

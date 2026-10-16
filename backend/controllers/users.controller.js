@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 const { notifyUser } = require('../services/notificationService');
 const { insertNotification } = require('../models/notification.model');
@@ -11,6 +12,7 @@ const {
   selectUserContactInfo,
   updateUserFcmToken,
   updateUserAvatar,
+  deleteUser,
 } = require('../models/user.model');
 
 const { verifyNameOnId } = require('../services/idVerificationService');
@@ -273,6 +275,41 @@ const getVerificationStats = async (req, res) => {
   }
 };
 
+const deleteFileByUrl = (fileUrl) => {
+  if (!fileUrl) return;
+  try {
+    const filename = fileUrl.split('/uploads/')[1] || fileUrl.replace(/^\/?(uploads\/)?/, '');
+    if (filename && !filename.includes('..')) {
+      const filePath = path.join(__dirname, '..', 'uploads', filename);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+  } catch (_) {}
+};
+
+const deleteCitizen = async (req, res) => {
+  const targetId = parseInt(req.params.id);
+  if (req.user.id === targetId) {
+    return res.status(400).json({ error: 'You cannot delete your own account.' });
+  }
+
+  try {
+    const user = await selectById(targetId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Clean up uploaded files if present
+    if (user.avatar_url) deleteFileByUrl(user.avatar_url);
+    if (user.id_image_url) deleteFileByUrl(user.id_image_url);
+
+    await deleteUser(targetId);
+    res.json({ success: true, message: `User "${user.name}" was successfully deleted.` });
+  } catch (err) {
+    console.error('Delete user error:', err);
+    res.status(500).json({ error: 'Internal server error while deleting user' });
+  }
+};
+
 module.exports = {
   listCitizens,
   getUser,
@@ -283,4 +320,5 @@ module.exports = {
   updateFcmToken,
   uploadAvatar,
   getVerificationStats,
+  deleteCitizen,
 };

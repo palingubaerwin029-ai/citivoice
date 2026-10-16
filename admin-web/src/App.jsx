@@ -14,11 +14,32 @@ import Login from './pages/Login';
 import Verification from './pages/Verification';
 import Barangays from './pages/Barangays';
 import Backup from './pages/Backup';
+import MayorsOfficePortal from './pages/MayorsOfficePortal';
 import ToastProvider from './components/ToastProvider';
 
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    try {
+      const token = localStorage.getItem('cv_token');
+      const saved = localStorage.getItem('cv_user');
+      if (token && saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.role === 'admin' || parsed.id)) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
+
+  const [loading, setLoading] = useState(() => {
+    const token = localStorage.getItem('cv_token');
+    const saved = localStorage.getItem('cv_user');
+    return !(token && saved);
+  });
+
   const [theme, setTheme] = useState(localStorage.getItem('cv_theme') || 'dark');
 
   useEffect(() => {
@@ -26,35 +47,40 @@ export default function App() {
     localStorage.setItem('cv_theme', theme);
   }, [theme]);
 
-  // Restore session from localStorage on mount
+  // Validate session in background without blocking initial paint
   useEffect(() => {
     const token = localStorage.getItem('cv_token');
-    const saved = localStorage.getItem('cv_user');
-    if (token && saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Validate token still works
-        api
-          .get('/auth/me')
-          .then((u) => {
-            if (u.role === 'admin') {
-              setUser(u);
-              connectSocket();
-            } else {
-              localStorage.clear();
-            }
-          })
-          .catch(() => {
-            localStorage.removeItem('cv_token');
-            localStorage.removeItem('cv_user');
-          })
-          .finally(() => setLoading(false));
-      } catch {
-        setLoading(false);
-      }
-    } else {
+    if (!token) {
       setLoading(false);
+      return;
     }
+
+    // Connect socket immediately
+    connectSocket();
+
+    // Silently verify token with backend
+    api
+      .get('/auth/me')
+      .then((u) => {
+        if (u && u.role === 'admin') {
+          setUser(u);
+          localStorage.setItem('cv_user', JSON.stringify(u));
+        } else {
+          localStorage.clear();
+          setUser(null);
+        }
+      })
+      .catch((err) => {
+        const msg = String(err?.message || '').toLowerCase();
+        if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('token')) {
+          localStorage.removeItem('cv_token');
+          localStorage.removeItem('cv_user');
+          setUser(null);
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   const handleLogin = (userData, token) => {
@@ -86,16 +112,26 @@ export default function App() {
           />
           <main style={styles.main}>
             <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/concerns" element={<Concerns />} />
-              <Route path="/concerns/:id" element={<ConcernDetail />} />
-              <Route path="/map" element={<MapView />} />
-              <Route path="/verification" element={<Verification />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/barangays" element={<Barangays />} />
-              <Route path="/backup" element={<Backup />} />
+              <Route path="/mayors-office" element={<MayorsOfficePortal user={user} onLogout={handleLogout} />} />
+              <Route path="/mayor" element={<Navigate to="/mayors-office" />} />
+              <Route path="/vice-mayor" element={<Navigate to="/mayors-office" />} />
+              {(user?.role === 'mayor' || user?.role === 'vice_mayor') ? (
+                <Route path="*" element={<Navigate to="/mayors-office" />} />
+              ) : (
+                <>
+                  <Route path="/" element={<Navigate to="/dashboard" />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/concerns" element={<Concerns />} />
+                  <Route path="/concerns/:id" element={<ConcernDetail />} />
+                  <Route path="/map" element={<MapView />} />
+                  <Route path="/verification" element={<Verification />} />
+                  <Route path="/users" element={<Users />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/barangays" element={<Barangays />} />
+                  <Route path="/backup" element={<Backup />} />
+                  <Route path="*" element={<Navigate to="/dashboard" />} />
+                </>
+              )}
             </Routes>
           </main>
         </div>

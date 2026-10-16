@@ -18,10 +18,11 @@ import {
 import s from '../styles/Sidebar.module.css';
 import { resolveImageUrl } from '../services/api';
 
-const NAV = [
+const ADMIN_NAV = [
   { section: 'Overview' },
   { path: '/dashboard', icon: <IoGridOutline />, label: 'Dashboard' },
   { section: 'Management' },
+  { path: '/mayors-office', icon: <IoDocumentTextOutline />, label: "Mayor's Office Portal" },
   { path: '/verification', icon: <IoShieldCheckmarkOutline />, label: 'Verification' },
   { path: '/users', icon: <IoPeopleOutline />, label: 'Users' },
   { path: '/barangays', icon: <IoBusinessOutline />, label: 'Barangays' },
@@ -32,9 +33,17 @@ const NAV = [
   { path: '/backup', icon: <IoCloudUploadOutline />, label: 'Backup' },
 ];
 
+const MAYOR_NAV = [
+  { section: 'Executive Desk' },
+  { path: '/mayors-office', icon: <IoDocumentTextOutline />, label: 'Concern Approvals' },
+];
+
 export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+
+  const isMayor = user?.role === 'mayor' || user?.role === 'vice_mayor';
+  const navItems = isMayor ? MAYOR_NAV : ADMIN_NAV;
 
   const initials =
     user?.name
@@ -42,7 +51,7 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
       .map((n) => n[0])
       .join('')
       .toUpperCase()
-      .slice(0, 2) || 'AD';
+      .slice(0, 2) || (isMayor ? 'MO' : 'AD');
 
   return (
     <aside className={`${s.sidebar} ${s.sidebar_print} ${collapsed ? s.sidebarCollapsed : ''}`}>
@@ -52,7 +61,7 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
         {!collapsed && (
           <div className={s.brandText}>
             <div className={s.brandName}>CitiVoice</div>
-            <div className={s.brandSub}>Admin Console</div>
+            <div className={s.brandSub}>{isMayor ? "Mayor's Office" : 'Admin Console'}</div>
           </div>
         )}
         <button className={s.collapseBtn} onClick={() => setCollapsed((c) => !c)}>
@@ -71,15 +80,17 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
             )}
           </div>
           <div>
-            <div className={s.userName}>{user?.name || 'Admin'}</div>
-            <div className={s.userRole}>● Administrator</div>
+            <div className={s.userName}>{user?.name || (isMayor ? "City Mayor" : 'Admin')}</div>
+            <div className={s.userRole}>
+              {isMayor ? "🏛️ Office of the Mayor" : '● Administrator'}
+            </div>
           </div>
         </div>
       )}
 
       {/* Nav */}
       <nav style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
-        {NAV.map((item, i) => {
+        {navItems.map((item, i) => {
           if (item.section) {
             if (collapsed) return null;
             return (

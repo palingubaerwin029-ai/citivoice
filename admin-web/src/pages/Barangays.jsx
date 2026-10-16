@@ -1,15 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { api, fmtDateShort } from '../services/api';
 import {
   IoBusinessOutline,
-  IoLocationOutline,
   IoPencilOutline,
   IoTrashOutline,
   IoAddOutline,
 } from 'react-icons/io5';
 import styles from '../styles/Barangays.module.css';
 import s from '../styles/Admin.module.css';
-import Pagination, { useFitPagination } from '../components/Pagination';
 
 const EMPTY = { name: '' };
 
@@ -21,8 +19,7 @@ export default function Barangays() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [page, setPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 55, 300);
+  const [search, setSearch] = useState('');
 
   const load = () =>
     api
@@ -73,92 +70,121 @@ export default function Barangays() {
     setShowForm(true);
   };
 
-  // Pagination
-  const totalPages = Math.ceil(barangays.length / itemsPerPage);
-  const displayedBarangays = barangays.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  const filteredBarangays = useMemo(() => {
+    if (!search.trim()) return barangays;
+    const q = search.toLowerCase();
+    return barangays.filter((b) => (b.name || '').toLowerCase().includes(q));
+  }, [barangays, search]);
 
   return (
     <div className={s.page}>
+      {/* Page Header */}
       <div className={s.pageHeader}>
         <div className={s.pageTitleGroup}>
-          <h1 className={s.pageTitle}>
-            <IoBusinessOutline style={{ marginRight: 8, verticalAlign: 'middle' }} /> Barangays
-          </h1>
-          <p className={s.pageSubtitle}>Manage registered barangays for user selection</p>
+          <h1 className={s.pageTitle}>Barangays</h1>
+          <p className={s.pageSubtitle}>
+            {barangays.length} registered barangays in Kabankalan City
+          </p>
         </div>
-        <button
-          className={`${s.btn} ${s.btnPrimary}`}
-          onClick={() => {
-            setShowForm(true);
-            setEditItem(null);
-            setForm(EMPTY);
-          }}
-        >
-          <IoAddOutline size={18} style={{ marginRight: 4, verticalAlign: 'middle' }} /> Add
-          Barangay
-        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Quick Filter */}
+          <div className={styles.searchBox}>
+            <span style={{ fontSize: 13, color: 'var(--text-3)' }}>🔍</span>
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder="Search barangay..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button className={styles.clearBtn} onClick={() => setSearch('')}>
+                ✕
+              </button>
+            )}
+          </div>
+
+          <button
+            className={`${s.btn} ${s.btnPrimary}`}
+            onClick={() => {
+              setShowForm(true);
+              setEditItem(null);
+              setForm(EMPTY);
+            }}
+          >
+            <IoAddOutline size={18} style={{ marginRight: 4, verticalAlign: 'middle' }} /> Add
+            Barangay
+          </button>
+        </div>
       </div>
 
       <div className={`${styles.layout} ${showForm ? styles.hasForm : ''}`}>
         <div className={styles.listCol}>
-          <div className={s.tableWrap}>
+          <div className={styles.tableContainer}>
             {loading ? (
-              <div className={s.loading}>Loading barangays...</div>
-            ) : barangays.length === 0 ? (
-              <div className={s.empty}>
+              <div className={s.loading} style={{ padding: '40px 20px' }}>
+                Loading barangays...
+              </div>
+            ) : filteredBarangays.length === 0 ? (
+              <div className={s.empty} style={{ padding: '50px 20px' }}>
                 <div className={s.emptyIcon}>
                   <IoBusinessOutline />
                 </div>
-                <p className={s.emptyTitle}>No barangays found</p>
-                <p className={s.emptyText}>Start by adding a new barangay to the system.</p>
+                <p className={s.emptyTitle}>
+                  {search ? 'No matching barangays found' : 'No barangays found'}
+                </p>
+                <p className={s.emptyText}>
+                  {search
+                    ? 'Try searching with a different term'
+                    : 'Start by adding a new barangay to the system.'}
+                </p>
               </div>
             ) : (
-              <table className={s.table}>
-                <thead className={s.thead}>
-                  <tr>
-                    <th className={s.th}>Barangay Name</th>
-                    <th className={s.th}>Added On</th>
-                    <th className={`${s.th} ${styles.actionCol}`}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayedBarangays.map((b) => (
-                    <tr key={b.id} className={s.tr}>
-                      <td className={`${s.td} ${s.tdPrimary}`}>
-                        <div className={styles.tableRowName}>
-                          <div className={styles.iconBox}>
-                            <IoLocationOutline size={16} color="#1A6BFF" />
-                          </div>
-                          {b.name}
-                        </div>
-                      </td>
-                      <td className={s.td}>{fmtDateShort(b.created_at)}</td>
-                      <td className={`${s.td} ${styles.actionCol}`}>
-                        <div className={styles.actions}>
-                          <button className={styles.editBtn} onClick={() => openEdit(b)}>
-                            <IoPencilOutline size={14} />
-                          </button>
-                          <button
-                            className={styles.deleteBtn}
-                            onClick={() => setDeleteConfirm({ id: b.id, name: b.name })}
-                          >
-                            <IoTrashOutline size={14} />
-                          </button>
-                        </div>
-                      </td>
+              <div className={styles.tableScroll}>
+                <table className={s.table}>
+                  <thead className={`${s.thead} ${styles.stickyThead}`}>
+                    <tr>
+                      <th className={`${s.th} ${styles.indexCol}`}>#</th>
+                      <th className={s.th}>Barangay Name</th>
+                      <th className={s.th}>Added On</th>
+                      <th className={`${s.th} ${styles.actionCol}`}>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredBarangays.map((b, idx) => (
+                      <tr key={b.id} className={`${s.tr} ${styles.compactTr}`}>
+                        <td className={`${s.td} ${styles.indexCell}`}>{idx + 1}</td>
+                        <td className={`${s.td} ${s.tdPrimary}`}>
+                          <span style={{ fontWeight: 600, color: 'var(--text-1)' }}>{b.name}</span>
+                        </td>
+                        <td className={s.td} style={{ color: 'var(--text-3)', fontSize: 13 }}>
+                          {fmtDateShort(b.created_at)}
+                        </td>
+                        <td className={`${s.td} ${styles.actionCol}`}>
+                          <div className={styles.actions}>
+                            <button
+                              className={styles.editBtn}
+                              onClick={() => openEdit(b)}
+                              title="Edit Barangay"
+                            >
+                              <IoPencilOutline size={14} />
+                            </button>
+                            <button
+                              className={styles.deleteBtn}
+                              onClick={() => setDeleteConfirm({ id: b.id, name: b.name })}
+                              title="Delete Barangay"
+                            >
+                              <IoTrashOutline size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
-
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-              totalItems={barangays.length}
-              itemsPerPage={itemsPerPage}
-            />
           </div>
         </div>
 
@@ -182,7 +208,7 @@ export default function Barangays() {
                 className={styles.input}
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="e.g. Barangay San Isidro"
+                placeholder="e.g. Barangay 1"
                 autoFocus
               />
               <button

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api, resolveImageUrl } from '../services/api';
 import { socket } from '../services/socket';
 
@@ -241,6 +241,12 @@ function HeatmapLayer({ data, visible }) {
 
 export function MapView() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const targetConcernId = searchParams.get('concernId');
+  const targetLat = searchParams.get('lat');
+  const targetLng = searchParams.get('lng');
+
   const [concerns, setConcerns] = useState([]);
   const [selected, setSelected] = useState(null);
   const [filter, setFilter] = useState('All');
@@ -253,6 +259,24 @@ export function MapView() {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [lightboxImg, setLightboxImg] = useState(null);
   const provider = new OpenStreetMapProvider();
+
+  // Auto-select concern or fly to coordinates if passed via query params
+  useEffect(() => {
+    if (!concerns.length) return;
+    if (targetConcernId) {
+      const match = concerns.find((c) => String(c.id) === String(targetConcernId));
+      if (match) {
+        setSelected(match);
+        if (filter !== 'All' && match.status !== filter) {
+          setFilter('All');
+        }
+        return;
+      }
+    }
+    if (targetLat && targetLng && !isNaN(parseFloat(targetLat)) && !isNaN(parseFloat(targetLng))) {
+      setFlyCoords([parseFloat(targetLat), parseFloat(targetLng)]);
+    }
+  }, [concerns, targetConcernId, targetLat, targetLng]);
 
   useEffect(() => {
     localStorage.setItem('mv_filter', filter);

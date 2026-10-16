@@ -209,7 +209,7 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext, co
  * @param {Object} deptInfo - Department object { name, email, contact_phone }
  * @param {String} approvedByName - Name of the official who approved it
  */
-const notifyDepartmentOnApproval = async (concern, approvalNotes, deptInfo, approvedByName = "City Admin / Mayor's Office") => {
+const notifyDepartmentOnApproval = async (concern, approvalNotes, deptInfo, approvedByName = "Office of the City Mayor") => {
   if (!deptInfo || (!deptInfo.email && !process.env.GMAIL_USER)) {
     console.log(`⚠️ Cannot notify department: No target email provided.`);
   }
@@ -227,6 +227,14 @@ const notifyDepartmentOnApproval = async (concern, approvalNotes, deptInfo, appr
   const approverLabel = approvedByName && approvedByName !== 'City Admin' 
     ? `Office of the City Mayor (${escapeHTML(approvedByName)})`
     : 'Office of the City Mayor';
+
+  const hasCoords = concern.location_lat && concern.location_lng && !isNaN(parseFloat(concern.location_lat)) && !isNaN(parseFloat(concern.location_lng));
+  const citiVoiceMapUrl = hasCoords
+    ? `http://localhost:8080/map?concernId=${concern.id}&lat=${concern.location_lat}&lng=${concern.location_lng}`
+    : `http://localhost:8080/map?concernId=${concern.id}`;
+  const googleMapsUrl = hasCoords
+    ? `https://www.google.com/maps/search/?api=1&query=${concern.location_lat},${concern.location_lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((concern.location_address || '') + ' Barangay ' + (concern.user_barangay || '') + ' Kabankalan City')}`;
 
   const subject = `[EXECUTIVE DIRECTIVE] Office of the City Mayor — ${concern.title}`;
 
@@ -253,7 +261,7 @@ const notifyDepartmentOnApproval = async (concern, approvalNotes, deptInfo, appr
 
           <!-- Document Number Pill -->
           <div style="margin-top: 20px; display: inline-block; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); padding: 8px 18px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 12px; font-family: monospace; color: #e2e8f0;">
-            DIRECTIVE REF: <strong style="color: #ffffff;">OFFICIAL-EXECUTIVE-DIRECTIVE</strong>
+            DIRECTIVE REF: <strong style="color: #ffffff;">MAYORAL-DIRECTIVE-${concern.id}</strong>
           </div>
         </div>
 
@@ -264,7 +272,7 @@ const notifyDepartmentOnApproval = async (concern, approvalNotes, deptInfo, appr
           <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 6px solid #16a34a; border-radius: 12px; padding: 20px; margin-bottom: 28px;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
               <span style="background: #16a34a; color: #ffffff; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 5px 12px; border-radius: 20px; display: inline-block;">
-                ✓ ACTION APPROVED BY MAYOR
+                ✓ ACTION APPROVED BY CITY MAYOR
               </span>
               <span style="font-size: 11px; color: #166534; font-weight: 700; text-transform: uppercase;">
                 Priority: ${safePriority}
@@ -295,8 +303,20 @@ const notifyDepartmentOnApproval = async (concern, approvalNotes, deptInfo, appr
                 <td style="padding: 8px 0; font-weight: 600; color: #1e40af;">${safeCategory}</td>
               </tr>
               <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Location / Area:</td>
-                <td style="padding: 8px 0; color: #0f172a;">📍 ${safeLocation} (Barangay ${safeBarangay})</td>
+                <td style="padding: 10px 0; color: #64748b; font-weight: 600; vertical-align: top;">Location / Area:</td>
+                <td style="padding: 10px 0;">
+                  <a href="${citiVoiceMapUrl}" target="_blank" style="color: #1d4ed8; text-decoration: underline; font-weight: 700; font-size: 13.5px;" title="Click to open location in CitiVoice MapView">
+                    📍 ${safeLocation} (Barangay ${safeBarangay}) ↗
+                  </a>
+                  <div style="margin-top: 6px; font-size: 11px;">
+                    <a href="${citiVoiceMapUrl}" target="_blank" style="display: inline-block; color: #2563eb; text-decoration: none; font-weight: 600; background: #eff6ff; padding: 3px 8px; border-radius: 4px; border: 1px solid #bfdbfe; margin-right: 6px;">
+                      🗺️ Open in MapView
+                    </a>
+                    <a href="${googleMapsUrl}" target="_blank" style="display: inline-block; color: #059669; text-decoration: none; font-weight: 600; background: #ecfdf5; padding: 3px 8px; border-radius: 4px; border: 1px solid #a7f3d0;">
+                      📍 View on Google Maps
+                    </a>
+                  </div>
+                </td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Reporting Citizen:</td>
@@ -325,10 +345,13 @@ const notifyDepartmentOnApproval = async (concern, approvalNotes, deptInfo, appr
             </div>
           </div>
 
-          <!-- Official Call to Action Button -->
+          <!-- Official Call to Action Buttons -->
           <div style="text-align: center; margin: 36px 0 24px 0;">
-            <a href="http://localhost:8080/concerns/${concern.id}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 8px 16px rgba(15,23,42,0.25);">
-              🏛️ Open Concern in CitiVoice Console →
+            <a href="http://localhost:8080/concerns/${concern.id}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: #ffffff; text-decoration: none; padding: 14px 26px; border-radius: 10px; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 8px 16px rgba(15,23,42,0.25); margin: 4px;">
+              🏛️ Open Concern Details →
+            </a>
+            <a href="${citiVoiceMapUrl}" target="_blank" style="display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 14px 26px; border-radius: 10px; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 8px 16px rgba(37,99,235,0.25); margin: 4px;">
+              🗺️ Open in MapView →
             </a>
           </div>
 

@@ -49,16 +49,17 @@ const listConcerns = async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
     
-    // Admin sees all, Citizen sees all (but maybe filtered by userId if they want "My Concerns")
     const { status, category, userId } = req.query;
+    const isMayor = req.user?.role === 'mayor' || req.user?.role === 'vice_mayor';
+    const validatedOnly = isMayor || req.query.validatedOnly === 'true' || req.query.validatedOnly === '1';
 
     const [rows, total] = await Promise.all([
-      selectAllConcerns(limit, offset, userId, status, category),
-      countConcerns(userId, status, category)
+      selectAllConcerns(limit, offset, userId, status, category, validatedOnly),
+      countConcerns(userId, status, category, validatedOnly)
     ]);
 
     let data = rows;
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'mayor' && req.user.role !== 'vice_mayor') {
       data = rows.map((r) => {
         if (r.user_id === req.user.id) return r;
         const { user_id, user_name, user_barangay, ...rest } = r;
@@ -115,12 +116,12 @@ const getConcern = async (req, res) => {
 
     concern.is_upvoted_by_me = await checkUpvote(concern.id, req.user.id);
 
-    // Attach linked/similar concerns for admin
-    if (req.user.role === 'admin') {
+    // Attach linked/similar concerns for admin and mayor
+    if (req.user.role === 'admin' || req.user.role === 'mayor' || req.user.role === 'vice_mayor') {
       concern.linked_concerns = await selectLinkedConcerns(concern.id);
     }
 
-    if (req.user.role !== 'admin' && concern.user_id !== req.user.id) {
+    if (req.user.role !== 'admin' && req.user.role !== 'mayor' && req.user.role !== 'vice_mayor' && concern.user_id !== req.user.id) {
       const { user_id, user_name, user_barangay, ...rest } = concern;
       return res.json(rest);
     }
@@ -841,7 +842,7 @@ const approveConcern = async (req, res) => {
     const concern = await selectConcernById(req.params.id);
     if (!concern) return res.status(404).json({ error: 'Concern not found' });
 
-    const approverName = req.user.name || req.user.email || "Office of the City Mayor";
+    const approverName = req.user.name || "Office of the City Mayor";
     const fields = ['status = ?', 'approval_notes = ?', 'approved_by_name = ?', 'approved_at = NOW()', 'updated_at = NOW()'];
     const values = ['In Progress', approval_notes || 'Approved for immediate evaluation and action.', approverName];
 
@@ -947,6 +948,65 @@ const approveConcern = async (req, res) => {
   }
 };
 
+const forwardToMayor = async (req, res) => {
+  const { id } = req.params;
+  const { department, admin_note } = req.body;
+
+  try {
+    const concern = await selectConcernById(id);
+    if (!concern) return res.status(404).json({ error: 'Concern not found' });
+
+    const adminName = req.user.name || 'System Administrator';
+    const fields = ['is_validated = 1', 'validated_at = NOW()', 'validated_by_name = ?', 'updated_at = NOW()'];
+    const values = [adminName];
+
+    if (department) {
+      fields.push('department = ?');
+      values.push(department);
+    }
+    if (admin_note !== undefined) {
+      fields.push('admin_note = ?');
+      values.push(admin_note);
+    }
+
+    await updateConcernFields(id, fields, values);
+    invalidate('concerns', 'concern_detail', 'map_concerns');
+
+    // Add audit log entry
+    try {
+      await workflowService.logAudit(
+        'concern',
+        id,
+        'validated_and_forwarded_to_mayor',
+        req.user.id,
+        adminName,
+        { is_validated: concern.is_validated },
+        { is_validated: 1, validated_by_name: adminName, department: department || concern.department }
+      );
+    } catch (auditErr) {
+      console.error('[Audit Error on forwardToMayor]:', auditErr.message);
+    }
+
+    const updated = await selectConcernById(id);
+
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to('admin').emit('concern_updated', updated);
+        io.to('mayor').emit('concern_forwarded_to_mayor', updated);
+        io.emit('concern_stats_updated', { concernId: updated.id, userId: updated.user_id });
+      }
+    } catch (e) {
+      // ignore socket error
+    }
+
+    res.json({ success: true, concern: updated });
+  } catch (err) {
+    console.error('forwardToMayor error:', err);
+    res.status(500).json({ error: 'Failed to forward concern to Mayor\'s Office' });
+  }
+};
+
 module.exports = {
   listConcerns,
   getMapConcerns,
@@ -955,6 +1015,7 @@ module.exports = {
   createConcern,
   editConcern,
   approveConcern,
+  forwardToMayor,
   removeConcern,
   toggleUpvote,
   uploadIdImage,

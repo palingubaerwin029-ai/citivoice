@@ -39,7 +39,8 @@
 .layout {
     display: flex;
     gap: 20px;
-    align-items: flex-start;
+    align-items: stretch;
+    height: calc(100vh - 145px);
     transition: all 0.3s ease;
 }
 
@@ -50,6 +51,9 @@
 .listCol {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .iconBox {
@@ -265,4 +269,85 @@
 .dialogButtons {
     display: flex;
     gap: 10px;
+}
+
+.tableContainer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg, 12px);
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.tableScroll {
+    overflow-y: auto;
+    flex: 1;
+    height: 100%;
+}
+
+.stickyThead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--surface-2, #16263f);
+    border-bottom: 2px solid var(--border);
+}
+
+.indexCol {
+    width: 48px;
+    text-align: center;
+    font-weight: 700;
+    color: var(--text-3);
+    font-size: 12px;
+}
+
+.indexCell {
+    text-align: center;
+    font-weight: 700;
+    color: var(--text-3);
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+}
+
+.compactTr {
+    transition: background 0.15s ease;
+}
+
+.compactTr td {
+    padding: 10px 14px !important;
+}
+
+.compactTr:hover {
+    background: rgba(26, 107, 255, 0.05);
+}
+
+.searchBox {
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 10px;
+    gap: 6px;
+    width: 220px;
+}
+
+.searchInput {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-1);
+    font-size: 13px;
+    padding: 7px 0;
+    width: 100%;
+}
+
+.clearBtn {
+    background: transparent;
+    border: none;
+    color: var(--text-3);
+    cursor: pointer;
+    font-size: 12px;
 }

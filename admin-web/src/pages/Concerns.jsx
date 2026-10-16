@@ -333,15 +333,56 @@ export default function Concerns() {
                           </span>
                         </td>
                         <td className={s.td}>
-                          <span
-                            className={s.badge}
-                            style={{
-                              color: STATUS_COLORS[c.status],
-                              backgroundColor: (STATUS_COLORS[c.status] || '#8899BB') + '22',
-                            }}
-                          >
-                            {c.status}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                            <span
+                              className={s.badge}
+                              style={{
+                                color: STATUS_COLORS[c.status],
+                                backgroundColor: (STATUS_COLORS[c.status] || '#8899BB') + '22',
+                              }}
+                            >
+                              {c.status}
+                            </span>
+                            {c.is_validated ? (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                  color: '#10B981',
+                                  background: 'rgba(16, 185, 129, 0.1)',
+                                  padding: '2px 6px',
+                                  borderRadius: 4,
+                                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3,
+                                  whiteSpace: 'nowrap',
+                                }}
+                                title={`Validated by ${c.validated_by_name || 'Admin'} & forwarded to Mayor's Office`}
+                              >
+                                🛡️ Forwarded
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                  color: '#F59E0B',
+                                  background: 'rgba(245, 158, 11, 0.1)',
+                                  padding: '2px 6px',
+                                  borderRadius: 4,
+                                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3,
+                                  whiteSpace: 'nowrap',
+                                }}
+                                title="Needs Admin Validation before Mayor can review"
+                              >
+                                ⏳ Needs Validation
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         <td className={s.td} style={{ fontSize: 12 }}>

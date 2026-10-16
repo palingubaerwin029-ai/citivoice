@@ -1,6 +1,6 @@
 const pool = require('../db');
 
-const selectAllConcerns = async (limit = 20, offset = 0, userId = null, status = null, category = null) => {
+const selectAllConcerns = async (limit = 20, offset = 0, userId = null, status = null, category = null, validatedOnly = false) => {
   let query = 'SELECT * FROM concerns WHERE 1=1';
   const params = [];
 
@@ -16,6 +16,9 @@ const selectAllConcerns = async (limit = 20, offset = 0, userId = null, status =
     query += ' AND category = ?';
     params.push(category);
   }
+  if (validatedOnly) {
+    query += ' AND is_validated = 1';
+  }
 
   query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
   params.push(parseInt(limit), parseInt(offset));
@@ -24,7 +27,7 @@ const selectAllConcerns = async (limit = 20, offset = 0, userId = null, status =
   return rows;
 };
 
-const countConcerns = async (userId = null, status = null, category = null) => {
+const countConcerns = async (userId = null, status = null, category = null, validatedOnly = false) => {
   let query = 'SELECT COUNT(*) as total FROM concerns WHERE 1=1';
   const params = [];
 
@@ -39,6 +42,9 @@ const countConcerns = async (userId = null, status = null, category = null) => {
   if (category && category !== 'All') {
     query += ' AND category = ?';
     params.push(category);
+  }
+  if (validatedOnly) {
+    query += ' AND is_validated = 1';
   }
 
   const [rows] = await pool.query(query, params);

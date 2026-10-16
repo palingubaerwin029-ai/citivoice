@@ -1,695 +1,643 @@
-import React, { useEffect, useState } from 'react';
-import { api, fmtDateShort, getPinBarangay } from '../services/api';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  CartesianGrid,
-  Legend,
-} from 'recharts';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api, fmtDateShort, getPinBarangay, KABANKALAN_BARANGAY_COORDS } from '../services/api';
 import s from '../styles/Admin.module.css';
 import r from '../styles/Reports.module.css';
 
-const SC = {
-  Pending: '#F59E0B',
-  'In Progress': '#3B82F6',
-  Resolved: '#10B981',
-  Rejected: '#EF4444',
-};
-const CC = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#F97316'];
-const TT = {
-  contentStyle: {
-    background: 'var(--surface)',
-    border: '1px solid var(--border-md)',
-    borderRadius: 10,
-    color: 'var(--text-1)',
-    fontSize: 12,
-    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
-  },
-  itemStyle: {
-    color: 'var(--text-1)',
-    fontSize: 12,
-    fontWeight: 500,
-  },
-  labelStyle: {
-    color: 'var(--text-1)',
-    fontSize: 12,
-    fontWeight: 600,
-  },
-  cursor: { fill: 'rgba(120,150,200,0.05)' },
-};
-
-const PriorityLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-  if (percent < 0.07) return null;
-  const R = Math.PI / 180,
-    r = innerRadius + (outerRadius - innerRadius) * 0.55;
-  return (
-    <text
-      x={cx + r * Math.cos(-midAngle * R)}
-      y={cy + r * Math.sin(-midAngle * R)}
-      fill="#fff"
-      textAnchor="middle"
-      dominantBaseline="central"
-      fontSize={11}
-      fontWeight={700}
-    >{`${(percent * 100).toFixed(0)}%`}</text>
-  );
-};
+const STATUS_OPTIONS = ['All', 'Pending', 'In Progress', 'Resolved', 'Rejected'];
+const PRIORITY_OPTIONS = ['All', 'High', 'Medium', 'Low'];
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 'All'];
 
 export default function Reports() {
+  const navigate = useNavigate();
   const [concerns, setConcerns] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const defaultStart = new Date();
-  defaultStart.setDate(1); // First day of current month
-  const [startDate, setStartDate] = useState(defaultStart.toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Filters
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [priorityFilter, setPriorityFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [barangayFilter, setBarangayFilter] = useState('All');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  // Sorting
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [selectedRowId, setSelectedRowId] = useState(null);
+
+  const fetchReports = () => {
+    setLoading(true);
+    api.get('/concerns', { limit: 5000 })
+      .then((res) => {
+        setConcerns(res.data || []);
+      })
+      .catch((err) => {
+        console.error('Failed to load reports:', err);
+      })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    Promise.all([api.get('/concerns', { limit: 1000 }), api.get('/users')])
-      .then(([c, u]) => {
-        setConcerns(c.data || []);
-        setUsers(u.data || []);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    fetchReports();
   }, []);
 
-  const filtered = concerns.filter((c) => {
-    if (!c.created_at) return true;
-    const d = new Date(c.created_at).getTime();
-    const start = new Date(startDate).setHours(0, 0, 0, 0);
-    const end = new Date(endDate).setHours(23, 59, 59, 999);
-    return d >= start && d <= end;
-  });
-
-  const total = filtered.length,
-    resolved = filtered.filter((c) => c.status === 'Resolved').length;
-  const inProgress = filtered.filter((c) => c.status === 'In Progress').length;
-  const pending = filtered.filter((c) => c.status === 'Pending').length;
-  const rejected = filtered.filter((c) => c.status === 'Rejected').length;
-  const rate = total ? Math.round((resolved / total) * 100) : 0;
-  const avgUp = total ? (filtered.reduce((s, c) => s + (c.upvotes || 0), 0) / total).toFixed(1) : 0;
-  const hiPrio = filtered.filter((c) => c.priority === 'High').length;
-  const totalUp = filtered.reduce((s, c) => s + (c.upvotes || 0), 0);
-
-  const catData = Object.entries(
-    filtered.reduce((a, c) => {
-      const k = c.category || 'Other';
-      a[k] = (a[k] || 0) + 1;
-      return a;
-    }, {}),
-  )
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, value]) => ({ name: name.split(' ')[0], full: name, value }));
-  const statusData = Object.entries(SC).map(([name, color]) => ({
-    name,
-    value: filtered.filter((c) => c.status === name).length,
-    color,
-  }));
-  const prioData = [
-    { name: 'High', value: filtered.filter((c) => c.priority === 'High').length, color: '#EF4444' },
-    {
-      name: 'Medium',
-      value: filtered.filter((c) => c.priority === 'Medium').length,
-      color: '#F59E0B',
-    },
-    { name: 'Low', value: filtered.filter((c) => c.priority === 'Low').length, color: '#10B981' },
-  ];
-
-  const monthly = (() => {
-    const now = new Date();
-    let maxDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    // Start strictly from 2026-06 (June 2026)
-    let minDate = new Date(2026, 5, 1);
-
+  // Extract distinct categories from data
+  const categoryOptions = useMemo(() => {
+    const cats = new Set();
     concerns.forEach((c) => {
-      if (!c.created_at) return;
-      const d = new Date(c.created_at);
-      const mDate = new Date(d.getFullYear(), d.getMonth(), 1);
-      if (mDate > maxDate) maxDate = mDate;
+      if (c.category) cats.add(c.category);
     });
+    return ['All', ...Array.from(cats).sort()];
+  }, [concerns]);
 
-    const m = {};
-    const curr = new Date(minDate);
-    while (curr <= maxDate) {
-      const k = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}`;
-      m[k] = { month: k, submitted: 0, completed: 0, pending: 0, inProgress: 0 };
-      curr.setMonth(curr.getMonth() + 1);
-    }
-
+  // Extract distinct barangays from data and coords list
+  const barangayOptions = useMemo(() => {
+    const brgySet = new Set(KABANKALAN_BARANGAY_COORDS.map((b) => b.name));
     concerns.forEach((c) => {
-      if (!c.created_at) return;
-      const d = new Date(c.created_at);
-      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      if (m[k]) {
-        m[k].submitted++;
-        if (c.status === 'Resolved') m[k].completed++;
-        if (c.status === 'Pending') m[k].pending++;
-        if (c.status === 'In Progress') m[k].inProgress++;
-      }
+      const b = getPinBarangay(c);
+      if (b) brgySet.add(b);
     });
+    return ['All', ...Array.from(brgySet).sort()];
+  }, [concerns]);
 
-    return Object.values(m).sort((a, b) => a.month.localeCompare(b.month));
-  })();
-
-  // Group concerns by barangay with category breakdowns
-  const brgyStats = filtered.reduce((acc, c) => {
-    const brgy = getPinBarangay(c);
-    if (!brgy) return acc;
-    if (!acc[brgy]) {
-      acc[brgy] = {
-        name: brgy,
-        total: 0,
-        categories: {},
-        highPriority: 0,
-      };
-    }
-    acc[brgy].total++;
-    const cat = c.category ? c.category.split(' ')[0] : 'Other';
-    acc[brgy].categories[cat] = (acc[brgy].categories[cat] || 0) + 1;
-    if (c.priority === 'High') acc[brgy].highPriority++;
-    return acc;
-  }, {});
-
-  const brgData = Object.values(brgyStats)
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 10);
-
-  const mostConcernedBarangay =
-    brgData.length > 0
-      ? {
-          name: brgData[0].name,
-          count: brgData[0].total,
-          pct: total ? Math.round((brgData[0].total / total) * 100) : 0,
-          topCategory:
-            Object.entries(brgData[0].categories).sort((a, b) => b[1] - a[1])[0]?.[0] || 'General',
-          isTie: brgData.length > 1 && brgData[0].total === brgData[1].total,
-          tiedNames: brgData.filter((b) => b.total === brgData[0].total).map((b) => b.name),
+  // Filtered concerns
+  const filteredData = useMemo(() => {
+    return concerns.filter((c) => {
+      // Date filter
+      if (startDate || endDate) {
+        if (!c.created_at) return false;
+        const d = new Date(c.created_at).getTime();
+        if (startDate) {
+          const start = new Date(startDate).setHours(0, 0, 0, 0);
+          if (d < start) return false;
         }
-      : null;
+        if (endDate) {
+          const end = new Date(endDate).setHours(23, 59, 59, 999);
+          if (d > end) return false;
+        }
+      }
 
-  const topUp = [...filtered].sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0)).slice(0, 5);
+      // Status
+      if (statusFilter !== 'All' && c.status !== statusFilter) return false;
 
-  if (loading) return <div className={s.loading}>Loading analytics…</div>;
+      // Priority
+      if (priorityFilter !== 'All' && c.priority !== priorityFilter) return false;
 
-  const KPIS = [
-    { label: 'Total Concerns', value: total, color: '#3B82F6', sub: 'In date range' },
-    { label: 'Resolution Rate', value: `${rate}%`, color: '#10B981', sub: `${resolved} resolved` },
-    { label: 'Avg Upvotes', value: avgUp, color: '#F59E0B', sub: `${totalUp} total votes` },
-    {
-      label: 'High Priority',
-      value: hiPrio,
-      color: '#EF4444',
-      sub: `${total ? Math.round((hiPrio / total) * 100) : 0}% of total`,
-    },
-    { label: 'In Progress', value: inProgress, color: '#60A5FA', sub: 'Active now' },
-  ];
+      // Category
+      if (categoryFilter !== 'All' && c.category !== categoryFilter) return false;
+
+      // Barangay
+      if (barangayFilter !== 'All') {
+        const brgy = getPinBarangay(c);
+        if (brgy !== barangayFilter) return false;
+      }
+
+      return true;
+    });
+  }, [concerns, startDate, endDate, statusFilter, priorityFilter, categoryFilter, barangayFilter]);
+
+  // Sorted concerns
+  const sortedData = useMemo(() => {
+    const list = [...filteredData];
+    list.sort((a, b) => {
+      let valA, valB;
+      switch (sortField) {
+        case 'created_at':
+          valA = new Date(a.created_at || 0).getTime();
+          valB = new Date(b.created_at || 0).getTime();
+          break;
+        case 'title':
+          valA = (a.title || '').toLowerCase();
+          valB = (b.title || '').toLowerCase();
+          break;
+        case 'category':
+          valA = (a.category || '').toLowerCase();
+          valB = (b.category || '').toLowerCase();
+          break;
+        case 'barangay':
+          valA = getPinBarangay(a).toLowerCase();
+          valB = getPinBarangay(b).toLowerCase();
+          break;
+        case 'priority': {
+          const rank = { High: 3, Medium: 2, Low: 1 };
+          valA = rank[a.priority] || 0;
+          valB = rank[b.priority] || 0;
+          break;
+        }
+        case 'status':
+          valA = (a.status || '').toLowerCase();
+          valB = (b.status || '').toLowerCase();
+          break;
+        case 'user_name':
+          valA = (a.user_name || '').toLowerCase();
+          valB = (b.user_name || '').toLowerCase();
+          break;
+        default:
+          valA = new Date(a.created_at || 0).getTime();
+          valB = new Date(b.created_at || 0).getTime();
+      }
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return list;
+  }, [filteredData, sortField, sortOrder]);
+
+  // KPI Calculations
+  const totalCount = sortedData.length;
+  const resolvedCount = sortedData.filter((c) => c.status === 'Resolved').length;
+  const inProgressCount = sortedData.filter((c) => c.status === 'In Progress').length;
+  const pendingCount = sortedData.filter((c) => c.status === 'Pending').length;
+  const rejectedCount = sortedData.filter((c) => c.status === 'Rejected').length;
+  const highPrioCount = sortedData.filter((c) => c.priority === 'High').length;
+  const resolutionRate = totalCount ? Math.round((resolvedCount / totalCount) * 100) : 0;
+
+  // Pagination
+  const effectivePageSize = pageSize === 'All' ? sortedData.length || 1 : Number(pageSize);
+  const totalPages = Math.max(1, Math.ceil(sortedData.length / effectivePageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedData = useMemo(() => {
+    if (pageSize === 'All') return sortedData;
+    const start = (safeCurrentPage - 1) * effectivePageSize;
+    return sortedData.slice(start, start + effectivePageSize);
+  }, [sortedData, safeCurrentPage, effectivePageSize, pageSize]);
+
+  // Handle column header click for sorting
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const getSortIndicator = (field) => {
+    if (sortField !== field) return <span className={r.sortMuted}>↕</span>;
+    return sortOrder === 'asc' ? <span className={r.sortActive}>▲</span> : <span className={r.sortActive}>▼</span>;
+  };
+
+  // Reset all filters
+  const resetFilters = () => {
+    setStatusFilter('All');
+    setPriorityFilter('All');
+    setCategoryFilter('All');
+    setBarangayFilter('All');
+    setStartDate('');
+    setEndDate('');
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = Boolean(
+    statusFilter !== 'All' ||
+    priorityFilter !== 'All' ||
+    categoryFilter !== 'All' ||
+    barangayFilter !== 'All' ||
+    startDate ||
+    endDate
+  );
 
   return (
     <div className={s.page}>
-      <div className={`${s.pageHeader} ${s.noPrint}`}>
-        <div className={s.pageTitleGroup}>
-          <h1 className={s.pageTitle}>Reports & Analytics</h1>
-          <p className={s.pageSubtitle}>CitiVoice performance overview</p>
-        </div>
-        <div className={r.dateFilterRow}>
-          <div className={r.dateFilterGroup}>
-            <span className={r.dateFilterLabel}>From:</span>
-            <input
-              type="date"
-              className={s.input}
-              style={{ padding: '6px 10px', width: 'auto', margin: 0 }}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            <span className={r.dateFilterLabel} style={{ marginLeft: 4 }}>
-              To:
-            </span>
-            <input
-              type="date"
-              className={s.input}
-              style={{ padding: '6px 10px', width: 'auto', margin: 0 }}
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-          <button className={`${s.btn} ${s.btnPrimary}`} onClick={() => window.print()}>
-            🖨️ Print Report
-          </button>
-        </div>
-      </div>
-
-      {/* Print Header - Page 1 */}
-      <div className={`${s.printOnly} ${r.printOnly} ${r.printHeader}`}>
+      {/* ── Official Print Header (Visible only when printing) ── */}
+      <div className={`${s.printOnly} ${r.printHeader}`}>
         <div className={r.printHeaderInner}>
           <div className={r.printLogoBlock}>
             <div className={r.printEmblem}>🏛️</div>
             <div>
               <div className={r.printGovTitle}>Republic of the Philippines · Province of Negros Occidental</div>
               <h1 className={r.printCityTitle}>CITY GOVERNMENT OF KABANKALAN</h1>
-              <div className={r.printSystemTitle}>CITIVOICE CITIZEN CONCERN & RESOLUTION MONITORING SYSTEM</div>
+              <div className={r.printSystemTitle}>CITIVOICE CITIZEN CONCERNS REPORT</div>
             </div>
           </div>
           <div className={r.printMetaBlock}>
-            <div className={r.printMetaBadge}>EXECUTIVE ANALYTICS REPORT</div>
+            <div className={r.printMetaBadge}>OFFICIAL CONCERNS REPORT</div>
             <div className={r.printMetaDate}>
-              <strong>Period:</strong> {startDate} to {endDate}
+              <strong>Generated:</strong> {new Date().toLocaleString('en-US')}
             </div>
             <div className={r.printMetaDate}>
-              <strong>Generated:</strong> {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              <strong>Records:</strong> {sortedData.length} records
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div className={`${s.statsRow} ${r.statsRow}`}>
-        {KPIS.map((k, i) => (
-          <div key={i} className={`${s.statCard} ${r.statCard}`} style={{ '--accent-color': k.color }}>
-            <div className={s.statValue}>{k.value}</div>
-            <div className={s.statLabel}>{k.label}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6 }}>{k.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Row 1 */}
-      <div className={r.flexLayout}>
-        <div className={`${s.card} ${r.card} ${r.flex2}`}>
-          <div className={`${s.cardHeader} ${r.cardHeader}`}>
-            <span className={`${s.cardTitle} ${r.cardTitle}`}>Monthly Submission Trend</span>
-          </div>
-          <div className={r.cardContent}>
-            {monthly.length === 0 ? (
-              <div className={r.emptyState}>No trend data yet</div>
-            ) : (
-              <>
-                <div className={s.noPrint}>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={monthly}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                      <XAxis
-                        dataKey="month"
-                        stroke="var(--text-2)"
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis
-                        stroke="var(--text-2)"
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <Tooltip {...TT} />
-                      <Legend wrapperStyle={{ color: 'var(--text-2)', fontSize: 12 }} />
-                      <Line
-                        type="monotone"
-                        dataKey="submitted"
-                        stroke="#8B5CF6"
-                        strokeWidth={2}
-                        dot={{ fill: '#8B5CF6', r: 3 }}
-                        name="Submitted"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="completed"
-                        stroke="#10B981"
-                        strokeWidth={2}
-                        dot={{ fill: '#10B981', r: 3 }}
-                        name="Completed"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="pending"
-                        stroke="#F59E0B"
-                        strokeWidth={2}
-                        dot={{ fill: '#F59E0B', r: 3 }}
-                        name="Pending"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="inProgress"
-                        stroke="#3B82F6"
-                        strokeWidth={2}
-                        dot={{ fill: '#3B82F6', r: 3 }}
-                        name="In Progress"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className={s.printOnly} style={{ padding: '0 10px 10px' }}>
-                  <table className={r.printTable}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #ccc' }}>
-                        <th style={{ padding: '8px 0' }}>Month</th>
-                        <th style={{ padding: '8px 0' }}>Submitted</th>
-                        <th style={{ padding: '8px 0' }}>Completed</th>
-                        <th style={{ padding: '8px 0' }}>Pending</th>
-                        <th style={{ padding: '8px 0' }}>In Progress</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {monthly.map((m) => (
-                        <tr key={m.month} style={{ borderBottom: '1px solid #eee' }}>
-                          <td style={{ padding: '8px 0', fontWeight: 600 }}>{m.month}</td>
-                          <td style={{ padding: '8px 0' }}>{m.submitted}</td>
-                          <td style={{ padding: '8px 0', color: '#10B981', fontWeight: 700 }}>
-                            {m.completed}
-                          </td>
-                          <td style={{ padding: '8px 0', color: '#F59E0B', fontWeight: 700 }}>
-                            {m.pending}
-                          </td>
-                          <td style={{ padding: '8px 0', color: '#3B82F6', fontWeight: 700 }}>
-                            {m.inProgress}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-        <div className={`${s.card} ${r.card} ${r.flex1}`}>
-          <div className={`${s.cardHeader} ${r.cardHeader}`}>
-            <span className={`${s.cardTitle} ${r.cardTitle}`}>Status Distribution</span>
-          </div>
-          <ResponsiveContainer width="100%" height={160}>
-            <PieChart>
-              <Pie
-                data={statusData}
-                cx="50%"
-                cy="50%"
-                innerRadius={42}
-                outerRadius={68}
-                dataKey="value"
-                paddingAngle={3}
-              >
-                {statusData.map((e, i) => (
-                  <Cell key={i} fill={e.color} />
-                ))}
-              </Pie>
-              <Tooltip {...TT} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div style={{ padding: '0 16px 14px', gap: 6 }} className={s.flexCol}>
-            {statusData.map((s2) => (
-              <div key={s2.name} className={r.legendRow}>
-                <span className={s.statusDot} style={{ background: s2.color }} />
-                <span className={r.legendName}>{s2.name}</span>
-                <span className={r.legendValue} style={{ color: s2.color }}>
-                  {s2.value}
-                </span>
+            {(startDate || endDate) && (
+              <div className={r.printMetaDate}>
+                <strong>Date Range:</strong> {startDate || 'Start'} to {endDate || 'Present'}
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-
-
-      {/* Row 2 */}
-      <div className={r.flexLayout}>
-        <div className={`${s.card} ${r.card} ${r.flex2}`}>
-          <div className={`${s.cardHeader} ${r.cardHeader}`}>
-            <span className={`${s.cardTitle} ${r.cardTitle}`}>Concerns by Category</span>
-          </div>
-          <div className={r.cardContent}>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={catData} layout="vertical" barSize={14}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                <XAxis
-                  type="number"
-                  stroke="var(--text-2)"
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  stroke="var(--text-2)"
-                  fontSize={11}
-                  width={65}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip {...TT} formatter={(v, n, p) => [v, p.payload.full]} />
-                <Bar dataKey="value" radius={[0, 6, 6, 0]}>
-                  {catData.map((_, i) => (
-                    <Cell key={i} fill={CC[i % CC.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className={`${s.card} ${r.card} ${r.flex1}`}>
-          <div className={`${s.cardHeader} ${r.cardHeader}`}>
-            <span className={`${s.cardTitle} ${r.cardTitle}`}>Priority Breakdown</span>
-          </div>
-          <ResponsiveContainer width="100%" height={160}>
-            <PieChart>
-              <Pie
-                data={prioData}
-                cx="50%"
-                cy="50%"
-                innerRadius={36}
-                outerRadius={68}
-                dataKey="value"
-                paddingAngle={3}
-                labelLine={false}
-                label={<PriorityLabel />}
-              >
-                {prioData.map((e, i) => (
-                  <Cell key={i} fill={e.color} />
-                ))}
-              </Pie>
-              <Tooltip {...TT} formatter={(v, n) => [`${v} concerns`, `${n} Priority`]} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div style={{ padding: '0 16px 14px', gap: 8 }} className={s.flexCol}>
-            {prioData.map((p) => {
-              const pct = total ? Math.round((p.value / total) * 100) : 0;
-              return (
-                <div key={p.name} className={r.prioLegendRow}>
-                  <span className={r.prioName}>{p.name}</span>
-                  <div className={s.progressTrack} style={{ flex: 1, height: 5 }}>
-                    <div
-                      className={s.progressFill}
-                      style={{ height: 5, background: p.color, width: `${pct}%` }}
-                    />
-                  </div>
-                  <span className={r.prioValue} style={{ color: p.color }}>
-                    {p.value}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Explicit Page Break for Print (Guarantees strict 2-page fit) */}
-      <div className={r.pageBreak} />
-
-      {/* Page 2 Running Header */}
-      <div className={`${s.printOnly} ${r.printOnly} ${r.printPage2Header}`}>
-        <div className={r.printPage2Left}>
-          <span className={r.printPage2Brand}>CITIVOICE · CITY OF KABANKALAN</span>
-          <span className={r.printPage2Sep}>|</span>
-          <span className={r.printPage2Section}>Section 2: Barangay Breakdown & Community Priorities</span>
-        </div>
-        <div className={r.printPage2Right}>Page 2 of 2</div>
-      </div>
-
-      {/* Row 3 */}
-      <div className={r.flexLayout}>
-        <div className={`${s.card} ${r.card} ${r.flex1}`}>
-          <div className={`${s.cardHeader} ${r.cardHeader}`}>
-            <span className={`${s.cardTitle} ${r.cardTitle}`}>Most Concerned Barangay</span>
-            {mostConcernedBarangay && (
-              <span className={r.badgeMostConcerned}>
-                Rank #1: {mostConcernedBarangay.isTie ? `${mostConcernedBarangay.tiedNames.join(' & ')} (Tied)` : mostConcernedBarangay.name} ({mostConcernedBarangay.count} concerns)
-              </span>
-            )}
-          </div>
-          <div style={{ padding: '12px 16px 16px' }}>
-
-            {brgData.length === 0 ? (
-              <div className={r.emptyState}>No data yet</div>
-            ) : (
-              <>
-                <div className={s.noPrint}>
-                  {brgData.map((item, i) => {
-                    const pct = total ? Math.round((item.total / total) * 100) : 0;
-                    const isTop =
-                      i === 0 ||
-                      (mostConcernedBarangay?.isTie && item.total === mostConcernedBarangay.count);
-                    const topCat = Object.entries(item.categories).sort((a, b) => b[1] - a[1])[0];
-                    return (
-                      <div key={item.name} className={r.rankItem}>
-                        <div className={r.rankHeader}>
-                          <span className={r.rankName}>
-                            <span className={r.rankNumber}>#{i + 1}</span>
-                            <strong>{item.name}</strong>
-                            {isTop && (
-                              <span className={r.badgeMostConcerned}>
-                                Most Concerned
-                              </span>
-                            )}
-                          </span>
-                          <span className={r.rankValue}>
-                            {item.total} {item.total === 1 ? 'concern' : 'concerns'} ({pct}%)
-                          </span>
-                        </div>
-                        <div className={s.progressTrack} style={{ height: 6 }}>
-                          <div
-                            className={s.progressFill}
-                            style={{
-                              height: 6,
-                              background: isTop ? '#EF4444' : CC[i % CC.length],
-                              width: `${pct}%`,
-                            }}
-                          />
-                        </div>
-                        {topCat && (
-                          <div className={r.brgyCatPill}>
-                            Top issue: {topCat[0]} ({topCat[1]})
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className={s.printOnly}>
-                  <table className={r.printTable}>
-                    <thead>
-                      <tr>
-                        <th style={{ width: '12%' }}>Rank</th>
-                        <th style={{ width: '38%' }}>Barangay</th>
-                        <th style={{ width: '16%' }}>Concerns</th>
-                        <th style={{ width: '22%' }}>Top Issue</th>
-                        <th style={{ width: '12%' }}>Share</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {brgData.map((item, i) => {
-                        const pct = total ? Math.round((item.total / total) * 100) : 0;
-                        const isTop = i === 0;
-                        const topCat = Object.entries(item.categories).sort((a, b) => b[1] - a[1])[0];
-                        return (
-                          <tr
-                            key={item.name}
-                            style={{
-                              background: isTop ? '#FFF5F5' : 'transparent',
-                            }}
-                          >
-                            <td style={{ fontWeight: 600 }}>#{i + 1}</td>
-                            <td style={{ fontWeight: isTop ? 700 : 500 }}>
-                              {item.name} {isTop ? '★' : ''}
-                            </td>
-                            <td
-                              style={{
-                                fontWeight: 700,
-                                color: isTop ? '#EF4444' : 'inherit',
-                              }}
-                            >
-                              {item.total}
-                            </td>
-                            <td>{topCat ? topCat[0] : '—'}</td>
-                            <td>{pct}%</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </>
             )}
           </div>
         </div>
-        <div className={`${s.card} ${r.card} ${r.flex1}`}>
-          <div className={`${s.cardHeader} ${r.cardHeader}`}>
-            <span className={`${s.cardTitle} ${r.cardTitle}`}>Most Upvoted Concerns</span>
-          </div>
+      </div>
+
+      {/* ── Screen Header / Action Toolbar ── */}
+      <div className={`${r.excelTopBar} ${s.noPrint}`}>
+        <div className={r.excelBrandGroup}>
           <div>
-            {topUp.length === 0 ? (
-              <div className={r.emptyState}>No data yet</div>
-            ) : (
-              topUp.map((c, i) => (
-                <a key={c.id} href={`/concerns/${c.id}`} className={r.upvotedItem}>
-                  <div className={r.upvotedRank}>#{i + 1}</div>
-                  <div className={r.upvotedInfo}>
-                    <div className={r.upvotedTitle}>{c.title}</div>
-                    <div className={r.upvotedMeta}>
-                      {c.category?.split(' ')[0]} · {getPinBarangay(c)}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                    <span>👍</span>
-                    <span style={{ color: '#F59E0B', fontWeight: 700, fontSize: 13 }}>
-                      {c.upvotes || 0}
-                    </span>
-                  </div>
-                </a>
-              ))
+            <h1 className={r.excelTitle}>Reports</h1>
+            <p className={r.excelSubtitle}>
+              Citizen concerns report &middot; {totalCount} total records
+            </p>
+          </div>
+        </div>
+
+        <div className={r.excelActionGroup}>
+          <button className={r.btnPrint} onClick={() => window.print()} title="Print or Save as PDF">
+            <span className={r.btnIcon}>🖨️</span>
+            <span>Print</span>
+          </button>
+          <button className={r.btnRefresh} onClick={fetchReports} title="Reload records">
+            <span className={r.btnIcon}>🔄</span>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── Quick KPI Summary Ribbon (Excel Formula Style) ── */}
+      <div className={`${r.summaryRibbon} ${s.noPrint}`}>
+        <div className={r.ribbonCell}>
+          <span className={r.ribbonLabel}>TOTAL ROWS</span>
+          <span className={r.ribbonValue}>{totalCount}</span>
+        </div>
+        <div className={r.ribbonDivider} />
+        <div className={r.ribbonCell}>
+          <span className={r.ribbonLabel}>🟢 RESOLVED</span>
+          <span className={`${r.ribbonValue} ${r.valSuccess}`}>{resolvedCount}</span>
+        </div>
+        <div className={r.ribbonDivider} />
+        <div className={r.ribbonCell}>
+          <span className={r.ribbonLabel}>🔵 IN PROGRESS</span>
+          <span className={`${r.ribbonValue} ${r.valInfo}`}>{inProgressCount}</span>
+        </div>
+        <div className={r.ribbonDivider} />
+        <div className={r.ribbonCell}>
+          <span className={r.ribbonLabel}>🟡 PENDING</span>
+          <span className={`${r.ribbonValue} ${r.valWarning}`}>{pendingCount}</span>
+        </div>
+        <div className={r.ribbonDivider} />
+        <div className={r.ribbonCell}>
+          <span className={r.ribbonLabel}>🔴 REJECTED</span>
+          <span className={`${r.ribbonValue} ${r.valDanger}`}>{rejectedCount}</span>
+        </div>
+        <div className={r.ribbonDivider} />
+        <div className={r.ribbonCell}>
+          <span className={r.ribbonLabel}>⚡ HIGH PRIO</span>
+          <span className={`${r.ribbonValue} ${r.valHigh}`}>{highPrioCount}</span>
+        </div>
+        <div className={r.ribbonDivider} />
+        <div className={r.ribbonCell}>
+          <span className={r.ribbonLabel}>RATE</span>
+          <span className={r.ribbonValue}>{resolutionRate}%</span>
+        </div>
+      </div>
+
+      {/* ── Excel Filter Toolbar ── */}
+      <div className={`${r.filterToolbar} ${s.noPrint}`}>
+        <div className={r.filterDropdownGroup}>
+          <div className={r.filterItem}>
+            <label className={r.filterLabel}>Status:</label>
+            <select
+              className={r.filterSelect}
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              {STATUS_OPTIONS.map((st) => (
+                <option key={st} value={st}>
+                  {st}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={r.filterItem}>
+            <label className={r.filterLabel}>Priority:</label>
+            <select
+              className={r.filterSelect}
+              value={priorityFilter}
+              onChange={(e) => {
+                setPriorityFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              {PRIORITY_OPTIONS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={r.filterItem}>
+            <label className={r.filterLabel}>Category:</label>
+            <select
+              className={r.filterSelect}
+              value={categoryFilter}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              {categoryOptions.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={r.filterItem}>
+            <label className={r.filterLabel}>Barangay:</label>
+            <select
+              className={r.filterSelect}
+              value={barangayFilter}
+              onChange={(e) => {
+                setBarangayFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              {barangayOptions.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={r.dateRangeGroup}>
+            <label className={r.filterLabel}>Date:</label>
+            <input
+              type="date"
+              className={r.filterDate}
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setCurrentPage(1);
+              }}
+              title="From date"
+            />
+            <span className={r.dateDash}>—</span>
+            <input
+              type="date"
+              className={r.filterDate}
+              value={endDate}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                setCurrentPage(1);
+              }}
+              title="To date"
+            />
+          </div>
+
+          {hasActiveFilters && (
+            <button className={r.resetBtn} onClick={resetFilters} title="Clear all active filters">
+              Reset Filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Excel Grid Container ── */}
+      <div className={r.gridContainer}>
+        {loading ? (
+          <div className={r.loadingState}>
+            <span className={r.loadingSpinner}>⏳</span>
+            <span>Loading records...</span>
+          </div>
+        ) : sortedData.length === 0 ? (
+          <div className={r.emptyState}>
+            <div className={r.emptyIcon}>📋</div>
+            <div className={r.emptyTitle}>No matching records found</div>
+            <div className={r.emptySubtitle}>Try adjusting your dates or filter selections</div>
+            {hasActiveFilters && (
+              <button className={r.btnResetEmpty} onClick={resetFilters}>
+                Clear All Filters
+              </button>
             )}
           </div>
-        </div>
-      </div>
+        ) : (
+          <div className={r.tableWrapper}>
+            <table className={r.excelTable}>
+              <thead>
+                {/* Main Header Row */}
+                <tr className={r.headerRow}>
+                  <th className={r.thIndex}>#</th>
+                  <th className={r.thSortable} onClick={() => handleSort('created_at')}>
+                    <span>Date Reported</span> {getSortIndicator('created_at')}
+                  </th>
+                  <th className={r.thSortable} onClick={() => handleSort('title')}>
+                    <span>Concern Title</span> {getSortIndicator('title')}
+                  </th>
+                  <th className={r.th}>Description Preview</th>
+                  <th className={r.thSortable} onClick={() => handleSort('category')}>
+                    <span>Category</span> {getSortIndicator('category')}
+                  </th>
+                  <th className={r.thSortable} onClick={() => handleSort('barangay')}>
+                    <span>Barangay</span> {getSortIndicator('barangay')}
+                  </th>
+                  <th className={r.thSortable} onClick={() => handleSort('priority')}>
+                    <span>Priority</span> {getSortIndicator('priority')}
+                  </th>
+                  <th className={r.thSortable} onClick={() => handleSort('status')}>
+                    <span>Status</span> {getSortIndicator('status')}
+                  </th>
+                  <th className={r.thSortable} onClick={() => handleSort('user_name')}>
+                    <span>Reporter</span> {getSortIndicator('user_name')}
+                  </th>
+                  <th className={`${r.thAction} ${s.noPrint}`}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedData.map((c, idx) => {
+                  const globalRowIndex =
+                    pageSize === 'All' ? idx + 1 : (safeCurrentPage - 1) * effectivePageSize + idx + 1;
+                  const isSelected = selectedRowId === c.id;
 
-      {/* Summary */}
-      <div className={`${s.card} ${r.card}`}>
-        <div className={r.summaryFooter}>
-          <div className={r.summaryLeft}>
-            <h3 className={r.summaryTitle}>Overall Resolution Performance</h3>
-            <p className={r.summaryDesc}>
-              {resolved} of {total} concerns resolved
-            </p>
-            <div className={r.summaryLegendList}>
-              {[
-                { l: 'Pending', v: pending, c: '#F59E0B' },
-                { l: 'In Progress', v: inProgress, c: '#3B82F6' },
-                { l: 'Resolved', v: resolved, c: '#10B981' },
-                { l: 'Rejected', v: rejected, c: '#EF4444' },
-              ].map((x) => (
-                <div key={x.l} className={r.summaryLegendItem}>
-                  <span className={s.statusDot} style={{ background: x.c }} />
-                  <span className={r.summaryLegendLabel}>{x.l}: </span>
-                  <span className={r.summaryLegendValue} style={{ color: x.c }}>
-                    {x.v}
+                  return (
+                    <tr
+                      key={c.id}
+                      className={`${r.excelRow} ${isSelected ? r.rowSelected : ''}`}
+                      onClick={() => setSelectedRowId(c.id)}
+                    >
+                      {/* Excel Row Number Index */}
+                      <td className={r.rowIndexCell}>{globalRowIndex}</td>
+
+                      {/* Date Reported */}
+                      <td className={r.dateCell} title={c.created_at}>
+                        {fmtDateShort(c.created_at)}
+                      </td>
+
+                      {/* Title */}
+                      <td className={r.titleCell} title={c.title}>
+                        <span className={r.cellTextClamp}>{c.title || 'Untitled'}</span>
+                      </td>
+
+                      {/* Description */}
+                      <td className={r.descCell} title={c.description}>
+                        <span className={r.cellTextClamp}>{c.description || '—'}</span>
+                      </td>
+
+                      {/* Category */}
+                      <td className={r.categoryCell}>
+                        {c.category || 'General'}
+                      </td>
+
+                      {/* Barangay */}
+                      <td className={r.brgyCell}>
+                        <span className={r.brgyTag}>{getPinBarangay(c)}</span>
+                      </td>
+
+                      {/* Priority */}
+                      <td className={r.priorityCell}>
+                        <span
+                          className={
+                            c.priority === 'High'
+                              ? r.prioTextHigh
+                              : c.priority === 'Medium'
+                                ? r.prioTextMed
+                                : r.prioTextLow
+                          }
+                        >
+                          {c.priority || 'Medium'}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className={r.statusCell}>
+                        <span
+                          className={
+                            c.status === 'Resolved'
+                              ? r.statusTextResolved
+                              : c.status === 'In Progress'
+                                ? r.statusTextInProgress
+                                : c.status === 'Rejected'
+                                  ? r.statusTextRejected
+                                  : r.statusTextPending
+                          }
+                        >
+                          {c.status || 'Pending'}
+                        </span>
+                      </td>
+
+                      {/* Reporter */}
+                      <td className={r.reporterCell} title={c.user_name || 'Anonymous'}>
+                        {c.user_name || 'Anonymous'}
+                      </td>
+
+                      {/* Action */}
+                      <td className={`${r.actionCell} ${s.noPrint}`}>
+                        <button
+                          className={r.btnViewRecord}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/concerns/${c.id}`);
+                          }}
+                          title="Open Concern Details"
+                        >
+                          Open ↗
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ── Excel Bottom Status & Pagination Bar ── */}
+        {!loading && sortedData.length > 0 && (
+          <div className={`${r.excelFooter} ${s.noPrint}`}>
+            <div className={r.footerLeft}>
+              <span className={r.recordCountText}>
+                Showing <strong>{pageSize === 'All' ? 1 : (safeCurrentPage - 1) * effectivePageSize + 1}</strong> to{' '}
+                <strong>
+                  {pageSize === 'All'
+                    ? sortedData.length
+                    : Math.min(safeCurrentPage * effectivePageSize, sortedData.length)}
+                </strong>{' '}
+                of <strong>{sortedData.length}</strong> records
+                {hasActiveFilters && ` (filtered from ${concerns.length} total)`}
+              </span>
+              {selectedRowId && (
+                <span className={r.selectionInfo}>
+                  &middot; Row selected
+                </span>
+              )}
+            </div>
+
+            <div className={r.footerRight}>
+              <div className={r.pageSizeSelector}>
+                <span className={r.pageSizeLabel}>Rows per page:</span>
+                <select
+                  className={r.pageSizeSelect}
+                  value={pageSize}
+                  onChange={(e) => {
+                    const val = e.target.value === 'All' ? 'All' : Number(e.target.value);
+                    setPageSize(val);
+                    setCurrentPage(1);
+                  }}
+                >
+                  {PAGE_SIZE_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {pageSize !== 'All' && totalPages > 1 && (
+                <div className={r.paginationButtons}>
+                  <button
+                    className={r.pgBtn}
+                    disabled={safeCurrentPage === 1}
+                    onClick={() => setCurrentPage(1)}
+                    title="First Page"
+                  >
+                    «
+                  </button>
+                  <button
+                    className={r.pgBtn}
+                    disabled={safeCurrentPage === 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    title="Previous Page"
+                  >
+                    ‹
+                  </button>
+                  <span className={r.pageIndicator}>
+                    Page {safeCurrentPage} of {totalPages}
                   </span>
+                  <button
+                    className={r.pgBtn}
+                    disabled={safeCurrentPage === totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    title="Next Page"
+                  >
+                    ›
+                  </button>
+                  <button
+                    className={r.pgBtn}
+                    disabled={safeCurrentPage === totalPages}
+                    onClick={() => setCurrentPage(totalPages)}
+                    title="Last Page"
+                  >
+                    »
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
           </div>
-          <div className={r.summaryRight}>
-            <div className={r.summaryRate}>{rate}%</div>
-            <div className={r.summaryRateLabel}>Resolution Rate</div>
-            <div className={s.progressTrack} style={{ height: 8 }}>
-              <div
-                className={s.progressFill}
-                style={{ height: 8, background: '#10B981', width: `${rate}%` }}
-              />
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Official Certification Block - Print Only */}
-      <div className={`${s.printOnly} ${r.printOnly} ${r.printCertification}`}>
+      {/* ── Official Print Certification / Signature Block ── */}
+      <div className={`${s.printOnly} ${r.printCertification}`}>
         <div className={r.certCol}>
           <div className={r.certLabel}>Prepared by:</div>
           <div className={r.certLine}></div>
