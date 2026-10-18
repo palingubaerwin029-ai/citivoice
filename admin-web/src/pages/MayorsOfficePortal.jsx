@@ -180,9 +180,6 @@ export default function MayorsOfficePortal({ user, onLogout }) {
             <div className={s.metricLabel}>Awaiting Review</div>
             <div className={s.metricValue}>{metrics.pending}</div>
           </div>
-          <div className={s.metricIcon} style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
-            ⏳
-          </div>
         </div>
 
         <div className={s.metricCard} style={{ borderLeft: '3px solid #10b981' }}>
@@ -190,18 +187,12 @@ export default function MayorsOfficePortal({ user, onLogout }) {
             <div className={s.metricLabel}>Dispatched Directives</div>
             <div className={s.metricValue}>{metrics.dispatched}</div>
           </div>
-          <div className={s.metricIcon} style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
-            ⚡
-          </div>
         </div>
 
         <div className={s.metricCard} style={{ borderLeft: '3px solid #ef4444' }}>
           <div>
             <div className={s.metricLabel}>High-Risk Hazards</div>
             <div className={s.metricValue}>{metrics.urgent}</div>
-          </div>
-          <div className={s.metricIcon} style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
-            🔥
           </div>
         </div>
       </div>
@@ -270,44 +261,34 @@ export default function MayorsOfficePortal({ user, onLogout }) {
             const isHigh = c.priority === 'High';
 
             return (
-              <div key={c.id} className={s.concernRow}>
+              <div key={c.id} className={s.concernRow} onClick={() => openReviewModal(c)}>
                 <div className={s.concernMain}>
-                  <div className={s.concernMetaTop}>
-                    <span className={s.categoryTag}>{c.category}</span>
-                    <span
-                      className={`${s.priorityBadge} ${isHigh ? s.priorityHigh : s.priorityNormal}`}
-                    >
-                      {isHigh ? '🔥 High Priority' : c.priority || 'Normal'}
-                    </span>
-                    <span className={s.dateTag}>Filed: {fmtDateShort(c.created_at)}</span>
+                  <div className={s.concernRowHeader}>
+                    <span className={s.concernId}>#{c.id}</span>
+                    <span className={s.concernTitle}>{c.title}</span>
+                    {isHigh && <span className={s.priorityHighTag}>High</span>}
                   </div>
 
-                  <h3 className={s.concernTitle}>{c.title}</h3>
-                  <p className={s.concernDesc}>{c.description || 'No description provided'}</p>
-
-                  <div className={s.concernSub}>
-                    <span className={s.citizenInfo}>
-                      👤 <strong>{c.user_name || 'Citizen'}</strong> · 📍 {c.user_barangay || c.location_address || 'Kabankalan City'}
-                    </span>
-                    <span className={s.deptInfo}>
-                      🏢 {c.department || "City Engineer's Office"}
-                    </span>
+                  <div className={s.concernSubline}>
+                    <span>{c.category}</span>
+                    <span className={s.sublineDot}>·</span>
+                    <span>{c.user_barangay || c.location_address || 'Kabankalan City'}</span>
+                    <span className={s.sublineDot}>·</span>
+                    <span>{c.user_name || 'Citizen'}</span>
+                    <span className={s.sublineDot}>·</span>
+                    <span>{fmtDateShort(c.created_at)}</span>
                   </div>
                 </div>
 
-                <div className={s.concernAction}>
+                <div className={s.concernAction} onClick={(e) => e.stopPropagation()}>
                   {!isApproved ? (
                     <button className={s.actionBtn} onClick={() => openReviewModal(c)}>
-                      ⚡ Review & Dispatch
+                      Review & Dispatch
                     </button>
                   ) : (
-                    <div
-                      className={s.dispatchedBadge}
-                      onClick={() => openReviewModal(c)}
-                      title="Click to view directive details"
-                    >
-                      ✓ Dispatched ({fmtDateShort(c.approved_at)})
-                    </div>
+                    <span className={s.dispatchedBadge} onClick={() => openReviewModal(c)}>
+                      Dispatched ({fmtDateShort(c.approved_at)})
+                    </span>
                   )}
                 </div>
               </div>
