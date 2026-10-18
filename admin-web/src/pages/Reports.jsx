@@ -8,18 +8,36 @@ const STATUS_OPTIONS = ['All', 'Pending', 'In Progress', 'Resolved', 'Rejected']
 const PRIORITY_OPTIONS = ['All', 'High', 'Medium', 'Low'];
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 'All'];
 
+const getCurrentMonthStr = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+};
+
+const formatMonthLabel = (yearMonthStr) => {
+  if (!yearMonthStr || yearMonthStr === 'all') return 'All Months';
+  const parts = yearMonthStr.split('-');
+  if (parts.length < 2) return yearMonthStr;
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const date = new Date(year, month - 1, 1);
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+};
+
 export default function Reports() {
   const navigate = useNavigate();
   const [concerns, setConcerns] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
+  // Month-by-month filter (defaults to current month)
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthStr);
+
+  // Other Filters
   const [statusFilter, setStatusFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [barangayFilter, setBarangayFilter] = useState('All');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
 
   // Sorting
   const [sortField, setSortField] = useState('created_at');
@@ -65,21 +83,58 @@ export default function Reports() {
     return ['All', ...Array.from(brgySet).sort()];
   }, [concerns]);
 
-  // Filtered concerns
+  // Available months with record counts
+  const availableMonths = useMemo(() => {
+    const monthCounts = {};
+    concerns.forEach((c) => {
+      if (!c.created_at) return;
+      const d = new Date(c.created_at);
+      if (isNaN(d.getTime())) return;
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthCounts[ym] = (monthCounts[ym] || 0) + 1;
+    });
+
+    const cur = getCurrentMonthStr();
+    if (monthCounts[cur] === undefined) monthCounts[cur] = 0;
+
+    return Object.keys(monthCounts)
+      .sort()
+      .reverse()
+      .map((ym) => ({
+        value: ym,
+        label: `${formatMonthLabel(ym)} (${monthCounts[ym]} records)`,
+        count: monthCounts[ym],
+      }));
+  }, [concerns]);
+
+  const handlePrevMonth = () => {
+    if (selectedMonth === 'all') return;
+    const [y, m] = selectedMonth.split('-').map(Number);
+    const d = new Date(y, m - 2, 1);
+    const nextYm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    setSelectedMonth(nextYm);
+    setCurrentPage(1);
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 'all') return;
+    const [y, m] = selectedMonth.split('-').map(Number);
+    const d = new Date(y, m, 1);
+    const nextYm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    setSelectedMonth(nextYm);
+    setCurrentPage(1);
+  };
+
+  // Filtered concerns strictly by selected month
   const filteredData = useMemo(() => {
     return concerns.filter((c) => {
-      // Date filter
-      if (startDate || endDate) {
+      // Month filter
+      if (selectedMonth && selectedMonth !== 'all') {
         if (!c.created_at) return false;
-        const d = new Date(c.created_at).getTime();
-        if (startDate) {
-          const start = new Date(startDate).setHours(0, 0, 0, 0);
-          if (d < start) return false;
-        }
-        if (endDate) {
-          const end = new Date(endDate).setHours(23, 59, 59, 999);
-          if (d > end) return false;
-        }
+        const d = new Date(c.created_at);
+        if (isNaN(d.getTime())) return false;
+        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (ym !== selectedMonth) return false;
       }
 
       // Status
@@ -99,7 +154,7 @@ export default function Reports() {
 
       return true;
     });
-  }, [concerns, startDate, endDate, statusFilter, priorityFilter, categoryFilter, barangayFilter]);
+  }, [concerns, selectedMonth, statusFilter, priorityFilter, categoryFilter, barangayFilter]);
 
   // Sorted concerns
   const sortedData = useMemo(() => {
@@ -184,25 +239,51 @@ export default function Reports() {
     return sortOrder === 'asc' ? <span className={r.sortActive}>▲</span> : <span className={r.sortActive}>▼</span>;
   };
 
-  // Reset all filters
+  // CSV Export for the selected month
+  const exportToCSV = () => {
+    if (!sortedData.length) return;
+    const headers = ['#', 'Date Reported', 'Title', 'Description', 'Category', 'Barangay', 'Priority', 'Status', 'Citizen'];
+    const rows = sortedData.map((c, i) => [
+      i + 1,
+      fmtDateShort(c.created_at),
+      `"${(c.title || '').replace(/"/g, '""')}"`,
+      `"${(c.description || '').replace(/"/g, '""')}"`,
+      `"${c.category || ''}"`,
+      `"${getPinBarangay(c)}"`,
+      `"${c.priority || ''}"`,
+      `"${c.status || ''}"`,
+      `"${c.user_name || ''}"`,
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `citivoice-report-${selectedMonth || 'monthly'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Reset all filters (resets back to current month)
   const resetFilters = () => {
+    setSelectedMonth(getCurrentMonthStr());
     setStatusFilter('All');
     setPriorityFilter('All');
     setCategoryFilter('All');
     setBarangayFilter('All');
-    setStartDate('');
-    setEndDate('');
     setCurrentPage(1);
   };
 
   const hasActiveFilters = Boolean(
+    selectedMonth !== getCurrentMonthStr() ||
     statusFilter !== 'All' ||
     priorityFilter !== 'All' ||
     categoryFilter !== 'All' ||
-    barangayFilter !== 'All' ||
-    startDate ||
-    endDate
+    barangayFilter !== 'All'
   );
+
+  const monthLabel = formatMonthLabel(selectedMonth);
 
   return (
     <div className={s.page}>
@@ -214,22 +295,20 @@ export default function Reports() {
             <div>
               <div className={r.printGovTitle}>Republic of the Philippines · Province of Negros Occidental</div>
               <h1 className={r.printCityTitle}>CITY GOVERNMENT OF KABANKALAN</h1>
-              <div className={r.printSystemTitle}>CITIVOICE CITIZEN CONCERNS REPORT</div>
+              <div className={r.printSystemTitle}>CITIVOICE OFFICIAL MONTHLY REPORT</div>
             </div>
           </div>
           <div className={r.printMetaBlock}>
             <div className={r.printMetaBadge}>OFFICIAL CONCERNS REPORT</div>
             <div className={r.printMetaDate}>
+              <strong>Reporting Period:</strong> {monthLabel}
+            </div>
+            <div className={r.printMetaDate}>
               <strong>Generated:</strong> {new Date().toLocaleString('en-US')}
             </div>
             <div className={r.printMetaDate}>
-              <strong>Records:</strong> {sortedData.length} records
+              <strong>Total Records:</strong> {sortedData.length} concerns
             </div>
-            {(startDate || endDate) && (
-              <div className={r.printMetaDate}>
-                <strong>Date Range:</strong> {startDate || 'Start'} to {endDate || 'Present'}
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -238,17 +317,21 @@ export default function Reports() {
       <div className={`${r.excelTopBar} ${s.noPrint}`}>
         <div className={r.excelBrandGroup}>
           <div>
-            <h1 className={r.excelTitle}>Reports</h1>
+            <h1 className={r.excelTitle}>Monthly Concerns Report</h1>
             <p className={r.excelSubtitle}>
-              Citizen concerns report &middot; {totalCount} total records
+              Showing records for <strong style={{ color: 'var(--text-1)' }}>{monthLabel}</strong> &middot; {totalCount} records
             </p>
           </div>
         </div>
 
         <div className={r.excelActionGroup}>
+          <button className={r.btnExport} onClick={exportToCSV} title="Export this month's data to CSV">
+            <span className={r.btnIcon}>📥</span>
+            <span>Export CSV</span>
+          </button>
           <button className={r.btnPrint} onClick={() => window.print()} title="Print or Save as PDF">
             <span className={r.btnIcon}>🖨️</span>
-            <span>Print</span>
+            <span>Print Report</span>
           </button>
           <button className={r.btnRefresh} onClick={fetchReports} title="Reload records">
             <span className={r.btnIcon}>🔄</span>
@@ -260,7 +343,7 @@ export default function Reports() {
       {/* ── Quick KPI Summary Ribbon (Excel Formula Style) ── */}
       <div className={`${r.summaryRibbon} ${s.noPrint}`}>
         <div className={r.ribbonCell}>
-          <span className={r.ribbonLabel}>TOTAL ROWS</span>
+          <span className={r.ribbonLabel}>TOTAL ({selectedMonth === 'all' ? 'ALL TIME' : selectedMonth})</span>
           <span className={r.ribbonValue}>{totalCount}</span>
         </div>
         <div className={r.ribbonDivider} />
@@ -298,6 +381,69 @@ export default function Reports() {
       {/* ── Excel Filter Toolbar ── */}
       <div className={`${r.filterToolbar} ${s.noPrint}`}>
         <div className={r.filterDropdownGroup}>
+          {/* 📅 Month Picker Group */}
+          <div className={r.monthPickerGroup}>
+            <label className={r.filterLabel}>Month:</label>
+            <button
+              type="button"
+              className={r.monthNavBtn}
+              onClick={handlePrevMonth}
+              disabled={selectedMonth === 'all'}
+              title="Previous Month"
+            >
+              ◀
+            </button>
+            <select
+              className={r.monthSelect}
+              value={selectedMonth}
+              onChange={(e) => {
+                setSelectedMonth(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              {availableMonths.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+              <option value="all">All Months (Annual Summary)</option>
+            </select>
+            <input
+              type="month"
+              className={r.filterMonthInput}
+              value={selectedMonth === 'all' ? '' : selectedMonth}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setSelectedMonth(e.target.value);
+                  setCurrentPage(1);
+                }
+              }}
+              title="Select custom month & year"
+            />
+            <button
+              type="button"
+              className={r.monthNavBtn}
+              onClick={handleNextMonth}
+              disabled={selectedMonth === 'all'}
+              title="Next Month"
+            >
+              ▶
+            </button>
+            {selectedMonth !== getCurrentMonthStr() && (
+              <button
+                type="button"
+                className={r.currentMonthBtn}
+                onClick={() => {
+                  setSelectedMonth(getCurrentMonthStr());
+                  setCurrentPage(1);
+                }}
+                title="Jump to current month"
+              >
+                Current Month
+              </button>
+            )}
+          </div>
+
           <div className={r.filterItem}>
             <label className={r.filterLabel}>Status:</label>
             <select
@@ -370,34 +516,9 @@ export default function Reports() {
             </select>
           </div>
 
-          <div className={r.dateRangeGroup}>
-            <label className={r.filterLabel}>Date:</label>
-            <input
-              type="date"
-              className={r.filterDate}
-              value={startDate}
-              onChange={(e) => {
-                setStartDate(e.target.value);
-                setCurrentPage(1);
-              }}
-              title="From date"
-            />
-            <span className={r.dateDash}>—</span>
-            <input
-              type="date"
-              className={r.filterDate}
-              value={endDate}
-              onChange={(e) => {
-                setEndDate(e.target.value);
-                setCurrentPage(1);
-              }}
-              title="To date"
-            />
-          </div>
-
           {hasActiveFilters && (
-            <button className={r.resetBtn} onClick={resetFilters} title="Clear all active filters">
-              Reset Filters
+            <button className={r.resetBtn} onClick={resetFilters} title="Reset filters to current month">
+              Reset to Current Month
             </button>
           )}
         </div>
