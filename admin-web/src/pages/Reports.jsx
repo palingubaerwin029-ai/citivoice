@@ -4,46 +4,34 @@ import { api, fmtDateShort, getPinBarangay, KABANKALAN_BARANGAY_COORDS } from '.
 import s from '../styles/Admin.module.css';
 import r from '../styles/Reports.module.css';
 
-const STATUS_OPTIONS = ['All', 'Pending', 'In Progress', 'Resolved', 'Rejected'];
 const PRIORITY_OPTIONS = ['All', 'High', 'Medium', 'Low'];
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 'All'];
-
-const getCurrentMonthStr = () => {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  return `${year}-${month}`;
-};
-
-const formatMonthLabel = (yearMonthStr) => {
-  if (!yearMonthStr || yearMonthStr === 'all') return 'All Months';
-  const parts = yearMonthStr.split('-');
-  if (parts.length < 2) return yearMonthStr;
-  const year = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10);
-  const date = new Date(year, month - 1, 1);
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-};
 
 export default function Reports() {
   const navigate = useNavigate();
   const [concerns, setConcerns] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Month-by-month filter (defaults to current month)
-  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthStr);
+  // View mode: 'format' (the exact Date | Pending | In Progress | Resolved | Reject | Total table) or 'detail' (row per concern)
+  const [viewMode, setViewMode] = useState('format');
 
-  // Other Filters
-  const [statusFilter, setStatusFilter] = useState('All');
+  // Aggregation: 'month' (default: monthly results) or 'day' (daily results)
+  const [groupBy, setGroupBy] = useState('month');
+
+  // Filters
+  const [yearFilter, setYearFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [barangayFilter, setBarangayFilter] = useState('All');
 
-  // Sorting
-  const [sortField, setSortField] = useState('created_at');
-  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
+  // Expanded row for viewing details inline
+  const [expandedKey, setExpandedKey] = useState(null);
 
-  // Pagination
+  // Sorting for detail view
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
+
+  // Pagination for detail view
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [selectedRowId, setSelectedRowId] = useState(null);
@@ -64,6 +52,17 @@ export default function Reports() {
     fetchReports();
   }, []);
 
+  // Extract distinct years from data
+  const yearOptions = useMemo(() => {
+    const years = new Set();
+    concerns.forEach((c) => {
+      if (!c.created_at) return;
+      const d = new Date(c.created_at);
+      if (!isNaN(d.getTime())) years.add(String(d.getFullYear()));
+    });
+    return ['All', ...Array.from(years).sort().reverse()];
+  }, [concerns]);
+
   // Extract distinct categories from data
   const categoryOptions = useMemo(() => {
     const cats = new Set();
@@ -83,62 +82,17 @@ export default function Reports() {
     return ['All', ...Array.from(brgySet).sort()];
   }, [concerns]);
 
-  // Available months with record counts
-  const availableMonths = useMemo(() => {
-    const monthCounts = {};
-    concerns.forEach((c) => {
-      if (!c.created_at) return;
-      const d = new Date(c.created_at);
-      if (isNaN(d.getTime())) return;
-      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      monthCounts[ym] = (monthCounts[ym] || 0) + 1;
-    });
-
-    const cur = getCurrentMonthStr();
-    if (monthCounts[cur] === undefined) monthCounts[cur] = 0;
-
-    return Object.keys(monthCounts)
-      .sort()
-      .reverse()
-      .map((ym) => ({
-        value: ym,
-        label: `${formatMonthLabel(ym)} (${monthCounts[ym]} records)`,
-        count: monthCounts[ym],
-      }));
-  }, [concerns]);
-
-  const handlePrevMonth = () => {
-    if (selectedMonth === 'all') return;
-    const [y, m] = selectedMonth.split('-').map(Number);
-    const d = new Date(y, m - 2, 1);
-    const nextYm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    setSelectedMonth(nextYm);
-    setCurrentPage(1);
-  };
-
-  const handleNextMonth = () => {
-    if (selectedMonth === 'all') return;
-    const [y, m] = selectedMonth.split('-').map(Number);
-    const d = new Date(y, m, 1);
-    const nextYm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    setSelectedMonth(nextYm);
-    setCurrentPage(1);
-  };
-
-  // Filtered concerns strictly by selected month
+  // Filter raw concerns
   const filteredData = useMemo(() => {
     return concerns.filter((c) => {
-      // Month filter
-      if (selectedMonth && selectedMonth !== 'all') {
-        if (!c.created_at) return false;
-        const d = new Date(c.created_at);
-        if (isNaN(d.getTime())) return false;
-        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        if (ym !== selectedMonth) return false;
-      }
+      if (!c.created_at) return false;
+      const d = new Date(c.created_at);
+      if (isNaN(d.getTime())) return false;
 
-      // Status
-      if (statusFilter !== 'All' && c.status !== statusFilter) return false;
+      // Year Filter
+      if (yearFilter !== 'All') {
+        if (String(d.getFullYear()) !== yearFilter) return false;
+      }
 
       // Priority
       if (priorityFilter !== 'All' && c.priority !== priorityFilter) return false;
@@ -154,9 +108,70 @@ export default function Reports() {
 
       return true;
     });
-  }, [concerns, selectedMonth, statusFilter, priorityFilter, categoryFilter, barangayFilter]);
+  }, [concerns, yearFilter, priorityFilter, categoryFilter, barangayFilter]);
 
-  // Sorted concerns
+  // ── Aggregated Table in User's Exact Format: Date | Pending | In Progress | Resolved | Reject | Total ──
+  const aggregatedRows = useMemo(() => {
+    const groups = {};
+
+    filteredData.forEach((c) => {
+      const d = new Date(c.created_at);
+      let key, label;
+
+      if (groupBy === 'day') {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        key = `${y}-${m}-${day}`;
+        label = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      } else {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        key = `${y}-${m}`;
+        label = d.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+      }
+
+      if (!groups[key]) {
+        groups[key] = {
+          key,
+          label,
+          pending: 0,
+          inProgress: 0,
+          resolved: 0,
+          reject: 0,
+          total: 0,
+          items: [],
+        };
+      }
+
+      const st = (c.status || '').toLowerCase();
+      if (st === 'pending') groups[key].pending++;
+      else if (st === 'in progress') groups[key].inProgress++;
+      else if (st === 'resolved') groups[key].resolved++;
+      else if (st === 'rejected' || st === 'reject') groups[key].reject++;
+
+      groups[key].total++;
+      groups[key].items.push(c);
+    });
+
+    return Object.values(groups).sort((a, b) => (a.key < b.key ? 1 : -1));
+  }, [filteredData, groupBy]);
+
+  // Grand Totals for the bottom summary row
+  const grandTotals = useMemo(() => {
+    return aggregatedRows.reduce(
+      (acc, r) => ({
+        pending: acc.pending + r.pending,
+        inProgress: acc.inProgress + r.inProgress,
+        resolved: acc.resolved + r.resolved,
+        reject: acc.reject + r.reject,
+        total: acc.total + r.total,
+      }),
+      { pending: 0, inProgress: 0, resolved: 0, reject: 0, total: 0 }
+    );
+  }, [aggregatedRows]);
+
+  // Sorted concerns for detail view
   const sortedData = useMemo(() => {
     const list = [...filteredData];
     list.sort((a, b) => {
@@ -178,25 +193,14 @@ export default function Reports() {
           valA = getPinBarangay(a).toLowerCase();
           valB = getPinBarangay(b).toLowerCase();
           break;
-        case 'priority': {
-          const rank = { High: 3, Medium: 2, Low: 1 };
-          valA = rank[a.priority] || 0;
-          valB = rank[b.priority] || 0;
-          break;
-        }
         case 'status':
           valA = (a.status || '').toLowerCase();
           valB = (b.status || '').toLowerCase();
-          break;
-        case 'user_name':
-          valA = (a.user_name || '').toLowerCase();
-          valB = (b.user_name || '').toLowerCase();
           break;
         default:
           valA = new Date(a.created_at || 0).getTime();
           valB = new Date(b.created_at || 0).getTime();
       }
-
       if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
       if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
       return 0;
@@ -204,86 +208,65 @@ export default function Reports() {
     return list;
   }, [filteredData, sortField, sortOrder]);
 
-  // KPI Calculations
-  const totalCount = sortedData.length;
-  const resolvedCount = sortedData.filter((c) => c.status === 'Resolved').length;
-  const inProgressCount = sortedData.filter((c) => c.status === 'In Progress').length;
-  const pendingCount = sortedData.filter((c) => c.status === 'Pending').length;
-  const rejectedCount = sortedData.filter((c) => c.status === 'Rejected').length;
-  const highPrioCount = sortedData.filter((c) => c.priority === 'High').length;
-  const resolutionRate = totalCount ? Math.round((resolvedCount / totalCount) * 100) : 0;
-
-  // Pagination
-  const effectivePageSize = pageSize === 'All' ? sortedData.length || 1 : Number(pageSize);
-  const totalPages = Math.max(1, Math.ceil(sortedData.length / effectivePageSize));
-  const safeCurrentPage = Math.min(currentPage, totalPages);
-
-  const paginatedData = useMemo(() => {
-    if (pageSize === 'All') return sortedData;
-    const start = (safeCurrentPage - 1) * effectivePageSize;
-    return sortedData.slice(start, start + effectivePageSize);
-  }, [sortedData, safeCurrentPage, effectivePageSize, pageSize]);
-
-  // Handle column header click for sorting
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortField(field);
-      setSortOrder('asc');
-    }
-  };
-
-  const getSortIndicator = (field) => {
-    if (sortField !== field) return <span className={r.sortMuted}>↕</span>;
-    return sortOrder === 'asc' ? <span className={r.sortActive}>▲</span> : <span className={r.sortActive}>▼</span>;
-  };
-
-  // CSV Export for the selected month
+  // Export CSV matching user's exact format: Date, Pending, In Progress, Resolved, Reject, Total
   const exportToCSV = () => {
-    if (!sortedData.length) return;
-    const headers = ['#', 'Date Reported', 'Title', 'Description', 'Category', 'Barangay', 'Priority', 'Status', 'Citizen'];
-    const rows = sortedData.map((c, i) => [
-      i + 1,
-      fmtDateShort(c.created_at),
-      `"${(c.title || '').replace(/"/g, '""')}"`,
-      `"${(c.description || '').replace(/"/g, '""')}"`,
-      `"${c.category || ''}"`,
-      `"${getPinBarangay(c)}"`,
-      `"${c.priority || ''}"`,
-      `"${c.status || ''}"`,
-      `"${c.user_name || ''}"`,
+    const headers = ['Date', 'Pending', 'In Progress', 'Resolved', 'Reject', 'Total'];
+    const rows = aggregatedRows.map((r) => [
+      `"${r.label}"`,
+      r.pending,
+      r.inProgress,
+      r.resolved,
+      r.reject,
+      r.total,
+    ]);
+    rows.push([
+      '"TOTAL"',
+      grandTotals.pending,
+      grandTotals.inProgress,
+      grandTotals.resolved,
+      grandTotals.reject,
+      grandTotals.total,
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `citivoice-report-${selectedMonth || 'monthly'}.csv`);
+    link.setAttribute('download', `citivoice-concerns-report-${groupBy}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // Reset all filters (resets back to current month)
   const resetFilters = () => {
-    setSelectedMonth(getCurrentMonthStr());
-    setStatusFilter('All');
+    setGroupBy('month');
+    setYearFilter('All');
     setPriorityFilter('All');
     setCategoryFilter('All');
     setBarangayFilter('All');
+    setExpandedKey(null);
     setCurrentPage(1);
   };
 
   const hasActiveFilters = Boolean(
-    selectedMonth !== getCurrentMonthStr() ||
-    statusFilter !== 'All' ||
+    groupBy !== 'month' ||
+    yearFilter !== 'All' ||
     priorityFilter !== 'All' ||
     categoryFilter !== 'All' ||
     barangayFilter !== 'All'
   );
 
-  const monthLabel = formatMonthLabel(selectedMonth);
+  // Pagination for detail view
+  const effectivePageSize = pageSize === 'All' ? sortedData.length || 1 : Number(pageSize);
+  const totalPages = Math.max(1, Math.ceil(sortedData.length / effectivePageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedData = useMemo(() => {
+    if (pageSize === 'All') return sortedData;
+    const start = (safeCurrentPage - 1) * effectivePageSize;
+    return sortedData.slice(start, start + effectivePageSize);
+  }, [sortedData, safeCurrentPage, effectivePageSize, pageSize]);
 
   return (
     <div className={s.page}>
@@ -295,19 +278,19 @@ export default function Reports() {
             <div>
               <div className={r.printGovTitle}>Republic of the Philippines · Province of Negros Occidental</div>
               <h1 className={r.printCityTitle}>CITY GOVERNMENT OF KABANKALAN</h1>
-              <div className={r.printSystemTitle}>CITIVOICE OFFICIAL MONTHLY REPORT</div>
+              <div className={r.printSystemTitle}>CITIVOICE CONCERNS SUMMARY REPORT</div>
             </div>
           </div>
           <div className={r.printMetaBlock}>
-            <div className={r.printMetaBadge}>OFFICIAL CONCERNS REPORT</div>
+            <div className={r.printMetaBadge}>OFFICIAL SUMMARY REPORT</div>
             <div className={r.printMetaDate}>
-              <strong>Reporting Period:</strong> {monthLabel}
+              <strong>Format:</strong> {groupBy === 'month' ? 'Monthly Results' : 'Daily Results'}
             </div>
             <div className={r.printMetaDate}>
               <strong>Generated:</strong> {new Date().toLocaleString('en-US')}
             </div>
             <div className={r.printMetaDate}>
-              <strong>Total Records:</strong> {sortedData.length} concerns
+              <strong>Total Concerns:</strong> {grandTotals.total} records
             </div>
           </div>
         </div>
@@ -316,16 +299,38 @@ export default function Reports() {
       {/* ── Screen Header / Action Toolbar ── */}
       <div className={`${r.excelTopBar} ${s.noPrint}`}>
         <div className={r.excelBrandGroup}>
+          <div className={r.excelBadge}>
+            <span className={r.excelIcon}>📊</span>
+            <span className={r.excelExt}>XLS</span>
+          </div>
           <div>
-            <h1 className={r.excelTitle}>Monthly Concerns Report</h1>
+            <h1 className={r.excelTitle}>Concerns Report</h1>
             <p className={r.excelSubtitle}>
-              Showing records for <strong style={{ color: 'var(--text-1)' }}>{monthLabel}</strong> &middot; {totalCount} records
+              {groupBy === 'month' ? 'Monthly summary results' : 'Daily breakdown results'} &middot; {grandTotals.total} total concerns
             </p>
           </div>
         </div>
 
         <div className={r.excelActionGroup}>
-          <button className={r.btnExport} onClick={exportToCSV} title="Export this month's data to CSV">
+          {/* Format / Detailed View Switcher */}
+          <div className={r.toggleGroup}>
+            <button
+              className={`${r.toggleBtn} ${viewMode === 'format' ? r.toggleBtnActive : ''}`}
+              onClick={() => setViewMode('format')}
+              title="Standard summary table (Date | Pending | In Progress | Resolved | Reject | Total)"
+            >
+              📊 Summary Table
+            </button>
+            <button
+              className={`${r.toggleBtn} ${viewMode === 'detail' ? r.toggleBtnActive : ''}`}
+              onClick={() => setViewMode('detail')}
+              title="Individual concern records"
+            >
+              📋 Detailed Records
+            </button>
+          </div>
+
+          <button className={r.btnExport} onClick={exportToCSV} title="Download CSV in exact table format">
             <span className={r.btnIcon}>📥</span>
             <span>Export CSV</span>
           </button>
@@ -340,128 +345,83 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* ── Quick KPI Summary Ribbon (Excel Formula Style) ── */}
+      {/* ── Quick KPI Summary Ribbon ── */}
       <div className={`${r.summaryRibbon} ${s.noPrint}`}>
         <div className={r.ribbonCell}>
-          <span className={r.ribbonLabel}>TOTAL ({selectedMonth === 'all' ? 'ALL TIME' : selectedMonth})</span>
-          <span className={r.ribbonValue}>{totalCount}</span>
-        </div>
-        <div className={r.ribbonDivider} />
-        <div className={r.ribbonCell}>
-          <span className={r.ribbonLabel}>🟢 RESOLVED</span>
-          <span className={`${r.ribbonValue} ${r.valSuccess}`}>{resolvedCount}</span>
-        </div>
-        <div className={r.ribbonDivider} />
-        <div className={r.ribbonCell}>
-          <span className={r.ribbonLabel}>🔵 IN PROGRESS</span>
-          <span className={`${r.ribbonValue} ${r.valInfo}`}>{inProgressCount}</span>
+          <span className={r.ribbonLabel}>TOTAL CONCERNS</span>
+          <span className={r.ribbonValue}>{grandTotals.total}</span>
         </div>
         <div className={r.ribbonDivider} />
         <div className={r.ribbonCell}>
           <span className={r.ribbonLabel}>🟡 PENDING</span>
-          <span className={`${r.ribbonValue} ${r.valWarning}`}>{pendingCount}</span>
+          <span className={`${r.ribbonValue} ${r.valWarning}`}>{grandTotals.pending}</span>
         </div>
         <div className={r.ribbonDivider} />
         <div className={r.ribbonCell}>
-          <span className={r.ribbonLabel}>🔴 REJECTED</span>
-          <span className={`${r.ribbonValue} ${r.valDanger}`}>{rejectedCount}</span>
+          <span className={r.ribbonLabel}>🔵 IN PROGRESS</span>
+          <span className={`${r.ribbonValue} ${r.valInfo}`}>{grandTotals.inProgress}</span>
         </div>
         <div className={r.ribbonDivider} />
         <div className={r.ribbonCell}>
-          <span className={r.ribbonLabel}>⚡ HIGH PRIO</span>
-          <span className={`${r.ribbonValue} ${r.valHigh}`}>{highPrioCount}</span>
+          <span className={r.ribbonLabel}>🟢 RESOLVED</span>
+          <span className={`${r.ribbonValue} ${r.valSuccess}`}>{grandTotals.resolved}</span>
         </div>
         <div className={r.ribbonDivider} />
         <div className={r.ribbonCell}>
-          <span className={r.ribbonLabel}>RATE</span>
-          <span className={r.ribbonValue}>{resolutionRate}%</span>
+          <span className={r.ribbonLabel}>🔴 REJECT</span>
+          <span className={`${r.ribbonValue} ${r.valDanger}`}>{grandTotals.reject}</span>
+        </div>
+        <div className={r.ribbonDivider} />
+        <div className={r.ribbonCell}>
+          <span className={r.ribbonLabel}>RESOLUTION RATE</span>
+          <span className={r.ribbonValue}>
+            {grandTotals.total ? Math.round((grandTotals.resolved / grandTotals.total) * 100) : 0}%
+          </span>
         </div>
       </div>
 
-      {/* ── Excel Filter Toolbar ── */}
+      {/* ── Filter Toolbar ── */}
       <div className={`${r.filterToolbar} ${s.noPrint}`}>
         <div className={r.filterDropdownGroup}>
-          {/* 📅 Month Picker Group */}
-          <div className={r.monthPickerGroup}>
-            <label className={r.filterLabel}>Month:</label>
-            <button
-              type="button"
-              className={r.monthNavBtn}
-              onClick={handlePrevMonth}
-              disabled={selectedMonth === 'all'}
-              title="Previous Month"
-            >
-              ◀
-            </button>
-            <select
-              className={r.monthSelect}
-              value={selectedMonth}
-              onChange={(e) => {
-                setSelectedMonth(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              {availableMonths.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-              <option value="all">All Months (Annual Summary)</option>
-            </select>
-            <input
-              type="month"
-              className={r.filterMonthInput}
-              value={selectedMonth === 'all' ? '' : selectedMonth}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setSelectedMonth(e.target.value);
-                  setCurrentPage(1);
-                }
-              }}
-              title="Select custom month & year"
-            />
-            <button
-              type="button"
-              className={r.monthNavBtn}
-              onClick={handleNextMonth}
-              disabled={selectedMonth === 'all'}
-              title="Next Month"
-            >
-              ▶
-            </button>
-            {selectedMonth !== getCurrentMonthStr() && (
+          {/* Display Mode (Month / Day) */}
+          <div className={r.filterItem}>
+            <label className={r.filterLabel}>Display by:</label>
+            <div className={r.toggleGroup}>
               <button
-                type="button"
-                className={r.currentMonthBtn}
-                onClick={() => {
-                  setSelectedMonth(getCurrentMonthStr());
-                  setCurrentPage(1);
-                }}
-                title="Jump to current month"
+                className={`${r.toggleBtn} ${groupBy === 'month' ? r.toggleBtnActive : ''}`}
+                onClick={() => setGroupBy('month')}
               >
-                Current Month
+                📅 Month
               </button>
-            )}
+              <button
+                className={`${r.toggleBtn} ${groupBy === 'day' ? r.toggleBtnActive : ''}`}
+                onClick={() => setGroupBy('day')}
+              >
+                📆 Day
+              </button>
+            </div>
           </div>
 
+          {/* Year Filter */}
           <div className={r.filterItem}>
-            <label className={r.filterLabel}>Status:</label>
+            <label className={r.filterLabel}>Year:</label>
             <select
               className={r.filterSelect}
-              value={statusFilter}
+              value={yearFilter}
               onChange={(e) => {
-                setStatusFilter(e.target.value);
+                setYearFilter(e.target.value);
                 setCurrentPage(1);
               }}
             >
-              {STATUS_OPTIONS.map((st) => (
-                <option key={st} value={st}>
-                  {st}
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>
+                  {y}
                 </option>
               ))}
             </select>
           </div>
 
+          {/* Priority */}
           <div className={r.filterItem}>
             <label className={r.filterLabel}>Priority:</label>
             <select
@@ -480,6 +440,7 @@ export default function Reports() {
             </select>
           </div>
 
+          {/* Category */}
           <div className={r.filterItem}>
             <label className={r.filterLabel}>Category:</label>
             <select
@@ -498,6 +459,7 @@ export default function Reports() {
             </select>
           </div>
 
+          {/* Barangay */}
           <div className={r.filterItem}>
             <label className={r.filterLabel}>Barangay:</label>
             <select
@@ -517,242 +479,248 @@ export default function Reports() {
           </div>
 
           {hasActiveFilters && (
-            <button className={r.resetBtn} onClick={resetFilters} title="Reset filters to current month">
-              Reset to Current Month
+            <button className={r.resetBtn} onClick={resetFilters} title="Reset all filters">
+              Reset Filters
             </button>
           )}
         </div>
       </div>
 
-      {/* ── Excel Grid Container ── */}
+      {/* ── Grid Container ── */}
       <div className={r.gridContainer}>
         {loading ? (
           <div className={r.loadingState}>
             <span className={r.loadingSpinner}>⏳</span>
             <span>Loading records...</span>
           </div>
-        ) : sortedData.length === 0 ? (
-          <div className={r.emptyState}>
-            <div className={r.emptyIcon}>📋</div>
-            <div className={r.emptyTitle}>No matching records found</div>
-            <div className={r.emptySubtitle}>Try adjusting your dates or filter selections</div>
-            {hasActiveFilters && (
-              <button className={r.btnResetEmpty} onClick={resetFilters}>
-                Clear All Filters
-              </button>
-            )}
+        ) : viewMode === 'format' ? (
+          /* ══════════════════════════════════════════════════════════════
+             THE EXACT FORMAT REQUESTED BY THE USER:
+             Date | Pending | In Progress | Resolved | Reject | Total
+             ══════════════════════════════════════════════════════════════ */
+          <div className={r.tableWrapper}>
+            <table className={r.excelFormatTable}>
+              <thead>
+                <tr className={r.excelFormatHeader}>
+                  <th style={{ width: '30%', textAlign: 'left', paddingLeft: 24 }}>Date</th>
+                  <th style={{ width: '14%', textAlign: 'center' }}>Pending</th>
+                  <th style={{ width: '14%', textAlign: 'center' }}>In Progress</th>
+                  <th style={{ width: '14%', textAlign: 'center' }}>Resolved</th>
+                  <th style={{ width: '14%', textAlign: 'center' }}>Reject</th>
+                  <th style={{ width: '14%', textAlign: 'center' }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {aggregatedRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-3)' }}>
+                      No matching records found for the selected filters.
+                    </td>
+                  </tr>
+                ) : (
+                  <>
+                    {aggregatedRows.map((row) => {
+                      const isExpanded = expandedKey === row.key;
+                      return (
+                        <React.Fragment key={row.key}>
+                          <tr
+                            className={`${r.excelFormatRow} ${isExpanded ? r.rowActive : ''}`}
+                            onClick={() => setExpandedKey(isExpanded ? null : row.key)}
+                            title="Click to view/hide concern items"
+                          >
+                            <td style={{ fontWeight: 700, paddingLeft: 24 }}>
+                              <span style={{ marginRight: 8, fontSize: 11, opacity: 0.6 }}>
+                                {isExpanded ? '▼' : '▶'}
+                              </span>
+                              {row.label}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span className={row.pending > 0 ? r.cellPending : r.cellZero}>
+                                {row.pending}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span className={row.inProgress > 0 ? r.cellInProgress : r.cellZero}>
+                                {row.inProgress}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span className={row.resolved > 0 ? r.cellResolved : r.cellZero}>
+                                {row.resolved}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span className={row.reject > 0 ? r.cellReject : r.cellZero}>
+                                {row.reject}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span className={r.cellTotal}>{row.total}</span>
+                            </td>
+                          </tr>
+
+                          {/* Inline Expanded Items for this Date / Month */}
+                          {isExpanded && (
+                            <tr className={s.noPrint}>
+                              <td colSpan={6} style={{ padding: '16px 24px', background: 'var(--surface-2)' }}>
+                                <div style={{ marginBottom: 8, fontWeight: 700, fontSize: 12.5, color: 'var(--text-2)' }}>
+                                  Concerns filed in {row.label} ({row.items.length}):
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  {row.items.map((item) => (
+                                    <div
+                                      key={item.id}
+                                      onClick={() => navigate(`/concerns/${item.id}`)}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '8px 14px',
+                                        background: 'var(--surface)',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: 6,
+                                        fontSize: 12,
+                                        cursor: 'pointer',
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <span style={{ fontWeight: 700, color: 'var(--text-1)' }}>
+                                          #{item.id} {item.title}
+                                        </span>
+                                        <span style={{ color: 'var(--text-3)', fontSize: 11 }}>
+                                          &middot; {item.category} &middot; {getPinBarangay(item)}
+                                        </span>
+                                      </div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span
+                                          style={{
+                                            padding: '2px 8px',
+                                            borderRadius: 4,
+                                            fontSize: 11,
+                                            fontWeight: 700,
+                                            background:
+                                              item.status === 'Resolved'
+                                                ? 'rgba(16, 185, 129, 0.15)'
+                                                : item.status === 'In Progress'
+                                                  ? 'rgba(59, 130, 246, 0.15)'
+                                                  : item.status === 'Rejected'
+                                                    ? 'rgba(239, 68, 68, 0.15)'
+                                                    : 'rgba(245, 158, 11, 0.15)',
+                                            color:
+                                              item.status === 'Resolved'
+                                                ? '#059669'
+                                                : item.status === 'In Progress'
+                                                  ? '#2563eb'
+                                                  : item.status === 'Rejected'
+                                                    ? '#dc2626'
+                                                    : '#d97706',
+                                          }}
+                                        >
+                                          {item.status}
+                                        </span>
+                                        <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Open ↗</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+
+                    {/* ── TOTAL ROW ── */}
+                    <tr className={r.excelFormatTotalRow}>
+                      <td style={{ fontWeight: 900, paddingLeft: 24, letterSpacing: 0.5 }}>TOTAL</td>
+                      <td style={{ textAlign: 'center', fontWeight: 800 }}>
+                        <span className={grandTotals.pending > 0 ? r.cellPending : r.cellZero}>
+                          {grandTotals.pending}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center', fontWeight: 800 }}>
+                        <span className={grandTotals.inProgress > 0 ? r.cellInProgress : r.cellZero}>
+                          {grandTotals.inProgress}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center', fontWeight: 800 }}>
+                        <span className={grandTotals.resolved > 0 ? r.cellResolved : r.cellZero}>
+                          {grandTotals.resolved}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center', fontWeight: 800 }}>
+                        <span className={grandTotals.reject > 0 ? r.cellReject : r.cellZero}>
+                          {grandTotals.reject}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className={r.cellTotal} style={{ fontSize: 14 }}>
+                          {grandTotals.total}
+                        </span>
+                      </td>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
           </div>
         ) : (
+          /* Detailed records view */
           <div className={r.tableWrapper}>
             <table className={r.excelTable}>
               <thead>
-                {/* Main Header Row */}
                 <tr className={r.headerRow}>
                   <th className={r.thIndex}>#</th>
-                  <th className={r.thSortable} onClick={() => handleSort('created_at')}>
-                    <span>Date Reported</span> {getSortIndicator('created_at')}
+                  <th className={r.thSortable} onClick={() => setSortField('created_at')}>
+                    <span>Date Reported</span>
                   </th>
-                  <th className={r.thSortable} onClick={() => handleSort('title')}>
-                    <span>Concern Title</span> {getSortIndicator('title')}
+                  <th className={r.thSortable} onClick={() => setSortField('title')}>
+                    <span>Concern Title</span>
                   </th>
-                  <th className={r.th}>Description Preview</th>
-                  <th className={r.thSortable} onClick={() => handleSort('category')}>
-                    <span>Category</span> {getSortIndicator('category')}
-                  </th>
-                  <th className={r.thSortable} onClick={() => handleSort('barangay')}>
-                    <span>Barangay</span> {getSortIndicator('barangay')}
-                  </th>
-                  <th className={r.thSortable} onClick={() => handleSort('priority')}>
-                    <span>Priority</span> {getSortIndicator('priority')}
-                  </th>
-                  <th className={r.thSortable} onClick={() => handleSort('status')}>
-                    <span>Status</span> {getSortIndicator('status')}
-                  </th>
-                  <th className={r.thSortable} onClick={() => handleSort('user_name')}>
-                    <span>Reporter</span> {getSortIndicator('user_name')}
-                  </th>
+                  <th className={r.th}>Category</th>
+                  <th className={r.th}>Barangay</th>
+                  <th className={r.th}>Priority</th>
+                  <th className={r.th}>Status</th>
+                  <th className={r.th}>Reporter</th>
                   <th className={`${r.thAction} ${s.noPrint}`}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedData.map((c, idx) => {
-                  const globalRowIndex =
-                    pageSize === 'All' ? idx + 1 : (safeCurrentPage - 1) * effectivePageSize + idx + 1;
-                  const isSelected = selectedRowId === c.id;
-
-                  return (
-                    <tr
-                      key={c.id}
-                      className={`${r.excelRow} ${isSelected ? r.rowSelected : ''}`}
-                      onClick={() => setSelectedRowId(c.id)}
-                    >
-                      {/* Excel Row Number Index */}
-                      <td className={r.rowIndexCell}>{globalRowIndex}</td>
-
-                      {/* Date Reported */}
-                      <td className={r.dateCell} title={c.created_at}>
-                        {fmtDateShort(c.created_at)}
-                      </td>
-
-                      {/* Title */}
-                      <td className={r.titleCell} title={c.title}>
-                        <span className={r.cellTextClamp}>{c.title || 'Untitled'}</span>
-                      </td>
-
-                      {/* Description */}
-                      <td className={r.descCell} title={c.description}>
-                        <span className={r.cellTextClamp}>{c.description || '—'}</span>
-                      </td>
-
-                      {/* Category */}
-                      <td className={r.categoryCell}>
-                        {c.category || 'General'}
-                      </td>
-
-                      {/* Barangay */}
-                      <td className={r.brgyCell}>
-                        <span className={r.brgyTag}>{getPinBarangay(c)}</span>
-                      </td>
-
-                      {/* Priority */}
-                      <td className={r.priorityCell}>
-                        <span
-                          className={
-                            c.priority === 'High'
-                              ? r.prioTextHigh
-                              : c.priority === 'Medium'
-                                ? r.prioTextMed
-                                : r.prioTextLow
-                          }
-                        >
-                          {c.priority || 'Medium'}
-                        </span>
-                      </td>
-
-                      {/* Status */}
-                      <td className={r.statusCell}>
-                        <span
-                          className={
-                            c.status === 'Resolved'
-                              ? r.statusTextResolved
-                              : c.status === 'In Progress'
-                                ? r.statusTextInProgress
-                                : c.status === 'Rejected'
-                                  ? r.statusTextRejected
-                                  : r.statusTextPending
-                          }
-                        >
-                          {c.status || 'Pending'}
-                        </span>
-                      </td>
-
-                      {/* Reporter */}
-                      <td className={r.reporterCell} title={c.user_name || 'Anonymous'}>
-                        {c.user_name || 'Anonymous'}
-                      </td>
-
-                      {/* Action */}
-                      <td className={`${r.actionCell} ${s.noPrint}`}>
-                        <button
-                          className={r.btnViewRecord}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/concerns/${c.id}`);
-                          }}
-                          title="Open Concern Details"
-                        >
-                          Open ↗
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {paginatedData.map((c, idx) => (
+                  <tr
+                    key={c.id}
+                    className={`${r.excelRow} ${selectedRowId === c.id ? r.rowSelected : ''}`}
+                    onClick={() => setSelectedRowId(c.id)}
+                  >
+                    <td className={r.rowIndexCell}>
+                      {pageSize === 'All' ? idx + 1 : (safeCurrentPage - 1) * effectivePageSize + idx + 1}
+                    </td>
+                    <td className={r.dateCell}>{fmtDateShort(c.created_at)}</td>
+                    <td className={r.titleCell}>
+                      <span className={r.cellTextClamp}>{c.title || 'Untitled'}</span>
+                    </td>
+                    <td className={r.categoryCell}>{c.category || 'General'}</td>
+                    <td className={r.brgyCell}>
+                      <span className={r.brgyTag}>{getPinBarangay(c)}</span>
+                    </td>
+                    <td className={r.priorityCell}>{c.priority || 'Medium'}</td>
+                    <td className={r.statusCell}>{c.status || 'Pending'}</td>
+                    <td className={r.reporterCell}>{c.user_name || 'Anonymous'}</td>
+                    <td className={`${r.actionCell} ${s.noPrint}`}>
+                      <button
+                        className={r.btnViewRecord}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/concerns/${c.id}`);
+                        }}
+                      >
+                        Open ↗
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
-          </div>
-        )}
-
-        {/* ── Excel Bottom Status & Pagination Bar ── */}
-        {!loading && sortedData.length > 0 && (
-          <div className={`${r.excelFooter} ${s.noPrint}`}>
-            <div className={r.footerLeft}>
-              <span className={r.recordCountText}>
-                Showing <strong>{pageSize === 'All' ? 1 : (safeCurrentPage - 1) * effectivePageSize + 1}</strong> to{' '}
-                <strong>
-                  {pageSize === 'All'
-                    ? sortedData.length
-                    : Math.min(safeCurrentPage * effectivePageSize, sortedData.length)}
-                </strong>{' '}
-                of <strong>{sortedData.length}</strong> records
-                {hasActiveFilters && ` (filtered from ${concerns.length} total)`}
-              </span>
-              {selectedRowId && (
-                <span className={r.selectionInfo}>
-                  &middot; Row selected
-                </span>
-              )}
-            </div>
-
-            <div className={r.footerRight}>
-              <div className={r.pageSizeSelector}>
-                <span className={r.pageSizeLabel}>Rows per page:</span>
-                <select
-                  className={r.pageSizeSelect}
-                  value={pageSize}
-                  onChange={(e) => {
-                    const val = e.target.value === 'All' ? 'All' : Number(e.target.value);
-                    setPageSize(val);
-                    setCurrentPage(1);
-                  }}
-                >
-                  {PAGE_SIZE_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {pageSize !== 'All' && totalPages > 1 && (
-                <div className={r.paginationButtons}>
-                  <button
-                    className={r.pgBtn}
-                    disabled={safeCurrentPage === 1}
-                    onClick={() => setCurrentPage(1)}
-                    title="First Page"
-                  >
-                    «
-                  </button>
-                  <button
-                    className={r.pgBtn}
-                    disabled={safeCurrentPage === 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    title="Previous Page"
-                  >
-                    ‹
-                  </button>
-                  <span className={r.pageIndicator}>
-                    Page {safeCurrentPage} of {totalPages}
-                  </span>
-                  <button
-                    className={r.pgBtn}
-                    disabled={safeCurrentPage === totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    title="Next Page"
-                  >
-                    ›
-                  </button>
-                  <button
-                    className={r.pgBtn}
-                    disabled={safeCurrentPage === totalPages}
-                    onClick={() => setCurrentPage(totalPages)}
-                    title="Last Page"
-                  >
-                    »
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         )}
       </div>

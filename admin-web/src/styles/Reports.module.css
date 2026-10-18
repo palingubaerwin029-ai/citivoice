@@ -738,6 +738,134 @@
   background: #0d6334;
 }
 
+/* ── Clean Format Table Matching User Screenshot ── */
+.excelFormatTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--surface);
+}
+
+.excelFormatHeader th {
+  background: var(--surface-2, #f8fafc);
+  color: var(--text-1);
+  font-size: 13.5px;
+  font-weight: 800;
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  letter-spacing: -0.2px;
+}
+
+.excelFormatRow {
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.excelFormatRow td {
+  padding: 13px 18px;
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  font-size: 13px;
+}
+
+.excelFormatRow:hover {
+  background: rgba(16, 124, 65, 0.05);
+}
+
+.rowActive {
+  background: rgba(16, 124, 65, 0.08) !important;
+}
+
+.excelFormatTotalRow {
+  background: var(--surface-3, #f1f5f9);
+  border-top: 2px solid var(--border);
+}
+
+.excelFormatTotalRow td {
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.cellPending {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+  font-weight: 700;
+}
+
+.cellInProgress {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.cellResolved {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  font-weight: 700;
+}
+
+.cellReject {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.cellTotal {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 6px;
+  background: rgba(16, 124, 65, 0.15);
+  color: #107c41;
+  font-weight: 800;
+}
+
+.cellZero {
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.toggleGroup {
+  display: inline-flex;
+  background: var(--surface-2);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  gap: 2px;
+}
+
+.toggleBtn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toggleBtnActive {
+  background: var(--surface);
+  color: var(--text-1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  font-weight: 700;
+}
+
 /* ══════════════════════════════════════════════════
    Print Styling (Official Tabular Sheet Printout)
    ══════════════════════════════════════════════════ */
@@ -843,11 +971,32 @@
   }
 
   .excelTable th,
-  .excelTable td {
+  .excelTable td,
+  .excelFormatTable th,
+  .excelFormatTable td {
     border: 1px solid #666666 !important;
-    padding: 4px 6px !important;
+    padding: 6px 10px !important;
     color: #000000 !important;
     background: transparent !important;
+  }
+
+  .excelFormatTable {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 11px !important;
+  }
+
+  .excelFormatHeader th {
+    background: #e5e7eb !important;
+    font-weight: 800 !important;
+    border: 1.5px solid #000000 !important;
+    text-transform: uppercase !important;
+  }
+
+  .excelFormatTotalRow td {
+    background: #f3f4f6 !important;
+    font-weight: 800 !important;
+    border-top: 2px solid #000000 !important;
   }
 
   .headerRow th {
