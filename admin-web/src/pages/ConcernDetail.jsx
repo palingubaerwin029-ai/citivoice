@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api, fmtDate, fmtDateShort, resolveImageUrl } from '../services/api';
+import { api, fmtDate, fmtDateShort, resolveImageUrl, getPinBarangay } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import s from '../styles/Admin.module.css';
 import cd from '../styles/ConcernDetail.module.css';
@@ -382,11 +382,16 @@ export default function ConcernDetail() {
           {/* Meta */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
-              { icon: '👤', label: 'Submitted by', value: concern.user_name },
+              {
+                icon: '👤',
+                label: 'Submitted by',
+                value: concern.user_name || 'Citizen',
+                subtext: concern.user_barangay ? `Resident of Brgy. ${concern.user_barangay}` : null,
+              },
               {
                 icon: '📍',
-                label: 'Barangay (Click for Map)',
-                value: concern.user_barangay || 'N/A',
+                label: 'Incident Barangay (Click for Map)',
+                value: getPinBarangay(concern),
                 clickable: true,
                 onClick: () =>
                   navigate(
@@ -414,6 +419,11 @@ export default function ConcernDetail() {
                   >
                     {m.value} {m.clickable && '↗'}
                   </div>
+                  {m.subtext && (
+                    <div style={{ fontSize: 11, color: 'var(--text-3, #94a3b8)', marginTop: 2 }}>
+                      {m.subtext}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -696,7 +706,7 @@ export default function ConcernDetail() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', lineHeight: 1.4 }}>
-                    {concern.location_address || `Barangay ${concern.user_barangay || 'Kabankalan City'}`}
+                    {concern.location_address || `Barangay ${getPinBarangay(concern)}`}
                   </div>
                   <div
                     style={{
@@ -709,11 +719,17 @@ export default function ConcernDetail() {
                       flexWrap: 'wrap',
                     }}
                   >
+                    <span style={{ fontWeight: 600, color: '#60a5fa' }}>
+                      📍 {getPinBarangay(concern)}
+                    </span>
                     {concern.location_lat && concern.location_lng && (
-                      <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>
-                        {parseFloat(concern.location_lat).toFixed(5)},{' '}
-                        {parseFloat(concern.location_lng).toFixed(5)}
-                      </span>
+                      <>
+                        <span style={{ color: 'var(--text-3)' }}>&bull;</span>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                          {parseFloat(concern.location_lat).toFixed(5)},{' '}
+                          {parseFloat(concern.location_lng).toFixed(5)}
+                        </span>
+                      </>
                     )}
                     <span style={{ color: 'var(--text-3)' }}>&bull; Click to open interactive map &amp; route</span>
                   </div>

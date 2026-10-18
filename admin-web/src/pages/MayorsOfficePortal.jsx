@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api, fmtDate, fmtDateShort, resolveImageUrl } from '../services/api';
 import { useToast } from '../components/ToastProvider';
 import s from '../styles/MayorPortal.module.css';
@@ -11,18 +10,17 @@ const DEFAULT_DEPARTMENTS = [
 ];
 
 export default function MayorsOfficePortal({ user, onLogout }) {
-  const navigate = useNavigate();
   const toast = useToast();
 
   const [concerns, setConcerns] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'dispatched' | 'all'
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'dispatched'
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [selectedConcern, setSelectedConcern] = useState(null);
 
-  // Approval modal state
+  // Directive modal state
   const [targetDept, setTargetDept] = useState('');
   const [directiveNotes, setDirectiveNotes] = useState('');
   const [dispatching, setDispatching] = useState(false);
@@ -32,7 +30,7 @@ export default function MayorsOfficePortal({ user, onLogout }) {
     try {
       const [resConcerns, resDepts] = await Promise.all([
         api.get('/concerns', { limit: 1000 }),
-        api.get('/departments').catch(() => [])
+        api.get('/departments').catch(() => []),
       ]);
       const list = Array.isArray(resConcerns.data)
         ? resConcerns.data
@@ -41,9 +39,10 @@ export default function MayorsOfficePortal({ user, onLogout }) {
           : [];
       setConcerns(list);
 
-      const deptList = Array.isArray(resDepts) && resDepts.length > 0
-        ? resDepts.map(d => d.name)
-        : DEFAULT_DEPARTMENTS;
+      const deptList =
+        Array.isArray(resDepts) && resDepts.length > 0
+          ? resDepts.map((d) => d.name)
+          : DEFAULT_DEPARTMENTS;
       setDepartments(deptList);
     } catch (err) {
       toast?.show('Failed to load concerns: ' + err.message, 'error');
@@ -58,20 +57,20 @@ export default function MayorsOfficePortal({ user, onLogout }) {
 
   // Compute metrics
   const metrics = useMemo(() => {
-    const pendingApproval = concerns.filter(c => !c.approved_at && c.status !== 'Rejected');
-    const dispatched = concerns.filter(c => c.approved_at);
-    const urgent = concerns.filter(c => c.priority === 'High' && !c.approved_at);
+    const pendingApproval = concerns.filter((c) => !c.approved_at && c.status !== 'Rejected');
+    const dispatched = concerns.filter((c) => c.approved_at);
+    const urgent = concerns.filter((c) => c.priority === 'High');
     return {
       pending: pendingApproval.length,
       dispatched: dispatched.length,
       urgent: urgent.length,
-      total: concerns.length
+      total: concerns.length,
     };
   }, [concerns]);
 
   // Filter concerns based on tab and criteria
   const filteredConcerns = useMemo(() => {
-    return concerns.filter(c => {
+    return concerns.filter((c) => {
       // Tab filter
       if (activeTab === 'pending' && (c.approved_at || c.status === 'Rejected')) return false;
       if (activeTab === 'dispatched' && !c.approved_at) return false;
@@ -98,7 +97,7 @@ export default function MayorsOfficePortal({ user, onLogout }) {
     setTargetDept(concern.department || departments[0] || DEFAULT_DEPARTMENTS[0]);
     setDirectiveNotes(
       concern.approval_notes ||
-      `Pursuant to official review by the Office of the City Mayor, this citizen concern is officially approved and immediately endorsed to ${concern.department || 'the assigned department'} for prompt action, site verification, and public resolution.`
+        `Pursuant to official review by the Office of the City Mayor, this citizen concern is officially endorsed to ${concern.department || 'the assigned department'} for prompt on-site action and resolution.`
     );
   };
 
@@ -114,27 +113,28 @@ export default function MayorsOfficePortal({ user, onLogout }) {
     try {
       const res = await api.post(`/concerns/${selectedConcern.id}/approve`, {
         approval_notes: directiveNotes.trim(),
-        target_department: targetDept
+        target_department: targetDept,
       });
 
       if (res.success || res.concern) {
-        toast?.show(`✅ Mayoral Executive Directive dispatched to ${targetDept}!`, 'success');
+        toast?.show(`✅ Executive Directive dispatched to ${targetDept}!`, 'success');
 
-        // Update item in local list
-        setConcerns(prev => prev.map(c => {
-          if (c.id === selectedConcern.id) {
-            return {
-              ...c,
-              ...(res.concern || {}),
-              approved_at: new Date().toISOString(),
-              approved_by_name: user?.name || 'Office of the City Mayor',
-              department: targetDept,
-              approval_notes: directiveNotes.trim(),
-              status: 'In Progress'
-            };
-          }
-          return c;
-        }));
+        setConcerns((prev) =>
+          prev.map((c) => {
+            if (c.id === selectedConcern.id) {
+              return {
+                ...c,
+                ...(res.concern || {}),
+                approved_at: new Date().toISOString(),
+                approved_by_name: user?.name || 'Office of the City Mayor',
+                department: targetDept,
+                approval_notes: directiveNotes.trim(),
+                status: 'In Progress',
+              };
+            }
+            return c;
+          })
+        );
 
         closeReviewModal();
       }
@@ -147,22 +147,17 @@ export default function MayorsOfficePortal({ user, onLogout }) {
 
   return (
     <div className={s.container}>
-      {/* 🏛️ Official Mayoral Executive Header */}
+      {/* 🏛️ Clean Executive Header */}
       <header className={s.header}>
         <div className={s.headerLeft}>
           <div className={s.sealIcon}>🏛️</div>
           <div>
-            <div className={s.subNation}>Republic of the Philippines · City of Kabankalan</div>
-            <h1 className={s.title}>Office of the Mayor</h1>
-            <p className={s.subtitle}>Executive Concern Approval Desk</p>
+            <h1 className={s.title}>Office of the City Mayor</h1>
+            <p className={s.subtitle}>Kabankalan City · Executive Concern Approval Desk</p>
           </div>
         </div>
 
         <div className={s.headerRight}>
-          <span className={s.badge}>
-            ⚖️ Official Mayoral Approval Desk
-          </span>
-
           <button className={s.btnOutline} onClick={fetchConcerns} title="Refresh records">
             🔄 Refresh
           </button>
@@ -170,7 +165,7 @@ export default function MayorsOfficePortal({ user, onLogout }) {
           <button
             className={s.btnOutline}
             style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }}
-            onClick={onLogout}
+            onClick={() => (onLogout ? onLogout('/mayor/login') : null)}
             title="Sign out of portal"
           >
             🚪 Sign Out
@@ -178,50 +173,53 @@ export default function MayorsOfficePortal({ user, onLogout }) {
         </div>
       </header>
 
-      {/* 📊 Executive Approval Metric Cards */}
+      {/* 📊 Simple KPI Stats */}
       <div className={s.metricsGrid}>
-        <div className={s.metricCard} style={{ borderLeft: '4px solid #f59e0b' }}>
-          <div className={s.metricTop}>
-            <span className={s.metricLabel}>Awaiting Mayoral Approval</span>
-            <div className={s.metricIcon} style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>⏳</div>
+        <div className={s.metricCard} style={{ borderLeft: '3px solid #f59e0b' }}>
+          <div>
+            <div className={s.metricLabel}>Awaiting Review</div>
+            <div className={s.metricValue}>{metrics.pending}</div>
           </div>
-          <div className={s.metricValue}>{metrics.pending}</div>
-          <div className={s.metricSub}>Citizen concerns requiring Mayor's official approval</div>
+          <div className={s.metricIcon} style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+            ⏳
+          </div>
         </div>
 
-        <div className={s.metricCard} style={{ borderLeft: '4px solid #10b981' }}>
-          <div className={s.metricTop}>
-            <span className={s.metricLabel}>Approved & Dispatched Directives</span>
-            <div className={s.metricIcon} style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>⚡</div>
+        <div className={s.metricCard} style={{ borderLeft: '3px solid #10b981' }}>
+          <div>
+            <div className={s.metricLabel}>Dispatched Directives</div>
+            <div className={s.metricValue}>{metrics.dispatched}</div>
           </div>
-          <div className={s.metricValue}>{metrics.dispatched}</div>
-          <div className={s.metricSub}>Directives approved & forwarded to city departments</div>
+          <div className={s.metricIcon} style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
+            ⚡
+          </div>
         </div>
 
-        <div className={s.metricCard} style={{ borderLeft: '4px solid #ef4444' }}>
-          <div className={s.metricTop}>
-            <span className={s.metricLabel}>Urgent Approvals Needed</span>
-            <div className={s.metricIcon} style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>🔥</div>
+        <div className={s.metricCard} style={{ borderLeft: '3px solid #ef4444' }}>
+          <div>
+            <div className={s.metricLabel}>High-Risk Hazards</div>
+            <div className={s.metricValue}>{metrics.urgent}</div>
           </div>
-          <div className={s.metricValue}>{metrics.urgent}</div>
-          <div className={s.metricSub}>High-priority concerns awaiting urgent executive action</div>
+          <div className={s.metricIcon} style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
+            🔥
+          </div>
         </div>
       </div>
 
-      {/* 🧭 Tabs & Filters */}
+      {/* 🧭 Tabs & Search */}
       <div className={s.filterBar}>
         <div className={s.tabs}>
           <button
             className={`${s.tabBtn} ${activeTab === 'pending' ? s.tabBtnActive : ''}`}
             onClick={() => setActiveTab('pending')}
           >
-            ⏳ Pending Mayoral Approval ({metrics.pending})
+            Pending Review ({metrics.pending})
           </button>
           <button
             className={`${s.tabBtn} ${activeTab === 'dispatched' ? s.tabBtnActive : ''}`}
             onClick={() => setActiveTab('dispatched')}
           >
-            ✅ Approved Directives Archive ({metrics.dispatched})
+            Dispatched ({metrics.dispatched})
           </button>
         </div>
 
@@ -229,7 +227,7 @@ export default function MayorsOfficePortal({ user, onLogout }) {
           <input
             type="text"
             className={s.searchInput}
-            placeholder="🔍 Search title, citizen, barangay..."
+            placeholder="🔍 Search concern or citizen..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -249,199 +247,105 @@ export default function MayorsOfficePortal({ user, onLogout }) {
         </div>
       </div>
 
-      {/* 📋 Table Card */}
-      <div className={s.tableCard}>
+      {/* 📋 Simplified Concern Card List */}
+      <div className={s.listContainer}>
         {loading ? (
           <div className={s.emptyState}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>⚙️</div>
-            <div>Loading concerns for the Office of the Mayor...</div>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>⚙️</div>
+            <div>Loading concerns...</div>
           </div>
         ) : filteredConcerns.length === 0 ? (
           <div className={s.emptyState}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>🎉</div>
-            <h3 style={{ margin: '0 0 6px 0', color: '#e2e8f0' }}>No concerns in this view</h3>
-            <p style={{ margin: 0 }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
+            <div style={{ fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>No concerns found</div>
+            <div style={{ fontSize: 13, color: '#64748b' }}>
               {activeTab === 'pending'
-                ? 'All citizen concerns have been reviewed and approved.'
-                : 'No concerns matched your active filters.'}
-            </p>
+                ? 'All citizen reports are currently reviewed.'
+                : 'No dispatched concerns match your filter.'}
+            </div>
           </div>
         ) : (
-          <table className={s.table}>
-            <thead>
-              <tr>
-                <th style={{ width: 60 }}>#</th>
-                <th>Concern Details</th>
-                <th>Citizen & Barangay</th>
-                <th>Department</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredConcerns.map((c, idx) => {
-                const isApproved = !!c.approved_at;
-                const isHigh = c.priority === 'High';
+          filteredConcerns.map((c) => {
+            const isApproved = !!c.approved_at;
+            const isHigh = c.priority === 'High';
 
-                return (
-                  <tr key={c.id}>
-                    <td style={{ color: '#64748b', fontWeight: 700 }}>{idx + 1}</td>
-                    <td>
-                      <span className={s.concernTitle}>{c.title}</span>
-                      <span className={s.concernDesc}>{c.description || 'No description provided'}</span>
-                      <div style={{ marginTop: 4, fontSize: 11, color: '#64748b' }}>
-                        📅 Filed: {fmtDateShort(c.created_at)} · Category: <strong>{c.category}</strong>
-                      </div>
-                      {c.is_validated ? (
-                        <div style={{ marginTop: 4, fontSize: 11, color: '#10b981', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <span>🛡️</span>
-                          <span>Validated by <strong>{c.validated_by_name || 'Admin'}</strong>{c.validated_at ? ` (${fmtDateShort(c.validated_at)})` : ''}</span>
-                        </div>
-                      ) : null}
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: '#ffffff' }}>{c.user_name || 'Anonymous Citizen'}</div>
-                      <div style={{ fontSize: 11, color: '#94a3b8' }}>📍 {c.user_barangay || c.location_address || 'Kabankalan City'}</div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: '#38bdf8' }}>
-                        {c.department || "City Engineer's Office"}
-                      </div>
-                      {isApproved && (
-                        <div style={{ fontSize: 10, color: '#10b981' }}>
-                          ✓ Dispatched on {fmtDateShort(c.approved_at)}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <span
-                        className={s.priorityPill}
-                        style={{
-                          background: isHigh ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.06)',
-                          color: isHigh ? '#ef4444' : '#94a3b8',
-                          border: `1px solid ${isHigh ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.1)'}`
-                        }}
-                      >
-                        {isHigh ? '🔥 High' : c.priority || 'Normal'}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        className={s.statusPill}
-                        style={{
-                          background:
-                            c.status === 'Resolved' ? 'rgba(16,185,129,0.15)' :
-                              c.status === 'In Progress' ? 'rgba(59,130,246,0.15)' :
-                                c.status === 'Rejected' ? 'rgba(239,68,68,0.15)' :
-                                  'rgba(245,158,11,0.15)',
-                          color:
-                            c.status === 'Resolved' ? '#10b981' :
-                              c.status === 'In Progress' ? '#3b82f6' :
-                                c.status === 'Rejected' ? '#ef4444' :
-                                  '#f59e0b'
-                        }}
-                      >
-                        ● {c.status}
-                      </span>
-                    </td>
-                    <td>
-                      {!isApproved ? (
-                        <button
-                          className={s.actionBtn}
-                          onClick={() => openReviewModal(c)}
-                        >
-                          ⚡ Review & Approve
-                        </button>
-                      ) : (
-                        <div className={s.dispatchedBadge} onClick={() => openReviewModal(c)} style={{ cursor: 'pointer' }} title="Click to view directive details">
-                          <span>🏛️ Mayoral Directive</span>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+            return (
+              <div key={c.id} className={s.concernRow}>
+                <div className={s.concernMain}>
+                  <div className={s.concernMetaTop}>
+                    <span className={s.categoryTag}>{c.category}</span>
+                    <span
+                      className={`${s.priorityBadge} ${isHigh ? s.priorityHigh : s.priorityNormal}`}
+                    >
+                      {isHigh ? '🔥 High Priority' : c.priority || 'Normal'}
+                    </span>
+                    <span className={s.dateTag}>Filed: {fmtDateShort(c.created_at)}</span>
+                  </div>
+
+                  <h3 className={s.concernTitle}>{c.title}</h3>
+                  <p className={s.concernDesc}>{c.description || 'No description provided'}</p>
+
+                  <div className={s.concernSub}>
+                    <span className={s.citizenInfo}>
+                      👤 <strong>{c.user_name || 'Citizen'}</strong> · 📍 {c.user_barangay || c.location_address || 'Kabankalan City'}
+                    </span>
+                    <span className={s.deptInfo}>
+                      🏢 {c.department || "City Engineer's Office"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className={s.concernAction}>
+                  {!isApproved ? (
+                    <button className={s.actionBtn} onClick={() => openReviewModal(c)}>
+                      ⚡ Review & Dispatch
+                    </button>
+                  ) : (
+                    <div
+                      className={s.dispatchedBadge}
+                      onClick={() => openReviewModal(c)}
+                      title="Click to view directive details"
+                    >
+                      ✓ Dispatched ({fmtDateShort(c.approved_at)})
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
 
-      {/* 🏛️ Executive Review & Directive Dispatch Modal */}
+      {/* 🏛️ Simplified Review Modal */}
       {selectedConcern && (
         <div className={s.modalBackdrop} onClick={closeReviewModal}>
           <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
             <div className={s.modalHeader}>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 4 }}>
-                  Office of the Mayor · Official Review
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', marginBottom: 2 }}>
+                  Mayoral Executive Directive
                 </div>
-                <h2 style={{ margin: 0, fontSize: 20, color: '#ffffff' }}>
+                <h2 style={{ margin: 0, fontSize: 18, color: '#ffffff' }}>
                   {selectedConcern.title}
                 </h2>
               </div>
               <button className={s.modalClose} onClick={closeReviewModal}>✕</button>
             </div>
 
-            {/* Directive Alert Banner */}
-            <div className={s.directiveAlert}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#f59e0b', fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
-                <span>📜</span>
-                <span>Mayoral Executive Directive</span>
-              </div>
-              <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.4 }}>
-                Approving this concern officially issues an inter-department directive under the authority of the <strong>Office of the Mayor</strong> and dispatches official email instructions to the assigned department.
-              </div>
-            </div>
-
             {/* Concern Details Overview */}
-            <div style={{ display: 'grid', gridTemplateColumns: selectedConcern.image_url ? '1fr 140px' : '1fr', gap: 16, marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: selectedConcern.image_url ? '1fr 100px' : '1fr', gap: 14, marginBottom: 16 }}>
               <div>
-                <p style={{ margin: '0 0 12px 0', fontSize: 14, color: '#e2e8f0', lineHeight: 1.5 }}>
+                <p style={{ margin: '0 0 8px 0', fontSize: 13, color: '#cbd5e1', lineHeight: 1.4 }}>
                   {selectedConcern.description}
                 </p>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 12, color: '#94a3b8' }}>
-                  <div>
-                    <span style={{ color: '#64748b' }}>Citizen:</span>{' '}
-                    <strong style={{ color: '#ffffff' }}>{selectedConcern.user_name || 'Anonymous'}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b' }}>Barangay:</span>{' '}
-                    <strong style={{ color: '#ffffff' }}>{selectedConcern.user_barangay || selectedConcern.location_address || 'Kabankalan City'}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b' }}>Category:</span>{' '}
-                    <strong style={{ color: '#38bdf8' }}>{selectedConcern.category}</strong>
-                  </div>
+                <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                  <strong>{selectedConcern.user_name || 'Citizen'}</strong> · {selectedConcern.user_barangay || selectedConcern.location_address || 'Kabankalan City'}
                 </div>
-
-                {/* GPS Map Coordinates if present */}
-                {selectedConcern.location_lat && selectedConcern.location_lng && (
-                  <div style={{ marginTop: 10, display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <a
-                      href={`http://localhost:8080/map?concernId=${selectedConcern.id}&lat=${selectedConcern.location_lat}&lng=${selectedConcern.location_lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ fontSize: 12, color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}
-                    >
-                      📍 Open in CitiVoice MapView ↗
-                    </a>
-                    <span style={{ color: '#64748b' }}>·</span>
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${selectedConcern.location_lat},${selectedConcern.location_lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ fontSize: 12, color: '#fbbf24', textDecoration: 'none', fontWeight: 600 }}
-                    >
-                      🗺️ Open in Google Maps ↗
-                    </a>
-                  </div>
-                )}
               </div>
 
               {selectedConcern.image_url && (
-                <div style={{ width: 140, height: 110, borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <div style={{ width: 100, height: 80, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.15)' }}>
                   <img
                     src={resolveImageUrl(selectedConcern.image_url)}
                     alt="Problem"
@@ -451,18 +355,10 @@ export default function MayorsOfficePortal({ user, onLogout }) {
               )}
             </div>
 
-            {/* Admin Validation Receipt */}
-            <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, fontSize: 12, color: '#10b981', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 16 }}>🛡️</span>
-              <div>
-                <strong>Admin Validation Confirmed:</strong> Verified and forwarded by <strong>{selectedConcern.validated_by_name || 'System Administrator'}</strong>{selectedConcern.validated_at ? ` on ${fmtDate(selectedConcern.validated_at)}` : ''}.
-              </div>
-            </div>
-
             {/* Department Selection */}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 6 }}>
-                Target Department for Action & Dispatch
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 5 }}>
+                Assigned Department
               </label>
               <select
                 className={s.select}
@@ -479,21 +375,21 @@ export default function MayorsOfficePortal({ user, onLogout }) {
             </div>
 
             {/* Executive Notes / Directive Instructions */}
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 6 }}>
-                Official Mayoral Directive Instructions
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 5 }}>
+                Mayoral Directive Instructions
               </label>
               <textarea
                 className={s.textarea}
-                rows={4}
+                rows={3}
                 value={directiveNotes}
                 onChange={(e) => setDirectiveNotes(e.target.value)}
-                placeholder="Enter mayoral executive directive instructions for the assigned department..."
+                placeholder="Enter executive directive instructions for the department..."
               />
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               <button className={s.btnOutline} onClick={closeReviewModal} disabled={dispatching}>
                 Cancel
               </button>
@@ -503,7 +399,7 @@ export default function MayorsOfficePortal({ user, onLogout }) {
                 onClick={handleApproveAndDispatch}
                 disabled={dispatching}
               >
-                {dispatching ? '⚙️ Dispatching Mayoral Directive...' : '⚡ Sign & Dispatch Directive'}
+                {dispatching ? 'Dispatching...' : '⚡ Sign & Dispatch'}
               </button>
             </div>
           </div>

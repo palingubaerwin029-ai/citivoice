@@ -49,6 +49,20 @@ const escalateStaleConcerns = async () => {
       [NOT_TYPICAL_CATEGORY],
     );
 
+    // Auto-dispatch any open High-priority concerns not yet dispatched
+    await run(
+      `UPDATE concerns
+       SET approved_at = NOW(),
+           approved_by_name = 'Office of the City Mayor (Emergency Protocol)',
+           approval_notes = '🚨 HIGH-RISK HAZARD: Immediately dispatched under City Emergency Protocol for priority action.',
+           is_validated = 1,
+           validated_at = NOW(),
+           validated_by_name = 'System Auto-Validation (High-Risk)',
+           status = 'In Progress'
+       WHERE ${OPEN} AND priority = 'High' AND approved_at IS NULL`,
+      [NOT_TYPICAL_CATEGORY],
+    );
+
     const total = upvoteHigh + upvoteMed + ageHigh + ageMed;
     if (total > 0) {
       console.log(

@@ -102,7 +102,7 @@ export const KABANKALAN_BARANGAY_COORDS = [
   { name: 'Barangay 7', lat: 10.012, lng: 122.825 },
   { name: 'Barangay 8', lat: 10.015, lng: 122.830 },
   { name: 'Barangay 9', lat: 10.000, lng: 122.808 },
-  { name: 'Bantayan', lat: 9.988, lng: 122.822 },
+  { name: 'Bantayan', lat: 9.726, lng: 122.788 },
   { name: 'Binicuil', lat: 9.965, lng: 122.805 },
   { name: 'Camansi', lat: 9.940, lng: 122.880 },
   { name: 'Camingawan', lat: 9.820, lng: 122.950 },
@@ -134,8 +134,16 @@ export const getPinBarangay = (c) => {
 
   const address = (c.location_address || '').trim();
 
-  // 1. Check if pinned address explicitly mentions a known Kabankalan barangay
+  // 1. Street-level mapping for prominent Kabankalan avenues & streets
   if (address) {
+    if (/Aquiles\s*-?\s*Zayco/i.test(address) || /Zayco\s+Ave/i.test(address)) {
+      return 'Barangay 1';
+    }
+    if (/Guanzon/i.test(address)) return 'Barangay 1';
+    if (/Tayum/i.test(address)) return 'Barangay 2';
+    if (/Coloso/i.test(address)) return 'Barangay 1';
+
+    // 2. Check if pinned address explicitly mentions a known Kabankalan barangay
     for (const b of KABANKALAN_BARANGAY_COORDS) {
       const regex = new RegExp(`\\b${b.name}\\b`, 'i');
       if (regex.test(address)) {
@@ -157,7 +165,7 @@ export const getPinBarangay = (c) => {
     }
   }
 
-  // 2. Derive strictly from the pinned GPS coordinates (location_lat, location_lng)
+  // 3. Derive strictly from the pinned GPS coordinates (location_lat, location_lng)
   const lat = parseFloat(c.location_lat);
   const lng = parseFloat(c.location_lng);
   if (!isNaN(lat) && !isNaN(lng)) {

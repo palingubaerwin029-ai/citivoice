@@ -234,7 +234,7 @@ const notifyDepartmentOnApproval = async (concern, approvalNotes, deptInfo, appr
     : `http://localhost:8080/map?concernId=${concern.id}`;
   const googleMapsUrl = hasCoords
     ? `https://www.google.com/maps/search/?api=1&query=${concern.location_lat},${concern.location_lng}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((concern.location_address || '') + ' Barangay ' + (concern.user_barangay || '') + ' Kabankalan City')}`;
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(concern.location_address ? `${concern.location_address}, Kabankalan City` : `Barangay ${concern.user_barangay || ''}, Kabankalan City`)}`;
 
   const subject = `[EXECUTIVE DIRECTIVE] Office of the City Mayor — ${concern.title}`;
 

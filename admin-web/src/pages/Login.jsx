@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { IoMailOutline, IoLockClosedOutline, IoEyeOutline, IoEyeOffOutline } from 'react-icons/io5';
 import s from '../styles/Login.module.css';
@@ -32,8 +33,12 @@ export default function Login({ onLogin }) {
 
   const completeLogin = useCallback(
     ({ token, user }) => {
-      if (user.role !== 'admin' && user.role !== 'mayor' && user.role !== 'vice_mayor') {
-        setError('Access denied. Administrator and Executive accounts only.');
+      if (user.role === 'mayor') {
+        setError("This console is for System Administrators only. Please use the Mayor's Portal at /mayor/login.");
+        return;
+      }
+      if (user.role !== 'admin') {
+        setError('Access denied. Administrator credentials required.');
         return;
       }
       onLogin(user, token);
@@ -180,6 +185,25 @@ export default function Login({ onLogin }) {
         </div>
 
         <div className={s.footer}>🔒 Restricted to authorized administrators</div>
+
+        <div style={{ textAlign: 'center', marginTop: 20 }}>
+          <Link
+            to="/mayor/login"
+            style={{
+              color: 'var(--text-3)',
+              fontSize: 12,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'color 0.15s',
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.color = '#fbbf24')}
+            onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-3)')}
+          >
+            🏛️ Office of the City Mayor? Switch to Executive Portal →
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ import MapView from './pages/MapView';
 import Users from './pages/Users';
 import Reports from './pages/Reports';
 import Login from './pages/Login';
+import MayorLogin from './pages/MayorLogin';
 import Verification from './pages/Verification';
 import Barangays from './pages/Barangays';
 import Backup from './pages/Backup';
@@ -24,7 +25,7 @@ export default function App() {
       const saved = localStorage.getItem('cv_user');
       if (token && saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && (parsed.role === 'admin' || parsed.id)) {
+        if (parsed && (parsed.role === 'admin' || parsed.role === 'mayor' || parsed.id)) {
           return parsed;
         }
       }
@@ -62,7 +63,7 @@ export default function App() {
     api
       .get('/auth/me')
       .then((u) => {
-        if (u && u.role === 'admin') {
+        if (u && (u.role === 'admin' || u.role === 'mayor')) {
           setUser(u);
           localStorage.setItem('cv_user', JSON.stringify(u));
         } else {
@@ -90,53 +91,118 @@ export default function App() {
     connectSocket();
   };
 
-  const handleLogout = () => {
+  const handleLogout = (targetPath) => {
+    const isMayorPath =
+      window.location.pathname.startsWith('/mayor') ||
+      window.location.pathname.startsWith('/mayors-office');
     localStorage.removeItem('cv_token');
     localStorage.removeItem('cv_user');
     setUser(null);
     disconnectSocket();
+    if (typeof targetPath === 'string') {
+      window.location.href = targetPath;
+    } else if (isMayorPath) {
+      window.location.href = '/mayor/login';
+    } else {
+      window.location.href = '/login';
+    }
   };
 
   if (loading) return <LoadingScreen />;
-  if (!user) return <Login onLogin={handleLogin} />;
+
+  const isExecutiveUser = user && user.role === 'mayor';
+  const isAdminUser = user && user.role === 'admin';
 
   return (
     <ToastProvider>
       <BrowserRouter>
-        <div style={styles.layout}>
-          <Sidebar
-            user={user}
-            onLogout={handleLogout}
-            theme={theme}
-            onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          />
-          <main style={styles.main}>
-            <Routes>
-              <Route path="/mayors-office" element={<MayorsOfficePortal user={user} onLogout={handleLogout} />} />
-              <Route path="/mayor" element={<Navigate to="/mayors-office" />} />
-              <Route path="/vice-mayor" element={<Navigate to="/mayors-office" />} />
-              {(user?.role === 'mayor' || user?.role === 'vice_mayor') ? (
-                <Route path="*" element={<Navigate to="/mayors-office" />} />
+        <Routes>
+          {/* 🏛️ Mayor's Office Executive Desk Routes (Completely separate from Admin) */}
+          <Route
+            path="/mayor/login"
+            element={
+              isExecutiveUser ? (
+                <Navigate to="/mayor" replace />
               ) : (
-                <>
-                  <Route path="/" element={<Navigate to="/dashboard" />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/concerns" element={<Concerns />} />
-                  <Route path="/concerns/:id" element={<ConcernDetail />} />
-                  <Route path="/map" element={<MapView />} />
-                  <Route path="/verification" element={<Verification />} />
-                  <Route path="/users" element={<Users />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/barangays" element={<Barangays />} />
-                  <Route path="/backup" element={<Backup />} />
-                  <Route path="*" element={<Navigate to="/dashboard" />} />
-                </>
-              )}
-            </Routes>
-          </main>
-        </div>
+                <MayorLogin onLogin={handleLogin} />
+              )
+            }
+          />
+          <Route
+            path="/mayor"
+            element={
+              isExecutiveUser ? (
+                <div style={styles.executivePortal}>
+                  <MayorsOfficePortal user={user} onLogout={handleLogout} />
+                </div>
+              ) : (
+                <Navigate to="/mayor/login" replace />
+              )
+            }
+          />
+          <Route path="/mayors-office" element={<Navigate to="/mayor" replace />} />
+
+          {/* ⚙️ CitiVoice Administrator Console Routes */}
+          <Route
+            path="/login"
+            element={
+              isAdminUser ? (
+                <Navigate to="/dashboard" replace />
+              ) : isExecutiveUser ? (
+                <Navigate to="/mayor" replace />
+              ) : (
+                <Login onLogin={handleLogin} />
+              )
+            }
+          />
+          <Route
+            path="/*"
+            element={
+              isAdminUser ? (
+                <AdminLayout
+                  user={user}
+                  onLogout={handleLogout}
+                  theme={theme}
+                  onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                />
+              ) : isExecutiveUser ? (
+                <Navigate to="/mayor" replace />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+        </Routes>
       </BrowserRouter>
     </ToastProvider>
+  );
+}
+
+function AdminLayout({ user, onLogout, theme, onThemeToggle }) {
+  return (
+    <div style={styles.layout}>
+      <Sidebar
+        user={user}
+        onLogout={onLogout}
+        theme={theme}
+        onThemeToggle={onThemeToggle}
+      />
+      <main style={styles.main}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/concerns" element={<Concerns />} />
+          <Route path="/concerns/:id" element={<ConcernDetail />} />
+          <Route path="/map" element={<MapView />} />
+          <Route path="/verification" element={<Verification />} />
+          <Route path="/users" element={<Users />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/barangays" element={<Barangays />} />
+          <Route path="/backup" element={<Backup />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </main>
+    </div>
   );
 }
 
@@ -146,8 +212,8 @@ function LoadingScreen() {
       <div style={styles.loadingLogo}>
         <span style={{ fontSize: 32 }}>📢</span>
       </div>
-      <h2 style={{ color: 'var(--text-1)', marginTop: 16 }}>CitiVoice Admin</h2>
-      <p style={{ color: 'var(--text-2)', marginTop: 8 }}>Loading...</p>
+      <h2 style={{ color: 'var(--text-1)', marginTop: 16 }}>CitiVoice</h2>
+      <p style={{ color: 'var(--text-2)', marginTop: 8 }}>Loading portal...</p>
     </div>
   );
 }
@@ -155,6 +221,13 @@ function LoadingScreen() {
 const styles = {
   layout: { display: 'flex', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg)' },
   main: { flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: 'var(--bg)' },
+  executivePortal: {
+    minHeight: '100vh',
+    width: '100%',
+    height: '100vh',
+    overflowY: 'auto',
+    backgroundColor: '#090d16',
+  },
   loading: {
     display: 'flex',
     flexDirection: 'column',

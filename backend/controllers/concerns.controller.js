@@ -50,7 +50,7 @@ const listConcerns = async (req, res) => {
     const offset = (page - 1) * limit;
     
     const { status, category, userId } = req.query;
-    const isMayor = req.user?.role === 'mayor' || req.user?.role === 'vice_mayor';
+    const isMayor = req.user?.role === 'mayor';
     const validatedOnly = isMayor || req.query.validatedOnly === 'true' || req.query.validatedOnly === '1';
 
     const [rows, total] = await Promise.all([
@@ -59,7 +59,7 @@ const listConcerns = async (req, res) => {
     ]);
 
     let data = rows;
-    if (req.user.role !== 'admin' && req.user.role !== 'mayor' && req.user.role !== 'vice_mayor') {
+    if (req.user.role !== 'admin' && req.user.role !== 'mayor') {
       data = rows.map((r) => {
         if (r.user_id === req.user.id) return r;
         const { user_id, user_name, user_barangay, ...rest } = r;
@@ -117,11 +117,11 @@ const getConcern = async (req, res) => {
     concern.is_upvoted_by_me = await checkUpvote(concern.id, req.user.id);
 
     // Attach linked/similar concerns for admin and mayor
-    if (req.user.role === 'admin' || req.user.role === 'mayor' || req.user.role === 'vice_mayor') {
+    if (req.user.role === 'admin' || req.user.role === 'mayor') {
       concern.linked_concerns = await selectLinkedConcerns(concern.id);
     }
 
-    if (req.user.role !== 'admin' && req.user.role !== 'mayor' && req.user.role !== 'vice_mayor' && concern.user_id !== req.user.id) {
+    if (req.user.role !== 'admin' && req.user.role !== 'mayor' && concern.user_id !== req.user.id) {
       const { user_id, user_name, user_barangay, ...rest } = concern;
       return res.json(rest);
     }
@@ -308,6 +308,73 @@ const createConcern = async (req, res) => {
         ['admin_note = ?'],
         [`[AI Flag: Not a typical concern] ${validityReason || 'Photo/text does not match a municipal concern category.'} Needs admin review.`],
       );
+    } else if (finalPriority === 'High') {
+      const immediateNote = `[IMMEDIATE EMERGENCY RESPONSE] This concern has been designated as a HIGH-RISK hazard. The ${department || "City Engineer's Office"} Emergency Response Team has been mobilized immediately for urgent on-site verification, hazard containment, and clearing. Motorists and citizens are advised to exercise extreme caution in the vicinity.`;
+      const emergencyApprovalNotes = `🚨 HIGH-RISK EMERGENCY DIRECTIVE: Automatically dispatched under City Emergency Protocol to ${department || "the Emergency Response Unit"} for immediate priority on-site intervention.`;
+
+      await updateConcernFields(
+        insertId,
+        [
+          'admin_note = ?',
+          'status = ?',
+          'is_validated = 1',
+          'validated_at = NOW()',
+          'validated_by_name = ?',
+          'approved_at = NOW()',
+          'approved_by_name = ?',
+          'approval_notes = ?',
+        ],
+        [
+          immediateNote,
+          'In Progress',
+          'System Auto-Validation (High-Risk)',
+          'Office of the City Mayor (Emergency Protocol)',
+          emergencyApprovalNotes,
+        ],
+      );
+      console.log(`[AI] High-risk concern #${insertId} automatically dispatched under City Emergency Protocol.`);
+
+      // Automatically email and notify assigned department immediately
+      setImmediate(async () => {
+        try {
+          let deptInfo = null;
+          if (department) {
+            const baseDeptName = department.split(' — ')[0].trim();
+            deptInfo = await selectDepartmentByName(baseDeptName);
+          }
+          if (!deptInfo && finalCategory) {
+            deptInfo = await selectDepartmentByCategory(finalCategory);
+          }
+
+          const newlyCreated = await selectConcernById(insertId);
+          if (newlyCreated) {
+            await notifyDepartmentOnApproval(
+              newlyCreated,
+              emergencyApprovalNotes,
+              deptInfo,
+              'Office of the City Mayor (Emergency Protocol)'
+            );
+          }
+        } catch (dispatchErr) {
+          console.error('[Notification] Error in high-risk auto-dispatch email:', dispatchErr.message);
+        }
+      });
+
+      // Notify citizen immediately
+      setImmediate(async () => {
+        try {
+          if (req.user?.id) {
+            await insertNotification(
+              req.user.id,
+              '🚨 High-Risk Hazard: Emergency Dispatched',
+              `Your urgent report "${title}" has been immediately dispatched to ${department || 'the emergency response team'} for priority on-site action.`,
+              insertId,
+            );
+          }
+        } catch (notifErr) {
+          console.error('[Notification] Error creating citizen emergency dispatch notif:', notifErr.message);
+        }
+      });
     }
 
     // ─── Feature 3: Duplicate Detection (async, non-blocking) ─────────────
@@ -324,42 +391,9 @@ const createConcern = async (req, res) => {
 
         for (const match of similar) {
           await insertConcernLink(insertId, match.concern.id, match.matchType, match.combinedScore);
-          if (match.matchType === 'duplicate' && !isDuplicate) {
-            isDuplicate = true;
-            originalConcernId = match.concern.id;
+          if (match.matchType === 'duplicate') {
+            console.log(`[AI] Linked duplicate concern #${insertId} with original #${match.concern.id} (${match.combinedScore}% match)`);
           }
-        }
-
-        // ─── Auto-Merge & Status Application Logic ───
-        if (isDuplicate && originalConcernId) {
-          const originalConcern = await selectConcernById(originalConcernId);
-          const originalStatus = originalConcern ? originalConcern.status : 'Pending';
-          const originalAdminNote = originalConcern ? originalConcern.admin_note : null;
-          const originalDept = originalConcern ? originalConcern.department : null;
-          const originalResolvedImg = originalConcern ? originalConcern.resolved_image_url : null;
-
-          const originalTitle = originalConcern ? originalConcern.title : 'Unknown';
-          const adminNote = originalAdminNote
-            ? `[Auto-Duplicate of "${originalTitle}"] ${originalAdminNote}`
-            : `System Notice: Auto-identified as a duplicate of "${originalTitle}" (Current Status: ${originalStatus}).`;
-
-          const fieldsToUpdate = ['status = ?', 'admin_note = ?', 'updated_at = NOW()'];
-          const valuesToUpdate = [originalStatus, adminNote];
-
-          if (originalDept) {
-            fieldsToUpdate.push('department = ?');
-            valuesToUpdate.push(originalDept);
-          }
-          if (originalResolvedImg) {
-            fieldsToUpdate.push('resolved_image_url = ?');
-            valuesToUpdate.push(originalResolvedImg);
-          }
-
-          await updateConcernFields(insertId, fieldsToUpdate, valuesToUpdate);
-
-          console.log(`[AI] Auto-merged duplicate concern #${insertId} with original #${originalConcernId} (Applied status: ${originalStatus})`);
-
-
         }
 
         if (similar.length > 0) {
@@ -452,6 +486,25 @@ const editConcern = async (req, res) => {
         const updatedDept = await workflowService.resolveDepartmentForConcern(newCat, newPri);
         fields.push('department = ?');
         values.push(updatedDept);
+
+        // If newly elevated to High priority and not yet dispatched, auto-dispatch immediately
+        if (newPri === 'High' && !existingConcern.approved_at) {
+          fields.push(
+            'status = ?',
+            'is_validated = 1',
+            'validated_at = NOW()',
+            'validated_by_name = ?',
+            'approved_at = NOW()',
+            'approved_by_name = ?',
+            'approval_notes = ?'
+          );
+          values.push(
+            'In Progress',
+            'System Auto-Validation (High-Risk)',
+            'Office of the City Mayor (Emergency Protocol)',
+            `🚨 HIGH-RISK EMERGENCY DIRECTIVE: Automatically dispatched under City Emergency Protocol to ${updatedDept || 'the emergency team'} for immediate action.`
+          );
+        }
       } catch (e) {
         console.error('AI Routing Error on edit:', e);
       }
@@ -652,35 +705,146 @@ const generateAiResponse = async (req, res) => {
     const concern = await selectConcernById(req.params.id);
     if (!concern) return res.status(404).json({ error: 'Concern not found' });
 
+    const isHighRisk = concern.priority === 'High';
+
+const KABANKALAN_BARANGAY_COORDS = [
+  { name: 'Barangay 1', lat: 9.998, lng: 122.814 },
+  { name: 'Barangay 2', lat: 10.001, lng: 122.812 },
+  { name: 'Barangay 3', lat: 9.995, lng: 122.816 },
+  { name: 'Barangay 4', lat: 9.992, lng: 122.818 },
+  { name: 'Barangay 5', lat: 10.005, lng: 122.816 },
+  { name: 'Barangay 6', lat: 10.008, lng: 122.820 },
+  { name: 'Barangay 7', lat: 10.012, lng: 122.825 },
+  { name: 'Barangay 8', lat: 10.015, lng: 122.830 },
+  { name: 'Barangay 9', lat: 10.000, lng: 122.808 },
+  { name: 'Bantayan', lat: 9.726, lng: 122.788 },
+  { name: 'Binicuil', lat: 9.965, lng: 122.805 },
+  { name: 'Camansi', lat: 9.940, lng: 122.880 },
+  { name: 'Camingawan', lat: 9.820, lng: 122.950 },
+  { name: 'Camugao', lat: 9.955, lng: 122.835 },
+  { name: 'Carol-an', lat: 9.860, lng: 122.920 },
+  { name: 'Daan Banua', lat: 10.010, lng: 122.785 },
+  { name: 'Hilamonan', lat: 10.005, lng: 122.845 },
+  { name: 'Inapoy', lat: 9.810, lng: 122.880 },
+  { name: 'Linao', lat: 10.020, lng: 122.800 },
+  { name: 'Locotan', lat: 9.930, lng: 122.840 },
+  { name: 'Magballo', lat: 9.850, lng: 122.830 },
+  { name: 'Oringao', lat: 9.891, lng: 122.866 },
+  { name: 'Orong', lat: 9.910, lng: 122.800 },
+  { name: 'Pinaguinpinan', lat: 9.950, lng: 122.780 },
+  { name: 'Salong', lat: 9.970, lng: 122.760 },
+  { name: 'Tabao', lat: 10.030, lng: 122.830 },
+  { name: 'Tabugon', lat: 9.780, lng: 122.850 },
+  { name: 'Tagoc', lat: 9.930, lng: 122.770 },
+  { name: 'Tagukon', lat: 9.740, lng: 122.830 },
+  { name: 'Talubangi', lat: 10.015, lng: 122.825 },
+  { name: 'Tampalon', lat: 9.900, lng: 122.920 },
+  { name: 'Tan-awan', lat: 9.840, lng: 122.980 },
+  { name: 'Tapi', lat: 9.870, lng: 122.800 }
+];
+
+const getIncidentBarangay = (concern) => {
+  if (!concern) return 'Barangay 1';
+  const address = (concern.location_address || '').trim();
+
+  if (address) {
+    if (/Aquiles\s*-?\s*Zayco/i.test(address) || /Zayco\s+Ave/i.test(address)) {
+      return 'Barangay 1';
+    }
+    if (/Guanzon/i.test(address)) return 'Barangay 1';
+    if (/Tayum/i.test(address)) return 'Barangay 2';
+    if (/Coloso/i.test(address)) return 'Barangay 1';
+
+    for (const b of KABANKALAN_BARANGAY_COORDS) {
+      if (new RegExp(`\\b${b.name}\\b`, 'i').test(address)) {
+        return b.name;
+      }
+    }
+
+    const match = address.match(/(?:Barangay|Brgy\.?|Poblacion)\s+([A-Za-z0-9\s-]+?)(?:,|\.|$)/i);
+    if (match && match[1]) {
+      const trimmed = match[1].trim();
+      if (/^\d+$/.test(trimmed)) {
+        if (/Poblacion/i.test(match[0])) return `Poblacion ${trimmed}`;
+        return `Barangay ${trimmed}`;
+      }
+      return trimmed;
+    }
+  }
+
+  const lat = parseFloat(concern.location_lat);
+  const lng = parseFloat(concern.location_lng);
+  if (!isNaN(lat) && !isNaN(lng)) {
+    let nearest = null;
+    let minD = Infinity;
+    for (const b of KABANKALAN_BARANGAY_COORDS) {
+      const d = Math.hypot(b.lat - lat, b.lng - lng);
+      if (d < minD) {
+        minD = d;
+        nearest = b.name;
+      }
+    }
+    if (nearest) return nearest;
+  }
+
+  return concern.user_barangay || 'Barangay 1';
+};
+
     // Try Gemini first
     if (isGeminiAvailable()) {
+      const incidentBrgy = getIncidentBarangay(concern);
       const prompt = `You are a professional government administrator for Kabankalan City, Philippines (CitiVoice platform).
-Write a concise, empathetic official response to this citizen concern. The response should:
-- Acknowledge the issue
-- Explain what action will be taken
-- Provide a realistic timeline
-- Thank the citizen for reporting
+Write a concise, empathetic official response to this citizen concern.
 
 Concern Details:
 - Title: ${concern.title}
 - Description: ${concern.description}
 - Category: ${concern.category}
-- Priority: ${concern.priority}
+- Priority: ${concern.priority} ${isHighRisk ? '(CRITICAL / HIGH RISK EMERGENCY)' : ''}
 - Status: ${concern.status}
-- Barangay: ${concern.user_barangay || 'Not specified'}
-- Location: ${concern.location_address || 'Not specified'}
+- Department: ${concern.department || 'City Administration'}
+- Incident Barangay: ${incidentBrgy}
+- Location Address: ${concern.location_address || incidentBrgy}
+- Submitting Citizen: ${concern.user_name || 'Citizen'} (Resident of: ${concern.user_barangay || 'Kabankalan City'})
 
-Write 2-4 sentences maximum. Be professional but warm. Do not use markdown formatting.`;
+GEOGRAPHIC ACCURACY INSTRUCTION:
+- The actual incident location is: "${concern.location_address || incidentBrgy}" located in "${incidentBrgy}".
+- The submitting citizen lives in ${concern.user_barangay || 'their home barangay'}, but the reported incident occurred at ${concern.location_address || incidentBrgy} in ${incidentBrgy}.
+- NEVER state that the street or incident is located in the citizen's residential barangay if the location is elsewhere (e.g. Aquiles-Zayco Avenue is in Barangay 1 / Poblacion, NOT in Bantayan). Always use "${concern.location_address || incidentBrgy}" when referencing the location.
 
-      const aiResponse = await generateText(prompt, { temperature: 0.6, maxTokens: 300 });
+${isHighRisk ? `CRITICAL REQUIREMENT — HIGH RISK / IMMEDIATE EMERGENCY HAZARD:
+- This concern is marked HIGH PRIORITY / CRITICAL HAZARD.
+- You MUST state that an IMMEDIATE emergency response is actively underway (e.g. "Our Emergency Response Unit has been dispatched immediately to inspect and clear the site on ${concern.location_address || incidentBrgy}").
+- DO NOT mention days or weeks. State immediate intervention (within hours/today).
+- Include safety precautions for citizens (e.g., maintain safe distance, exercise extreme caution).` : `Requirements:
+- Acknowledge the issue
+- Explain what action will be taken
+- Provide a realistic timeline (e.g., 2-3 business days)
+- Thank the citizen for reporting`}
+
+Write 2-4 sentences maximum. Be professional, reassuring, and emphasize immediate government action. Do not use markdown formatting.`;
+
+      const aiResponse = await generateText(prompt, { temperature: 0.5, maxTokens: 300 });
       if (aiResponse) {
         return res.json({ response: aiResponse.trim(), source: 'gemini' });
       }
     }
 
     // Fallback: template-based response
+    if (isHighRisk) {
+      const highRiskTemplates = {
+        'Road & Infrastructure': `[IMMEDIATE EMERGENCY RESPONSE] We have acknowledged this high-risk hazard regarding ${concern.title}. An Emergency Response Unit from the City Engineer's Office has been immediately dispatched to clear the obstruction and secure the roadway. Please exercise extreme caution and avoid the immediate area until cleared.`,
+        Electricity: `[IMMEDIATE EMERGENCY RESPONSE] We have received your urgent report regarding ${concern.title}. NOCECO and CDRRMO emergency crews have been notified immediately for rapid dispatch to isolate electrical hazards and secure the vicinity. Please stay well clear of any wires or damaged poles.`,
+        Drainage: `[IMMEDIATE EMERGENCY RESPONSE] This concern regarding ${concern.title} has been classified as high priority. Emergency drainage response teams have been deployed immediately to relieve hazardous water buildup and prevent further danger. Thank you for reporting this urgent hazard.`,
+        'Waste & Sanitation': `[IMMEDIATE EMERGENCY RESPONSE] Your report regarding ${concern.title} has been flagged as high risk. Health and environmental emergency crews have been mobilized immediately to sanitize and address this urgent hazard.`,
+        Other: `[IMMEDIATE EMERGENCY RESPONSE] We have received your high-priority report regarding ${concern.title}. Our Emergency Response Team has been mobilized immediately for on-site inspection and immediate corrective action. Please maintain a safe distance.`,
+      };
+      const template = highRiskTemplates[concern.category] || highRiskTemplates['Other'];
+      return res.json({ response: template, source: 'template' });
+    }
+
     const templates = {
-      'Road & Infrastructure': `Thank you for reporting this issue regarding ${concern.title.toLowerCase()}. Our City Engineer's Office (CEO) has been notified and a team will be dispatched to assess the situation. We expect to begin work within the next 3-5 business days. We appreciate your help in keeping our roads safe.`,
+      'Road & Infrastructure': `Thank you for reporting this issue regarding ${concern.title.toLowerCase()}. Our City Engineer's Office (CEO) has been notified and a team will be dispatched to assess the situation. We expect to begin work within the next 2-3 business days. We appreciate your help in keeping our roads safe.`,
       Electricity: `We have received your report about ${concern.title.toLowerCase()}. This has been forwarded to NOCECO for immediate attention. A repair crew will be scheduled within 24-48 hours. Thank you for helping us maintain our community's infrastructure.`,
       Drainage: `Thank you for reporting this concern. The City Engineer's Office (CEO) has been alerted about ${concern.title.toLowerCase()} and will send a drainage team to inspect the area. Expected response time is within 2-3 business days. Your vigilance helps keep our community safe.`,
       'Waste & Sanitation': `We acknowledge your report regarding ${concern.title.toLowerCase()}. CENRO has been notified and collection/cleanup will be prioritized. Please expect action within 1-3 business days. Thank you for helping maintain our community's cleanliness.`,

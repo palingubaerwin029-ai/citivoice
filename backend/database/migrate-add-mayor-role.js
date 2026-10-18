@@ -8,7 +8,7 @@ const pool = require('../db');
     console.log('\n🏛️ Setting up Office of the Mayor account...\n');
 
     await pool.query(
-      "ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'citizen', 'vice_mayor', 'mayor') NOT NULL DEFAULT 'citizen'"
+      "ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'citizen', 'mayor') NOT NULL DEFAULT 'citizen'"
     );
 
     const name = 'Office of the City Mayor';

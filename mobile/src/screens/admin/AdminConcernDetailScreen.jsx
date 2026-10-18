@@ -120,6 +120,11 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
   const getConcernBarangay = (c) => {
     if (!c) return 'Barangay 1';
     const address = c.location_address || '';
+    if (/Aquiles\s*-?\s*Zayco/i.test(address) || /Zayco\s+Ave/i.test(address)) {
+      return 'Barangay 1';
+    }
+    if (/Guanzon/i.test(address)) return 'Barangay 1';
+    if (/Tayum/i.test(address)) return 'Barangay 2';
     const knownBarangays = [
       'Poblacion 1', 'Poblacion 2', 'Poblacion 3', 'Poblacion 4',
       'Poblacion 5', 'Poblacion 6', 'Poblacion 7', 'Poblacion 8',

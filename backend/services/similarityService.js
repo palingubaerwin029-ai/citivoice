@@ -9,6 +9,35 @@ const natural = require('natural');
 const TfIdf = natural.TfIdf;
 
 /**
+ * Common Hiligaynon, Cebuano, Tagalog, and English stopwords.
+ * Filtering these prevents false-positive text matches caused by common grammatical glue.
+ */
+const STOPWORDS = new Set([
+  // Hiligaynon / Visayan
+  'sa', 'nga', 'ang', 'sang', 'kay', 'may', 'mga', 'ara', 'kag', 'man', 'lang', 'gid',
+  'namon', 'nila', 'inyo', 'sila', 'kami', 'kita', 'ako', 'siya', 'diri', 'dira', 'didto',
+  'ini', 'ina', 'ato', 'ndi', 'indi', 'nd', 'wala', 'waay', 'ka', 'og', 'ug',
+  // Tagalog
+  'na', 'ng', 'yung', 'din', 'rin', 'si', 'ni', 'ay', 'ito', 'iyan', 'iyon', 'dito',
+  'diyan', 'doon', 'ba', 'po', 'opo', 'kasi', 'pero', 'kung',
+  // English
+  'the', 'is', 'at', 'which', 'on', 'a', 'an', 'and', 'or', 'in', 'of', 'to', 'for', 'with',
+  'by', 'this', 'that', 'there', 'it', 'from', 'be', 'are', 'was', 'were'
+]);
+
+/**
+ * Clean and filter stopwords from text for accurate semantic matching.
+ */
+const cleanText = (text) => {
+  return (text || '')
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 1 && !STOPWORDS.has(w))
+    .join(' ');
+};
+
+/**
  * Calculate Haversine distance between two GPS coordinates in meters.
  */
 const haversineDistance = (lat1, lng1, lat2, lng2) => {
@@ -63,13 +92,13 @@ const findSimilarConcerns = (targetConcern, allConcerns, options = {}) => {
   const candidates = allConcerns.filter((c) => c.id !== targetConcern.id);
   if (candidates.length === 0) return [];
 
-  // Build TF-IDF corpus
+  // Build TF-IDF corpus using cleaned text (without stopwords)
   const tfidf = new TfIdf();
-  const targetText = `${targetConcern.title} ${targetConcern.description}`.toLowerCase();
+  const targetText = cleanText(`${targetConcern.title} ${targetConcern.description}`);
   tfidf.addDocument(targetText);
 
   candidates.forEach((c) => {
-    tfidf.addDocument(`${c.title} ${c.description}`.toLowerCase());
+    tfidf.addDocument(cleanText(`${c.title} ${c.description}`));
   });
 
   // Extract TF-IDF vector for target document
@@ -113,20 +142,18 @@ const findSimilarConcerns = (targetConcern, allConcerns, options = {}) => {
     // Combined score (weighted)
     const combinedScore = textScore * 0.6 + geoScore * 0.25 + categoryBonus * 0.15;
 
-    // Determine match type
+    // Determine match type:
+    // A 'duplicate' requires genuine subject matter match.
+    // Proximity alone without strong textual certainty is only 'related'.
     let matchType = 'related';
-    
-    // Strict Location Proximity (User requested: check if it's in the same place/pin location)
-    // geoScore >= 0.8 means it's extremely close to the pin location (e.g., within 60 meters)
-    const isVeryClose = geoScore >= 0.8;
+
     const isSameCategory = c.category === targetConcern.category;
 
-    if (isVeryClose && isSameCategory && textScore >= 0.3) {
-      // If it's basically the exact same spot and same category, it's a duplicate
+    if (textScore >= 0.85) {
+      // Overwhelming text similarity -> duplicate regardless of GPS
       matchType = 'duplicate';
-    } else if (textScore >= 0.6 && geoScore >= 0.5) {
-      matchType = 'duplicate';
-    } else if (textScore >= 0.85) {
+    } else if (textScore >= 0.70 && geoScore >= 0.5 && isSameCategory) {
+      // High text similarity in the same vicinity and same category -> duplicate
       matchType = 'duplicate';
     }
 
@@ -149,4 +176,5 @@ const findSimilarConcerns = (targetConcern, allConcerns, options = {}) => {
 module.exports = {
   findSimilarConcerns,
   haversineDistance,
+  cleanText,
 };
