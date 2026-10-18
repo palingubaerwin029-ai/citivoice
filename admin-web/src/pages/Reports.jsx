@@ -7,6 +7,22 @@ import r from '../styles/Reports.module.css';
 const PRIORITY_OPTIONS = ['All', 'High', 'Medium', 'Low'];
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 'All'];
 
+const MONTH_OPTIONS = [
+  { value: 'All', label: 'All Months' },
+  { value: '0', label: 'January' },
+  { value: '1', label: 'February' },
+  { value: '2', label: 'March' },
+  { value: '3', label: 'April' },
+  { value: '4', label: 'May' },
+  { value: '5', label: 'June' },
+  { value: '6', label: 'July' },
+  { value: '7', label: 'August' },
+  { value: '8', label: 'September' },
+  { value: '9', label: 'October' },
+  { value: '10', label: 'November' },
+  { value: '11', label: 'December' },
+];
+
 export default function Reports() {
   const navigate = useNavigate();
   const [concerns, setConcerns] = useState([]);
@@ -20,6 +36,7 @@ export default function Reports() {
 
   // Filters
   const [yearFilter, setYearFilter] = useState('All');
+  const [monthFilter, setMonthFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [barangayFilter, setBarangayFilter] = useState('All');
@@ -94,6 +111,11 @@ export default function Reports() {
         if (String(d.getFullYear()) !== yearFilter) return false;
       }
 
+      // Month Filter
+      if (monthFilter !== 'All') {
+        if (String(d.getMonth()) !== monthFilter) return false;
+      }
+
       // Priority
       if (priorityFilter !== 'All' && c.priority !== priorityFilter) return false;
 
@@ -108,7 +130,7 @@ export default function Reports() {
 
       return true;
     });
-  }, [concerns, yearFilter, priorityFilter, categoryFilter, barangayFilter]);
+  }, [concerns, yearFilter, monthFilter, priorityFilter, categoryFilter, barangayFilter]);
 
   // ── Aggregated Table in User's Exact Format: Date | Pending | In Progress | Resolved | Reject | Total ──
   const aggregatedRows = useMemo(() => {
@@ -222,6 +244,7 @@ export default function Reports() {
   const resetFilters = () => {
     setGroupBy('month');
     setYearFilter('All');
+    setMonthFilter('All');
     setPriorityFilter('All');
     setCategoryFilter('All');
     setBarangayFilter('All');
@@ -232,6 +255,7 @@ export default function Reports() {
   const hasActiveFilters = Boolean(
     groupBy !== 'month' ||
     yearFilter !== 'All' ||
+    monthFilter !== 'All' ||
     priorityFilter !== 'All' ||
     categoryFilter !== 'All' ||
     barangayFilter !== 'All'
@@ -360,6 +384,25 @@ export default function Reports() {
               {yearOptions.map((y) => (
                 <option key={y} value={y}>
                   {y}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Month Filter */}
+          <div className={r.filterItem}>
+            <label className={r.filterLabel}>Month:</label>
+            <select
+              className={r.filterSelect}
+              value={monthFilter}
+              onChange={(e) => {
+                setMonthFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              {MONTH_OPTIONS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
                 </option>
               ))}
             </select>
