@@ -157,19 +157,6 @@ export default function Reports() {
     return Object.values(groups).sort((a, b) => (a.key < b.key ? 1 : -1));
   }, [filteredData, groupBy]);
 
-  // Grand Totals for the bottom summary row
-  const grandTotals = useMemo(() => {
-    return aggregatedRows.reduce(
-      (acc, r) => ({
-        pending: acc.pending + r.pending,
-        inProgress: acc.inProgress + r.inProgress,
-        resolved: acc.resolved + r.resolved,
-        reject: acc.reject + r.reject,
-        total: acc.total + r.total,
-      }),
-      { pending: 0, inProgress: 0, resolved: 0, reject: 0, total: 0 }
-    );
-  }, [aggregatedRows]);
 
   // Sorted concerns for detail view
   const sortedData = useMemo(() => {
@@ -218,14 +205,6 @@ export default function Reports() {
       r.resolved,
       r.reject,
       r.total,
-    ]);
-    rows.push([
-      '"TOTAL"',
-      grandTotals.pending,
-      grandTotals.inProgress,
-      grandTotals.resolved,
-      grandTotals.reject,
-      grandTotals.total,
     ]);
 
     const csvContent =
@@ -290,7 +269,7 @@ export default function Reports() {
               <strong>Generated:</strong> {new Date().toLocaleString('en-US')}
             </div>
             <div className={r.printMetaDate}>
-              <strong>Total Concerns:</strong> {grandTotals.total} records
+              <strong>Total Concerns:</strong> {filteredData.length} records
             </div>
           </div>
         </div>
@@ -306,7 +285,7 @@ export default function Reports() {
           <div>
             <h1 className={r.excelTitle}>Concerns Report</h1>
             <p className={r.excelSubtitle}>
-              {groupBy === 'month' ? 'Monthly summary results' : 'Daily breakdown results'} &middot; {grandTotals.total} total concerns
+              {groupBy === 'month' ? 'Monthly summary results' : 'Daily breakdown results'} &middot; {filteredData.length} total concerns
             </p>
           </div>
         </div>
@@ -342,41 +321,6 @@ export default function Reports() {
             <span className={r.btnIcon}>🔄</span>
             <span>Refresh</span>
           </button>
-        </div>
-      </div>
-
-      {/* ── Quick KPI Summary Ribbon ── */}
-      <div className={`${r.summaryRibbon} ${s.noPrint}`}>
-        <div className={r.ribbonCell}>
-          <span className={r.ribbonLabel}>TOTAL CONCERNS</span>
-          <span className={r.ribbonValue}>{grandTotals.total}</span>
-        </div>
-        <div className={r.ribbonDivider} />
-        <div className={r.ribbonCell}>
-          <span className={r.ribbonLabel}>🟡 PENDING</span>
-          <span className={`${r.ribbonValue} ${r.valWarning}`}>{grandTotals.pending}</span>
-        </div>
-        <div className={r.ribbonDivider} />
-        <div className={r.ribbonCell}>
-          <span className={r.ribbonLabel}>🔵 IN PROGRESS</span>
-          <span className={`${r.ribbonValue} ${r.valInfo}`}>{grandTotals.inProgress}</span>
-        </div>
-        <div className={r.ribbonDivider} />
-        <div className={r.ribbonCell}>
-          <span className={r.ribbonLabel}>🟢 RESOLVED</span>
-          <span className={`${r.ribbonValue} ${r.valSuccess}`}>{grandTotals.resolved}</span>
-        </div>
-        <div className={r.ribbonDivider} />
-        <div className={r.ribbonCell}>
-          <span className={r.ribbonLabel}>🔴 REJECT</span>
-          <span className={`${r.ribbonValue} ${r.valDanger}`}>{grandTotals.reject}</span>
-        </div>
-        <div className={r.ribbonDivider} />
-        <div className={r.ribbonCell}>
-          <span className={r.ribbonLabel}>RESOLUTION RATE</span>
-          <span className={r.ribbonValue}>
-            {grandTotals.total ? Math.round((grandTotals.resolved / grandTotals.total) * 100) : 0}%
-          </span>
         </div>
       </div>
 
@@ -629,36 +573,6 @@ export default function Reports() {
                         </React.Fragment>
                       );
                     })}
-
-                    {/* ── TOTAL ROW ── */}
-                    <tr className={r.excelFormatTotalRow}>
-                      <td style={{ fontWeight: 900, paddingLeft: 24, letterSpacing: 0.5 }}>TOTAL</td>
-                      <td style={{ textAlign: 'center', fontWeight: 800 }}>
-                        <span className={grandTotals.pending > 0 ? r.cellPending : r.cellZero}>
-                          {grandTotals.pending}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center', fontWeight: 800 }}>
-                        <span className={grandTotals.inProgress > 0 ? r.cellInProgress : r.cellZero}>
-                          {grandTotals.inProgress}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center', fontWeight: 800 }}>
-                        <span className={grandTotals.resolved > 0 ? r.cellResolved : r.cellZero}>
-                          {grandTotals.resolved}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center', fontWeight: 800 }}>
-                        <span className={grandTotals.reject > 0 ? r.cellReject : r.cellZero}>
-                          {grandTotals.reject}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span className={r.cellTotal} style={{ fontSize: 14 }}>
-                          {grandTotals.total}
-                        </span>
-                      </td>
-                    </tr>
                   </>
                 )}
               </tbody>
