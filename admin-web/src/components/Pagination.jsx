@@ -8,15 +8,19 @@ import s from '../styles/Pagination.module.css';
  * @param {number} offset Estimated height of headers, margins, and pagination (px)
  */
 export function useFitPagination(defaultItems = 10, rowHeight = 55, offset = 350) {
-  const [itemsPerPage, setItemsPerPage] = useState(defaultItems);
+  const getCount = () => {
+    if (typeof window === 'undefined') return defaultItems;
+    const availableHeight = window.innerHeight - offset;
+    return Math.max(10, Math.floor(availableHeight / rowHeight));
+  };
+
+  const [itemsPerPage, setItemsPerPage] = useState(getCount);
 
   useEffect(() => {
     const calculate = () => {
-      const availableHeight = window.innerHeight - offset;
-      const count = Math.max(10, Math.floor(availableHeight / rowHeight));
-      setItemsPerPage(count);
+      const next = getCount();
+      setItemsPerPage((prev) => (prev !== next ? next : prev));
     };
-    calculate();
     window.addEventListener('resize', calculate);
     return () => window.removeEventListener('resize', calculate);
   }, [rowHeight, offset]);

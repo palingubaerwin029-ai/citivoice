@@ -19,21 +19,41 @@ const PRIORITY_COLORS = { High: '#FF4444', Medium: '#FFB800', Low: '#00D4AA' };
 const STATUSES = ['All', 'Pending', 'In Progress', 'Resolved', 'Rejected'];
 const PRIORITIES = ['All', 'High', 'Medium', 'Low'];
 
+// In-memory cache for instant zero-lag rendering when navigating back to Concerns
+let memCache = {
+  key: '',
+  data: null,
+  total: 0,
+};
+
 export default function Concerns() {
   const [searchParams] = useSearchParams();
   const { addToast } = useToast();
-  const [concerns, setConcerns] = useState([]);
-  const [totalConcerns, setTotalConcerns] = useState(0);
-  const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('search') || '');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'All');
   const [priorityFilter, setPriorityFilter] = useState('All');
-  const [sortBy, setSortBy] = useState('newest'); // Note: For full DB sorting, we'd add this to backend. For now, we fetch sorted by newest.
+  const [sortBy, setSortBy] = useState('newest');
   const [concernPage, setConcernPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 380);
   const [lightboxImg, setLightboxImg] = useState(null);
   const [lightboxTitle, setLightboxTitle] = useState('');
   const navigate = useNavigate();
+
+  // Instant initial state from cache if available
+  const [concerns, setConcerns] = useState(() => memCache.data || []);
+  const [totalConcerns, setTotalConcerns] = useState(() => memCache.total || 0);
+  const [loading, setLoading] = useState(() => !memCache.data);
+
+  // Debounce search input by 300ms to prevent request flood on typing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setConcernPage(1);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   // Close lightbox on ESC key press
   useEffect(() => {
@@ -50,39 +70,47 @@ export default function Concerns() {
     };
   }, [lightboxImg]);
 
-  const loadData = () => {
-    // We only send status if it's not All
+  const loadData = (showSkeleton = false) => {
+    if (showSkeleton) setLoading(true);
+
     const params = {
       page: concernPage,
       limit: itemsPerPage,
-      search,
+      search: debouncedSearch,
       status: statusFilter === 'All' ? '' : statusFilter,
-      // For priority/sort we could add backend support later, keeping it lightweight
     };
 
     api
       .get('/concerns', params)
       .then((res) => {
-        setConcerns(res.data || []);
-        setTotalConcerns(res.total || 0);
+        const data = res.data || [];
+        const total = res.total || 0;
+        setConcerns(data);
+        setTotalConcerns(total);
+        memCache = {
+          key: JSON.stringify(params),
+          data,
+          total,
+        };
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    setLoading(true);
-    loadData();
+    // Only show full skeleton if we have no data at all
+    const hasData = concerns.length > 0;
+    loadData(!hasData);
 
     const onNewConcern = (newConcern) => {
       if (statusFilter !== 'All' && newConcern.status !== statusFilter) return;
-      if (search && !newConcern.title.toLowerCase().includes(search.toLowerCase())) return;
+      if (debouncedSearch && !newConcern.title.toLowerCase().includes(debouncedSearch.toLowerCase())) return;
 
       addToast(`New concern: ${newConcern.title}`);
 
       setConcerns((prev) => {
         const newList = [newConcern, ...prev];
-        return newList.slice(0, itemsPerPage); // keep pagination size
+        return newList.slice(0, itemsPerPage);
       });
       setTotalConcerns((prev) => prev + 1);
     };
@@ -98,12 +126,7 @@ export default function Concerns() {
       socket.off('new_concern', onNewConcern);
       socket.off('update_concern', onUpdateConcern);
     };
-  }, [concernPage, itemsPerPage, search, statusFilter, priorityFilter, sortBy]);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setConcernPage(1);
-  }, [search, statusFilter, priorityFilter, sortBy]);
+  }, [concernPage, itemsPerPage, debouncedSearch, statusFilter, priorityFilter, sortBy]);
 
   const totalConcernPages = Math.ceil(totalConcerns / itemsPerPage);
   
@@ -151,7 +174,14 @@ export default function Concerns() {
               </button>
             )}
           </div>
-          <select className={s.select} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <select
+            className={s.select}
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setConcernPage(1);
+            }}
+          >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
             <option value="upvotes">Most Upvoted</option>
@@ -174,7 +204,10 @@ export default function Concerns() {
                     }
                   : {}
               }
-              onClick={() => setStatusFilter(status)}
+              onClick={() => {
+                setStatusFilter(status);
+                setConcernPage(1);
+              }}
             >
               {status}
             </button>
@@ -195,7 +228,10 @@ export default function Concerns() {
                     }
                   : {}
               }
-              onClick={() => setPriorityFilter(p)}
+              onClick={() => {
+                setPriorityFilter(p);
+                setConcernPage(1);
+              }}
             >
               {p}
             </button>
@@ -277,6 +313,8 @@ export default function Concerns() {
                                 <img
                                   src={resolveImageUrl(c.image_url)}
                                   alt="Attachment"
+                                  loading="lazy"
+                                  decoding="async"
                                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                                 />
                                 <div
