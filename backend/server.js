@@ -139,7 +139,6 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use('/uploads', cors({ origin: '*' }), express.static(uploadsDir));
 
 // ─── Apply global rate limiter to all /api/ routes ───────────────────────────
-app.use('/api', speedLimiter);
 app.use('/api', globalLimiter);
 
 // ─── Routes ──────────────────────────────────────────────────────────────────

@@ -341,8 +341,8 @@ export default function Reports() {
             <span className={r.btnIcon}>🖨️</span>
             <span>Print Report</span>
           </button>
-          <button className={r.btnRefresh} onClick={fetchReports} title="Reload records">
-            <span className={r.btnIcon}>🔄</span>
+          <button className={r.btnRefresh} onClick={fetchReports} disabled={loading} title="Reload records">
+            <span className={`${r.btnIcon} ${loading ? r.spinningIcon : ''}`}>🔄</span>
             <span>Refresh</span>
           </button>
         </div>
@@ -476,9 +476,9 @@ export default function Reports() {
       {/* ── Grid Container ── */}
       <div className={r.gridContainer}>
         {loading ? (
-          <div className={r.loadingState}>
-            <span className={r.loadingSpinner}>⏳</span>
-            <span>Loading records...</span>
+          <div className={r.loadingContainer}>
+            <div className={r.loadingSpinner} />
+            <span className={r.loadingText}>Loading records...</span>
           </div>
         ) : viewMode === 'format' ? (
           /* ══════════════════════════════════════════════════════════════
@@ -572,7 +572,7 @@ export default function Reports() {
                                     >
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                         <span style={{ fontWeight: 700, color: 'var(--text-1)' }}>
-                                          #{item.id} {item.title}
+                                          {item.title}
                                         </span>
                                         <span style={{ color: 'var(--text-3)', fontSize: 11 }}>
                                           &middot; {item.category} &middot; {getPinBarangay(item)}
@@ -627,7 +627,7 @@ export default function Reports() {
             <table className={r.excelTable}>
               <thead>
                 <tr className={r.headerRow}>
-                  <th className={r.thIndex}>#</th>
+                  <th className={r.thIndex}>No.</th>
                   <th className={r.thSortable} onClick={() => setSortField('created_at')}>
                     <span>Date Reported</span>
                   </th>

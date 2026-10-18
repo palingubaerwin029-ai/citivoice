@@ -158,8 +158,13 @@ export default function MayorsOfficePortal({ user, onLogout }) {
         </div>
 
         <div className={s.headerRight}>
-          <button className={s.btnOutline} onClick={fetchConcerns} title="Refresh records">
-            🔄 Refresh
+          <button
+            className={s.btnOutline}
+            onClick={fetchConcerns}
+            disabled={loading}
+            title="Refresh records"
+          >
+            <span className={loading ? s.spinningIcon : ''}>🔄</span> Refresh
           </button>
 
           <button
@@ -241,9 +246,9 @@ export default function MayorsOfficePortal({ user, onLogout }) {
       {/* 📋 Simplified Concern Card List */}
       <div className={s.listContainer}>
         {loading ? (
-          <div className={s.emptyState}>
-            <div style={{ fontSize: 28, marginBottom: 8 }}>⚙️</div>
-            <div>Loading concerns...</div>
+          <div className={s.loadingContainer}>
+            <div className={s.loadingSpinner} />
+            <div className={s.loadingText}>Loading concerns...</div>
           </div>
         ) : filteredConcerns.length === 0 ? (
           <div className={s.emptyState}>
@@ -264,7 +269,6 @@ export default function MayorsOfficePortal({ user, onLogout }) {
               <div key={c.id} className={s.concernRow} onClick={() => openReviewModal(c)}>
                 <div className={s.concernMain}>
                   <div className={s.concernRowHeader}>
-                    <span className={s.concernId}>#{c.id}</span>
                     <span className={s.concernTitle}>{c.title}</span>
                     {isHigh && <span className={s.priorityHighTag}>High</span>}
                   </div>
@@ -380,7 +384,14 @@ export default function MayorsOfficePortal({ user, onLogout }) {
                 onClick={handleApproveAndDispatch}
                 disabled={dispatching}
               >
-                {dispatching ? 'Dispatching...' : '⚡ Sign & Dispatch'}
+                {dispatching ? (
+                  <>
+                    <span className={s.spinningIcon} style={{ marginRight: 6 }}>⏳</span>
+                    Dispatching...
+                  </>
+                ) : (
+                  '⚡ Sign & Dispatch'
+                )}
               </button>
             </div>
           </div>
