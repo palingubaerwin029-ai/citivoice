@@ -309,70 +309,21 @@ const createConcern = async (req, res) => {
         [`[AI Flag: Not a typical concern] ${validityReason || 'Photo/text does not match a municipal concern category.'} Needs admin review.`],
       );
     } else if (finalPriority === 'High') {
-      const immediateNote = `[IMMEDIATE EMERGENCY RESPONSE] This concern has been designated as a HIGH-RISK hazard. The ${department || "City Engineer's Office"} Emergency Response Team has been mobilized immediately for urgent on-site verification, hazard containment, and clearing. Motorists and citizens are advised to exercise extreme caution in the vicinity.`;
-      const emergencyApprovalNotes = `🚨 HIGH-RISK EMERGENCY DIRECTIVE: Automatically dispatched under City Emergency Protocol to ${department || "the Emergency Response Unit"} for immediate priority on-site intervention.`;
+      console.log(`[Priority] High-priority concern #${insertId} flagged. Awaiting Admin validation for urgent response bypass.`);
 
-      await updateConcernFields(
-        insertId,
-        [
-          'admin_note = ?',
-          'status = ?',
-          'is_validated = 1',
-          'validated_at = NOW()',
-          'validated_by_name = ?',
-          'approved_at = NOW()',
-          'approved_by_name = ?',
-          'approval_notes = ?',
-        ],
-        [
-          immediateNote,
-          'In Progress',
-          'System Auto-Validation (High-Risk)',
-          'Office of the City Mayor (Emergency Protocol)',
-          emergencyApprovalNotes,
-        ],
-      );
-      console.log(`[AI] High-risk concern #${insertId} automatically dispatched under City Emergency Protocol.`);
-
-      // Automatically email and notify assigned department immediately
-      setImmediate(async () => {
-        try {
-          let deptInfo = null;
-          if (department) {
-            const baseDeptName = department.split(' — ')[0].trim();
-            deptInfo = await selectDepartmentByName(baseDeptName);
-          }
-          if (!deptInfo && finalCategory) {
-            deptInfo = await selectDepartmentByCategory(finalCategory);
-          }
-
-          const newlyCreated = await selectConcernById(insertId);
-          if (newlyCreated) {
-            await notifyDepartmentOnApproval(
-              newlyCreated,
-              emergencyApprovalNotes,
-              deptInfo,
-              'Office of the City Mayor (Emergency Protocol)'
-            );
-          }
-        } catch (dispatchErr) {
-          console.error('[Notification] Error in high-risk auto-dispatch email:', dispatchErr.message);
-        }
-      });
-
-      // Notify citizen immediately
+      // Notify citizen immediately that high priority report was received and is awaiting admin validation
       setImmediate(async () => {
         try {
           if (req.user?.id) {
             await insertNotification(
               req.user.id,
-              '🚨 High-Risk Hazard: Emergency Dispatched',
-              `Your urgent report "${title}" has been immediately dispatched to ${department || 'the emergency response team'} for priority on-site action.`,
+              '⚠️ Urgent Hazard Received — Awaiting Admin Validation',
+              `Your urgent report "${title}" has been flagged as High Priority. It is currently awaiting Admin validation for immediate emergency response dispatch.`,
               insertId,
             );
           }
         } catch (notifErr) {
-          console.error('[Notification] Error creating citizen emergency dispatch notif:', notifErr.message);
+          console.error('[Notification] Error creating citizen high-priority received notif:', notifErr.message);
         }
       });
     }
@@ -468,6 +419,10 @@ const editConcern = async (req, res) => {
       fields.push('admin_note = ?');
       values.push(admin_note || null);
     }
+    if (req.body.approval_notes !== undefined) {
+      fields.push('approval_notes = ?');
+      values.push(req.body.approval_notes || null);
+    }
     if (category !== undefined) {
       fields.push('category = ?');
       values.push(category);
@@ -487,24 +442,6 @@ const editConcern = async (req, res) => {
         fields.push('department = ?');
         values.push(updatedDept);
 
-        // If newly elevated to High priority and not yet dispatched, auto-dispatch immediately
-        if (newPri === 'High' && !existingConcern.approved_at) {
-          fields.push(
-            'status = ?',
-            'is_validated = 1',
-            'validated_at = NOW()',
-            'validated_by_name = ?',
-            'approved_at = NOW()',
-            'approved_by_name = ?',
-            'approval_notes = ?'
-          );
-          values.push(
-            'In Progress',
-            'System Auto-Validation (High-Risk)',
-            'Office of the City Mayor (Emergency Protocol)',
-            `🚨 HIGH-RISK EMERGENCY DIRECTIVE: Automatically dispatched under City Emergency Protocol to ${updatedDept || 'the emergency team'} for immediate action.`
-          );
-        }
       } catch (e) {
         console.error('AI Routing Error on edit:', e);
       }
@@ -1121,6 +1058,172 @@ const forwardToMayor = async (req, res) => {
     if (!concern) return res.status(404).json({ error: 'Concern not found' });
 
     const adminName = req.user.name || 'System Administrator';
+    const isHighPriority = concern.priority === 'High';
+
+    if (isHighPriority) {
+      // ⚡ Emergency Protocol: High priority concern validated by Admin BYPASSES Mayoral approval for immediate urgent response!
+      const approverName = `${adminName} (Emergency Protocol — Bypassed Mayor Approval)`;
+      const dispatchResponse = (admin_note && !admin_note.includes('[High-Priority Hazard]'))
+        ? admin_note.trim()
+        : 'Done dispatch';
+      const approvalNotes = dispatchResponse;
+      const targetDepartment = department || concern.department;
+
+      const updateFields = [
+        'is_validated = 1',
+        'validated_at = NOW()',
+        'validated_by_name = ?',
+        'status = ?',
+        'approved_at = NOW()',
+        'approved_by_name = ?',
+        'approval_notes = ?',
+        'admin_note = ?',
+        'updated_at = NOW()'
+      ];
+      const updateValues = [
+        adminName,
+        'In Progress',
+        approverName,
+        approvalNotes,
+        dispatchResponse
+      ];
+
+      if (department) {
+        updateFields.push('department = ?');
+        updateValues.push(department);
+      }
+
+      await updateConcernFields(id, updateFields, updateValues);
+      invalidate('concerns', 'concern_detail', 'map_concerns');
+
+      // Duplicate cascade
+      try {
+        const linked = await selectLinkedConcerns(id);
+        const duplicateLinks = linked.filter(l => l.link_type === 'duplicate');
+        for (const dup of duplicateLinks) {
+          const dupFields = [
+            'updated_at = NOW()',
+            'status = ?',
+            'is_validated = 1',
+            'validated_at = NOW()',
+            'validated_by_name = ?',
+            'approved_at = NOW()',
+            'approved_by_name = ?',
+            'approval_notes = ?',
+            'admin_note = ?'
+          ];
+          const dupValues = ['In Progress', adminName, approverName, approvalNotes, dispatchResponse];
+          if (department) {
+            dupFields.push('department = ?');
+            dupValues.push(department);
+          }
+          await updateConcernFields(dup.id, dupFields, dupValues);
+        }
+      } catch (cascadeErr) {
+        console.error('[Duplicate Cascade Error on Urgent Validation]:', cascadeErr.message);
+      }
+
+      // Log audit
+      try {
+        await workflowService.logAudit(
+          'concern',
+          id,
+          'validated_and_bypassed_mayor_for_urgent_response',
+          req.user.id,
+          adminName,
+          { is_validated: concern.is_validated, status: concern.status },
+          { is_validated: 1, validated_by_name: adminName, approved_at: new Date(), approved_by_name: approverName, status: 'In Progress', department: targetDepartment }
+        );
+      } catch (auditErr) {
+        console.error('[Audit Error on forwardToMayor bypass]:', auditErr.message);
+      }
+
+      const updated = await selectConcernById(id);
+
+      // Find department details & email
+      let deptInfo = null;
+      if (updated.department) {
+        const baseDeptName = updated.department.split(' — ')[0].trim();
+        deptInfo = await selectDepartmentByName(baseDeptName);
+      }
+      if (!deptInfo && updated.category) {
+        deptInfo = await selectDepartmentByCategory(updated.category);
+      }
+
+      try {
+        await notifyDepartmentOnApproval(updated, approvalNotes, deptInfo, approverName);
+      } catch (deptErr) {
+        console.error('[Notification] Error sending urgent department email:', deptErr.message);
+      }
+
+      // Notify citizen immediately
+      if (updated.user_id) {
+        const citizenTitle = '🚨 High-Priority Concern: Validated & Dispatched';
+        const citizenMsg = `Your urgent report "${updated.title}" has been validated by Admin and immediately dispatched to ${updated.department || 'the emergency team'} for rapid intervention (bypassed Mayoral queue).`;
+        await insertNotification(updated.user_id, citizenTitle, citizenMsg, updated.id);
+        if (req.app.get('io')) {
+          req.app.get('io').to(`user:${updated.user_id}`).emit('new_notification', {
+            title: citizenTitle,
+            message: citizenMsg,
+            concern_id: updated.id,
+            concernId: updated.id,
+          });
+        }
+        notifyUser(
+          updated,
+          citizenTitle,
+          `Your urgent report "${updated.title}" has been validated by Admin and dispatched to ${updated.department || 'the emergency response team'} for immediate response.`,
+          `Urgent concern "${updated.title}" validated and dispatched immediately under emergency bypass protocol.`,
+          updated.id
+        );
+      }
+
+      // Notify Mayor's office that this high-priority concern was validated and bypassed for urgent response
+      try {
+        const pool = require('../db');
+        const [mayors] = await pool.query("SELECT id FROM users WHERE role = 'mayor'");
+        const notifTitle = '⚡ Urgent Hazard: Dispatched via Emergency Protocol';
+        const notifMsg = `High-priority concern #${updated.id} "${updated.title}" was validated by Admin ${adminName} and expedited directly to ${updated.department || 'the department'} (bypassed mayoral directive).`;
+        for (const m of mayors) {
+          await insertNotification(m.id, notifTitle, notifMsg, updated.id);
+          const io = req.app.get('io');
+          if (io) {
+            io.to(`user:${m.id}`).emit('new_notification', {
+              title: notifTitle,
+              message: notifMsg,
+              concern_id: updated.id,
+              concernId: updated.id,
+              created_at: new Date().toISOString()
+            });
+          }
+        }
+      } catch (notifErr) {
+        console.error('[Notification Error on emergency bypass]:', notifErr.message);
+      }
+
+      // Emit sockets
+      try {
+        const io = req.app.get('io');
+        if (io) {
+          io.to('admin').emit('concern_updated', updated);
+          io.to('admin').emit('concern_approved', updated);
+          io.to('mayor').emit('concern_updated', updated);
+          io.emit('concern_stats_updated', { concernId: updated.id, userId: updated.user_id });
+        }
+      } catch (e) {
+        // ignore socket error
+      }
+
+      return res.json({
+        success: true,
+        bypassedMayor: true,
+        isHighPriority: true,
+        concern: updated,
+        message: 'High-priority concern validated and expedited for urgent response (bypassed Mayoral approval).'
+      });
+    }
+
+    // ─── Standard Flow for Low / Medium Priority: Validated by Admin and Forwarded to Mayor's Desk ───
     const fields = ['is_validated = 1', 'validated_at = NOW()', 'validated_by_name = ?', 'updated_at = NOW()'];
     const values = [adminName];
 
@@ -1153,18 +1256,48 @@ const forwardToMayor = async (req, res) => {
 
     const updated = await selectConcernById(id);
 
+    // Insert executive notification for all Mayor users
+    try {
+      const pool = require('../db');
+      const [mayors] = await pool.query("SELECT id FROM users WHERE role = 'mayor'");
+      const notifTitle = 'Concern Forwarded for Mayoral Directive';
+      const notifMessage = `Concern #${updated.id} "${updated.title}" was validated by ${adminName} and forwarded for executive directive.`;
+      for (const m of mayors) {
+        await insertNotification(m.id, notifTitle, notifMessage, updated.id);
+        const io = req.app.get('io');
+        if (io) {
+          io.to(`user:${m.id}`).emit('new_notification', {
+            title: notifTitle,
+            message: notifMessage,
+            concern_id: updated.id,
+            concernId: updated.id,
+            created_at: new Date().toISOString()
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error('[Notification Error on forwardToMayor]:', notifErr.message);
+    }
+
     try {
       const io = req.app.get('io');
       if (io) {
         io.to('admin').emit('concern_updated', updated);
         io.to('mayor').emit('concern_forwarded_to_mayor', updated);
+        io.to('mayor').emit('new_notification', {
+          title: 'Concern Forwarded for Mayoral Directive',
+          message: `Concern #${updated.id} "${updated.title}" was validated by ${adminName} and forwarded for executive directive.`,
+          concern_id: updated.id,
+          concernId: updated.id,
+          created_at: new Date().toISOString()
+        });
         io.emit('concern_stats_updated', { concernId: updated.id, userId: updated.user_id });
       }
     } catch (e) {
       // ignore socket error
     }
 
-    res.json({ success: true, concern: updated });
+    res.json({ success: true, bypassedMayor: false, isHighPriority: false, concern: updated });
   } catch (err) {
     console.error('forwardToMayor error:', err);
     res.status(500).json({ error: 'Failed to forward concern to Mayor\'s Office' });

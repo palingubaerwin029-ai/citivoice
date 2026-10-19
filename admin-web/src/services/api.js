@@ -1,7 +1,18 @@
 // Central API helper for CitiVoice Admin
 // All requests automatically include the JWT token from localStorage
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+export const getApiHost = () => {
+  if (typeof window !== 'undefined' && window.location) {
+    const loc = window.location;
+    // If accessing through Docker or network IP, align backend host with current browser host
+    if (loc.hostname && loc.hostname !== 'localhost' && loc.hostname !== '127.0.0.1') {
+      return `${loc.protocol}//${loc.hostname}:5000`;
+    }
+  }
+  return (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+};
+
+const getBaseUrl = () => `${getApiHost()}/api`;
 
 const getToken = () => localStorage.getItem('cv_token');
 
@@ -13,7 +24,7 @@ const request = async (path, options = {}) => {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  const res = await fetch(`${getBaseUrl()}${path}`, { ...options, headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || 'Request failed');
@@ -51,16 +62,6 @@ export const maskEmail = (email) => {
 };
 
 // Utility: resolve image URLs — always use current API host, even if DB stored a tunnel/different host
-export const getApiHost = () => {
-  if (typeof window !== 'undefined' && window.location) {
-    const loc = window.location;
-    // If accessing through Docker or network IP, align backend host with current browser host
-    if (loc.hostname && loc.hostname !== 'localhost' && loc.hostname !== '127.0.0.1') {
-      return `${loc.protocol}//${loc.hostname}:5000`;
-    }
-  }
-  return (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
-};
 
 export const resolveImageUrl = (url) => {
   if (!url) return null;

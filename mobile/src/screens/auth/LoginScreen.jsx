@@ -184,7 +184,7 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
 }
 
 // ── Main Login Screen ──────────────────────────────────────────────────────
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { login, loginWithGoogle, logout, user } = useAuth();
   const { t, language, changeLanguage } = useLanguage();
@@ -196,8 +196,20 @@ export default function LoginScreen({ navigation }) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState(null);
+  const [successBanner, setSuccessBanner] = useState(null);
   const errorBannerAnim = useRef(new Animated.Value(0)).current;
   const googleAvailable = isGoogleSignInAvailable();
+
+  useEffect(() => {
+    if (route?.params?.registrationSuccess) {
+      if (route.params.registeredEmail) {
+        setEmail(route.params.registeredEmail);
+      }
+      setSuccessBanner(
+        'Registration submitted successfully! Your account is pending admin verification. You can log in once approved.',
+      );
+    }
+  }, [route?.params?.registrationSuccess, route?.params?.registeredEmail]);
 
   // Animate error banner in/out
   useEffect(() => {
@@ -428,6 +440,31 @@ export default function LoginScreen({ navigation }) {
                   <Ionicons name="close" size={16} color={colors.danger} />
                 </TouchableOpacity>
               </Animated.View>
+            )}
+
+            {/* Success Banner */}
+            {successBanner && (
+              <View
+                style={[
+                  S.errorBanner,
+                  {
+                    backgroundColor: colors.success + '18',
+                    borderColor: colors.success + '66',
+                    marginBottom: verticalScale(14),
+                  },
+                ]}
+              >
+                <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                <Text style={[S.errorBannerText, { color: colors.success, flex: 1 }]}>
+                  {successBanner}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setSuccessBanner(null)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close" size={16} color={colors.success} />
+                </TouchableOpacity>
+              </View>
             )}
 
             {/* Email */}

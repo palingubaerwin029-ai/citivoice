@@ -37,8 +37,7 @@ export default function App() {
 
   const [loading, setLoading] = useState(() => {
     const token = localStorage.getItem('cv_token');
-    const saved = localStorage.getItem('cv_user');
-    return !(token && saved);
+    return !!token;
   });
 
   const [theme, setTheme] = useState(localStorage.getItem('cv_theme') || 'dark');
@@ -110,7 +109,7 @@ export default function App() {
 
   if (loading) return <LoadingScreen />;
 
-  const isExecutiveUser = user && user.role === 'mayor';
+  const isExecutiveUser = user && (user.role === 'mayor' || user.role === 'admin');
   const isAdminUser = user && user.role === 'admin';
 
   return (

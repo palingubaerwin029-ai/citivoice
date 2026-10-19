@@ -9,6 +9,10 @@ const path = require('path');
 const fs = require('fs');
 const groqService = require('./groqService');
 
+// ── In-Memory Extraction Cache (Instant 0ms on repeated checks/registration) ──
+const idExtractionCache = new Map();
+const CACHE_TTL_MS = 20 * 60 * 1000; // 20 minutes
+
 // ── Name Normalization ───────────────────────────────────────────────────────
 
 /**
@@ -23,7 +27,9 @@ function normalizeName(name) {
   let n = name.toLowerCase().trim();
   // Remove common suffixes
   n = n.replace(/\b(jr\.?|sr\.?|iii|iv|ii|v)\b/gi, '');
-  // Remove special characters except letters and spaces
+  // Replace hyphens and dashes with spaces so hyphenated names match spaced tokens
+  n = n.replace(/[-–—]/g, ' ');
+  // Remove special characters except letters, accents, ñ, and spaces
   n = n.replace(/[^a-záàâãéèêíïóôõöúçñ\s]/gi, '');
   // Collapse multiple spaces
   n = n.replace(/\s+/g, ' ').trim();
@@ -88,6 +94,11 @@ function compareNames(typedName, extractedName) {
   // Exact match after normalization
   if (normTyped === normExtracted) {
     return { match: true, confidence: 100, reason: 'Exact match' };
+  }
+
+  // Exact match with enye/plain-n tolerance (in case OCR extracted 'N' instead of 'Ñ' or vice versa)
+  if (normTyped.replace(/ñ/g, 'n') === normExtracted.replace(/ñ/g, 'n')) {
+    return { match: true, confidence: 99, reason: 'Exact match (Ñ/N accent variance handled)' };
   }
 
   // Full string similarity
@@ -156,7 +167,7 @@ function compareNames(typedName, extractedName) {
 
 const EXTRACTION_PROMPT = `You are an expert OCR and identity document analyzer for Philippine government-issued IDs.
 Analyze this government ID card image carefully. Your task is to extract:
-1. "fullName": The cardholder's complete legal full name. Reorder to "FIRST NAME MIDDLE NAME LAST NAME" if formatted as "LAST NAME, FIRST NAME MIDDLE NAME". Do NOT include titles (Mr., Mrs., Hon., Dr., Engr.).
+1. "fullName": The cardholder's complete legal full name. Reorder to "FIRST NAME MIDDLE NAME LAST NAME" if formatted as "LAST NAME, FIRST NAME MIDDLE NAME". Do NOT include titles (Mr., Mrs., Hon., Dr., Engr.). Accurately preserve Philippine special characters such as 'Ñ'/'ñ' and hyphens/dashes if present.
 2. "idNumber": The official card number or identification number printed on the ID (e.g. PhilSys Card Number, Driver's License Number, SSS/UMID CRN, Passport Number, PhilHealth Number, TIN, Postal ID PRN, Voter's VIN, PRC License Number). Keep all digits, letters, and separators exactly as printed.
 3. "idType": The specific Philippine ID type detected (e.g. "PhilSys (National ID)", "Driver's License", "Philippine Passport", "SSS ID", "GSIS ID", "PhilHealth ID", "TIN ID", "Postal ID", "Voter's ID", "PRC ID", "Barangay ID", "Senior Citizen / PWD ID").
 4. "readable": true if the text can be read, false if too blurry, cropped, glare-heavy, or unreadable.
@@ -178,6 +189,18 @@ Return a JSON object with this exact structure:
  */
 async function extractIdDetailsWithGroq(imagePath) {
   try {
+    let cacheKey = imagePath;
+    try {
+      const stats = fs.statSync(imagePath);
+      cacheKey = `${imagePath}:${stats.size}:${stats.mtimeMs}`;
+    } catch (_) {}
+
+    const cached = idExtractionCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      console.log(`[ID Verify] Cache HIT for "${path.basename(imagePath)}", returning instantly (0ms).`);
+      return cached.result;
+    }
+
     if (!groqService.isAvailable()) {
       console.log('[ID Verify] Groq not available, skipping vision extraction');
       return null;
@@ -186,13 +209,16 @@ async function extractIdDetailsWithGroq(imagePath) {
     console.log('[ID Verify] Extracting ID card details via Groq Vision AI...');
     const result = await groqService.generateJSONWithImage(EXTRACTION_PROMPT, imagePath, {
       temperature: 0.1,
-      maxTokens: 384,
+      maxTokens: 220, // Compact response with only essential card fields
     });
 
     if (!result) {
       console.log('[ID Verify] Groq Vision returned empty result');
       return null;
     }
+
+    // Cache the successful extraction
+    idExtractionCache.set(cacheKey, { result, timestamp: Date.now() });
 
     console.log(
       `[ID Verify] Groq extracted -> Name: "${result.fullName}", ID#: "${result.idNumber}", Type: "${result.idType}" (confidence: ${result.confidence})`

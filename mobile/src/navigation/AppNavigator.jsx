@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ActivityIndicator, Text } from 'react-native';
+import { View, ActivityIndicator, Text, Platform } from 'react-native';
 import { NavigationContainer, DefaultTheme, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { RADIUS } from '../utils/theme';
 import { useTheme } from '../context/ThemeContext';
+import { verticalScale, rf } from '../utils/responsive';
 import NetworkBanner from '../components/NetworkBanner';
 import { navigationRef } from './navigationRef';
 
@@ -52,8 +53,11 @@ const getTabBarOptions = (colors) => ({
     backgroundColor: colors.bgCard,
     borderTopColor: colors.border,
     borderTopWidth: 1,
+    height: Platform.OS === 'ios' ? verticalScale(82) : verticalScale(62),
+    paddingBottom: Platform.OS === 'ios' ? verticalScale(22) : verticalScale(8),
+    paddingTop: verticalScale(6),
   },
-  tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginBottom: 4 },
+  tabBarLabelStyle: { fontSize: rf(11), fontWeight: '700', marginBottom: verticalScale(2) },
   tabBarActiveTintColor: colors.primary,
   tabBarInactiveTintColor: colors.textMuted,
   tabBarHideOnKeyboard: true,
@@ -112,6 +116,11 @@ function HomeStack() {
         component={TermsAndPolicyScreen} 
         options={{ headerShown: false }} 
       />
+      <Stack.Screen
+        name="MyConcerns"
+        component={MyConcernsScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 }
@@ -133,9 +142,7 @@ function CitizenTabs() {
         headerShadowVisible: false,
         tabBarIcon: ({ focused, color, size }) => {
           const icons = {
-            Home: focused ? 'home' : 'home-outline',
-            MyConcerns: focused ? 'list' : 'list-outline',
-            Map: focused ? 'map' : 'map-outline',
+            Home: focused ? 'document-text' : 'document-text-outline',
             Profile: focused ? 'person' : 'person-outline',
           };
           return <Ionicons name={icons[route.name] || 'ellipse'} size={size} color={color} />;
@@ -150,26 +157,12 @@ function CitizenTabs() {
           const shouldHide = ['ConcernDetail', 'SubmitConcern', 'Notifications'].includes(routeName);
           return {
             headerShown: false,
-            tabBarLabel: t('feed'),
+            tabBarLabel: t('myReports'),
             tabBarStyle: shouldHide
               ? { display: 'none' }
-              : {
-                  backgroundColor: colors.bgCard,
-                  borderTopColor: colors.border,
-                  borderTopWidth: 1,
-                },
+              : tabBarOptions.tabBarStyle,
           };
         }}
-      />
-      <Tab.Screen
-        name="MyConcerns"
-        component={MyConcernsScreen}
-        options={{ title: t('myReports'), tabBarLabel: t('myReports') }}
-      />
-      <Tab.Screen
-        name="Map"
-        component={MapScreen}
-        options={{ headerShown: false, tabBarLabel: t('map') }}
       />
       <Tab.Screen
         name="Profile"

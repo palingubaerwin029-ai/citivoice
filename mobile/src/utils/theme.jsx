@@ -5,24 +5,24 @@
 import { rf, moderateScale } from './responsive';
 
 export const DARK_COLORS = {
-  // Background layers
-  bgDeep: '#050D1A',
-  bgDark: '#080F1E',
-  bgCard: '#0D1829',
-  bgCardAlt: '#111F35',
-  bgElevated: '#152234',
+  // Background layers (contemporary deep slate)
+  bgDeep: '#080E18',
+  bgDark: '#0D1524',
+  bgCard: '#131F33',
+  bgCardAlt: '#192841',
+  bgElevated: '#1F314F',
 
-  // Brand
-  primary: '#EAB308',
-  primaryLight: '#FDE047',
-  primaryDark: '#CA8A04',
-  primaryGlow: 'rgba(234,179,8,0.25)',
+  // Brand (Kabankalan civic amber/gold)
+  primary: '#F59E0B',
+  primaryLight: '#FBBF24',
+  primaryDark: '#D97706',
+  primaryGlow: 'rgba(245, 158, 11, 0.22)',
 
   // Accents
   accent: '#10B981',
   accentWarm: '#F97316',
   purple: '#8B5CF6',
-  cyan: '#22D3EE',
+  cyan: '#06B6D4',
 
   // Status
   statusPending: '#F59E0B',
@@ -30,16 +30,16 @@ export const DARK_COLORS = {
   statusResolved: '#10B981',
   statusRejected: '#EF4444',
 
-  // Text
-  textPrimary: '#F1F5F9',
+  // High-contrast text
+  textPrimary: '#F8FAFC',
   textSecondary: '#94A3B8',
-  textMuted: '#475569',
-  textDisabled: '#1E3A5F',
+  textMuted: '#64748B',
+  textDisabled: '#334155',
 
-  // Structure
-  border: 'rgba(255,255,255,0.07)',
-  borderMd: 'rgba(255,255,255,0.12)',
-  divider: 'rgba(255,255,255,0.05)',
+  // Crisp structure
+  border: 'rgba(255, 255, 255, 0.08)',
+  borderMd: 'rgba(255, 255, 255, 0.15)',
+  divider: 'rgba(255, 255, 255, 0.06)',
 
   // Semantic
   danger: '#EF4444',
@@ -49,24 +49,24 @@ export const DARK_COLORS = {
 };
 
 export const LIGHT_COLORS = {
-  // Background layers
-  bgDeep: '#F1F5F9',
-  bgDark: '#F8FAFC',
+  // Background layers (crisp clean canvas)
+  bgDeep: '#F4F6F9',
+  bgDark: '#FFFFFF',
   bgCard: '#FFFFFF',
-  bgCardAlt: '#F1F5F9',
+  bgCardAlt: '#F8FAFC',
   bgElevated: '#FFFFFF',
 
   // Brand
   primary: '#D97706',
-  primaryLight: '#EAB308',
-  primaryDark: '#A16207',
-  primaryGlow: 'rgba(217,119,6,0.15)',
+  primaryLight: '#F59E0B',
+  primaryDark: '#B45309',
+  primaryGlow: 'rgba(217, 119, 6, 0.14)',
 
   // Accents
-  accent: '#10B981',
-  accentWarm: '#F97316',
+  accent: '#059669',
+  accentWarm: '#EA580C',
   purple: '#7C3AED',
-  cyan: '#06B6D4',
+  cyan: '#0891B2',
 
   // Status
   statusPending: '#D97706',
@@ -74,22 +74,22 @@ export const LIGHT_COLORS = {
   statusResolved: '#059669',
   statusRejected: '#DC2626',
 
-  // Text
+  // High-contrast text
   textPrimary: '#0F172A',
   textSecondary: '#475569',
   textMuted: '#94A3B8',
   textDisabled: '#CBD5E1',
 
-  // Structure
-  border: 'rgba(0,0,0,0.06)',
-  borderMd: 'rgba(0,0,0,0.1)',
-  divider: 'rgba(0,0,0,0.04)',
+  // Crisp structure
+  border: 'rgba(15, 23, 42, 0.08)',
+  borderMd: 'rgba(15, 23, 42, 0.14)',
+  divider: 'rgba(15, 23, 42, 0.05)',
 
   // Semantic
-  danger: '#EF4444',
-  warning: '#F59E0B',
-  success: '#10B981',
-  info: '#3B82F6',
+  danger: '#DC2626',
+  warning: '#D97706',
+  success: '#059669',
+  info: '#2563EB',
 };
 
 // Legacy support (defaults to dark)

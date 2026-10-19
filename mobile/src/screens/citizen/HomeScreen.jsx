@@ -28,7 +28,7 @@ import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive'
 
 export default function HomeScreen({ navigation }) {
   const { colors, theme } = useTheme();
-  const { concerns, cityStats, fetchStats, loading, toggleUpvote, loadFeed } = useConcerns();
+  const { concerns, myStats, fetchStats, loading, toggleUpvote, loadFeed } = useConcerns();
 
   const FILTER_COLOR = {
     all: colors.primaryLight,
@@ -41,7 +41,6 @@ export default function HomeScreen({ navigation }) {
   const { t } = useLanguage();
   const { unreadCount } = useNotifications();
 
-  const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
@@ -55,7 +54,7 @@ export default function HomeScreen({ navigation }) {
     }, [fetchStats])
   );
 
-  const firstName = user?.name?.split(' ')[0] || 'there';
+  const firstName = user && user.name ? user.name.split(' ')[0] : 'there';
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -68,13 +67,13 @@ export default function HomeScreen({ navigation }) {
 
   const stats = useMemo(
     () => ({
-      total: cityStats?.total ?? safeConcerns.length,
-      pending: cityStats?.pending ?? safeConcerns.filter((c) => c.status === 'Pending').length,
-      inProgress: cityStats?.inProgress ?? safeConcerns.filter((c) => c.status === 'In Progress').length,
-      resolved: cityStats?.resolved ?? safeConcerns.filter((c) => c.status === 'Resolved').length,
-      rejected: cityStats?.rejected ?? safeConcerns.filter((c) => c.status === 'Rejected').length,
+      total: myStats?.total ?? safeConcerns.length,
+      pending: myStats?.pending ?? safeConcerns.filter((c) => c.status === 'Pending').length,
+      inProgress: myStats?.inProgress ?? safeConcerns.filter((c) => c.status === 'In Progress').length,
+      resolved: myStats?.resolved ?? safeConcerns.filter((c) => c.status === 'Resolved').length,
+      rejected: myStats?.rejected ?? safeConcerns.filter((c) => c.status === 'Rejected').length,
     }),
-    [cityStats, safeConcerns],
+    [myStats, safeConcerns],
   );
 
   const fetchPage = async (p, isRefresh = false) => {
@@ -109,16 +108,9 @@ export default function HomeScreen({ navigation }) {
   const filtered = useMemo(
     () =>
       safeConcerns.filter((c) => {
-        const match = activeFilter === 'all' || c.status === activeFilter;
-        const q = search.toLowerCase();
-        const text =
-          !q ||
-          c.title?.toLowerCase().includes(q) ||
-          c.category?.toLowerCase().includes(q) ||
-          c.user_barangay?.toLowerCase().includes(q);
-        return match && text;
+        return activeFilter === 'all' || c.status === activeFilter;
       }),
-    [safeConcerns, activeFilter, search],
+    [safeConcerns, activeFilter],
   );
 
   const onRefresh = () => {
@@ -177,32 +169,32 @@ export default function HomeScreen({ navigation }) {
         ListHeaderComponent={
           <>
             {/* ── Top bar ── */}
-            <View style={[S.topBar, { backgroundColor: colors.bgDark }]}>
-              <View>
-                <Text
-                  style={{
-                    fontSize: rf(24),
-                    fontWeight: '800',
-                    color: colors.primary,
-                    marginBottom: verticalScale(4),
-                    letterSpacing: -0.5,
-                  }}
-                >
-                  CitiVoice
-                </Text>
+            {/* ── Top bar ── */}
+            <View style={[S.topBar, { backgroundColor: 'transparent' }]}>
+              <View style={{ flex: 1 }}>
+                <View style={S.brandRow}>
+                  <Text style={[S.brandTitle, { color: colors.primary }]}>
+                    CitiVoice
+                  </Text>
+                  <View style={[S.civicBadge, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '33' }]}>
+                    <Text style={[S.civicBadgeText, { color: colors.primary }]}>KABANKALAN</Text>
+                  </View>
+                </View>
                 <Text style={[S.greeting, { color: colors.textPrimary }]}>
                   {greeting()}, {firstName} 👋
                 </Text>
                 <Text style={[S.subGreeting, { color: colors.textMuted }]}>
-                  {t('communityFeed')}
+                  {t('myReports')} • {stats.total} {stats.total === 1 ? t('concern') : t('concerns')}
                 </Text>
               </View>
+
               <View style={S.headerActions}>
                 <TouchableOpacity
-                  style={S.bellBtn}
+                  style={[S.bellBtn, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
                   onPress={() => navigation.navigate('Notifications')}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
+                  <Ionicons name="notifications-outline" size={20} color={colors.textPrimary} />
                   {unreadCount > 0 && (
                     <View
                       style={[
@@ -218,6 +210,7 @@ export default function HomeScreen({ navigation }) {
                 <TouchableOpacity
                   style={[S.reportBtn, { backgroundColor: colors.primary }]}
                   onPress={() => navigation.navigate('SubmitConcern')}
+                  activeOpacity={0.8}
                 >
                   <Ionicons name="add" size={18} color="#fff" />
                   <Text style={S.reportBtnText}>{t('report')}</Text>
@@ -225,7 +218,7 @@ export default function HomeScreen({ navigation }) {
               </View>
             </View>
 
-            {/* ── Stats strip ── */}
+            {/* ── Metric / Status Filter Strip ── */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -238,7 +231,7 @@ export default function HomeScreen({ navigation }) {
                   label: t('all'),
                   value: stats.total,
                   icon: 'apps-outline',
-                  color: colors.primaryLight,
+                  color: colors.primary,
                 },
                 {
                   key: 'Pending',
@@ -268,54 +261,41 @@ export default function HomeScreen({ navigation }) {
                   icon: 'close-circle-outline',
                   color: colors.statusRejected,
                 },
-              ].map((s, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={[
-                    S.statItem,
-                    { backgroundColor: colors.bgCard, borderColor: colors.border },
-                    activeFilter === s.key && {
-                      borderColor: s.color,
-                      backgroundColor: s.color + '15',
-                    },
-                  ]}
-                  onPress={() => setActiveFilter(s.key)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[S.statIconBox, { backgroundColor: s.color + '22' }]}>
-                    <Ionicons name={s.icon} size={16} color={s.color} />
-                  </View>
-                  <View>
-                    <Text style={[S.statValue, { color: colors.textPrimary }]}>{s.value}</Text>
-                    <Text style={[S.statLabel, { color: colors.textSecondary }]}>{s.label}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+              ].map((s, i) => {
+                const isActive = activeFilter === s.key;
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={[
+                      S.statItem,
+                      {
+                        backgroundColor: isActive ? s.color + '15' : colors.bgCard,
+                        borderColor: isActive ? s.color : colors.border,
+                      },
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setActiveFilter(s.key);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[S.statIconBox, { backgroundColor: s.color + (isActive ? '25' : '15') }]}>
+                      <Ionicons name={s.icon} size={16} color={s.color} />
+                    </View>
+                    <View>
+                      <Text style={[S.statValue, { color: colors.textPrimary }]}>{s.value}</Text>
+                      <Text style={[S.statLabel, { color: isActive ? colors.textPrimary : colors.textSecondary }]}>
+                        {s.label}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
 
-            {/* ── Search ── */}
-            <View
-              style={[S.searchWrap, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
-            >
-              <Ionicons name="search-outline" size={17} color={colors.textMuted} />
-              <TextInput
-                style={[S.searchInput, { color: colors.textPrimary }]}
-                value={search}
-                onChangeText={setSearch}
-                placeholder={t('searchPlaceholder')}
-                placeholderTextColor={colors.textMuted}
-              />
-              {search ? (
-                <TouchableOpacity onPress={() => setSearch('')}>
-                  <Ionicons name="close-circle" size={17} color={colors.textMuted} />
-                </TouchableOpacity>
-              ) : null}
-            </View>
-
-            <Text style={[S.resultCount, { color: colors.textMuted }]}>
-              {search
-                ? `${filtered.length} ${filtered.length !== 1 ? t('concerns') : t('concern')}`
-                : activeFilter === 'all'
+            <View style={S.resultRow}>
+              <Text style={[S.resultCount, { color: colors.textSecondary }]}>
+                {activeFilter === 'all'
                   ? `${stats.total} ${stats.total !== 1 ? t('concerns') : t('concern')}`
                   : activeFilter === 'Pending'
                     ? `${stats.pending} ${stats.pending !== 1 ? t('concerns') : t('concern')}`
@@ -324,7 +304,16 @@ export default function HomeScreen({ navigation }) {
                       : activeFilter === 'Resolved'
                         ? `${stats.resolved} ${stats.resolved !== 1 ? t('concerns') : t('concern')}`
                         : `${stats.rejected} ${stats.rejected !== 1 ? t('concerns') : t('concern')}`}
-            </Text>
+              </Text>
+              {activeFilter !== 'all' && (
+                <TouchableOpacity
+                  onPress={() => setActiveFilter('all')}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Text style={[S.clearFiltersText, { color: colors.primary }]}>{t('showAll') || 'Show All'}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </>
         }
         ListEmptyComponent={
@@ -332,11 +321,19 @@ export default function HomeScreen({ navigation }) {
             renderSkeletons()
           ) : (
             <EmptyState
-              icon="📭"
+              icon={safeConcerns.length === 0 ? '📝' : '🔍'}
               title={t('noConcernsFound')}
-              subtitle={t('beFirstToReport')}
-              action={() => navigation.navigate('SubmitConcern')}
-              actionLabel={t('reportConcern')}
+              subtitle={
+                safeConcerns.length === 0
+                  ? t('beFirstToReport')
+                  : (t('tryAdjusting') || 'Try adjusting your search or filters')
+              }
+              action={
+                safeConcerns.length === 0
+                  ? () => navigation.navigate('SubmitConcern')
+                  : () => setActiveFilter('all')
+              }
+              actionLabel={safeConcerns.length === 0 ? t('reportConcern') : (t('showAll') || 'Show All')}
             />
           )
         }
@@ -344,8 +341,6 @@ export default function HomeScreen({ navigation }) {
           <ConcernCard
             concern={item}
             onPress={() => navigation.navigate('ConcernDetail', { concernId: item.id })}
-            onUpvote={() => toggleUpvote(item.id)}
-            isUpvoted={false}
           />
         )}
       />
@@ -362,22 +357,60 @@ const S = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: verticalScale(12),
-    paddingBottom: verticalScale(16),
+    paddingTop: verticalScale(10),
+    paddingBottom: verticalScale(14),
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+    marginBottom: verticalScale(4),
+  },
+  brandTitle: {
+    fontSize: rf(22),
+    fontWeight: '800',
+    letterSpacing: -0.6,
+  },
+  civicBadge: {
+    paddingHorizontal: scale(7),
+    paddingVertical: verticalScale(2),
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+  },
+  civicBadgeText: {
+    fontSize: rf(9.5),
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   greeting: {
-    fontSize: rf(18),
-    fontWeight: '800',
-    letterSpacing: -0.3,
+    fontSize: rf(16.5),
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
-  subGreeting: { fontSize: rf(12), marginTop: verticalScale(2) },
+  subGreeting: {
+    fontSize: rf(12),
+    marginTop: verticalScale(2),
+    fontWeight: '500',
+  },
 
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: scale(12) },
-  bellBtn: { position: 'relative', padding: scale(4) },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(10),
+  },
+  bellBtn: {
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(20),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    position: 'relative',
+  },
   badgeCount: {
     position: 'absolute',
     top: -scale(2),
-    right: -scale(4),
+    right: -scale(3),
     borderRadius: scale(10),
     paddingHorizontal: scale(4),
     paddingVertical: verticalScale(1),
@@ -393,23 +426,27 @@ const S = StyleSheet.create({
     alignItems: 'center',
     gap: scale(5),
     borderRadius: RADIUS.full,
-    paddingHorizontal: scale(16),
+    paddingHorizontal: scale(14),
     paddingVertical: verticalScale(9),
-    ...SHADOWS.button,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   reportBtnText: { color: '#fff', fontSize: rf(13), fontWeight: '700' },
 
-  statsScroll: { marginBottom: verticalScale(16) },
+  statsScroll: { marginBottom: verticalScale(14) },
   statsContent: { gap: scale(10), paddingRight: scale(16) },
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(12),
+    gap: scale(10),
     paddingHorizontal: scale(14),
     paddingVertical: verticalScale(10),
     borderRadius: RADIUS.lg,
     borderWidth: 1,
-    minWidth: scale(120),
+    minWidth: scale(115),
   },
   statIconBox: {
     width: scale(32),
@@ -419,38 +456,16 @@ const S = StyleSheet.create({
     justifyContent: 'center',
   },
   statValue: { fontSize: rf(16), fontWeight: '800' },
-  statLabel: { fontSize: rf(11), marginTop: -verticalScale(2) },
+  statLabel: { fontSize: rf(11), marginTop: -verticalScale(1), fontWeight: '600' },
 
-  searchWrap: {
+
+  resultRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: scale(10),
-    borderRadius: RADIUS.lg,
-    paddingHorizontal: scale(14),
-    paddingVertical: verticalScale(12),
-    borderWidth: 1,
-    marginBottom: verticalScale(12),
+    marginBottom: verticalScale(10),
+    paddingHorizontal: scale(2),
   },
-  searchInput: { flex: 1, fontSize: rf(14) },
-
-  filterScroll: { marginBottom: verticalScale(10) },
-  filterContent: { gap: scale(8) },
-  filterTab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(6),
-    paddingHorizontal: scale(12),
-    paddingVertical: verticalScale(7),
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-  },
-  filterTabText: { fontSize: rf(12), fontWeight: '600' },
-  filterBadge: {
-    borderRadius: moderateScale(10),
-    paddingHorizontal: scale(6),
-    paddingVertical: verticalScale(1),
-  },
-  filterBadgeText: { fontSize: rf(10), fontWeight: '800' },
-
-  resultCount: { fontSize: rf(12), marginBottom: verticalScale(8) },
+  resultCount: { fontSize: rf(12), fontWeight: '600' },
+  clearFiltersText: { fontSize: rf(12), fontWeight: '700' },
 });

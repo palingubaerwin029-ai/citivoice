@@ -1,17 +1,25 @@
 import Constants from 'expo-constants';
 
 const getBaseUrl = () => {
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
+  // 1. Try to dynamically detect the Metro host IP from Expo Constants so IP changes adapt automatically
   const host =
     Constants?.expoConfig?.hostUri ||
     Constants?.manifest2?.extra?.expoGo?.debuggerHost ||
     Constants?.manifest?.debuggerHost;
   if (host) {
-    return `http://${host.split(':')[0]}:5000/api`;
+    const ip = host.split(':')[0];
+    if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
+      return `http://${ip}:5000/api`;
+    }
   }
-  return 'http://10.112.173.178:5000/api'; 
+
+  // 2. Fall back to environment variable
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 3. Static fallback
+  return 'http://10.115.199.178:5000/api'; 
 };
 
 export const BASE_URL = getBaseUrl();

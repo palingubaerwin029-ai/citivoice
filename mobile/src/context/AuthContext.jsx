@@ -116,9 +116,7 @@ export function AuthProvider({ children }) {
         verificationToken,
       }),
     });
-    await AsyncStorage.setItem('cv_token', token);
-    await AsyncStorage.setItem('cv_user', JSON.stringify(userData));
-    setUser({ ...userData, _blocked: true }); // newly registered → blocked until verified
+    // Do not set token or user session — citizen must wait for admin verification and log in
     return userData;
   };
 

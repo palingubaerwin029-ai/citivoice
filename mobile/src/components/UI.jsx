@@ -40,8 +40,8 @@ export function PrimaryButton({
   };
   const SZ = {
     sm: { h: verticalScale(38), fs: rf(13) },
-    md: { h: verticalScale(50), fs: rf(15) },
-    lg: { h: verticalScale(56), fs: rf(16) },
+    md: { h: verticalScale(48), fs: rf(14.5) },
+    lg: { h: verticalScale(54), fs: rf(16) },
   };
   const v = V[variant] || V.primary,
     sz = SZ[size] || SZ.md;
@@ -50,7 +50,7 @@ export function PrimaryButton({
       style={[
         {
           height: sz.h,
-          borderRadius: RADIUS.md,
+          borderRadius: RADIUS.lg,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
@@ -72,7 +72,7 @@ export function PrimaryButton({
         <Text
           style={{
             fontSize: sz.fs,
-            fontWeight: '600',
+            fontWeight: '700',
             color: v.text,
             letterSpacing: 0.2,
           }}
@@ -293,15 +293,22 @@ const S = StyleSheet.create({
     borderWidth: 1,
   },
   empty: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: scale(40),
+    paddingHorizontal: scale(24),
+    paddingVertical: verticalScale(36),
+    borderRadius: RADIUS.lg,
+    marginTop: verticalScale(12),
   },
   emptyAction: {
-    marginTop: verticalScale(20),
-    borderRadius: RADIUS.md,
-    paddingHorizontal: scale(20),
-    paddingVertical: verticalScale(11),
+    marginTop: verticalScale(18),
+    borderRadius: RADIUS.full,
+    paddingHorizontal: scale(22),
+    paddingVertical: verticalScale(10),
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
 });

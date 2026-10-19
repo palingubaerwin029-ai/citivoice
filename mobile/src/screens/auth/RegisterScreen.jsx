@@ -198,6 +198,8 @@ export default function RegisterScreen({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [errors, setErrors] = useState({});
+  const [uploadedIdUrl, setUploadedIdUrl] = useState(null);
+  const [scannedImageUri, setScannedImageUri] = useState(null);
   const [pwFocused, setPwFocused] = useState(false);
   const strengthAnim = useRef(new Animated.Value(0)).current;
   const [availableBarangays, setAvailableBarangays] = useState([]);
@@ -322,9 +324,16 @@ export default function RegisterScreen({ navigation, route }) {
     setAiVerifying(true);
     setAiResult(null);
     try {
-      const uploadedUrl = await ConcernService.uploadImage(targetUri);
+      let targetUploadedUrl = uploadedIdUrl;
+      // If not already uploaded or image changed, upload once
+      if (!targetUploadedUrl || scannedImageUri !== targetUri) {
+        targetUploadedUrl = await ConcernService.uploadImage(targetUri);
+        setUploadedIdUrl(targetUploadedUrl);
+        setScannedImageUri(targetUri);
+      }
+
       const res = await ConcernService.verifyIdName(
-        uploadedUrl,
+        targetUploadedUrl,
         (currentName || '').trim(),
         (currentIdNumber || '').trim(),
         (currentIdType || '').trim()
@@ -369,7 +378,7 @@ export default function RegisterScreen({ navigation, route }) {
           return next;
         });
       }
-      return { uploadedUrl, res };
+      return { uploadedUrl: targetUploadedUrl, res };
     } catch (err) {
       console.log('AI verification error:', err);
       setAiVerifying(false);
@@ -381,6 +390,8 @@ export default function RegisterScreen({ navigation, route }) {
     const uri = await launchImagePicker();
     if (uri) {
       set('idImage', uri);
+      setUploadedIdUrl(null);
+      setScannedImageUri(null);
       scanIdAI(uri);
     }
   };
@@ -389,6 +400,8 @@ export default function RegisterScreen({ navigation, route }) {
     const uri = await launchCamera();
     if (uri) {
       set('idImage', uri);
+      setUploadedIdUrl(null);
+      setScannedImageUri(null);
       scanIdAI(uri);
     }
   };
@@ -442,13 +455,13 @@ export default function RegisterScreen({ navigation, route }) {
   const validate = () => {
     setError(null);
     const e = {};
-    const nameRegex = /^[a-zA-Z\s\-\.']+$/;
+    const nameRegex = /^[a-zA-ZñÑ\u00C0-\u024F\s\-\.']+$/;
     if (!form.name.trim()) {
       e.name = t('required');
-    } else if (form.name.trim().split(/\s+/).length < 2) {
+    } else if (form.name.trim().split(/[\s-]+/).filter(Boolean).length < 2) {
       e.name = 'Please enter your full name (First and Last name)';
     } else if (!nameRegex.test(form.name)) {
-      e.name = 'Name can only contain letters, spaces, hyphens, periods, and apostrophes';
+      e.name = 'Name can only contain letters (including Ñ/ñ), spaces, hyphens (-), periods, and apostrophes';
     }
     if (!form.email.trim()) e.email = t('required');
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = t('invalidEmail');
@@ -482,16 +495,23 @@ export default function RegisterScreen({ navigation, route }) {
     }
     setLoading(true);
     try {
-      const idImageUrl = await ConcernService.uploadImage(form.idImage);
+      let idImageUrl = uploadedIdUrl;
+      let verifyRes = aiResult;
 
-      // Verify ID name & ID number with AI
-      const verifyRes = await ConcernService.verifyIdName(
-        idImageUrl,
-        form.name.trim(),
-        form.idNumber.trim(),
-        form.idType.trim()
-      );
-      setAiResult(verifyRes);
+      // Only perform upload & AI scan if not already uploaded or if photo changed
+      if (!idImageUrl || scannedImageUri !== form.idImage) {
+        idImageUrl = await ConcernService.uploadImage(form.idImage);
+        setUploadedIdUrl(idImageUrl);
+        setScannedImageUri(form.idImage);
+
+        verifyRes = await ConcernService.verifyIdName(
+          idImageUrl,
+          form.name.trim(),
+          form.idNumber.trim(),
+          form.idType.trim()
+        );
+        setAiResult(verifyRes);
+      }
 
       if (verifyRes) {
         if (!verifyRes.nameMatch && verifyRes.extractedName) {
@@ -507,7 +527,10 @@ export default function RegisterScreen({ navigation, route }) {
       }
 
       await register({ ...form, idImageUrl, verificationToken });
-      navigation.navigate('VerifyIdentity');
+      navigation.navigate('Login', {
+        registrationSuccess: true,
+        registeredEmail: form.email.trim(),
+      });
     } catch (err) {
       const map = {
         'auth/email-already-in-use': 'This email is already registered.',
@@ -634,15 +657,53 @@ export default function RegisterScreen({ navigation, route }) {
 
           {/* Form */}
           <View style={[S.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
-            <InputField
-              label={`${t('fullName').toUpperCase()} (AS ON ID)`}
-              value={form.name}
-              onChangeText={(v) => set('name', v)}
-              placeholder={t('namePlaceholder') || 'Example: Juan M. Dela Cruz'}
-              autoCapitalize="words"
-              leftIcon="person-outline"
-              error={errors.name}
-            />
+            <View style={{ marginBottom: verticalScale(14) }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: verticalScale(6),
+                }}
+              >
+                <Text style={[S.fieldLabel, { color: colors.textSecondary, marginBottom: 0 }]}>
+                  {`${t('fullName').toUpperCase()} (AS ON ID)`} *
+                </Text>
+                <View style={{ flexDirection: 'row', gap: scale(6), alignItems: 'center' }}>
+                  <Text style={{ fontSize: rf(11), color: colors.textMuted }}>Insert:</Text>
+                  <TouchableOpacity
+                    style={[S.quickCharBtn, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}
+                    onPress={() => set('name', (form.name || '') + 'Ñ')}
+                    accessibilityLabel="Insert uppercase enye"
+                  >
+                    <Text style={[S.quickCharText, { color: colors.primary }]}>Ñ</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[S.quickCharBtn, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}
+                    onPress={() => set('name', (form.name || '') + 'ñ')}
+                    accessibilityLabel="Insert lowercase enye"
+                  >
+                    <Text style={[S.quickCharText, { color: colors.primary }]}>ñ</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[S.quickCharBtn, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}
+                    onPress={() => set('name', (form.name || '') + '-')}
+                    accessibilityLabel="Insert dash"
+                  >
+                    <Text style={[S.quickCharText, { color: colors.primary }]}>-</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <InputField
+                value={form.name}
+                onChangeText={(v) => set('name', v)}
+                placeholder={t('namePlaceholder') || 'Example: Juan M. Dela-Cruz'}
+                autoCapitalize="words"
+                leftIcon="person-outline"
+                error={errors.name}
+                style={{ marginBottom: 0 }}
+              />
+            </View>
 
             {/* Email Field with Inline Verification Action */}
             <View style={{ marginBottom: verticalScale(16) }}>
@@ -1512,6 +1573,19 @@ const S = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.8,
     marginBottom: verticalScale(8),
+  },
+  quickCharBtn: {
+    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(2),
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: scale(26),
+  },
+  quickCharText: {
+    fontSize: rf(12),
+    fontWeight: '700',
   },
 
   inputWrap: {

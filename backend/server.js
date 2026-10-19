@@ -198,7 +198,7 @@ const shutdown = (signal) => {
   server.close(async () => {
     try {
       await pool.end();
-    } catch (_) {}
+    } catch (_) { }
     process.exit(0);
   });
   // Force exit if connections refuse to close

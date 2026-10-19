@@ -56,7 +56,7 @@ export function ConcernProvider({ children }) {
     if (!user?.id) return null;
     if (page === 1 && refresh) setLoading(true);
     try {
-      const res = await ConcernService.getConcerns({ page, limit });
+      const res = await ConcernService.getUserConcerns(user.id, { page, limit });
       if (res && res.data) {
         let finalData = res.data;
         if (page === 1 && refresh) {

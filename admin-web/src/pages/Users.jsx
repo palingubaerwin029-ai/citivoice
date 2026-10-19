@@ -147,40 +147,6 @@ export default function Users() {
   const totalPages = Math.ceil(totalUsers / itemsPerPage);
   const displayedUsers = users;
 
-  const exportToCSV = async () => {
-    try {
-      const res = await api.get('/users', { limit: 10000 });
-      const exportData = res.data || [];
-      if (exportData.length === 0) return alert("No users to export");
-
-      const headers = ['User ID', 'Name', 'Email', 'Phone', 'Barangay', 'Verification Status', 'Reports', 'Resolved', 'Joined Date'];
-      const rows = exportData.map(u => [
-        u.id,
-        `"${u.name || ''}"`,
-        `"${u.email || ''}"`,
-        `"${u.phone || ''}"`,
-        `"${u.barangay || ''}"`,
-        `"${u.verification_status || 'unverified'}"`,
-        u.reports_count || 0,
-        u.resolved_count || 0,
-        `"${fmtDateShort(u.created_at)}"`
-      ]);
-      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
-
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `citivoice_citizens_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error("Export failed:", error);
-      alert("Failed to export users.");
-    }
-  };
-
   return (
     <div className={s.page}>
       <div className={s.pageHeader}>
@@ -247,9 +213,6 @@ export default function Users() {
               </option>
             ))}
           </select>
-          <button className={`${s.btn} ${s.btnPrimary}`} onClick={exportToCSV} style={{ padding: '0 16px', height: 38 }}>
-            📥 Export CSV
-          </button>
         </div>
       </div>
 
@@ -497,9 +460,9 @@ export default function Users() {
                     <div style={{ marginBottom: 16 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                         <div className={u.recentTitle} style={{ fontSize: 10, margin: 0 }}>Submitted Document</div>
-                        <a 
-                          href={resolveImageUrl(selected.id_image_url)} 
-                          target="_blank" 
+                        <a
+                          href={resolveImageUrl(selected.id_image_url)}
+                          target="_blank"
                           rel="noreferrer"
                           style={{ fontSize: 11, color: 'var(--blue-light)', textDecoration: 'none' }}
                           onClick={(e) => e.stopPropagation()}
@@ -508,18 +471,18 @@ export default function Users() {
                         </a>
                       </div>
                       {!idImgError ? (
-                        <div 
-                          className={u.idImageWrap} 
+                        <div
+                          className={u.idImageWrap}
                           style={{ position: 'relative', borderRadius: 'var(--r-md)', overflow: 'hidden', cursor: 'zoom-in', background: 'var(--surface-2)', minHeight: 80 }}
                           onClick={() => setLightboxImg(resolveImageUrl(selected.id_image_url))}
                         >
-                          <img 
-                            src={resolveImageUrl(selected.id_image_url)} 
-                            alt="ID Preview" 
+                          <img
+                            src={resolveImageUrl(selected.id_image_url)}
+                            alt="ID Preview"
                             style={{ width: '100%', maxHeight: 180, objectFit: 'contain', display: 'block', background: '#000' }}
                             onError={() => setIdImgError(true)}
                           />
-                          <div 
+                          <div
                             style={{
                               position: 'absolute',
                               inset: 0,
@@ -541,9 +504,9 @@ export default function Users() {
                       ) : (
                         <div style={{ padding: '12px', background: 'rgba(239,68,68,0.08)', border: '1px dashed rgba(239,68,68,0.3)', borderRadius: 'var(--r-md)', textAlign: 'center' }}>
                           <p style={{ margin: '0 0 6px 0', fontSize: 12, color: '#EF4444' }}>Preview failed to load</p>
-                          <a 
-                            href={resolveImageUrl(selected.id_image_url)} 
-                            target="_blank" 
+                          <a
+                            href={resolveImageUrl(selected.id_image_url)}
+                            target="_blank"
                             rel="noreferrer"
                             className={`${s.btn} ${s.btnSm}`}
                             style={{ fontSize: 11, display: 'inline-block' }}
@@ -612,7 +575,7 @@ export default function Users() {
 
       {/* Lightbox Modal */}
       {lightboxImg && (
-        <div 
+        <div
           style={{
             position: 'fixed',
             top: 0,
@@ -628,18 +591,18 @@ export default function Users() {
           }}
           onClick={() => setLightboxImg(null)}
         >
-          <img 
-            src={lightboxImg} 
-            alt="Enlarged ID Document" 
-            style={{ 
-              maxWidth: '90%', 
-              maxHeight: '90%', 
+          <img
+            src={lightboxImg}
+            alt="Enlarged ID Document"
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
               objectFit: 'contain',
               borderRadius: 'var(--r-md)',
               boxShadow: 'var(--shadow-lg)'
-            }} 
+            }}
           />
-          <button 
+          <button
             style={{
               position: 'absolute',
               top: 20,
@@ -718,7 +681,7 @@ export default function Users() {
             </div>
 
             <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, margin: '0 0 20px' }}>
-              Are you sure you want to delete <strong>{userToDelete.name}</strong> ({userToDelete.email})? 
+              Are you sure you want to delete <strong>{userToDelete.name}</strong> ({userToDelete.email})?
               Their account, ID records, and preferences will be permanently removed.
             </p>
 

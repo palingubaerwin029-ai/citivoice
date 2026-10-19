@@ -29,7 +29,7 @@ import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive'
 export default function ConcernDetailScreen({ route, navigation }) {
   const { colors } = useTheme();
   const { concernId } = route?.params || {};
-  const { concerns, toggleUpvote, deleteConcern } = useConcerns();
+  const { concerns, deleteConcern } = useConcerns();
   const { user } = useAuth();
   const { t } = useLanguage();
 
@@ -45,7 +45,6 @@ export default function ConcernDetailScreen({ route, navigation }) {
   const concern = contextConcern || fetchedConcern;
   const isOwner = concern?.user_id === user?.id;
   const canDelete = isOwner && concern?.status === 'Pending';
-  const isUpvoted = false;
   const [modalImageUri, setModalImageUri] = useState(null);
 
   // Workflow state
@@ -126,11 +125,6 @@ export default function ConcernDetailScreen({ route, navigation }) {
     ]);
   };
 
-  const handleUpvote = async () => {
-    try {
-      await toggleUpvote(concernId);
-    } catch {}
-  };
 
   const timelineSteps = concern ? buildTimeline(concern, t) : [];
   const anim = useRef(new Animated.Value(0)).current;
@@ -325,32 +319,12 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
           <Text style={[styles.title, { color: colors.textPrimary }]}>{concern.title}</Text>
 
-          {/* Meta */}
-          <View style={styles.metaGrid}>
-            <MetaItem
-              icon="person-outline"
-              label={t('submittedBy')}
-              value={concern.user_name || 'Anonymous Citizen'}
-              colors={colors}
-            />
-            <MetaItem
-              icon="location-outline"
-              label={t('barangay')}
-              value={concern.user_barangay || 'Location Protected'}
-              colors={colors}
-            />
-            <MetaItem
-              icon="calendar-outline"
-              label={t('dateFiled')}
-              value={fmt(concern.created_at)}
-              colors={colors}
-            />
-            <MetaItem
-              icon="thumbs-up-outline"
-              label={t('communityUpvotes')}
-              value={`${concern.upvotes || 0} votes`}
-              colors={colors}
-            />
+          {/* Date Filed */}
+          <View style={[styles.dateRow, { marginBottom: verticalScale(16) }]}>
+            <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+            <Text style={{ fontSize: rf(12), color: colors.textMuted, marginLeft: scale(6), fontWeight: '500' }}>
+              {t('dateFiled')}: {fmt(concern.created_at)}
+            </Text>
           </View>
 
           {/* Description */}
@@ -428,7 +402,9 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
 
           {/* Official Response */}
-          {concern.admin_note && (
+          {concern.admin_note &&
+            !concern.admin_note.includes('[High-Priority Hazard]') &&
+            !concern.admin_note.includes('[AI Flag:') && (
             <View
               style={[
                 styles.section,
@@ -553,30 +529,6 @@ export default function ConcernDetailScreen({ route, navigation }) {
             })}
           </View>
 
-          {/* Upvote Button */}
-          <TouchableOpacity
-            style={[
-              styles.upvoteBtn,
-              { borderColor: colors.border },
-              isUpvoted && { borderColor: colors.primary, backgroundColor: colors.primary + '11' },
-            ]}
-            onPress={handleUpvote}
-          >
-            <Ionicons
-              name={isUpvoted ? 'thumbs-up' : 'thumbs-up-outline'}
-              size={20}
-              color={isUpvoted ? colors.primary : colors.textMuted}
-            />
-            <Text
-              style={[
-                styles.upvoteBtnText,
-                { color: colors.textMuted },
-                isUpvoted && { color: colors.primary },
-              ]}
-            >
-              {isUpvoted ? t('youUpvoted') : t('upvoteThis')} · {concern.upvotes || 0}
-            </Text>
-          </TouchableOpacity>
 
           {/* Public Comments */}
           <View style={[styles.section, { marginTop: verticalScale(20) }]}>
@@ -772,8 +724,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: rf(22),
     fontWeight: '800',
-    marginBottom: verticalScale(16),
+    marginBottom: verticalScale(12),
     lineHeight: rf(30),
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 
   metaGrid: {
@@ -858,17 +814,6 @@ const styles = StyleSheet.create({
   timelineEvent: { fontSize: rf(13), fontWeight: '600' },
   timelineDate: { fontSize: rf(11), marginTop: verticalScale(3) },
 
-  upvoteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: scale(8),
-    borderWidth: 1,
-    borderRadius: moderateScale(14),
-    padding: scale(14),
-  },
-  upvoteBtnActive: {},
-  upvoteBtnText: { fontSize: rf(15), fontWeight: '700' },
 
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFoundText: { fontSize: rf(16), marginTop: verticalScale(12) },

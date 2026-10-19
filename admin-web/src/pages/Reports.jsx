@@ -217,30 +217,6 @@ export default function Reports() {
     return list;
   }, [filteredData, sortField, sortOrder]);
 
-  // Export CSV matching user's exact format: Date, Pending, In Progress, Resolved, Reject, Total
-  const exportToCSV = () => {
-    const headers = ['Date', 'Pending', 'In Progress', 'Resolved', 'Reject', 'Total'];
-    const rows = aggregatedRows.map((r) => [
-      `"${r.label}"`,
-      r.pending,
-      r.inProgress,
-      r.resolved,
-      r.reject,
-      r.total,
-    ]);
-
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `citivoice-concerns-report-${groupBy}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const resetFilters = () => {
     setGroupBy('month');
     setYearFilter('All');
@@ -333,10 +309,6 @@ export default function Reports() {
             </button>
           </div>
 
-          <button className={r.btnExport} onClick={exportToCSV} title="Download CSV in exact table format">
-            <span className={r.btnIcon}>📥</span>
-            <span>Export CSV</span>
-          </button>
           <button className={r.btnPrint} onClick={() => window.print()} title="Print or Save as PDF">
             <span className={r.btnIcon}>🖨️</span>
             <span>Print Report</span>
