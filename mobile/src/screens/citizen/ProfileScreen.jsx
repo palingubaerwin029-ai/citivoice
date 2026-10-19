@@ -27,6 +27,7 @@ import { RADIUS, SHADOWS, STATUS_CONFIG } from '../../utils/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 import { LANGUAGES } from '../../i18n/translations';
+import { CustomAlertModal } from '../../components/UI';
 
 const DEFAULT_BARANGAYS = [
   'Bantayan', 'Barangay 1', 'Barangay 2', 'Barangay 3', 'Barangay 4',
@@ -54,6 +55,43 @@ export default function ProfileScreen({ navigation }) {
   const [showBarangayPicker, setShowBarangayPicker] = useState(false);
   const [barangaySearch, setBarangaySearch] = useState('');
   const [availableBarangays, setAvailableBarangays] = useState(DEFAULT_BARANGAYS);
+
+  // Custom alert modal state
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    type: 'success',
+    title: '',
+    message: '',
+    primaryLabel: 'OK',
+    onPrimaryPress: null,
+    secondaryLabel: null,
+    onSecondaryPress: null,
+  });
+
+  const showAlert = ({
+    type = 'success',
+    title,
+    message = '',
+    primaryLabel,
+    onPrimaryPress = null,
+    secondaryLabel = null,
+    onSecondaryPress = null,
+  }) => {
+    setAlertConfig({
+      visible: true,
+      type,
+      title: title || (type === 'success' ? t('success') || 'Success' : t('error') || 'Error'),
+      message,
+      primaryLabel: primaryLabel || t('ok') || 'OK',
+      onPrimaryPress: onPrimaryPress || (() => setAlertConfig((prev) => ({ ...prev, visible: false }))),
+      secondaryLabel,
+      onSecondaryPress: onSecondaryPress || (() => setAlertConfig((prev) => ({ ...prev, visible: false }))),
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -97,10 +135,11 @@ export default function ProfileScreen({ navigation }) {
     if (cleanPhone) {
       const phoneRegex = /^(\+?\d{10,15}|09\d{9})$/;
       if (!phoneRegex.test(cleanPhone)) {
-        Alert.alert(
-          t('error') || 'Error',
-          t('phoneHelper') || 'Please enter a valid Philippine mobile number (e.g. 09123456789 or +639123456789)'
-        );
+        showAlert({
+          type: 'error',
+          title: t('error') || 'Invalid Number',
+          message: t('phoneHelper') || 'Please enter a valid Philippine mobile number (e.g. 09123456789 or +639123456789)',
+        });
         return;
       }
     }
@@ -115,10 +154,19 @@ export default function ProfileScreen({ navigation }) {
       const updatedUser = await mobileApi.put(`/users/${user.id}`, payload);
       await updateUserLocal(updatedUser);
       setIsEditingProfile(false);
-      Alert.alert('Success', t('profileUpdated') || 'Profile updated successfully!');
+      showAlert({
+        type: 'success',
+        title: t('success') || 'Profile Updated',
+        message: t('profileUpdated') || 'Profile updated successfully!',
+        primaryLabel: t('ok') || 'OK',
+      });
     } catch (err) {
       console.error('Error updating profile:', err);
-      Alert.alert(t('error') || 'Error', err.message || 'Failed to update profile');
+      showAlert({
+        type: 'error',
+        title: t('error') || 'Update Failed',
+        message: err.message || 'Failed to update profile',
+      });
     } finally {
       setSavingProfile(false);
     }
@@ -143,7 +191,11 @@ export default function ProfileScreen({ navigation }) {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(t('error') || 'Error', 'Permission to access gallery is required.');
+        showAlert({
+          type: 'warning',
+          title: t('error') || 'Permission Required',
+          message: 'Permission to access gallery is required.',
+        });
         return;
       }
 
@@ -159,7 +211,11 @@ export default function ProfileScreen({ navigation }) {
       }
     } catch (err) {
       console.error('Image picker error:', err);
-      Alert.alert(t('error') || 'Error', 'Failed to pick image');
+      showAlert({
+        type: 'error',
+        title: t('error') || 'Error',
+        message: 'Failed to pick image',
+      });
     }
   };
 
@@ -186,9 +242,18 @@ export default function ProfileScreen({ navigation }) {
       if (uploadResult.status >= 400) throw new Error(data.error || 'Failed to upload avatar');
 
       await updateUserLocal(data);
+      showAlert({
+        type: 'success',
+        title: t('success') || 'Avatar Updated',
+        message: 'Your profile picture has been updated.',
+      });
     } catch (err) {
       console.error('Avatar upload error:', err);
-      Alert.alert(t('error') || 'Error', err.message);
+      showAlert({
+        type: 'error',
+        title: t('error') || 'Upload Failed',
+        message: err.message,
+      });
     } finally {
       setUploadingAvatar(false);
     }
@@ -206,10 +271,18 @@ export default function ProfileScreen({ navigation }) {
     { year: 'numeric', month: 'long' },
   );
   const handleLogout = () =>
-    Alert.alert(t('signOut'), t('signOutConfirm'), [
-      { text: t('cancel'), style: 'cancel' },
-      { text: t('signOut'), style: 'destructive', onPress: logout },
-    ]);
+    showAlert({
+      type: 'warning',
+      title: t('signOut') || 'Sign Out',
+      message: t('signOutConfirm') || 'Are you sure you want to sign out?',
+      primaryLabel: t('signOut') || 'Sign Out',
+      onPrimaryPress: () => {
+        hideAlert();
+        logout();
+      },
+      secondaryLabel: t('cancel') || 'Cancel',
+      onSecondaryPress: hideAlert,
+    });
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgDark }} edges={['top']}>
       <ScrollView
@@ -1310,6 +1383,19 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* Styled Custom Alert Modal */}
+      <CustomAlertModal
+        visible={alertConfig.visible}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        primaryLabel={alertConfig.primaryLabel}
+        onPrimaryPress={alertConfig.onPrimaryPress}
+        secondaryLabel={alertConfig.secondaryLabel}
+        onSecondaryPress={alertConfig.onSecondaryPress}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 }

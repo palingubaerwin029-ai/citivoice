@@ -7,7 +7,9 @@ import {
   TextInput,
   ActivityIndicator,
   StyleSheet,
+  Modal,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { RADIUS, SHADOWS, getStatusConfig, getCategoryConfig } from '../utils/theme';
 import { useTheme } from '../context/ThemeContext';
@@ -254,6 +256,234 @@ export function SectionHeader({ title, right }) {
       </Text>
       {right}
     </View>
+  );
+}
+
+export function CustomAlertModal({
+  visible,
+  type = 'success', // 'success' | 'error' | 'warning' | 'info'
+  title,
+  message,
+  primaryLabel = 'OK',
+  onPrimaryPress,
+  secondaryLabel,
+  onSecondaryPress,
+  onClose,
+}) {
+  const { colors } = useTheme();
+
+  if (!visible) return null;
+
+  const TYPE_CONFIG = {
+    success: {
+      gradient: ['#10B981', '#059669'],
+      ringBg: 'rgba(16, 185, 129, 0.15)',
+      ringBorder: 'rgba(16, 185, 129, 0.3)',
+      icon: 'checkmark-sharp',
+      defaultTitle: 'Success',
+    },
+    error: {
+      gradient: ['#EF4444', '#DC2626'],
+      ringBg: 'rgba(239, 68, 68, 0.15)',
+      ringBorder: 'rgba(239, 68, 68, 0.3)',
+      icon: 'close-sharp',
+      defaultTitle: 'Error',
+    },
+    warning: {
+      gradient: ['#F59E0B', '#D97706'],
+      ringBg: 'rgba(245, 158, 11, 0.15)',
+      ringBorder: 'rgba(245, 158, 11, 0.3)',
+      icon: 'warning-outline',
+      defaultTitle: 'Notice',
+    },
+    info: {
+      gradient: [colors.primary, colors.purple || '#8B5CF6'],
+      ringBg: colors.primary + '1F',
+      ringBorder: colors.primary + '3D',
+      icon: 'information-sharp',
+      defaultTitle: 'Information',
+    },
+  };
+
+  const cfg = TYPE_CONFIG[type] || TYPE_CONFIG.info;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose || onPrimaryPress}
+    >
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: 'rgba(5, 10, 20, 0.78)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: scale(24),
+        }}
+      >
+        <View
+          style={{
+            width: '100%',
+            maxWidth: scale(340),
+            backgroundColor: colors.bgCard,
+            borderRadius: RADIUS.xl,
+            borderWidth: 1,
+            borderColor: colors.border,
+            paddingHorizontal: scale(22),
+            paddingTop: verticalScale(26),
+            paddingBottom: verticalScale(22),
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.5,
+            shadowRadius: 24,
+            elevation: 16,
+          }}
+        >
+          {/* Glowing concentric icon badge */}
+          <View
+            style={{
+              width: scale(64),
+              height: scale(64),
+              borderRadius: scale(32),
+              backgroundColor: cfg.ringBg,
+              borderWidth: 1,
+              borderColor: cfg.ringBorder,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: verticalScale(14),
+            }}
+          >
+            <LinearGradient
+              colors={cfg.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                width: scale(46),
+                height: scale(46),
+                borderRadius: scale(23),
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: cfg.gradient[0],
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.35,
+                shadowRadius: 8,
+                elevation: 4,
+              }}
+            >
+              <Ionicons name={cfg.icon} size={24} color="#FFFFFF" />
+            </LinearGradient>
+          </View>
+
+          {/* Title */}
+          <Text
+            style={{
+              color: colors.textPrimary,
+              fontSize: rf(18),
+              fontWeight: '800',
+              textAlign: 'center',
+              letterSpacing: -0.3,
+            }}
+          >
+            {title || cfg.defaultTitle}
+          </Text>
+
+          {/* Message */}
+          {message ? (
+            <Text
+              style={{
+                color: colors.textSecondary,
+                fontSize: rf(13.5),
+                fontWeight: '500',
+                textAlign: 'center',
+                marginTop: verticalScale(8),
+                lineHeight: rf(20),
+                paddingHorizontal: scale(4),
+              }}
+            >
+              {message}
+            </Text>
+          ) : null}
+
+          {/* Action Button(s) */}
+          <View
+            style={{
+              width: '100%',
+              flexDirection: 'row',
+              gap: scale(10),
+              marginTop: verticalScale(22),
+            }}
+          >
+            {secondaryLabel && (
+              <TouchableOpacity
+                onPress={onSecondaryPress || onClose}
+                activeOpacity={0.75}
+                style={{
+                  flex: 1,
+                  height: verticalScale(44),
+                  borderRadius: RADIUS.lg,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: colors.bgCardAlt,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: rf(14),
+                    fontWeight: '700',
+                  }}
+                >
+                  {secondaryLabel}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              onPress={onPrimaryPress || onClose}
+              activeOpacity={0.82}
+              style={{
+                flex: secondaryLabel ? 1.3 : 1,
+                borderRadius: RADIUS.lg,
+                overflow: 'hidden',
+                shadowColor: cfg.gradient[0],
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.25,
+                shadowRadius: 6,
+                elevation: 3,
+              }}
+            >
+              <LinearGradient
+                colors={cfg.gradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  height: verticalScale(44),
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingHorizontal: scale(16),
+                }}
+              >
+                <Text
+                  style={{
+                    color: '#FFFFFF',
+                    fontSize: rf(14.5),
+                    fontWeight: '700',
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  {primaryLabel}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
