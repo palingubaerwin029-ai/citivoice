@@ -82,7 +82,7 @@ citivoice/
 │   Citizen Mobile App (Expo 57)  │        │   Admin Web Dashboard (React 19) │
 │  • Pinned GPS Incident Reports  │        │  • GIS Map & Incident Dispatch   │
 │  • Email OTP Verification       │        │  • 2-Page Executive Reports      │
-│  • Community Feed & Profile     │        │  • Barangay & User Management    │
+│  • My Concerns & Profile        │        │  • Barangay & User Management    │
 │  • Real-Time Push Alerts        │        │  • Live WebSocket Dashboards     │
 └────────────────┬────────────────┘        └─────────────────┬────────────────┘
                  │                                           │
@@ -123,12 +123,12 @@ citivoice/
   - Open (`Pending` / `In Progress`) for **> 3 days**: Escalated from `Low` to `Medium`.
   - Open for **> 7 days**: Escalated from `Medium` to `High`.
 - **Safety Safeguards** — Priority is strictly upgraded and never downgraded by automated jobs; flagged non-typical concerns are safely excluded.
-- **Upvotes (legacy)** — Upvote buttons and counts have been **removed from the mobile app and the admin web dashboard**. The `POST /api/concerns/:id/upvote` endpoint and the `upvotes >= 10 / 20` rules in `priorityService.js` remain in the backend for historical data but are no longer reachable from the UI.
+- **Direct & Focused Citizen Workflow** — Community feeds and upvote metrics have been completely removed across the system to maintain focus on direct citizen-to-government reporting, verified status tracking, and department accountability.
 
 ### 📄 Executive 2-Page Municipal Print Reports
 - **Strict 2-Page Layout Guarantee** — Uses CSS `@media print` rules (`@page { size: A4 portrait; margin: 8mm 10mm; }`) and explicit page-break boundaries to format official municipal analytics onto **exactly 2 pages** without spillover:
   - **Page 1: Executive Overview & Trends** — Official Republic of the Philippines / City Government of Kabankalan header, 5 KPI metric cards, monthly submission & resolution trend table, status distribution, and priority breakdown.
-  - **Page 2: Geographic Analysis & Community Priorities** — Section running header, ranked barangay concerns table, top upvoted citizen concerns, resolution rate breakdown, and formal certification sign-off block (*Prepared by System Admin, Verified by Public Information Office, Noted by City Mayor*).
+  - **Page 2: Geographic Analysis & Community Priorities** — Section running header, ranked barangay concerns table, top citizen concerns, resolution rate breakdown, and formal certification sign-off block (*Prepared by System Admin, Verified by Public Information Office, Noted by City Mayor*).
 - **Zero Screen Bleed** — Print headers, page breaks, and certification blocks are styled with `display: none !important` by default and render strictly during print preview (`window.print()`).
 
 ### ✉️ Email OTP Verification Workflow
@@ -237,37 +237,42 @@ docker exec -i citivoice-mysql mysql -uroot -proot citivoice < backups/db/backup
 CitiVoice runs on MySQL 8.0 with InnoDB engine and `utf8mb4_unicode_ci` encoding.
 
 ### Primary Tables
-- **`users`** — Citizen and administrator profiles (`phone`, `barangay`, street `address`), hashed passwords, verification statuses, avatars, and uploaded ID card references.
+- **`users`** — Citizen, administrator, and mayor profiles (`phone`, `barangay`, street `address`, `reset_otp`, `reset_otp_expires`), hashed passwords, verification statuses, avatars, and uploaded ID card references.
 - **`email_verifications`** — Ephemeral 6-digit OTP verification records with expiration timestamps.
-- **`concerns`** — Incident reports containing title, description, category, priority, status, latitude, longitude, pinned address, official `admin_note`, and media URLs.
-- **`concern_upvotes`** — Legacy upvote records (no longer exposed in the apps).
-- **`concern_assignments`**, **`concern_comments`**, **`concern_links`** — Department assignments, internal/citizen comments, and linked duplicate concerns.
+- **`concerns`** — Incident reports containing title, description, category, priority, status, latitude, longitude, pinned address, official `admin_note`, admin validation flags (`is_validated`, `validated_at`, `validated_by_name`), mayor approvals (`approval_notes`, `approved_by_name`, `approved_at`), and media URLs.
+- **`concern_assignments`**, **`concern_comments`**, **`concern_links`** — Department assignments, internal/citizen comments, and AI-linked duplicate concerns.
 - **`audit_log`** — Chronological audit trail of status updates and administrator actions.
 - **`barangays`** — Kabankalan barangay records and reference centroids.
-- **`departments`** — Municipal department classifications (e.g., Engineering, Traffic, Health, CDRRMO).
+- **`departments`** — Municipal department routing targets (e.g., Engineering, CENRO, NOCECO).
 - **`notifications`** — In-app citizen alerts and broadcast logs.
 - **`chat_sessions`**, **`chat_messages`** — AI assistant conversation history.
 
-> **Upgrading an existing database?** The street address field was added to `users`. Run once:
-> ```sql
-> ALTER TABLE users ADD COLUMN address VARCHAR(255) DEFAULT NULL AFTER barangay;
+> **Upgrading an existing database?** Run the automated schema synchronization script:
+> ```bash
+> node backend/database/migrate-sync-schema.js
 > ```
-> Fresh installs get it automatically from `backend/database/schema.sql`.
+> This safely drops legacy upvote objects, ensures the `address` and `reset_otp` columns exist, and creates any missing performance indexes. Fresh installs get the clean schema automatically via `backend/database/schema.sql`.
 
-### ⚡ 12 Performance Indexes
-To guarantee sub-10ms query execution times under municipal load, the database schema implements 12 strategic indexes:
-1. `idx_concerns_status` on `concerns(status)`
-2. `idx_concerns_category` on `concerns(category)`
-3. `idx_concerns_created_at` on `concerns(created_at)`
-4. `idx_concerns_user_id` on `concerns(user_id)`
-5. `idx_concerns_priority` on `concerns(priority)`
-6. `idx_concerns_status_cat` on `concerns(status, category)`
-7. `idx_concerns_status_prio` on `concerns(status, priority)`
-8. `idx_users_role` on `users(role)`
-9. `idx_users_verification` on `users(verification_status)`
-10. `idx_notifications_user_id` on `notifications(user_id)`
-11. `idx_notifications_is_read` on `notifications(is_read)`
-12. `idx_timeline_concern_id` on `concern_timeline(concern_id)`
+### ⚡ Performance Indexes
+To guarantee sub-10ms query execution times under municipal load, the database schema implements inline performance indexes:
+1. `idx_users_role` on `users(role)`
+2. `idx_users_verification` on `users(verification_status)`
+3. `idx_users_phone` on `users(phone)`
+4. `idx_users_id_number` on `users(id_number)`
+5. `idx_concerns_user_created` on `concerns(user_id, created_at)`
+6. `idx_concerns_status` on `concerns(status)`
+7. `idx_concerns_category` on `concerns(category)`
+8. `idx_concerns_priority` on `concerns(priority)`
+9. `idx_concerns_created_at` on `concerns(created_at)`
+10. `idx_concerns_department` on `concerns(department)`
+11. `idx_concerns_barangay` on `concerns(user_barangay)`
+12. `idx_concerns_validated` on `concerns(is_validated, status)`
+13. `idx_notifications_user_read` on `notifications(user_id, is_read)`
+14. `idx_notifications_user_created` on `notifications(user_id, created_at)`
+15. `idx_assignments_status` on `concern_assignments(status)`
+16. `idx_comments_concern_created` on `concern_comments(concern_id, created_at)`
+17. `idx_audit_entity` on `audit_log(entity_type, entity_id, created_at)`
+18. `idx_chat_messages_session_created` on `chat_messages(session_id, created_at)`
 
 ---
 
@@ -378,7 +383,6 @@ All endpoints are hosted under `/api`.
 | `GET`/`POST` | `/api/concerns/:id/assignments` · `/assign` | Authenticated / Admin | Department assignments |
 | `GET`/`POST` | `/api/concerns/:id/comments` | Authenticated | Internal and citizen-visible comments |
 | `GET`  | `/api/concerns/:id/audit` | Admin / Mayor | Audit trail |
-| `POST` | `/api/concerns/:id/upvote` | Authenticated | *Legacy* — no longer used by the apps |
 
 ### Barangays & Municipal Records
 | Method | Endpoint | Access | Description |
