@@ -136,7 +136,6 @@ export default function Concerns() {
   ).sort((a, b) => {
     if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at);
     if (sortBy === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
-    if (sortBy === 'upvotes') return (b.upvotes || 0) - (a.upvotes || 0);
     if (sortBy === 'priority')
       return (
         ({ High: 3, Medium: 2, Low: 1 }[b.priority] || 0) -
@@ -184,7 +183,6 @@ export default function Concerns() {
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
-            <option value="upvotes">Most Upvoted</option>
             <option value="priority">Highest Priority</option>
           </select>
         </div>

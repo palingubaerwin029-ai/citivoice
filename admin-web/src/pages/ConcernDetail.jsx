@@ -424,7 +424,7 @@ export default function ConcernDetail() {
           </div>
 
           {/* Meta */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
             {[
               {
                 icon: '👤',
@@ -443,7 +443,6 @@ export default function ConcernDetail() {
                   ),
               },
               { icon: '📅', label: 'Date Filed', value: fmtDate(concern.created_at) },
-              { icon: '👍', label: 'Community Votes', value: `${concern.upvotes || 0} upvotes` },
             ].map((m, i) => (
               <div
                 key={i}
