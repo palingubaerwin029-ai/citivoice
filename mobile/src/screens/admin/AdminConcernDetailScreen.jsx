@@ -145,7 +145,7 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
     { label: 'CITIZEN', value: concern.user_name, icon: 'person' },
     { label: 'BARANGAY', value: getConcernBarangay(concern), icon: 'location' },
     { label: 'POSTED', value: new Date(concern.created_at).toLocaleDateString(), icon: 'calendar' },
-    { label: 'UPVOTES', value: concern.upvotes || 0, icon: 'heart' },
+    { label: 'CATEGORY', value: concern.category || 'General', icon: 'pricetag' },
   ];
 
   return (

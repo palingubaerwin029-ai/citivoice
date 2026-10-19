@@ -43,7 +43,6 @@ export function ConcernProvider({ children }) {
         id: 'offline-' + q._offlineId,
         status: 'Pending Sync',
         created_at: q._queuedAt,
-        upvotes: 0,
         comments_count: 0,
         isOfflineQueued: true,
       }));
@@ -274,7 +273,6 @@ export function ConcernProvider({ children }) {
       id: 'offline-' + Date.now(),
       status: 'Pending Sync',
       created_at: new Date().toISOString(),
-      upvotes: 0,
       comments_count: 0,
       isOfflineQueued: true, // Custom flag to render it differently if needed
     };
@@ -338,26 +336,6 @@ export function ConcernProvider({ children }) {
     refreshConcerns();
   };
 
-  const toggleUpvote = async (concernId) => {
-    await ConcernService.toggleUpvote(concernId);
-    
-    // Optimistically update the UI to avoid full reload delay
-    const updater = (prev) => prev.map(c => {
-      if (c.id === concernId) {
-        const isUpvoted = !c.is_upvoted_by_me;
-        return {
-          ...c,
-          is_upvoted_by_me: isUpvoted,
-          upvotes: isUpvoted ? (c.upvotes || 0) + 1 : Math.max((c.upvotes || 0) - 1, 0)
-        };
-      }
-      return c;
-    });
-    
-    setConcerns(updater);
-    setMyConcerns(updater);
-  };
-
   const analyzeDraft = async (title, description) => {
     return await ConcernService.analyzeDraft(title, description);
   };
@@ -379,7 +357,6 @@ export function ConcernProvider({ children }) {
         addConcern,
         updateConcern,
         deleteConcern,
-        toggleUpvote,
         refreshConcerns,
         analyzeDraft,
         verifyImageAlignment,

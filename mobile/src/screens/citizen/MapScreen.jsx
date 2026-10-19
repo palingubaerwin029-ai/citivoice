@@ -128,7 +128,7 @@ export default function MapScreen({ navigation }) {
     Rejected: colors.statusRejected,
   };
 
-  const { loadMapData, toggleUpvote: toggleConcernUpvote } = useConcerns();
+  const { loadMapData } = useConcerns();
   const { t } = useLanguage();
   const mapRef = useRef(null);
   const [statusFilter, setStatusFilter] = useState('All');
@@ -192,23 +192,6 @@ export default function MapScreen({ navigation }) {
       },
       800,
     );
-  };
-
-  const handleQuickUpvote = async (concernId) => {
-    if (toggleConcernUpvote) {
-      try {
-        await toggleConcernUpvote(concernId);
-        setSelectedConcern(prev => {
-          if (!prev || prev.id !== concernId) return prev;
-          const currentlyUpvoted = prev.is_upvoted_by_me;
-          return {
-            ...prev,
-            upvotes: (prev.upvotes || 0) + (currentlyUpvoted ? -1 : 1),
-            is_upvoted_by_me: !currentlyUpvoted,
-          };
-        });
-      } catch (e) {}
-    }
   };
 
   // Filter and validate concerns that have valid coordinates (supporting both original names and aliases)
@@ -608,32 +591,6 @@ export default function MapScreen({ navigation }) {
 
             {/* Bottom Actions Bar */}
             <View style={[styles.cardActionBar, { borderTopColor: colors.border + '50' }]}>
-              {/* Upvote Button */}
-              <TouchableOpacity
-                style={[
-                  styles.actionUpvoteBtn,
-                  {
-                    backgroundColor: selectedConcern.is_upvoted_by_me ? colors.primary + '20' : colors.bgCardAlt,
-                    borderColor: selectedConcern.is_upvoted_by_me ? colors.primary : colors.border,
-                  },
-                ]}
-                onPress={() => handleQuickUpvote(selectedConcern.id)}
-              >
-                <Ionicons
-                  name={selectedConcern.is_upvoted_by_me ? 'thumbs-up' : 'thumbs-up-outline'}
-                  size={15}
-                  color={selectedConcern.is_upvoted_by_me ? colors.primary : colors.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.actionUpvoteText,
-                    { color: selectedConcern.is_upvoted_by_me ? colors.primary : colors.textSecondary },
-                  ]}
-                >
-                  {selectedConcern.upvotes || 0} Upvotes
-                </Text>
-              </TouchableOpacity>
-
               {/* Get Directions Button */}
               {rawLat !== null && rawLng !== null && (
                 <TouchableOpacity
@@ -775,14 +732,6 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(10),
   },
   distanceText: { fontSize: rf(11), fontWeight: '700' },
-
-  upvoteChipBtn: {
-    paddingHorizontal: scale(8),
-    paddingVertical: verticalScale(2),
-    borderRadius: moderateScale(10),
-    borderWidth: 1,
-  },
-  upvoteChipText: { fontSize: rf(11), fontWeight: '700' },
 
   directionsBtn: {
     width: scale(38),
@@ -1011,16 +960,6 @@ const styles = StyleSheet.create({
     gap: scale(8),
   },
 
-  actionUpvoteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(6),
-    paddingHorizontal: scale(12),
-    paddingVertical: verticalScale(8),
-    borderRadius: moderateScale(12),
-    borderWidth: 1,
-  },
-  actionUpvoteText: { fontSize: rf(12), fontWeight: '700' },
 
   actionDirectionsBtn: {
     flexDirection: 'row',

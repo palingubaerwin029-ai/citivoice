@@ -101,7 +101,6 @@ const getCurrentDataSnapshot = async () => {
         (SELECT COALESCE(MAX(updated_at), '1970-01-01 00:00:00') FROM concerns) AS max_concern_updated,
         (SELECT COUNT(*) FROM concern_comments) AS comments_count,
         (SELECT COALESCE(MAX(id), 0) FROM concern_comments) AS max_comment_id,
-        (SELECT COUNT(*) FROM concern_upvotes) AS upvotes_count,
         (SELECT COUNT(*) FROM audit_log) AS audit_count,
         (SELECT COALESCE(MAX(id), 0) FROM audit_log) AS max_audit_id
     `);
@@ -116,7 +115,6 @@ const getCurrentDataSnapshot = async () => {
       max_concern_updated: r.max_concern_updated ? new Date(r.max_concern_updated).toISOString() : '1970-01-01T00:00:00.000Z',
       comments_count: Number(r.comments_count || 0),
       max_comment_id: Number(r.max_comment_id || 0),
-      upvotes_count: Number(r.upvotes_count || 0),
       audit_count: Number(r.audit_count || 0),
       max_audit_id: Number(r.max_audit_id || 0),
     };
@@ -193,7 +191,6 @@ const checkForNewData = async () => {
   const newConcerns = Math.max(0, cur.concerns_count - (prev.concerns_count || 0));
   const newComments = Math.max(0, cur.comments_count - (prev.comments_count || 0));
   const newAudit = Math.max(0, cur.audit_count - (prev.audit_count || 0));
-  const newUpvotes = Math.max(0, cur.upvotes_count - (prev.upvotes_count || 0));
 
   const updatedUsers = cur.max_user_updated > (prev.max_user_updated || '1970-01-01');
   const updatedConcerns = cur.max_concern_updated > (prev.max_concern_updated || '1970-01-01');
@@ -206,7 +203,6 @@ const checkForNewData = async () => {
     newConcerns > 0 ||
     newComments > 0 ||
     newAudit > 0 ||
-    newUpvotes > 0 ||
     updatedUsers ||
     updatedConcerns;
 
@@ -216,7 +212,6 @@ const checkForNewData = async () => {
   if (updatedConcerns) reasons.push('concern updates or status changes');
   if (updatedUsers) reasons.push('user profile or verification updates');
   if (newComments > 0) reasons.push(`${newComments} new internal comment(s)`);
-  if (newUpvotes > 0) reasons.push(`${newUpvotes} new upvote(s)`);
   if (newAudit > 0) reasons.push(`${newAudit} audit log record(s)`);
 
   const reasonStr = hasNewData
@@ -235,7 +230,6 @@ const checkForNewData = async () => {
       newConcerns,
       newComments,
       newAudit,
-      newUpvotes,
       updatedUsers,
       updatedConcerns,
       totalChanges: newUsers + newConcerns + newComments + (updatedConcerns ? 1 : 0) + (updatedUsers ? 1 : 0),
@@ -371,7 +365,7 @@ const runJsonExport = async () => {
 
   // Users (strip sensitive columns)
   const [users] = await pool.query(
-    `SELECT id, name, email, phone, barangay, role, department,
+    `SELECT id, name, email, phone, barangay, address, role, department,
             verification_status, is_verified, id_type, id_number,
             avatar_url, id_image_url, submitted_at, verified_at,
             rejection_reason, created_at, updated_at
@@ -386,7 +380,8 @@ const runJsonExport = async () => {
             location_lat AS latitude, location_lng AS longitude,
             image_url, resolved_image_url, user_name, user_barangay,
             admin_note, approval_notes, approved_by_name, approved_at,
-            upvotes, department, created_at, updated_at
+            is_validated, validated_at, validated_by_name,
+            department, created_at, updated_at
      FROM concerns
      ORDER BY id`,
   );

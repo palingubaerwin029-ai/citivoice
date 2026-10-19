@@ -83,7 +83,7 @@ const selectMapConcerns = async () => {
   // Data needed for map markers AND the bottom-sheet card when a marker is tapped
   const [rows] = await pool.query(
     `SELECT id, title, location_lat, location_lng, location_lat AS lat, location_lng AS lng,
-            status, category, priority, image_url, upvotes, location_address, user_barangay
+            status, category, priority, image_url, location_address, user_barangay
      FROM concerns
      WHERE location_lat IS NOT NULL AND location_lng IS NOT NULL`
   );
@@ -93,14 +93,6 @@ const selectMapConcerns = async () => {
 const selectConcernById = async (id) => {
   const [rows] = await pool.query('SELECT * FROM concerns WHERE id = ?', [id]);
   return rows[0];
-};
-
-const checkUpvote = async (concernId, userId) => {
-  const [rows] = await pool.query(
-    'SELECT id FROM concern_upvotes WHERE concern_id=? AND user_id=?',
-    [concernId, userId],
-  );
-  return rows.length > 0;
 };
 
 const insertConcern = async (data) => {
@@ -122,10 +114,10 @@ const insertConcern = async (data) => {
     `INSERT INTO concerns
        (title, description, category, priority, status, image_url,
         location_address, location_lat, location_lng,
-        user_id, user_name, user_barangay, admin_note, upvotes,
+        user_id, user_name, user_barangay, admin_note,
         department,
         created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?, NULL, 0, ?, NOW(), NOW())`,
+     VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?, NULL, ?, NOW(), NOW())`,
     [
       title,
       description,
@@ -166,27 +158,9 @@ const selectConcernImageUrl = async (id) => {
   return rows[0]?.image_url;
 };
 
-const deleteConcernAndUpvotes = async (id) => {
-  await pool.query('DELETE FROM concern_upvotes WHERE concern_id = ?', [id]);
+// Child rows (notifications, assignments, comments, links) go via ON DELETE CASCADE.
+const deleteConcern = async (id) => {
   await pool.query('DELETE FROM concerns WHERE id = ?', [id]);
-};
-
-const removeUpvote = async (concernId, userId) => {
-  await pool.query('DELETE FROM concern_upvotes WHERE concern_id = ? AND user_id = ?', [
-    concernId,
-    userId,
-  ]);
-  await pool.query('UPDATE concerns SET upvotes = GREATEST(upvotes - 1, 0) WHERE id = ?', [
-    concernId,
-  ]);
-};
-
-const addUpvote = async (concernId, userId) => {
-  await pool.query('INSERT INTO concern_upvotes (concern_id, user_id) VALUES (?, ?)', [
-    concernId,
-    userId,
-  ]);
-  await pool.query('UPDATE concerns SET upvotes = upvotes + 1 WHERE id = ?', [concernId]);
 };
 
 const insertNotification = async (userId, title, message, concernId = null) => {
@@ -241,14 +215,11 @@ module.exports = {
   selectConcernStats,
   selectMapConcerns,
   selectConcernById,
-  checkUpvote,
   insertConcern,
   selectConcernWithUser,
   updateConcernFields,
   selectConcernImageUrl,
-  deleteConcernAndUpvotes,
-  removeUpvote,
-  addUpvote,
+  deleteConcern,
   insertNotification,
   insertConcernLink,
   selectLinkedConcerns,

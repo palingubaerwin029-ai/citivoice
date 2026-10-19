@@ -135,21 +135,6 @@ export const ConcernService = {
     return apiRequest('/concerns', { params: { ...params, userId } });
   },
 
-  // ── Toggle upvote ───────────────────────────────────────────────────────
-  async toggleUpvote(concernId) {
-    return apiRequest(`/concerns/${concernId}/upvote`, { method: 'POST' });
-  },
-
-  // ── Check if current user has upvoted ──────────────────────────────────
-  async hasUserUpvoted(concernId) {
-    try {
-      const data = await apiRequest(`/concerns/${concernId}`);
-      return !!data.is_upvoted_by_me;
-    } catch {
-      return false;
-    }
-  },
-
   // ── Delete a concern ────────────────────────────────────────────────────
   async deleteConcern(id) {
     return apiRequest(`/concerns/${id}`, { method: 'DELETE' });

@@ -5,8 +5,6 @@
  * Periodically escalates open concerns whose urgency grows over time:
  *   - Pending/In Progress for > 3 days  : Low    -> Medium
  *   - Pending/In Progress for > 7 days  : Medium -> High
- *   - 10+ community upvotes             : Low    -> Medium
- *   - 20+ community upvotes             : Low/Medium -> High
  * Priority is only ever raised, never lowered. Flagged "Not a Typical Concern"
  * reports are ignored.
  */
@@ -26,16 +24,6 @@ const escalateStaleConcerns = async () => {
   };
 
   try {
-    // Upvote-driven (High first so it isn't downgraded by later rules)
-    const upvoteHigh = await run(
-      `UPDATE concerns SET priority = 'High' WHERE ${OPEN} AND upvotes >= 20 AND priority <> 'High'`,
-      [NOT_TYPICAL_CATEGORY],
-    );
-    const upvoteMed = await run(
-      `UPDATE concerns SET priority = 'Medium' WHERE ${OPEN} AND upvotes >= 10 AND priority = 'Low'`,
-      [NOT_TYPICAL_CATEGORY],
-    );
-
     // Age-driven. Order matters: do Medium -> High first, then Low -> Medium,
     // so one run never moves a concern two levels.
     const ageHigh = await run(
@@ -48,11 +36,9 @@ const escalateStaleConcerns = async () => {
        WHERE ${OPEN} AND priority = 'Low' AND created_at < (NOW() - INTERVAL 3 DAY)`,
       [NOT_TYPICAL_CATEGORY],
     );
-    const total = upvoteHigh + upvoteMed + ageHigh + ageMed;
+    const total = ageHigh + ageMed;
     if (total > 0) {
-      console.log(
-        `[Priority] Escalated ${total} concern(s) (upvotes: ${upvoteHigh + upvoteMed}, age: ${ageHigh + ageMed})`,
-      );
+      console.log(`[Priority] Escalated ${total} concern(s) by age (-> High: ${ageHigh}, -> Medium: ${ageMed})`);
     }
     return total;
   } catch (err) {

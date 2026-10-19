@@ -22,7 +22,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 
 const FILTERS = ['All', 'Pending', 'In Progress', 'Resolved', 'Rejected'];
-const SORT_OPTIONS = ['Newest', 'Oldest', 'Upvotes', 'Priority'];
+const SORT_OPTIONS = ['Newest', 'Oldest', 'Priority'];
 
 export default function AdminConcernsScreen({ navigation }) {
   const { colors } = useTheme();
@@ -105,7 +105,6 @@ export default function AdminConcernsScreen({ navigation }) {
     .sort((a, b) => {
       if (sortBy === 'Newest') return new Date(b.created_at || 0) - new Date(a.created_at || 0);
       if (sortBy === 'Oldest') return new Date(a.created_at || 0) - new Date(b.created_at || 0);
-      if (sortBy === 'Upvotes') return (b.upvotes || 0) - (a.upvotes || 0);
       if (sortBy === 'Priority') {
         const p = { High: 3, Medium: 2, Low: 1 };
         return (p[b.priority] || 0) - (p[a.priority] || 0);
@@ -185,7 +184,6 @@ export default function AdminConcernsScreen({ navigation }) {
           <Text style={[styles.cardMeta, { color: colors.textMuted }]} numberOfLines={1}>
             {c.user_name}
           </Text>
-          <Text style={[styles.upvotes, { color: colors.accent }]}>👍 {c.upvotes || 0}</Text>
         </View>
 
         <Text style={[styles.cardDate, { color: colors.textMuted }]}>

@@ -28,7 +28,7 @@ import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive'
 
 export default function HomeScreen({ navigation }) {
   const { colors, theme } = useTheme();
-  const { concerns, myStats, fetchStats, loading, toggleUpvote, loadFeed } = useConcerns();
+  const { concerns, myStats, fetchStats, loading, loadFeed } = useConcerns();
 
   const FILTER_COLOR = {
     all: colors.primaryLight,

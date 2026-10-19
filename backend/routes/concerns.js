@@ -23,7 +23,6 @@ const {
   editConcern,
   approveConcern,
   removeConcern,
-  toggleUpvote,
   uploadIdImage,
   generateAiResponse,
   getSimilarConcerns,
@@ -66,9 +65,6 @@ router.post('/:id/approve', auth, requireRole('admin', 'mayor'), validateIdParam
 
 // ─── Delete concern (admin or owner) ──────────────────────────────────────────
 router.delete('/:id', auth, validateIdParam, removeConcern);
-
-// ─── Toggle upvote ────────────────────────────────────────────────────────────
-router.post('/:id/upvote', auth, validateIdParam, toggleUpvote);
 
 // ─── AI: Generate admin response draft ────────────────────────────────────────
 router.post('/:id/ai-response', auth, requireRole('admin', 'mayor'), validateIdParam, generateAiResponse);

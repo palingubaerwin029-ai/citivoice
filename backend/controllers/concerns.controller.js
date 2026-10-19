@@ -15,14 +15,11 @@ const {
   selectConcernStats,
   selectMapConcerns,
   selectConcernById,
-  checkUpvote,
   insertConcern,
   selectConcernWithUser,
   updateConcernFields,
   selectConcernImageUrl,
-  deleteConcernAndUpvotes,
-  removeUpvote,
-  addUpvote,
+  deleteConcern,
   insertNotification,
   insertConcernLink,
   selectLinkedConcerns,
@@ -113,8 +110,6 @@ const getConcern = async (req, res) => {
   try {
     const concern = await selectConcernById(req.params.id);
     if (!concern) return res.status(404).json({ error: 'Concern not found' });
-
-    concern.is_upvoted_by_me = await checkUpvote(concern.id, req.user.id);
 
     // Attach linked/similar concerns for admin and mayor
     if (req.user.role === 'admin' || req.user.role === 'mayor') {
@@ -595,7 +590,7 @@ const removeConcern = async (req, res) => {
 
     const imageUrl = concern.image_url;
     if (imageUrl) deleteImageFile(imageUrl);
-    await deleteConcernAndUpvotes(req.params.id);
+    await deleteConcern(req.params.id);
     invalidate('concerns', 'concern_detail', 'map_concerns');
 
     const io = req.app.get('io');
@@ -608,24 +603,6 @@ const removeConcern = async (req, res) => {
   } catch (err) {
     console.error('Concern delete error:', err);
     res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-const toggleUpvote = async (req, res) => {
-  const { id: concernId } = req.params;
-  const userId = req.user.id;
-  try {
-    const hasUpvoted = await checkUpvote(concernId, userId);
-    if (hasUpvoted) {
-      await removeUpvote(concernId, userId);
-      invalidate('concerns', 'concern_detail', 'map_concerns');
-      return res.json({ upvoted: false });
-    }
-    await addUpvote(concernId, userId);
-    invalidate('concerns', 'concern_detail', 'map_concerns');
-    res.json({ upvoted: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
 };
 
@@ -1314,7 +1291,6 @@ module.exports = {
   approveConcern,
   forwardToMayor,
   removeConcern,
-  toggleUpvote,
   uploadIdImage,
   generateAiResponse,
   getSimilarConcerns,
