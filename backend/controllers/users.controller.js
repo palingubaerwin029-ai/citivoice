@@ -63,7 +63,7 @@ const getUser = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-  const { name, phone, barangay, id_type, id_number, id_image_url, submitted_at } = req.body;
+  const { name, phone, barangay, address, id_type, id_number, id_image_url, submitted_at } = req.body;
 
   if (req.user.id !== parseInt(req.params.id)) {
     return res.status(403).json({ error: 'Forbidden' });
@@ -87,6 +87,7 @@ const updateUser = async (req, res) => {
       id_number,
       id_image_url,
       submitted_at,
+      address,
     );
 
     let updatedUser = await selectById(req.params.id);

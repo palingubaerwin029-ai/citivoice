@@ -1,5 +1,18 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet, Modal, Image, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Modal,
+  Image,
+  ActivityIndicator,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,13 +20,22 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth, resolveImageUrl, BASE_URL } from '../../context/AuthContext';
+import { useAuth, resolveImageUrl, BASE_URL, mobileApi } from '../../context/AuthContext';
 import { useConcerns } from '../../context/ConcernContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { RADIUS, SHADOWS, STATUS_CONFIG } from '../../utils/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 import { LANGUAGES } from '../../i18n/translations';
+
+const DEFAULT_BARANGAYS = [
+  'Bantayan', 'Barangay 1', 'Barangay 2', 'Barangay 3', 'Barangay 4',
+  'Barangay 5', 'Barangay 6', 'Barangay 7', 'Barangay 8', 'Barangay 9',
+  'Binicuil', 'Camansi', 'Camingawan', 'Camugao', 'Carol-an', 'Daan Banua',
+  'Hilamonan', 'Inapoy', 'Linao', 'Locotan', 'Magballo', 'Oringao',
+  'Orong', 'Pinaguinpinan', 'Salong', 'Tabugon', 'Tagoc', 'Tagukon',
+  'Talubangi', 'Tampalon', 'Tan-Awan', 'Tapi',
+];
 
 export default function ProfileScreen({ navigation }) {
   const { colors, theme, toggleTheme } = useTheme();
@@ -22,6 +44,85 @@ export default function ProfileScreen({ navigation }) {
   const { t, language, changeLanguage } = useLanguage();
   const [showLang, setShowLang] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // Edit profile state
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editPhone, setEditPhone] = useState('');
+  const [editBarangay, setEditBarangay] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [showBarangayPicker, setShowBarangayPicker] = useState(false);
+  const [barangaySearch, setBarangaySearch] = useState('');
+  const [availableBarangays, setAvailableBarangays] = useState(DEFAULT_BARANGAYS);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchBarangays = async () => {
+      try {
+        const rows = await mobileApi.get('/barangays');
+        if (isMounted && Array.isArray(rows) && rows.length > 0) {
+          const list = rows.map((r) => r.name);
+          list.sort((a, b) => a.localeCompare(b));
+          setAvailableBarangays(list);
+        }
+      } catch (err) {
+        console.log('Error fetching barangays:', err);
+      }
+    };
+    fetchBarangays();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredBarangays = useMemo(() => {
+    const q = barangaySearch.trim().toLowerCase();
+    if (!q) return availableBarangays;
+    return availableBarangays.filter((b) => b.toLowerCase().includes(q));
+  }, [availableBarangays, barangaySearch]);
+
+  const handleOpenEdit = () => {
+    setEditPhone(user?.phone || '');
+    setEditBarangay(user?.barangay || availableBarangays[0] || 'Barangay 1');
+    setEditAddress(user?.address || '');
+    setBarangaySearch('');
+    setIsEditingProfile(true);
+  };
+
+  const handleSaveProfile = async () => {
+    const cleanPhone = editPhone.trim();
+    const cleanAddress = editAddress.trim();
+    const cleanBarangay = editBarangay.trim();
+
+    if (cleanPhone) {
+      const phoneRegex = /^(\+?\d{10,15}|09\d{9})$/;
+      if (!phoneRegex.test(cleanPhone)) {
+        Alert.alert(
+          t('error') || 'Error',
+          t('phoneHelper') || 'Please enter a valid Philippine mobile number (e.g. 09123456789 or +639123456789)'
+        );
+        return;
+      }
+    }
+
+    setSavingProfile(true);
+    try {
+      const payload = {
+        phone: cleanPhone,
+        barangay: cleanBarangay,
+        address: cleanAddress,
+      };
+      const updatedUser = await mobileApi.put(`/users/${user.id}`, payload);
+      await updateUserLocal(updatedUser);
+      setIsEditingProfile(false);
+      Alert.alert('Success', t('profileUpdated') || 'Profile updated successfully!');
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      Alert.alert(t('error') || 'Error', err.message || 'Failed to update profile');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   // Refresh exact stats on focus
   useFocusEffect(
@@ -309,18 +410,52 @@ export default function ProfileScreen({ navigation }) {
           </View>
         )}
         <View style={{ paddingHorizontal: scale(16), marginBottom: verticalScale(20) }}>
-          <Text
+          <View
             style={{
-              color: colors.textSecondary,
-              fontSize: rf(11),
-              fontWeight: '700',
-              textTransform: 'uppercase',
-              letterSpacing: 0.6,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               marginBottom: verticalScale(10),
             }}
           >
-            {t('accountInfo')}
-          </Text>
+            <Text
+              style={{
+                color: colors.textSecondary,
+                fontSize: rf(11),
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: 0.6,
+              }}
+            >
+              {t('accountInfo')}
+            </Text>
+            <TouchableOpacity
+              onPress={handleOpenEdit}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: scale(5),
+                paddingHorizontal: scale(11),
+                paddingVertical: verticalScale(5),
+                borderRadius: RADIUS.full,
+                backgroundColor: colors.primary + '18',
+                borderWidth: 1,
+                borderColor: colors.primary + '33',
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="create-outline" size={13} color={colors.primaryLight} />
+              <Text
+                style={{
+                  color: colors.primaryLight,
+                  fontSize: rf(12),
+                  fontWeight: '700',
+                }}
+              >
+                {t('edit') || 'Edit'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           <View
             style={{
               backgroundColor: colors.bgCard,
@@ -341,7 +476,12 @@ export default function ProfileScreen({ navigation }) {
               {
                 icon: 'location-outline',
                 label: t('barangay'),
-                value: user?.barangay,
+                value: user?.barangay || '—',
+              },
+              {
+                icon: 'home-outline',
+                label: t('address') || 'Street / Address',
+                value: user?.address || '—',
               },
             ].map((item, i, arr) => (
               <View
@@ -643,6 +783,527 @@ export default function ProfileScreen({ navigation }) {
             <TouchableOpacity
               style={{ padding: scale(14), alignItems: 'center', marginTop: verticalScale(4) }}
               onPress={() => setShowLang(false)}
+            >
+              <Text style={{ color: colors.textMuted, fontSize: rf(15) }}>{t('cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Profile Modal */}
+      <Modal
+        visible={isEditingProfile}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          if (!savingProfile) setIsEditingProfile(false);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.bgCard,
+              borderTopLeftRadius: moderateScale(28),
+              borderTopRightRadius: moderateScale(28),
+              paddingHorizontal: scale(20),
+              paddingTop: verticalScale(16),
+              paddingBottom: verticalScale(Platform.OS === 'ios' ? 36 : 24),
+              borderTopWidth: 1,
+              borderColor: colors.border,
+              maxHeight: '90%',
+            }}
+          >
+            {/* Grab handle */}
+            <View
+              style={{
+                width: scale(38),
+                height: verticalScale(4),
+                backgroundColor: colors.border,
+                borderRadius: scale(2),
+                alignSelf: 'center',
+                marginBottom: verticalScale(14),
+              }}
+            />
+
+            {/* Header */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: verticalScale(18),
+              }}
+            >
+              <View>
+                <Text
+                  style={{
+                    color: colors.textPrimary,
+                    fontSize: rf(18),
+                    fontWeight: '800',
+                    letterSpacing: -0.3,
+                  }}
+                >
+                  {t('editProfile') || 'Edit Profile'}
+                </Text>
+                <Text
+                  style={{
+                    color: colors.textMuted,
+                    fontSize: rf(12),
+                    marginTop: verticalScale(2),
+                  }}
+                >
+                  Update your contact phone and address
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => !savingProfile && setIsEditingProfile(false)}
+                disabled={savingProfile}
+                style={{
+                  width: scale(32),
+                  height: scale(32),
+                  borderRadius: scale(16),
+                  backgroundColor: colors.bgCardAlt,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="close" size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+              {/* Full Name (Read-only verified identifier) */}
+              <View style={{ marginBottom: verticalScale(14) }}>
+                <Text
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: rf(12),
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    marginBottom: verticalScale(6),
+                  }}
+                >
+                  {t('fullName')}
+                </Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: scale(10),
+                    backgroundColor: colors.bgDark + '99',
+                    borderRadius: RADIUS.lg,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    paddingHorizontal: scale(14),
+                    paddingVertical: verticalScale(12),
+                  }}
+                >
+                  <Ionicons name="lock-closed-outline" size={16} color={colors.textMuted} />
+                  <Text
+                    style={{
+                      flex: 1,
+                      color: colors.textSecondary,
+                      fontSize: rf(14),
+                      fontWeight: '600',
+                    }}
+                  >
+                    {user?.name}
+                  </Text>
+                  <View
+                    style={{
+                      paddingHorizontal: scale(8),
+                      paddingVertical: verticalScale(2),
+                      borderRadius: RADIUS.full,
+                      backgroundColor: colors.primary + '18',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.primaryLight,
+                        fontSize: rf(10),
+                        fontWeight: '700',
+                      }}
+                    >
+                      ID Locked
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Phone Number Field */}
+              <View style={{ marginBottom: verticalScale(14) }}>
+                <Text
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: rf(12),
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    marginBottom: verticalScale(6),
+                  }}
+                >
+                  {t('phone')}
+                </Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: scale(10),
+                    backgroundColor: colors.bgCardAlt,
+                    borderRadius: RADIUS.lg,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    paddingHorizontal: scale(14),
+                    paddingVertical: verticalScale(10),
+                  }}
+                >
+                  <Ionicons name="call-outline" size={16} color={colors.primaryLight} />
+                  <TextInput
+                    value={editPhone}
+                    onChangeText={setEditPhone}
+                    placeholder={t('phonePlaceholder') || '09123456789'}
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="phone-pad"
+                    maxLength={15}
+                    style={{
+                      flex: 1,
+                      color: colors.textPrimary,
+                      fontSize: rf(14),
+                      fontWeight: '600',
+                      padding: 0,
+                    }}
+                  />
+                  {editPhone.length > 0 && (
+                    <TouchableOpacity onPress={() => setEditPhone('')}>
+                      <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <Text
+                  style={{
+                    color: colors.textMuted,
+                    fontSize: rf(11),
+                    marginTop: verticalScale(4),
+                  }}
+                >
+                  {t('phoneHelper') || 'Must be a valid 11-digit Philippine mobile number'}
+                </Text>
+              </View>
+
+              {/* Barangay Selector */}
+              <View style={{ marginBottom: verticalScale(14) }}>
+                <Text
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: rf(12),
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    marginBottom: verticalScale(6),
+                  }}
+                >
+                  {t('barangay')}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowBarangayPicker(true)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: colors.bgCardAlt,
+                    borderRadius: RADIUS.lg,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    paddingHorizontal: scale(14),
+                    paddingVertical: verticalScale(13),
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(10) }}>
+                    <Ionicons name="location-outline" size={16} color={colors.primaryLight} />
+                    <Text
+                      style={{
+                        color: colors.textPrimary,
+                        fontSize: rf(14),
+                        fontWeight: '600',
+                      }}
+                    >
+                      {editBarangay || t('selectBarangay') || 'Select Barangay'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Address / Street / Purok Field */}
+              <View style={{ marginBottom: verticalScale(22) }}>
+                <Text
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: rf(12),
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    marginBottom: verticalScale(6),
+                  }}
+                >
+                  {t('address') || 'Street / Address'}
+                </Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: scale(10),
+                    backgroundColor: colors.bgCardAlt,
+                    borderRadius: RADIUS.lg,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    paddingHorizontal: scale(14),
+                    paddingVertical: verticalScale(10),
+                  }}
+                >
+                  <Ionicons name="home-outline" size={16} color={colors.primaryLight} />
+                  <TextInput
+                    value={editAddress}
+                    onChangeText={setEditAddress}
+                    placeholder={t('addressPlaceholder') || 'e.g. Purok 3, Rizal St.'}
+                    placeholderTextColor={colors.textMuted}
+                    maxLength={100}
+                    style={{
+                      flex: 1,
+                      color: colors.textPrimary,
+                      fontSize: rf(14),
+                      fontWeight: '600',
+                      padding: 0,
+                    }}
+                  />
+                  {editAddress.length > 0 && (
+                    <TouchableOpacity onPress={() => setEditAddress('')}>
+                      <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: scale(12), marginBottom: verticalScale(10) }}>
+                <TouchableOpacity
+                  onPress={() => !savingProfile && setIsEditingProfile(false)}
+                  disabled={savingProfile}
+                  style={{
+                    flex: 1,
+                    paddingVertical: verticalScale(13),
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: RADIUS.lg,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    backgroundColor: colors.bgCardAlt,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.textSecondary,
+                      fontSize: rf(14),
+                      fontWeight: '700',
+                    }}
+                  >
+                    {t('cancel')}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleSaveProfile}
+                  disabled={savingProfile}
+                  style={{
+                    flex: 2,
+                    borderRadius: RADIUS.lg,
+                    overflow: 'hidden',
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={[colors.primary, colors.purple || '#8B5CF6']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{
+                      paddingVertical: verticalScale(13),
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'row',
+                      gap: scale(6),
+                    }}
+                  >
+                    {savingProfile ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <>
+                        <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+                        <Text
+                          style={{
+                            color: '#fff',
+                            fontSize: rf(14),
+                            fontWeight: '700',
+                          }}
+                        >
+                          {t('saveChanges') || 'Save Changes'}
+                        </Text>
+                      </>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Barangay Selector Modal */}
+      <Modal
+        visible={showBarangayPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowBarangayPicker(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.65)',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.bgCard,
+              borderTopLeftRadius: moderateScale(24),
+              borderTopRightRadius: moderateScale(24),
+              padding: scale(20),
+              maxHeight: '80%',
+              borderTopWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <View
+              style={{
+                width: scale(36),
+                height: verticalScale(4),
+                backgroundColor: colors.border,
+                borderRadius: scale(2),
+                alignSelf: 'center',
+                marginBottom: verticalScale(16),
+              }}
+            />
+            <Text
+              style={{
+                color: colors.textPrimary,
+                fontSize: rf(18),
+                fontWeight: '800',
+                textAlign: 'center',
+                marginBottom: verticalScale(14),
+              }}
+            >
+              {t('selectBarangayHeader') || 'Select Barangay'}
+            </Text>
+
+            {/* Search Input */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: scale(8),
+                backgroundColor: colors.bgCardAlt,
+                borderRadius: RADIUS.lg,
+                borderWidth: 1,
+                borderColor: colors.border,
+                paddingHorizontal: scale(12),
+                paddingVertical: verticalScale(8),
+                marginBottom: verticalScale(14),
+              }}
+            >
+              <Ionicons name="search-outline" size={16} color={colors.textMuted} />
+              <TextInput
+                value={barangaySearch}
+                onChangeText={setBarangaySearch}
+                placeholder={t('searchBarangay') || 'Search barangay...'}
+                placeholderTextColor={colors.textMuted}
+                style={{
+                  flex: 1,
+                  color: colors.textPrimary,
+                  fontSize: rf(14),
+                  padding: 0,
+                }}
+              />
+              {barangaySearch.length > 0 && (
+                <TouchableOpacity onPress={() => setBarangaySearch('')}>
+                  <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: verticalScale(320) }}>
+              {filteredBarangays.map((b) => {
+                const isSelected = editBarangay === b;
+                return (
+                  <TouchableOpacity
+                    key={b}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: scale(13),
+                      borderRadius: RADIUS.lg,
+                      marginBottom: verticalScale(6),
+                      backgroundColor: isSelected ? colors.primary + '1A' : 'transparent',
+                    }}
+                    onPress={() => {
+                      setEditBarangay(b);
+                      setShowBarangayPicker(false);
+                      setBarangaySearch('');
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: isSelected ? colors.primaryLight : colors.textPrimary,
+                        fontSize: rf(15),
+                        fontWeight: isSelected ? '700' : '500',
+                      }}
+                    >
+                      {b}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={18}
+                        color={colors.primaryLight}
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+              {filteredBarangays.length === 0 && (
+                <View style={{ paddingVertical: verticalScale(20), alignItems: 'center' }}>
+                  <Text style={{ color: colors.textMuted, fontSize: rf(13) }}>
+                    No barangay found matching "{barangaySearch}"
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={{
+                padding: scale(14),
+                alignItems: 'center',
+                marginTop: verticalScale(8),
+              }}
+              onPress={() => setShowBarangayPicker(false)}
             >
               <Text style={{ color: colors.textMuted, fontSize: rf(15) }}>{t('cancel')}</Text>
             </TouchableOpacity>

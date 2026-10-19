@@ -122,6 +122,11 @@ const validateUpdateUser = [
     .trim()
     .isLength({ max: 100 })
     .withMessage('Barangay must be under 100 characters'),
+  body('address')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ max: 255 })
+    .withMessage('Address must be under 255 characters'),
   handleValidationErrors,
 ];
 

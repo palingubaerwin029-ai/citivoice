@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash       VARCHAR(255)        NOT NULL,
   phone               VARCHAR(50)         DEFAULT NULL,
   barangay            VARCHAR(255)        DEFAULT NULL,
+  address             VARCHAR(255)        DEFAULT NULL,
   role                ENUM('admin','citizen','mayor') NOT NULL DEFAULT 'citizen',
   department          VARCHAR(100)        DEFAULT NULL,
   verification_status ENUM('unverified','pending','verified','rejected') NOT NULL DEFAULT 'unverified',

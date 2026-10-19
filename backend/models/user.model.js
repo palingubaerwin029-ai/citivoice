@@ -122,19 +122,21 @@ const updateUserDetails = async (
   id_number,
   id_image_url,
   submitted_at,
+  address,
 ) => {
   await pool.query(
     `UPDATE users SET
       name                = COALESCE(?, name),
       phone               = COALESCE(?, phone),
       barangay            = COALESCE(?, barangay),
+      address             = COALESCE(?, address),
       id_type             = COALESCE(?, id_type),
       id_number           = COALESCE(?, id_number),
       id_image_url        = COALESCE(?, id_image_url),
       submitted_at        = COALESCE(?, submitted_at),
       updated_at          = NOW()
      WHERE id = ?`,
-    [name, phone, barangay, id_type, id_number, id_image_url, submitted_at, id],
+    [name, phone, barangay, address, id_type, id_number, id_image_url, submitted_at, id],
   );
 };
 
