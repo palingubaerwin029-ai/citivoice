@@ -492,17 +492,6 @@ export default function ConcernDetail() {
                   <span style={{ fontSize: 16 }}>📷</span>
                   <span className={s.cardTitle}>Attached Citizen Photo</span>
                 </div>
-                <button
-                  type="button"
-                  className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '4px 10px', color: 'var(--primary)' }}
-                  onClick={() => {
-                    setLightboxImg(resolveImageUrl(concern.image_url));
-                    setLightboxTitle('Attached Citizen Photo');
-                  }}
-                >
-                  <span>🔍</span> Click to View Full Size
-                </button>
               </div>
 
               <div
@@ -537,28 +526,6 @@ export default function ConcernDetail() {
                     e.currentTarget.style.filter = 'none';
                   }}
                 />
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 12,
-                    right: 12,
-                    background: 'rgba(15, 23, 42, 0.85)',
-                    backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: '#fff',
-                    padding: '6px 14px',
-                    borderRadius: 20,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  <span>🔍</span> Click to view full image
-                </div>
               </div>
 
               <div
@@ -651,28 +618,6 @@ export default function ConcernDetail() {
                       e.currentTarget.style.filter = 'none';
                     }}
                   />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: 12,
-                      right: 12,
-                      background: 'rgba(15, 23, 42, 0.85)',
-                      backdropFilter: 'blur(8px)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      color: '#fff',
-                      padding: '6px 14px',
-                      borderRadius: 20,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    <span>🔍</span> Click to view full proof
-                  </div>
                 </div>
                 <div style={{ padding: '8px 16px', fontSize: 11, color: 'var(--text-3)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>Visible to the citizen in the mobile app</span>
