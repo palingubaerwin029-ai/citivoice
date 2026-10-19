@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { api, fmtDate, fmtDateShort, resolveImageUrl, getPinBarangay } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import s from '../styles/Admin.module.css';
@@ -92,6 +92,15 @@ export default function ConcernDetail() {
   const [forwardingToMayor, setForwardingToMayor] = useState(false);
   const [validationDept, setValidationDept] = useState('');
   const [forwardSuccess, setForwardSuccess] = useState(false);
+
+  // Auto-resize Official Response textarea so all text is visible
+  const noteRef = useRef(null);
+  useEffect(() => {
+    if (noteRef.current) {
+      noteRef.current.style.height = 'auto';
+      noteRef.current.style.height = `${Math.max(130, noteRef.current.scrollHeight + 6)}px`;
+    }
+  }, [note]);
 
   useEffect(() => {
     if (!id) return;
@@ -1147,11 +1156,23 @@ export default function ConcernDetail() {
                 </div>
 
                 <textarea
+                  ref={noteRef}
                   className={s.textarea}
                   value={note}
-                  onChange={(e) => setNote(e.target.value)}
+                  onChange={(e) => {
+                    setNote(e.target.value);
+                  }}
                   placeholder="e.g. Road crew dispatched. Expected completion: Dec 15. Thank you for your report."
-                  rows={4}
+                  rows={5}
+                  style={{
+                    minHeight: 130,
+                    lineHeight: 1.6,
+                    resize: 'vertical',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    overflowY: 'hidden',
+                    padding: '10px 14px',
+                  }}
                 />
               </div>
 
