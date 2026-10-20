@@ -40,6 +40,11 @@ const deleteImageFile = (imageUrl) => {
   } catch (_) {}
 };
 
+const cleanOfficialResponse = (text) => {
+  if (!text || typeof text !== 'string') return text;
+  return text.replace(/\[(?:Auto-)?Duplicate(?: concern)? of [^\]]+\]\s*/gi, '').trim();
+};
+
 const listConcerns = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -55,14 +60,19 @@ const listConcerns = async (req, res) => {
       countConcerns(userId, status, category, validatedOnly)
     ]);
 
-    let data = rows;
-    if (req.user.role !== 'admin' && req.user.role !== 'mayor') {
-      data = rows.map((r) => {
-        if (r.user_id === req.user.id) return r;
-        const { user_id, user_name, user_barangay, ...rest } = r;
+    const data = rows.map((r) => {
+      const cleanR = {
+        ...r,
+        admin_note: cleanOfficialResponse(r.admin_note),
+        approval_notes: cleanOfficialResponse(r.approval_notes),
+      };
+      if (req.user.role !== 'admin' && req.user.role !== 'mayor') {
+        if (cleanR.user_id === req.user.id) return cleanR;
+        const { user_id, user_name, user_barangay, ...rest } = cleanR;
         return rest;
-      });
-    }
+      }
+      return cleanR;
+    });
 
     res.json({
       data,
@@ -114,6 +124,13 @@ const getConcern = async (req, res) => {
     // Attach linked/similar concerns for admin and mayor
     if (req.user.role === 'admin' || req.user.role === 'mayor') {
       concern.linked_concerns = await selectLinkedConcerns(concern.id);
+    }
+
+    if (concern.admin_note) {
+      concern.admin_note = cleanOfficialResponse(concern.admin_note);
+    }
+    if (concern.approval_notes) {
+      concern.approval_notes = cleanOfficialResponse(concern.approval_notes);
     }
 
     if (req.user.role !== 'admin' && req.user.role !== 'mayor' && concern.user_id !== req.user.id) {
@@ -356,7 +373,7 @@ const createConcern = async (req, res) => {
               }
               if (match.concern.admin_note) {
                 fieldsToUpdate.push('admin_note = ?');
-                valuesToUpdate.push(`[Duplicate of "${match.concern.title}"] ${match.concern.admin_note}`);
+                valuesToUpdate.push(cleanOfficialResponse(match.concern.admin_note));
               }
               if (match.concern.approved_by_name) {
                 fieldsToUpdate.push('approved_by_name = ?');
@@ -520,7 +537,7 @@ const editConcern = async (req, res) => {
           }
           if (admin_note !== undefined) {
             dupFields.push('admin_note = ?');
-            dupValues.push(admin_note ? `[Duplicate of "${concern.title}"] ${admin_note}` : null);
+            dupValues.push(admin_note ? cleanOfficialResponse(admin_note) : null);
           }
           if (req.file) {
             const resolved_image_url = `${BASE_URL()}/uploads/${req.file.filename}`;
@@ -949,7 +966,7 @@ const linkConcerns = async (req, res) => {
 
         if (targetConcern.admin_note) {
           fieldsToUpdate.push('admin_note = ?');
-          valuesToUpdate.push(`[Duplicate of "${targetConcern.title}"] ${targetConcern.admin_note}`);
+          valuesToUpdate.push(cleanOfficialResponse(targetConcern.admin_note));
         }
         if (targetConcern.department) {
           fieldsToUpdate.push('department = ?');
@@ -1017,7 +1034,7 @@ const approveConcern = async (req, res) => {
       const duplicateLinks = linked.filter(l => l.link_type === 'duplicate');
       for (const dup of duplicateLinks) {
         const dupFields = ['status = ?', 'approval_notes = ?', 'approved_by_name = ?', 'approved_at = NOW()', 'updated_at = NOW()'];
-        const dupValues = ['In Progress', `[Duplicate of "${concern.title}"] ${approval_notes || 'Approved for immediate evaluation and action.'}`, approverName];
+        const dupValues = ['In Progress', cleanOfficialResponse(approval_notes || 'Approved for immediate evaluation and action.'), approverName];
         if (target_department) {
           dupFields.push('department = ?');
           dupValues.push(target_department);

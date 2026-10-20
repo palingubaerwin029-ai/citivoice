@@ -127,8 +127,9 @@ export default function ConcernDetail() {
         setSelStatus(cData.status || 'Pending');
         setSelCategory(cData.category || 'Other');
         setSelPriority(cData.priority || 'Medium');
-        const initialNote = (cData.admin_note && !cData.admin_note.includes('[High-Priority Hazard]'))
-          ? cData.admin_note
+        const rawNote = cData.admin_note || '';
+        const initialNote = (rawNote && !rawNote.includes('[High-Priority Hazard]') && !rawNote.includes('[AI Flag:'))
+          ? rawNote.replace(/\[(?:Auto-)?Duplicate(?: concern)? of [^\]]+\]\s*/gi, '').trim()
           : '';
         setNote(initialNote);
         setAssignments(aData || []);

@@ -402,27 +402,38 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
 
           {/* Official Response */}
-          {concern.admin_note &&
-            !concern.admin_note.includes('[High-Priority Hazard]') &&
-            !concern.admin_note.includes('[AI Flag:') && (
-            <View
-              style={[
-                styles.section,
-                styles.adminNoteCard,
-                { backgroundColor: colors.accent + '11', borderColor: colors.accent + '44' },
-              ]}
-            >
-              <View style={styles.adminNoteHeader}>
-                <Ionicons name="shield-checkmark" size={16} color={colors.accent} />
-                <Text style={[styles.adminNoteTitle, { color: colors.accent }]}>
-                  {t('officialResponse')}
+          {(() => {
+            const rawNote = concern.admin_note || '';
+            const cleanedNote = rawNote
+              .replace(/\[(?:Auto-)?Duplicate(?: concern)? of [^\]]+\]\s*/gi, '')
+              .trim();
+            if (
+              !cleanedNote ||
+              rawNote.includes('[High-Priority Hazard]') ||
+              rawNote.includes('[AI Flag:')
+            ) {
+              return null;
+            }
+            return (
+              <View
+                style={[
+                  styles.section,
+                  styles.adminNoteCard,
+                  { backgroundColor: colors.accent + '11', borderColor: colors.accent + '44' },
+                ]}
+              >
+                <View style={styles.adminNoteHeader}>
+                  <Ionicons name="shield-checkmark" size={16} color={colors.accent} />
+                  <Text style={[styles.adminNoteTitle, { color: colors.accent }]}>
+                    {t('officialResponse')}
+                  </Text>
+                </View>
+                <Text style={[styles.adminNoteText, { color: colors.textPrimary }]}>
+                  {cleanedNote}
                 </Text>
               </View>
-              <Text style={[styles.adminNoteText, { color: colors.textPrimary }]}>
-                {concern.admin_note}
-              </Text>
-            </View>
-          )}
+            );
+          })()}
 
           {/* Proof Photo — attached by admin */}
           {concern.resolved_image_url && (() => {

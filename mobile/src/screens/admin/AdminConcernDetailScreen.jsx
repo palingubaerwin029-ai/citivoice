@@ -360,21 +360,27 @@ export default function AdminConcernDetailScreen({ route, navigation }) {
             )}
           </TouchableOpacity>
 
-          {concern.admin_note && !saved && (
-            <View
-              style={[
-                styles.prevNote,
-                { backgroundColor: colors.accent + '11', borderColor: colors.accent + '33' },
-              ]}
-            >
-              <Text style={[styles.prevNoteLabel, { color: colors.accent }]}>
-                PREVIOUS RESPONSE
-              </Text>
-              <Text style={[styles.prevNoteText, { color: colors.textPrimary }]}>
-                {concern.admin_note}
-              </Text>
-            </View>
-          )}
+          {concern.admin_note && !saved && (() => {
+            const cleanPrev = concern.admin_note
+              .replace(/\[(?:Auto-)?Duplicate(?: concern)? of [^\]]+\]\s*/gi, '')
+              .trim();
+            if (!cleanPrev) return null;
+            return (
+              <View
+                style={[
+                  styles.prevNote,
+                  { backgroundColor: colors.accent + '11', borderColor: colors.accent + '33' },
+                ]}
+              >
+                <Text style={[styles.prevNoteLabel, { color: colors.accent }]}>
+                  PREVIOUS RESPONSE
+                </Text>
+                <Text style={[styles.prevNoteText, { color: colors.textPrimary }]}>
+                  {cleanPrev}
+                </Text>
+              </View>
+            );
+          })()}
         </View>
       </View>
       </ScrollView>
