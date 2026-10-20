@@ -716,7 +716,7 @@ export default function MayorsOfficePortal({ user, onLogout }) {
                 </div>
 
                 <div className={s.citizenInfoGrid}>
-                  <div className={s.citizenField}>
+                  <div className={`${s.citizenField} ${s.citizenFieldFull}`}>
                     <div className={s.citizenFieldLabel}>Reporting Citizen</div>
                     <div className={s.citizenFieldValue}>
                       {selectedConcern.user_name || 'Anonymous Citizen'}
