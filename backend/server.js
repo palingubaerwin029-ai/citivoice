@@ -117,12 +117,14 @@ io.on('connection', (socket) => {
   console.log(`[Socket] Client connected: ${socket.id} (User: ${socket.user.id}, Role: ${socket.user.role})`);
 
   // Join rooms based on role
+  socket.join(`user:${socket.user.id}`);
   if (socket.user.role === 'admin') {
     socket.join('admin');
     console.log(`[Socket] User ${socket.user.id} joined room: admin`);
-  } else {
-    socket.join(`user:${socket.user.id}`);
-    console.log(`[Socket] User ${socket.user.id} joined room: user:${socket.user.id}`);
+  }
+  if (socket.user.role === 'mayor' || socket.user.role === 'admin') {
+    socket.join('mayor');
+    console.log(`[Socket] User ${socket.user.id} joined room: mayor`);
   }
 
   socket.on('disconnect', () => {

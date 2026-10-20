@@ -16,6 +16,7 @@ import {
   IoFlashOutline,
 } from 'react-icons/io5';
 import s from '../styles/MayorPortal.module.css';
+import { socket, connectSocket } from '../services/socket';
 
 const DEFAULT_DEPARTMENTS = [
   "City Engineer's Office (CEO)",
@@ -23,31 +24,10 @@ const DEFAULT_DEPARTMENTS = [
   'Negros Occidental Electric Cooperative (NOCECO)',
 ];
 
-const EXECUTIVE_PRESETS = [
-  {
-    label: '🚨 Immediate Field Remediation',
-    text: 'Priority Executive Directive issued for prompt field inspection and immediate remedial action. Submit preliminary incident report within 24 hours.',
-  },
-  {
-    label: '🛠️ Municipal Public Works Order',
-    text: 'Endorsed to the City Engineer’s Office for priority evaluation, structural remediation, and inclusion in the current weekly municipal works schedule.',
-  },
-  {
-    label: '🌿 Environmental & Sanitation Action',
-    text: 'Direct CENRO unit mobilized for immediate on-site assessment, debris clearing, and public health/sanitation mitigation in coordination with barangay officials.',
-  },
-  {
-    label: '⚡ Power & Electrical Safety Advisory',
-    text: 'Urgent coordination order endorsed to NOCECO for expedited line inspection, hazardous electrical clearance, and safety compliance restoration.',
-  },
-  {
-    label: '📋 Barangay Coordination & Follow-up',
-    text: 'Executive directive issued. Coordinate directly with the Punong Barangay upon arrival; monitor progress until full on-site completion is verified.',
-  },
-];
 
 export default function MayorsOfficePortal({ user, onLogout }) {
-  const toast = useToast();
+  const { addToast } = useToast();
+  const toast = useMemo(() => ({ show: (msg, type) => addToast(msg, type) }), [addToast]);
 
   const [concerns, setConcerns] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -136,8 +116,8 @@ export default function MayorsOfficePortal({ user, onLogout }) {
   }, []);
 
   // Fetch concerns from API
-  const fetchConcerns = async () => {
-    setLoading(true);
+  const fetchConcerns = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const [resConcerns, resDepts] = await Promise.all([
         api.get('/concerns', { limit: 1000 }),
@@ -149,7 +129,9 @@ export default function MayorsOfficePortal({ user, onLogout }) {
         : Array.isArray(resConcerns)
           ? resConcerns
           : [];
-      setConcerns(list);
+      // Exclude Rejected concerns from Mayor's portal
+      const nonRejected = list.filter((c) => c.status !== 'Rejected');
+      setConcerns(nonRejected);
 
       const deptList =
         Array.isArray(resDepts) && resDepts.length > 0
@@ -158,22 +140,56 @@ export default function MayorsOfficePortal({ user, onLogout }) {
       setDepartments(deptList);
       setLastRefreshed(new Date());
     } catch (err) {
-      toast?.show('Failed to load concerns: ' + err.message, 'error');
+      if (!isBackground) toast?.show('Failed to load concerns: ' + err.message, 'error');
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
+    connectSocket();
     fetchConcerns();
-  }, []);
+
+    // Auto-refresh concerns every 30 seconds silently
+    const interval = setInterval(() => {
+      fetchConcerns(true);
+    }, 30000);
+
+    // Real-time instant auto-refresh when receiving new concerns or updates
+    const handleNewConcern = (newConcern) => {
+      if (newConcern && newConcern.title) {
+        addToast(`📢 New Citizen Concern Received: "${newConcern.title}"`, 'success');
+      }
+      fetchConcerns(true);
+    };
+
+    const handleSocketUpdate = () => {
+      fetchConcerns(true);
+    };
+
+    socket.on('new_concern', handleNewConcern);
+    socket.on('update_concern', handleSocketUpdate);
+    socket.on('concern_status_changed', handleSocketUpdate);
+    socket.on('concern_updated', handleSocketUpdate);
+    socket.on('concern_stats_updated', handleSocketUpdate);
+
+    return () => {
+      clearInterval(interval);
+      socket.off('new_concern', handleNewConcern);
+      socket.off('update_concern', handleSocketUpdate);
+      socket.off('concern_status_changed', handleSocketUpdate);
+      socket.off('concern_updated', handleSocketUpdate);
+      socket.off('concern_stats_updated', handleSocketUpdate);
+    };
+  }, [addToast]);
 
   // Compute key executive metrics
   const metrics = useMemo(() => {
-    const pendingApproval = concerns.filter((c) => !c.approved_at && c.status !== 'Rejected');
-    const dispatched = concerns.filter((c) => c.approved_at);
-    const urgent = concerns.filter((c) => c.priority === 'High');
-    const total = concerns.length;
+    const valid = concerns.filter((c) => c.status !== 'Rejected');
+    const pendingApproval = valid.filter((c) => !c.approved_at);
+    const dispatched = valid.filter((c) => c.approved_at);
+    const urgent = valid.filter((c) => c.priority === 'High');
+    const total = valid.length;
     const rate = total > 0 ? Math.round((dispatched.length / total) * 100) : 0;
 
     return {
@@ -190,7 +206,8 @@ export default function MayorsOfficePortal({ user, onLogout }) {
   const filteredConcerns = useMemo(() => {
     return concerns
       .filter((c) => {
-        if (activeTab === 'pending' && (c.approved_at || c.status === 'Rejected')) return false;
+        if (c.status === 'Rejected') return false;
+        if (activeTab === 'pending' && c.approved_at) return false;
         if (activeTab === 'dispatched' && !c.approved_at) return false;
         if (activeTab === 'urgent' && c.priority !== 'High') return false;
         return true;
@@ -336,12 +353,20 @@ export default function MayorsOfficePortal({ user, onLogout }) {
             <option value="asc">Oldest</option>
           </select>
 
+          <div
+            className={s.autoRefreshBadge}
+            title={`Auto-refreshes every 30 seconds. Last updated: ${lastRefreshed ? lastRefreshed.toLocaleTimeString() : 'Just now'}`}
+          >
+            <span className={s.livePulseDot} />
+            <span>Auto-Refresh 30s</span>
+          </div>
+
           <button
             type="button"
             className={s.btnOutline}
-            onClick={fetchConcerns}
+            onClick={() => fetchConcerns(false)}
             disabled={loading}
-            title="Refresh concern feed"
+            title="Refresh concern feed manually"
           >
             <span className={loading ? s.spinningIcon : ''}>
               <IoRefreshOutline />
@@ -497,13 +522,11 @@ export default function MayorsOfficePortal({ user, onLogout }) {
             <div className={s.tableContainer}>
               <table className={s.docketTable}>
                 <colgroup>
-                  <col style={{ width: '34%' }} />
-                  <col style={{ width: '13%' }} />
-                  <col style={{ width: '19%' }} />
-                  <col style={{ width: '9%' }} />
-                  <col style={{ width: '11%' }} />
-                  <col style={{ width: '8%' }} />
-                  <col style={{ width: '6%' }} />
+                  <col style={{ width: '46%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '10%' }} />
                 </colgroup>
                 <thead>
                   <tr>
@@ -514,8 +537,6 @@ export default function MayorsOfficePortal({ user, onLogout }) {
                     >
                       Concern & Citizen {renderSortIcon('title')}
                     </th>
-                    <th style={{ userSelect: 'none' }}>Barangay</th>
-                    <th>Target Dept</th>
                     <th
                       onClick={() => handleSort('priority')}
                       style={{ cursor: 'pointer', userSelect: 'none' }}
@@ -544,7 +565,6 @@ export default function MayorsOfficePortal({ user, onLogout }) {
                   {filteredConcerns.map((c) => {
                     const isApproved = !!c.approved_at;
                     const isHigh = c.priority === 'High';
-                    const deptInfo = parseDept(c.department);
 
                     return (
                       <tr
@@ -561,25 +581,6 @@ export default function MayorsOfficePortal({ user, onLogout }) {
                             <span className={s.tableMetaDivider}>·</span>
                             <span className={s.tableCitizenName}>{fmtName(c.user_name)}</span>
                           </div>
-                        </td>
-                        <td>
-                          <div
-                            className={s.barangayCell}
-                            title={c.user_barangay || c.location_address || 'Kabankalan City'}
-                          >
-                            <span className={s.locationPin}>📍</span>
-                            <span>{c.user_barangay || c.location_address || 'Kabankalan City'}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <div className={s.deptMain} title={c.department || '—'}>
-                            {deptInfo.main}
-                          </div>
-                          {deptInfo.sub && (
-                            <div className={s.deptSub} title={deptInfo.sub}>
-                              {deptInfo.sub}
-                            </div>
-                          )}
                         </td>
                         <td>
                           {isHigh ? (
@@ -645,8 +646,6 @@ export default function MayorsOfficePortal({ user, onLogout }) {
                   <span>🏛️ Office of the City Mayor</span>
                   <span>·</span>
                   <span>Executive Directive Order</span>
-                  <span>·</span>
-                  <span>#CV-{String(selectedConcern.id).padStart(4, '0')}</span>
                 </div>
                 <h2 className={s.modalSubject}>{selectedConcern.title}</h2>
               </div>
@@ -724,14 +723,6 @@ export default function MayorsOfficePortal({ user, onLogout }) {
                     </div>
                   </div>
 
-                  <div className={s.citizenField}>
-                    <div className={s.citizenFieldLabel}>Barangay / Location</div>
-                    <div className={s.citizenFieldValue}>
-                      {selectedConcern.user_barangay ||
-                        selectedConcern.location_address ||
-                        'Kabankalan City'}
-                    </div>
-                  </div>
 
                   <div className={s.citizenField}>
                     <div className={s.citizenFieldLabel}>Category</div>
@@ -802,8 +793,8 @@ export default function MayorsOfficePortal({ user, onLogout }) {
                   </select>
                 </div>
 
-                {/* Directive Note & Presets */}
-                <div>
+                {/* Directive Note */}
+                <div className={s.directiveFormGroup}>
                   <label className={s.formLabel}>
                     <span>Official Directive & Instructions *</span>
                     <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
@@ -811,39 +802,13 @@ export default function MayorsOfficePortal({ user, onLogout }) {
                     </span>
                   </label>
 
-                  {/* 1-Click Executive Presets */}
-                  <div className={s.presetContainer}>
-                    <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>
-                      Quick Mayoral Directives:
-                    </div>
-                    {EXECUTIVE_PRESETS.map((preset, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        className={s.presetBtn}
-                        onClick={() => setDirectiveNotes(preset.text)}
-                      >
-                        <strong>{preset.label}:</strong> {preset.text.slice(0, 52)}…
-                      </button>
-                    ))}
-                  </div>
-
                   <textarea
                     className={s.directiveTextarea}
-                    rows={4}
                     value={directiveNotes}
                     onChange={(e) => setDirectiveNotes(e.target.value)}
                     placeholder="Enter formal executive instructions, deployment orders, or priority directives..."
                   />
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: 11,
-                      color: '#64748b',
-                      marginTop: 4,
-                    }}
-                  >
+                  <div className={s.directiveCharCountRow}>
                     <span>
                       {selectedConcern.approved_at
                         ? 'Editing this note updates the official municipal record.'

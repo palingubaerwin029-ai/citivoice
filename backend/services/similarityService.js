@@ -143,18 +143,20 @@ const findSimilarConcerns = (targetConcern, allConcerns, options = {}) => {
     const combinedScore = textScore * 0.6 + geoScore * 0.25 + categoryBonus * 0.15;
 
     // Determine match type:
-    // A 'duplicate' requires genuine subject matter match.
-    // Proximity alone without strong textual certainty is only 'related'.
+    // A 'duplicate' requires genuine subject matter match AND an active previous concern ('Pending' or 'In Progress').
+    // If the candidate concern is already 'Resolved' or 'Rejected', treat as 'related' (historical/recurring)
+    // rather than an active duplicate so recurring or resolved issues are not erroneously closed or ignored.
     let matchType = 'related';
 
     const isSameCategory = c.category === targetConcern.category;
+    const isCandidateActive = !c.status || ['Pending', 'In Progress'].includes(c.status);
 
     if (textScore >= 0.85) {
-      // Overwhelming text similarity -> duplicate regardless of GPS
-      matchType = 'duplicate';
+      // Overwhelming text similarity -> duplicate if candidate is active, otherwise related
+      matchType = isCandidateActive ? 'duplicate' : 'related';
     } else if (textScore >= 0.70 && geoScore >= 0.5 && isSameCategory) {
-      // High text similarity in the same vicinity and same category -> duplicate
-      matchType = 'duplicate';
+      // High text similarity in the same vicinity and same category -> duplicate if active
+      matchType = isCandidateActive ? 'duplicate' : 'related';
     }
 
     return {

@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocation } from '../../hooks/useLocation';
 import { useImagePicker } from '../../hooks/useImagePicker';
 import { useConcerns } from '../../context/ConcernContext';
@@ -88,6 +89,19 @@ export default function SubmitConcernScreen({ navigation, route }) {
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [wasSavedOffline, setWasSavedOffline] = useState(false);
+  const [submittedData, setSubmittedData] = useState(null);
+
+  const handleResetForm = () => {
+    setSubmitted(false);
+    setWasSavedOffline(false);
+    setSubmittedData(null);
+    setCurrentStep(1);
+    setForm({ title: '', description: '', category: 'Road & Infrastructure', priority: 'Medium' });
+    setImageUri(null);
+    setLocation(null);
+    setManualAddress('');
+    setShowMap(false);
+  };
 
   const set = (key, val) => {
     setForm((f) => ({ ...f, [key]: val }));
@@ -293,6 +307,16 @@ export default function SubmitConcernScreen({ navigation, route }) {
       } else {
         setWasSavedOffline(false);
       }
+      setSubmittedData({
+        title: form.title.trim(),
+        description: form.description.trim(),
+        category: form.category,
+        priority: form.priority,
+        imageUri,
+        location: finalLocation,
+        id: res?.id || res?.data?.id || null,
+        offline: !!(res && res.offline),
+      });
       setSubmitted(true);
     } catch (err) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -354,45 +378,237 @@ export default function SubmitConcernScreen({ navigation, route }) {
   };
 
   if (submitted) {
+    const displayCategory = submittedData?.category || form.category || 'Road & Infrastructure';
+    const catConfigs = getCategoryConfig(colors);
+    const catCfg = catConfigs[displayCategory] || catConfigs['Other'] || {};
+    const displayTitle = submittedData?.title || form.title || 'Concern Report';
+    const displayLocation =
+      submittedData?.location?.address || location?.address || manualAddress || 'Kabankalan City';
+    const displayPriority = submittedData?.priority || form.priority || 'Medium';
+
     return (
-      <View style={[styles.successContainer, { backgroundColor: colors.bgDark }]}>
-        <View
-          style={[
-            styles.successCircle,
-            { backgroundColor: colors.bgCard, borderColor: colors.border },
-          ]}
+      <SafeAreaView style={[styles.successSafeArea, { backgroundColor: colors.bgDeep }]}>
+        <ScrollView
+          contentContainerStyle={styles.successScrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={{ fontSize: 52 }}>🎉</Text>
-        </View>
-        <Text style={[styles.successTitle, { color: colors.textPrimary }]}>
-          {wasSavedOffline ? t('submittedOffline') : t('submitted')}
-        </Text>
-        <Text style={[styles.successMsg, { color: colors.textSecondary }]}>
-          {wasSavedOffline ? t('submittedOfflineMsg') : t('submittedMsg')}
-        </Text>
-        <TouchableOpacity
-          style={[styles.successBtn, { backgroundColor: colors.primary }]}
-          onPress={() => navigation.navigate('Feed')}
-        >
-          <Text style={styles.successBtnText}>{t('viewFeed')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.successSecBtn}
-          onPress={() => {
-            setSubmitted(false);
-            setWasSavedOffline(false);
-            setCurrentStep(1);
-            setForm({ title: '', description: '', category: 'Road & Infrastructure', priority: 'Medium' });
-            setImageUri(null);
-            setLocation(null);
-            setShowMap(false);
-          }}
-        >
-          <Text style={[styles.successSecBtnText, { color: colors.textSecondary }]}>
-            {t('reportAnother')}
+          {/* 🌟 Glowing Celebration Emblem */}
+          <View style={styles.celebrationWrap}>
+            <View style={[styles.celebrationHaloOuter, { backgroundColor: 'rgba(16, 185, 129, 0.08)' }]}>
+              <View style={[styles.celebrationHaloMid, { backgroundColor: 'rgba(16, 185, 129, 0.16)' }]}>
+                <LinearGradient
+                  colors={['#10B981', '#059669']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.celebrationCoreCircle}
+                >
+                  <Ionicons name="checkmark-sharp" size={scale(40)} color="#FFFFFF" />
+                </LinearGradient>
+              </View>
+            </View>
+            <View style={styles.confettiSparkleBadge}>
+              <Text style={{ fontSize: rf(16) }}>🎉</Text>
+            </View>
+          </View>
+
+          {/* 📣 Celebration Heading */}
+          <Text style={[styles.successHeadline, { color: colors.textPrimary }]}>
+            {wasSavedOffline ? t('submittedOffline') : t('submitted')}
           </Text>
-        </TouchableOpacity>
-      </View>
+          <Text style={[styles.successSubtext, { color: colors.textSecondary }]}>
+            {wasSavedOffline
+              ? t('submittedOfflineMsg')
+              : 'Your civic report has been received and routed for official municipal review.'}
+          </Text>
+
+          {/* 🏛️ Official Docket Receipt Card */}
+          <View style={[styles.receiptCard, { backgroundColor: colors.bgCard, borderColor: colors.borderMd }]}>
+            {/* Card Header Strip */}
+            <View style={styles.receiptHeaderRow}>
+              <View style={styles.receiptSealGroup}>
+                <Ionicons name="shield-checkmark" size={rf(15)} color={colors.primary} />
+                <Text style={[styles.receiptSealText, { color: colors.primaryLight }]}>
+                  {wasSavedOffline ? 'OFFLINE CIVIC QUEUE' : 'OFFICIAL MUNICIPAL DOCKET'}
+                </Text>
+              </View>
+              <View style={[styles.receiptStatusPill, { backgroundColor: 'rgba(245, 158, 11, 0.14)' }]}>
+                <View style={styles.pulsingStatusDot} />
+                <Text style={styles.receiptStatusText}>Pending Review</Text>
+              </View>
+            </View>
+
+            {/* Divider */}
+            <View style={[styles.receiptDivider, { backgroundColor: colors.divider }]} />
+
+            {/* Concern Snapshot Row */}
+            <View style={styles.receiptConcernRow}>
+              {(submittedData?.imageUri || imageUri) ? (
+                <Image
+                  source={{ uri: submittedData?.imageUri || imageUri }}
+                  style={styles.receiptThumbnail}
+                />
+              ) : (
+                <View style={[styles.receiptThumbPlaceholder, { backgroundColor: colors.bgElevated }]}>
+                  <Ionicons name="document-text" size={rf(22)} color={colors.primary} />
+                </View>
+              )}
+              <View style={{ flex: 1, marginLeft: scale(12) }}>
+                <Text style={[styles.receiptTitle, { color: colors.textPrimary }]} numberOfLines={2}>
+                  {displayTitle}
+                </Text>
+                <View style={styles.receiptCategoryRow}>
+                  <Ionicons
+                    name={catCfg?.icon || 'folder-outline'}
+                    size={rf(13)}
+                    color={catCfg?.color || colors.primary}
+                    style={{ marginRight: scale(5) }}
+                  />
+                  <Text style={[styles.receiptCategoryText, { color: catCfg?.color || colors.textSecondary }]}>
+                    {catCfg?.label || displayCategory}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Meta Attributes */}
+            <View style={[styles.receiptMetaBox, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}>
+              <View style={styles.receiptMetaItem}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: verticalScale(3) }}>
+                  <Ionicons name="location-outline" size={rf(13)} color={colors.primary} />
+                  <Text style={[styles.receiptMetaLabel, { color: colors.textMuted }]}> Location</Text>
+                </View>
+                <Text style={[styles.receiptMetaVal, { color: colors.textPrimary }]} numberOfLines={1}>
+                  {displayLocation}
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.receiptMetaItem,
+                  { borderLeftWidth: 1, borderLeftColor: colors.border, paddingLeft: scale(12) },
+                ]}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: verticalScale(3) }}>
+                  <Ionicons
+                    name="alert-circle-outline"
+                    size={rf(13)}
+                    color={PRIORITY_COLORS[displayPriority] || colors.statusPending}
+                  />
+                  <Text style={[styles.receiptMetaLabel, { color: colors.textMuted }]}> Priority</Text>
+                </View>
+                <Text
+                  style={[
+                    styles.receiptMetaVal,
+                    { color: PRIORITY_COLORS[displayPriority] || colors.statusPending },
+                  ]}
+                >
+                  {displayPriority} Risk
+                </Text>
+              </View>
+            </View>
+
+            {/* Next Steps Stepper Tracker */}
+            <View style={styles.stepperWrap}>
+              <Text style={[styles.stepperHeaderTitle, { color: colors.textMuted }]}>WHAT HAPPENS NEXT</Text>
+
+              <View style={styles.stepItemRow}>
+                <View style={styles.stepIndicatorCol}>
+                  <View style={[styles.stepDotActive, { backgroundColor: '#10B981' }]}>
+                    <Ionicons name="checkmark" size={rf(10)} color="#fff" />
+                  </View>
+                  <View style={[styles.stepConnectorLine, { backgroundColor: colors.borderMd }]} />
+                </View>
+                <View style={styles.stepContentCol}>
+                  <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Incident Report Registered</Text>
+                  <Text style={[styles.stepDesc, { color: colors.textMuted }]}>Logged securely into the city intake queue.</Text>
+                </View>
+              </View>
+
+              <View style={styles.stepItemRow}>
+                <View style={styles.stepIndicatorCol}>
+                  <View
+                    style={[
+                      styles.stepDotPending,
+                      { backgroundColor: colors.bgElevated, borderColor: colors.primary },
+                    ]}
+                  >
+                    <Text style={{ fontSize: rf(9), color: colors.primary, fontWeight: '800' }}>2</Text>
+                  </View>
+                  <View style={[styles.stepConnectorLine, { backgroundColor: colors.borderMd }]} />
+                </View>
+                <View style={styles.stepContentCol}>
+                  <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Executive & Dept Evaluation</Text>
+                  <Text style={[styles.stepDesc, { color: colors.textMuted }]}>Target municipal department assigned for action.</Text>
+                </View>
+              </View>
+
+              <View style={styles.stepItemRow}>
+                <View style={styles.stepIndicatorCol}>
+                  <View
+                    style={[
+                      styles.stepDotUpcoming,
+                      { backgroundColor: colors.bgElevated, borderColor: colors.border },
+                    ]}
+                  >
+                    <Text style={{ fontSize: rf(9), color: colors.textMuted, fontWeight: '700' }}>3</Text>
+                  </View>
+                </View>
+                <View style={styles.stepContentCol}>
+                  <Text style={[styles.stepTitle, { color: colors.textMuted }]}>Field Remediation & Resolution</Text>
+                  <Text style={[styles.stepDesc, { color: colors.textMuted }]}>On-site fix with photo proof update.</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Notification reassurance note */}
+            <View style={[styles.notificationHintRow, { backgroundColor: 'rgba(59, 130, 246, 0.08)' }]}>
+              <Ionicons name="notifications-outline" size={rf(15)} color="#60A5FA" />
+              <Text style={styles.notificationHintText}>
+                You will receive real-time updates as your report is processed.
+              </Text>
+            </View>
+          </View>
+
+          {/* 🚀 Primary Action Button (Gradient) */}
+          <TouchableOpacity
+            style={styles.actionBtnWrap}
+            activeOpacity={0.88}
+            onPress={() => navigation.navigate('Feed')}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.primaryDark || '#D97706']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.primaryGradBtn}
+            >
+              <Ionicons name="albums-outline" size={rf(18)} color="#FFFFFF" />
+              <Text style={styles.primaryGradBtnText}>{t('viewFeed')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* 🔄 Secondary Action Button (Outline) */}
+          <TouchableOpacity
+            style={[styles.secondaryOutlinedBtn, { borderColor: colors.borderMd, backgroundColor: colors.bgCard }]}
+            activeOpacity={0.75}
+            onPress={handleResetForm}
+          >
+            <Ionicons name="add-circle-outline" size={rf(18)} color={colors.textPrimary} />
+            <Text style={[styles.secondaryOutlinedBtnText, { color: colors.textPrimary }]}>
+              {t('reportAnother')}
+            </Text>
+          </TouchableOpacity>
+
+          {/* 🏠 Return Home Link */}
+          <TouchableOpacity
+            style={styles.homeLinkBtn}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Home')}
+          >
+            <Ionicons name="home-outline" size={rf(14)} color={colors.textMuted} />
+            <Text style={[styles.homeLinkText, { color: colors.textMuted }]}>Return to Home</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
@@ -1124,44 +1340,309 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
-  // ── Success ──
-  successContainer: {
+  // ── Success Redesign ──
+  successSafeArea: {
     flex: 1,
+  },
+  successScrollContent: {
+    paddingHorizontal: scale(20),
+    paddingTop: verticalScale(16),
+    paddingBottom: verticalScale(36),
+    alignItems: 'center',
+  },
+  celebrationWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: scale(32),
+    marginTop: verticalScale(12),
+    marginBottom: verticalScale(16),
+    position: 'relative',
   },
-  successCircle: {
-    width: scale(100),
-    height: scale(100),
-    borderRadius: moderateScale(28),
-    borderWidth: 1,
+  celebrationHaloOuter: {
+    width: scale(116),
+    height: scale(116),
+    borderRadius: scale(58),
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: verticalScale(24),
   },
-  successTitle: {
-    fontSize: rf(24),
+  celebrationHaloMid: {
+    width: scale(92),
+    height: scale(92),
+    borderRadius: scale(46),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  celebrationCoreCircle: {
+    width: scale(68),
+    height: scale(68),
+    borderRadius: scale(34),
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  confettiSparkleBadge: {
+    position: 'absolute',
+    bottom: verticalScale(2),
+    right: scale(12),
+    backgroundColor: '#0F172A',
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  successHeadline: {
+    fontSize: rf(23),
     fontWeight: '900',
-    marginBottom: verticalScale(10),
+    letterSpacing: -0.3,
     textAlign: 'center',
+    marginBottom: verticalScale(6),
   },
-  successMsg: {
-    fontSize: rf(15),
+  successSubtext: {
+    fontSize: rf(13.5),
     textAlign: 'center',
-    lineHeight: rf(22),
-    marginBottom: verticalScale(32),
+    lineHeight: rf(20),
+    paddingHorizontal: scale(16),
+    marginBottom: verticalScale(20),
   },
-  successBtn: {
+  receiptCard: {
     width: '100%',
-    borderRadius: moderateScale(14),
-    paddingVertical: verticalScale(16),
+    borderRadius: moderateScale(18),
+    borderWidth: 1,
+    padding: scale(16),
+    marginBottom: verticalScale(20),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+  receiptHeaderRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: verticalScale(12),
   },
-  successBtnText: { color: '#fff', fontSize: rf(16), fontWeight: '700' },
-  successSecBtn: { paddingVertical: verticalScale(12) },
-  successSecBtnText: { fontSize: rf(14) },
+  receiptSealGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
+  receiptSealText: {
+    fontSize: rf(10.5),
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  receiptStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(5),
+    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(3),
+    borderRadius: moderateScale(12),
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  pulsingStatusDot: {
+    width: scale(6),
+    height: scale(6),
+    borderRadius: scale(3),
+    backgroundColor: '#F59E0B',
+  },
+  receiptStatusText: {
+    fontSize: rf(10.5),
+    fontWeight: '700',
+    color: '#FBBF24',
+  },
+  receiptDivider: {
+    height: 1,
+    width: '100%',
+    marginBottom: verticalScale(14),
+  },
+  receiptConcernRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: verticalScale(14),
+  },
+  receiptThumbnail: {
+    width: scale(56),
+    height: scale(56),
+    borderRadius: moderateScale(12),
+    backgroundColor: '#0F172A',
+  },
+  receiptThumbPlaceholder: {
+    width: scale(56),
+    height: scale(56),
+    borderRadius: moderateScale(12),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  receiptTitle: {
+    fontSize: rf(14.5),
+    fontWeight: '700',
+    lineHeight: rf(19),
+    marginBottom: verticalScale(4),
+  },
+  receiptCategoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  receiptCategoryText: {
+    fontSize: rf(12),
+    fontWeight: '600',
+  },
+  receiptMetaBox: {
+    flexDirection: 'row',
+    borderRadius: moderateScale(12),
+    borderWidth: 1,
+    padding: scale(10),
+    marginBottom: verticalScale(14),
+  },
+  receiptMetaItem: {
+    flex: 1,
+  },
+  receiptMetaLabel: {
+    fontSize: rf(10.5),
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  receiptMetaVal: {
+    fontSize: rf(12),
+    fontWeight: '700',
+  },
+  stepperWrap: {
+    marginTop: verticalScale(2),
+    marginBottom: verticalScale(12),
+  },
+  stepperHeaderTitle: {
+    fontSize: rf(10.5),
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: verticalScale(10),
+  },
+  stepItemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: verticalScale(4),
+  },
+  stepIndicatorCol: {
+    alignItems: 'center',
+    width: scale(22),
+    marginRight: scale(10),
+  },
+  stepDotActive: {
+    width: scale(18),
+    height: scale(18),
+    borderRadius: scale(9),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepDotPending: {
+    width: scale(18),
+    height: scale(18),
+    borderRadius: scale(9),
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepDotUpcoming: {
+    width: scale(18),
+    height: scale(18),
+    borderRadius: scale(9),
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepConnectorLine: {
+    width: 2,
+    height: verticalScale(16),
+    marginVertical: verticalScale(2),
+  },
+  stepContentCol: {
+    flex: 1,
+    paddingBottom: verticalScale(8),
+  },
+  stepTitle: {
+    fontSize: rf(12.5),
+    fontWeight: '700',
+    marginBottom: verticalScale(1),
+  },
+  stepDesc: {
+    fontSize: rf(11),
+    lineHeight: rf(15),
+  },
+  notificationHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(9),
+    borderRadius: moderateScale(10),
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+  },
+  notificationHintText: {
+    flex: 1,
+    fontSize: rf(11.5),
+    color: '#93C5FD',
+    lineHeight: rf(16),
+    fontWeight: '500',
+  },
+  actionBtnWrap: {
+    width: '100%',
+    marginBottom: verticalScale(10),
+  },
+  primaryGradBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: scale(8),
+    paddingVertical: verticalScale(15),
+    borderRadius: moderateScale(14),
+  },
+  primaryGradBtnText: {
+    color: '#FFFFFF',
+    fontSize: rf(15),
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  secondaryOutlinedBtn: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: scale(8),
+    paddingVertical: verticalScale(14),
+    borderRadius: moderateScale(14),
+    marginBottom: verticalScale(8),
+  },
+  secondaryOutlinedBtnText: {
+    fontSize: rf(14),
+    fontWeight: '700',
+  },
+  homeLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: scale(6),
+    paddingVertical: verticalScale(10),
+  },
+  homeLinkText: {
+    fontSize: rf(13),
+    fontWeight: '600',
+  },
 
   // Smart Chips
   smartChipHeader: { fontSize: rf(12), fontWeight: '600', marginBottom: verticalScale(8) },

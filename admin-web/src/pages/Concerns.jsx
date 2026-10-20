@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api, fmtDateShort, resolveImageUrl } from '../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { socket } from '../services/socket';
+import { socket, connectSocket } from '../services/socket';
 import { useToast } from '../components/ToastProvider';
 
 import s from '../styles/Admin.module.css';
@@ -98,35 +98,43 @@ export default function Concerns() {
   };
 
   useEffect(() => {
+    connectSocket();
+
     // Only show full skeleton if we have no data at all
     const hasData = concerns.length > 0;
     loadData(!hasData);
 
+    // Auto-refresh concerns in the background every 30 seconds
+    const interval = setInterval(() => {
+      loadData(false);
+    }, 30000);
+
     const onNewConcern = (newConcern) => {
-      if (statusFilter !== 'All' && newConcern.status !== statusFilter) return;
-      if (debouncedSearch && !newConcern.title.toLowerCase().includes(debouncedSearch.toLowerCase())) return;
-
-      addToast(`New concern: ${newConcern.title}`);
-
-      setConcerns((prev) => {
-        const newList = [newConcern, ...prev];
-        return newList.slice(0, itemsPerPage);
-      });
-      setTotalConcerns((prev) => prev + 1);
+      if (newConcern?.title) {
+        addToast(`📢 New concern received: ${newConcern.title}`);
+      }
+      loadData(false);
     };
 
-    const onUpdateConcern = (updatedConcern) => {
-      setConcerns((prev) => prev.map((c) => (c.id === updatedConcern.id ? updatedConcern : c)));
+    const onUpdateConcern = () => {
+      loadData(false);
     };
 
     socket.on('new_concern', onNewConcern);
     socket.on('update_concern', onUpdateConcern);
+    socket.on('concern_status_changed', onUpdateConcern);
+    socket.on('concern_updated', onUpdateConcern);
+    socket.on('concern_stats_updated', onUpdateConcern);
 
     return () => {
+      clearInterval(interval);
       socket.off('new_concern', onNewConcern);
       socket.off('update_concern', onUpdateConcern);
+      socket.off('concern_status_changed', onUpdateConcern);
+      socket.off('concern_updated', onUpdateConcern);
+      socket.off('concern_stats_updated', onUpdateConcern);
     };
-  }, [concernPage, itemsPerPage, debouncedSearch, statusFilter, priorityFilter, sortBy]);
+  }, [concernPage, itemsPerPage, debouncedSearch, statusFilter, priorityFilter, sortBy, addToast]);
 
   const totalConcernPages = Math.ceil(totalConcerns / itemsPerPage);
   

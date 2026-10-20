@@ -16,7 +16,7 @@ import s from '../styles/Admin.module.css';
 import d from '../styles/Dashboard.module.css';
 import Skeleton from '../components/Skeleton';
 import AnimatedCounter from '../components/AnimatedCounter';
-import { socket } from '../services/socket';
+import { socket, connectSocket } from '../services/socket';
 import { useToast } from '../components/ToastProvider';
 
 const STATUS_COLORS = {
@@ -99,35 +99,52 @@ export default function Dashboard() {
   }, [singleDate]);
 
   useEffect(() => {
-    const fetchData = () => {
+    connectSocket();
+
+    const fetchData = (isSilent = false) => {
+      if (!isSilent) setLoading(true);
       api.get('/concerns')
         .then((res) => {
           setConcerns(res.data || []);
         })
         .catch(console.error)
-        .finally(() => setLoading(false));
+        .finally(() => {
+          if (!isSilent) setLoading(false);
+        });
     };
 
     fetchData();
 
+    // Auto-refresh concerns every 30 seconds in background
+    const interval = setInterval(() => {
+      fetchData(true);
+    }, 30000);
+
     // Listen to socket events
     const handleNewConcern = (newConcern) => {
-      setConcerns((prev) => [newConcern, ...prev]);
-      addToast(`New concern: ${newConcern.title}`);
+      if (newConcern?.title) {
+        addToast(`📢 New concern: ${newConcern.title}`);
+      }
+      fetchData(true);
     };
 
-    const handleUpdateConcern = (updatedConcern) => {
-      setConcerns((prev) =>
-        prev.map((c) => (c.id === updatedConcern.id ? updatedConcern : c))
-      );
+    const handleUpdateConcern = () => {
+      fetchData(true);
     };
 
     socket.on('new_concern', handleNewConcern);
     socket.on('update_concern', handleUpdateConcern);
+    socket.on('concern_status_changed', handleUpdateConcern);
+    socket.on('concern_updated', handleUpdateConcern);
+    socket.on('concern_stats_updated', handleUpdateConcern);
 
     return () => {
+      clearInterval(interval);
       socket.off('new_concern', handleNewConcern);
       socket.off('update_concern', handleUpdateConcern);
+      socket.off('concern_status_changed', handleUpdateConcern);
+      socket.off('concern_updated', handleUpdateConcern);
+      socket.off('concern_stats_updated', handleUpdateConcern);
     };
   }, [addToast]);
 
@@ -255,9 +272,9 @@ export default function Dashboard() {
               </>
             )}
           </div>
-          <div className={d.liveIndicator}>
+          <div className={d.liveIndicator} title="Dashboard updates in real-time and auto-refreshes every 30s">
             <span className={d.liveDot} />
-            Live data
+            Auto-refresh 30s
           </div>
         </div>
       </div>

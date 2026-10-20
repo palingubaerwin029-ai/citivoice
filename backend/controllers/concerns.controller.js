@@ -339,6 +339,61 @@ const createConcern = async (req, res) => {
           await insertConcernLink(insertId, match.concern.id, match.matchType, match.combinedScore);
           if (match.matchType === 'duplicate') {
             console.log(`[AI] Linked duplicate concern #${insertId} with original #${match.concern.id} (${match.combinedScore}% match)`);
+
+            // Check previous concern's status:
+            // If the original active concern is already 'In Progress', synchronize the duplicate concern's status,
+            // department, and details so the duplicate reflects the active progress.
+            if (!isDuplicate && match.concern.status === 'In Progress') {
+              isDuplicate = true;
+              originalConcernId = match.concern.id;
+
+              const fieldsToUpdate = ['status = ?', 'updated_at = NOW()'];
+              const valuesToUpdate = ['In Progress'];
+
+              if (match.concern.department) {
+                fieldsToUpdate.push('department = ?');
+                valuesToUpdate.push(match.concern.department);
+              }
+              if (match.concern.admin_note) {
+                fieldsToUpdate.push('admin_note = ?');
+                valuesToUpdate.push(`[Duplicate of "${match.concern.title}"] ${match.concern.admin_note}`);
+              }
+              if (match.concern.approved_by_name) {
+                fieldsToUpdate.push('approved_by_name = ?');
+                valuesToUpdate.push(match.concern.approved_by_name);
+              }
+              if (match.concern.approved_at) {
+                fieldsToUpdate.push('approved_at = ?');
+                valuesToUpdate.push(match.concern.approved_at);
+              }
+
+              await updateConcernFields(insertId, fieldsToUpdate, valuesToUpdate);
+              invalidate('concerns', 'concern_detail', 'map_concerns');
+
+              try {
+                if (req.user?.id) {
+                  await insertNotification(
+                    req.user.id,
+                    '🔄 Active Incident Update — In Progress',
+                    `Your reported concern "${title}" matches an existing open incident (#${match.concern.id}) that is currently In Progress. We are already addressing it!`,
+                    insertId,
+                  );
+                }
+              } catch (notifErr) {
+                console.error('[Notification] Error creating duplicate in-progress notif:', notifErr.message);
+              }
+
+              const io = req.app.get('io');
+              if (io) {
+                const refreshed = await selectConcernById(insertId);
+                if (refreshed) {
+                  io.to(`user:${req.user?.id}`).emit('concern_status_changed', refreshed);
+                  io.emit('concern_updated', refreshed);
+                }
+              }
+
+              console.log(`[AI] Auto-synchronized duplicate concern #${insertId} to status 'In Progress' matching original #${match.concern.id}`);
+            }
           }
         }
 
@@ -360,9 +415,11 @@ const createConcern = async (req, res) => {
       console.error('[Workflow] Auto-assign error:', e);
     }
     
-    // Broadcast via socket
+    // Broadcast via socket to all portals (Admin & Mayor)
     if (io) {
       io.to('admin').emit('new_concern', newConcern);
+      io.to('mayor').emit('new_concern', newConcern);
+      io.emit('new_concern', newConcern);
       io.to(`user:${req.user.id}`).emit('new_concern', newConcern);
       io.emit('concern_stats_updated', { concernId: newConcern.id, userId: req.user.id });
     }
@@ -559,9 +616,12 @@ const editConcern = async (req, res) => {
       }
     }
     
-    // Broadcast via socket
+    // Broadcast via socket to all portals (Admin & Mayor)
     if (io) {
       io.to('admin').emit('update_concern', updatedConcern);
+      io.to('mayor').emit('update_concern', updatedConcern);
+      io.emit('update_concern', updatedConcern);
+      io.emit('concern_updated', updatedConcern);
       if (updatedConcern.user_id) {
         io.to(`user:${updatedConcern.user_id}`).emit('concern_status_changed', updatedConcern);
       }
@@ -903,7 +963,27 @@ const linkConcerns = async (req, res) => {
         await updateConcernFields(sourceId, fieldsToUpdate, valuesToUpdate);
         invalidate('concerns', 'concern_detail', 'map_concerns');
 
+        if (sourceConcern.user_id && appliedStatus !== sourceConcern.status) {
+          try {
+            await insertNotification(
+              sourceConcern.user_id,
+              `Status Updated: ${sourceConcern.title}`,
+              `Your concern "${sourceConcern.title}" has been linked to an existing report and updated to ${appliedStatus}.`,
+              sourceId,
+            );
+          } catch (notifErr) {
+            console.error('[Notification] Error creating link duplicate status notif:', notifErr.message);
+          }
 
+          const io = req.app.get('io');
+          if (io) {
+            const updated = await selectConcernById(sourceId);
+            if (updated) {
+              io.to(`user:${sourceConcern.user_id}`).emit('concern_status_changed', updated);
+              io.emit('concern_updated', updated);
+            }
+          }
+        }
       }
     }
 

@@ -1514,6 +1514,14 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+  height: 100%;
+}
+
+.directiveFormGroup {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .formLabel {
@@ -1526,52 +1534,45 @@
   margin-bottom: 6px;
 }
 
-.presetContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.presetBtn {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 7px 11px;
-  border-radius: 8px;
-  font-size: 11.5px;
-  color: #93c5fd;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  line-height: 1.35;
-}
-
-.presetBtn:hover {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.35);
-  color: #bfdbfe;
-}
-
 .directiveTextarea {
   width: 100%;
+  flex: 1;
+  min-height: 220px;
   background: #020617;
   border: 1.5px solid rgba(245, 158, 11, 0.35);
   color: #ffffff;
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-radius: 12px;
   font-size: 13.5px;
-  line-height: 1.5;
+  line-height: 1.6;
   outline: none;
   font-family: inherit;
   resize: vertical;
   box-sizing: border-box;
-  min-height: 110px;
   transition: border-color 0.2s;
 }
 
 .directiveTextarea:focus {
   border-color: #f59e0b;
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+.directiveTextarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.directiveTextarea::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.directiveCharCountRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 6px;
 }
 
 .modalFooter {
@@ -1719,6 +1720,35 @@
 @keyframes mayorSpin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+.autoRefreshBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 9px;
+  user-select: none;
+  letter-spacing: 0.3px;
+}
+
+.livePulseDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulseLiveDot 2s infinite ease-in-out;
+}
+
+@keyframes pulseLiveDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
 }
 
 /* ══════════════════════════════════════════════════
