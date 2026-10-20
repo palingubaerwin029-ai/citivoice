@@ -658,42 +658,9 @@ export default function RegisterScreen({ navigation, route }) {
           {/* Form */}
           <View style={[S.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
             <View style={{ marginBottom: verticalScale(14) }}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: verticalScale(6),
-                }}
-              >
-                <Text style={[S.fieldLabel, { color: colors.textSecondary, marginBottom: 0 }]}>
-                  {`${t('fullName').toUpperCase()} (AS ON ID)`} *
-                </Text>
-                <View style={{ flexDirection: 'row', gap: scale(6), alignItems: 'center' }}>
-                  <Text style={{ fontSize: rf(11), color: colors.textMuted }}>Insert:</Text>
-                  <TouchableOpacity
-                    style={[S.quickCharBtn, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}
-                    onPress={() => set('name', (form.name || '') + 'Ñ')}
-                    accessibilityLabel="Insert uppercase enye"
-                  >
-                    <Text style={[S.quickCharText, { color: colors.primary }]}>Ñ</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[S.quickCharBtn, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}
-                    onPress={() => set('name', (form.name || '') + 'ñ')}
-                    accessibilityLabel="Insert lowercase enye"
-                  >
-                    <Text style={[S.quickCharText, { color: colors.primary }]}>ñ</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[S.quickCharBtn, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}
-                    onPress={() => set('name', (form.name || '') + '-')}
-                    accessibilityLabel="Insert dash"
-                  >
-                    <Text style={[S.quickCharText, { color: colors.primary }]}>-</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+              <Text style={[S.fieldLabel, { color: colors.textSecondary }]}>
+                {`${t('fullName').toUpperCase()} (AS ON ID)`} *
+              </Text>
               <InputField
                 value={form.name}
                 onChangeText={(v) => set('name', v)}
@@ -1573,19 +1540,6 @@ const S = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.8,
     marginBottom: verticalScale(8),
-  },
-  quickCharBtn: {
-    paddingHorizontal: scale(8),
-    paddingVertical: verticalScale(2),
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: scale(26),
-  },
-  quickCharText: {
-    fontSize: rf(12),
-    fontWeight: '700',
   },
 
   inputWrap: {
