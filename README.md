@@ -33,7 +33,10 @@
   - [Executive 2-Page Municipal Print Reports](#-executive-2-page-municipal-print-reports)
   - [Email OTP Verification Workflow](#-email-otp-verification-workflow)
   - [Editable Citizen Profile](#-editable-citizen-profile)
-  - [Mayor's Office Workflow & AI Responses](#-mayors-office-workflow--ai-responses)
+  - [Mayor's Office Workflow, AI Responses & Executive Directives](#-mayors-office-workflow-ai-responses--executive-directives)
+  - [Real-Time WebSocket Sync & Silent Auto-Refresh](#-real-time-websocket-sync--silent-auto-refresh)
+  - [Smart Status-Aware Duplicate Detection & Resolution Sync](#-smart-status-aware-duplicate-detection--resolution-sync)
+  - [Citizen Incident Submission & Official Municipal Docket Receipt](#-citizen-incident-submission--official-municipal-docket-receipt)
   - [GIS Mapping & Spatial Visualization](#-gis-mapping--spatial-visualization)
   - [Automated Database Backups](#-automated-database-backups)
   - [Off-PC Backups to OneDrive](#-off-pc-backups-to-onedrive)
@@ -143,11 +146,37 @@ citivoice/
 - **Polished Feedback** — Success, error, and sign-out confirmations use a custom `CustomAlertModal` (gradient icon badge, dark card) instead of the plain system alert.
 - **Multilingual** — Edit labels and messages are translated for English, Filipino, and Hiligaynon.
 
-### 🏛️ Mayor's Office Workflow & AI Responses
-- **Validate & Forward** — Admins validate a concern and forward it to the Mayor's Office (`/forward-to-mayor`); the mayor approves it from the dedicated portal (`/approve`).
-- **Assignments, Comments & Audit Trail** — Assign concerns to departments, post internal or citizen-visible comments, and review a full audit log per concern.
-- **AI Draft Responses** — The **✨ AI Draft** button generates an official response that is auto-sized in the editor so the full text is always visible. Only genuine official responses are shown to citizens; internal tags are filtered out.
-- **Duplicate Detection** — Similar concerns can be found and linked together.
+### 🏛️ Mayor's Office Workflow, AI Responses & Executive Directives
+- **Dedicated Mayoral Portal** — An executive dashboard (`/mayor`) tailored specifically for the Local Chief Executive to inspect priority community concerns, issue directives, and monitor citywide response velocity.
+- **Streamlined Incident Docket** — Clean, high-focus docket table tracking reporting citizens, issue categories, severity urgency risk badges, and direct executive actions without visual clutter.
+- **Direct Mayoral Directives Card** — Full-width flex directive composer allowing the Mayor to issue formal action instructions, priority requirements, and inter-agency mandates directly to department heads.
+- **Filtered Mayoral Metrics** — Real-time KPI counters (`Total Received`, `Approved & Endorsed`, `Awaiting Review`, `Directives Issued`) and resolution percentage trackers strictly exclude dismissed or rejected tickets to preserve clean civic accountability metrics.
+- **Assignments, Comments & Audit Trail** — Department dispatching, citizen-visible updates, internal inter-office notes, and immutable chronological audit logging per concern.
+- **AI Draft Responses** — The **✨ AI Draft** button generates an official mayoral statement formatted in official executive tone; internal system tags are automatically filtered before citizen notification.
+
+### ⚡ Real-Time WebSocket Sync & Silent Auto-Refresh
+- **Instant Bi-Directional Event Dispatch** — Powered by `Socket.io` rooms (`'mayor'`, `'admin'`). The backend broadcasts instant updates (`new_concern`, `update_concern`, `status_updated`) whenever reports are submitted or progress states change.
+- **Zero-Manual Reload Dashboards** — Both the **Mayor's Office Portal** and **Web Admin Dashboard** dynamically update their concern tables, metric cards, and charts in real time as citizen reports arrive.
+- **Silent Background Fallback Polling** — Built-in 30-second silent background polling guarantees data consistency even across intermittent mobile network reconnections.
+
+### 🧠 Smart Status-Aware Duplicate Detection & Resolution Sync
+- **Status-Aware Categorization** — Rather than blindly rejecting recurring community reports, the similarity engine differentiates active vs. closed tickets:
+  - Reports matching an active concern (`Pending` or `In Progress`) are flagged as `duplicate` and linked.
+  - Reports matching a previously completed issue (`Resolved` or `Rejected`) are classified as `related` / recurring, ensuring new flare-ups or unaddressed hazards are never discarded.
+- **Automatic Lifecycle Synchronization** — When a duplicate report is submitted against a concern that is already `In Progress`, the duplicate is immediately advanced to `In Progress` and the reporting citizen is automatically notified that field crews are actively on-site.
+
+### 📱 Citizen Incident Submission & Official Municipal Docket Receipt
+- **Celebration & Intake Verification** — Dynamic confirmation view featuring glowing emerald celebration halos, high-contrast checkmark shield, and micro-confetti badges.
+- **Official Municipal Docket Receipt Card** — Provides citizens with an authoritative civic confirmation:
+  - Live header badge distinguishing `OFFICIAL MUNICIPAL DOCKET` (online) from `OFFLINE CIVIC QUEUE` (local sync).
+  - Pulsing amber `Pending Review` status dot.
+  - Photo evidence thumbnail preview, concern title, and color-coded category tag with civic icon.
+  - Pinned geolocation coordinates/address and risk priority chip (`Low`, `Medium`, or `High Risk`).
+- **3-Step Transparent Municipal Pipeline Tracker** — Visual stepper keeping citizens informed of the resolution lifecycle:
+  1. **Incident Report Registered** (Completed ✓) — Logged securely into the municipal intake queue.
+  2. **Executive & Dept Evaluation** (Active ⏳) — Dispatched to the relevant city department.
+  3. **Field Remediation & Resolution** (Upcoming 🛠️) — On-site fix with photo verification update.
+- **Real-Time Notification Reassurance** — Informs citizens that live push updates will track every milestone of their ticket until final resolution.
 
 ### 🗺️ GIS Mapping & Spatial Visualization
 - **Web Admin Leaflet Map** — Full-screen interactive map featuring marker clustering (`react-leaflet-cluster`), heatmap intensity overlays (`leaflet.heat`), and filtering by status, category, and barangay.
