@@ -1733,34 +1733,7 @@
   to { transform: rotate(360deg); }
 }
 
-.autoRefreshBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  color: #34d399;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 6px 10px;
-  border-radius: 9px;
-  user-select: none;
-  letter-spacing: 0.3px;
-}
 
-.livePulseDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px #10b981;
-  animation: pulseLiveDot 2s infinite ease-in-out;
-}
-
-@keyframes pulseLiveDot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.8); }
-}
 
 /* ══════════════════════════════════════════════════
    10. PRINT MEDIA STYLING (EXECUTIVE DOCKET)

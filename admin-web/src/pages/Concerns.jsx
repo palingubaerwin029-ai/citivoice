@@ -104,11 +104,6 @@ export default function Concerns() {
     const hasData = concerns.length > 0;
     loadData(!hasData);
 
-    // Auto-refresh concerns in the background every 30 seconds
-    const interval = setInterval(() => {
-      loadData(false);
-    }, 30000);
-
     const onNewConcern = (newConcern) => {
       if (newConcern?.title) {
         addToast(`📢 New concern received: ${newConcern.title}`);
@@ -127,7 +122,6 @@ export default function Concerns() {
     socket.on('concern_stats_updated', onUpdateConcern);
 
     return () => {
-      clearInterval(interval);
       socket.off('new_concern', onNewConcern);
       socket.off('update_concern', onUpdateConcern);
       socket.off('concern_status_changed', onUpdateConcern);

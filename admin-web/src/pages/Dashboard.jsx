@@ -115,11 +115,6 @@ export default function Dashboard() {
 
     fetchData();
 
-    // Auto-refresh concerns every 30 seconds in background
-    const interval = setInterval(() => {
-      fetchData(true);
-    }, 30000);
-
     // Listen to socket events
     const handleNewConcern = (newConcern) => {
       if (newConcern?.title) {
@@ -139,7 +134,6 @@ export default function Dashboard() {
     socket.on('concern_stats_updated', handleUpdateConcern);
 
     return () => {
-      clearInterval(interval);
       socket.off('new_concern', handleNewConcern);
       socket.off('update_concern', handleUpdateConcern);
       socket.off('concern_status_changed', handleUpdateConcern);
@@ -272,9 +266,9 @@ export default function Dashboard() {
               </>
             )}
           </div>
-          <div className={d.liveIndicator} title="Dashboard updates in real-time and auto-refreshes every 30s">
+          <div className={d.liveIndicator} title="Real-time live updates enabled">
             <span className={d.liveDot} />
-            Auto-refresh 30s
+            Live data
           </div>
         </div>
       </div>

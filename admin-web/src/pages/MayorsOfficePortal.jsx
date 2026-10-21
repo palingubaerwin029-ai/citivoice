@@ -32,7 +32,6 @@ export default function MayorsOfficePortal({ user, onLogout }) {
   const [concerns, setConcerns] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [lastRefreshed, setLastRefreshed] = useState(new Date());
 
   // View states
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'dispatched' | 'urgent' | 'all'
@@ -138,7 +137,6 @@ export default function MayorsOfficePortal({ user, onLogout }) {
           ? resDepts.map((d) => d.name)
           : DEFAULT_DEPARTMENTS;
       setDepartments(deptList);
-      setLastRefreshed(new Date());
     } catch (err) {
       if (!isBackground) toast?.show('Failed to load concerns: ' + err.message, 'error');
     } finally {
@@ -150,12 +148,7 @@ export default function MayorsOfficePortal({ user, onLogout }) {
     connectSocket();
     fetchConcerns();
 
-    // Auto-refresh concerns every 30 seconds silently
-    const interval = setInterval(() => {
-      fetchConcerns(true);
-    }, 30000);
-
-    // Real-time instant auto-refresh when receiving new concerns or updates
+    // Real-time instant updates when receiving new concerns or updates
     const handleNewConcern = (newConcern) => {
       if (newConcern && newConcern.title) {
         addToast(`📢 New Citizen Concern Received: "${newConcern.title}"`, 'success');
@@ -174,7 +167,6 @@ export default function MayorsOfficePortal({ user, onLogout }) {
     socket.on('concern_stats_updated', handleSocketUpdate);
 
     return () => {
-      clearInterval(interval);
       socket.off('new_concern', handleNewConcern);
       socket.off('update_concern', handleSocketUpdate);
       socket.off('concern_status_changed', handleSocketUpdate);
@@ -353,20 +345,12 @@ export default function MayorsOfficePortal({ user, onLogout }) {
             <option value="asc">Oldest</option>
           </select>
 
-          <div
-            className={s.autoRefreshBadge}
-            title={`Auto-refreshes every 30 seconds. Last updated: ${lastRefreshed ? lastRefreshed.toLocaleTimeString() : 'Just now'}`}
-          >
-            <span className={s.livePulseDot} />
-            <span>Auto-Refresh 30s</span>
-          </div>
-
           <button
             type="button"
             className={s.btnOutline}
             onClick={() => fetchConcerns(false)}
             disabled={loading}
-            title="Refresh concern feed manually"
+            title="Refresh concern feed"
           >
             <span className={loading ? s.spinningIcon : ''}>
               <IoRefreshOutline />
