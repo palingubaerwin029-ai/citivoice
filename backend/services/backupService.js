@@ -269,6 +269,13 @@ const getDumpToolConfig = () => {
  * Returns a Promise that resolves with { file, size } on success.
  */
 const runMysqldump = async () => {
+  // If running against an external SSL-enforced database (e.g. Aiven) with Alpine Linux,
+  // mariadb-dump lacks the caching_sha2_password plugin. Use pure Node.js JSON export instead.
+  if (process.env.DB_SSL === 'true') {
+    console.log('[Backup] Cloud SSL database detected. Using pure Node.js data export...');
+    return runJsonExport();
+  }
+
   const host = process.env.DB_HOST || 'localhost';
   const port = process.env.DB_PORT || 3306;
   const user = process.env.DB_USER || 'root';
