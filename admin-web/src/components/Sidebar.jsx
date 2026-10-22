@@ -34,6 +34,7 @@ const ADMIN_NAV = [
 export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [avatarErr, setAvatarErr] = useState(false);
 
   const initials =
     user?.name
@@ -63,13 +64,14 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
       {!collapsed && (
         <div className={s.userCard}>
           <div className={s.avatar} style={{ overflow: 'hidden' }}>
-            {user?.avatar_url ? (
+            {user?.avatar_url && !avatarErr ? (
               <img
                 src={resolveImageUrl(user.avatar_url)}
-                alt="Avatar"
+                alt=""
                 loading="lazy"
                 decoding="async"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={() => setAvatarErr(true)}
               />
             ) : (
               initials

@@ -52,6 +52,38 @@ const initials = (n) =>
     .toUpperCase()
     .slice(0, 2) || '?';
 
+function UserAvatar({ user, className, style }) {
+  const [imgErr, setImgErr] = useState(false);
+  const showImg = user?.avatar_url && !imgErr;
+
+  return (
+    <div
+      className={className}
+      style={{
+        backgroundColor: avatarColor(user?.id),
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...style,
+      }}
+    >
+      {showImg ? (
+        <img
+          src={resolveImageUrl(user.avatar_url)}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          onError={() => setImgErr(true)}
+        />
+      ) : (
+        initials(user?.name)
+      )}
+    </div>
+  );
+}
+
 export default function Verification() {
   const [users, setUsers] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -303,22 +335,7 @@ export default function Verification() {
                     >
                       <td className={s.td}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div
-                            className={s.avatar}
-                            style={{ backgroundColor: avatarColor(u.id), borderRadius: 10, overflow: 'hidden' }}
-                          >
-                            {u.avatar_url ? (
-                              <img
-                                src={resolveImageUrl(u.avatar_url)}
-                                alt="Avatar"
-                                loading="lazy"
-                                decoding="async"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                            ) : (
-                              initials(u.name)
-                            )}
-                          </div>
+                          <UserAvatar user={u} className={s.avatar} style={{ borderRadius: 10 }} />
                           <div>
                             <div style={{ fontWeight: 600, color: 'var(--text-1)', fontSize: 13 }}>
                               {u.name}
@@ -483,22 +500,11 @@ export default function Verification() {
                 {/* Citizen info */}
                 <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                    <div
+                    <UserAvatar
+                      user={selected}
                       className={`${s.avatar} ${s.avatarLg}`}
-                      style={{ backgroundColor: avatarColor(selected.id), borderRadius: 16, overflow: 'hidden' }}
-                    >
-                      {selected.avatar_url ? (
-                        <img
-                          src={resolveImageUrl(selected.avatar_url)}
-                          alt="Avatar"
-                          loading="lazy"
-                          decoding="async"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      ) : (
-                        initials(selected.name)
-                      )}
-                    </div>
+                      style={{ borderRadius: 16 }}
+                    />
                     <div>
                       <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-1)' }}>
                         {selected.name}

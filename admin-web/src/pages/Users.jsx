@@ -13,6 +13,38 @@ const initials = (name) =>
     .join('')
     .toUpperCase()
     .slice(0, 2) || '??';
+
+function UserAvatar({ user, className, style }) {
+  const [imgErr, setImgErr] = useState(false);
+  const showImg = user?.avatar_url && !imgErr;
+
+  return (
+    <div
+      className={className}
+      style={{
+        background: AC(user?.id),
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...style,
+      }}
+    >
+      {showImg ? (
+        <img
+          src={resolveImageUrl(user.avatar_url)}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          onError={() => setImgErr(true)}
+        />
+      ) : (
+        initials(user?.name)
+      )}
+    </div>
+  );
+}
 const SC = {
   Pending: '#F59E0B',
   'In Progress': '#3B82F6',
@@ -253,22 +285,7 @@ export default function Users() {
                     >
                       <td className={s.td}>
                         <div className={u.tableAvatarWrap}>
-                          <div
-                            className={`${s.avatar} ${s.avatarSm}`}
-                            style={{ background: AC(u.id), overflow: 'hidden' }}
-                          >
-                            {u.avatar_url ? (
-                              <img
-                                src={resolveImageUrl(u.avatar_url)}
-                                alt="Avatar"
-                                loading="lazy"
-                                decoding="async"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                            ) : (
-                              initials(u.name)
-                            )}
-                          </div>
+                          <UserAvatar user={u} className={`${s.avatar} ${s.avatarSm}`} />
                           <div>
                             <div className={u.tableAvatarInfo}>{u.name}</div>
                             <div className={u.tableAvatarEmail}>{maskEmail(u.email)}</div>
@@ -368,22 +385,11 @@ export default function Users() {
             <div className={s.sidePanelWrapper}>
               <div className={s.card} style={{ alignSelf: 'start', maxHeight: '90vh', overflowY: 'auto' }}>
                 <div className={u.sidePanelHeader}>
-                  <div
+                  <UserAvatar
+                    user={selected}
                     className={`${s.avatar} ${s.avatarLg}`}
-                    style={{ background: AC(selected.id), borderRadius: 'var(--r-xl)', overflow: 'hidden' }}
-                  >
-                    {selected.avatar_url ? (
-                      <img
-                        src={resolveImageUrl(selected.avatar_url)}
-                        alt="Avatar"
-                        loading="lazy"
-                        decoding="async"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                    ) : (
-                      initials(selected.name)
-                    )}
-                  </div>
+                    style={{ borderRadius: 'var(--r-xl)' }}
+                  />
                   <button
                     className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
                     onClick={() => setSelected(null)}
