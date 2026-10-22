@@ -25,13 +25,14 @@ const getBaseUrl = () => {
 export const BASE_URL = getBaseUrl();
 
 export const resolveImageUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('http://localhost:5000') || url.startsWith('http://127.0.0.1:5000')) {
+  if (!url || typeof url !== 'string' || url === 'null' || url === 'undefined' || url.trim() === '') return null;
+  const trimmed = url.trim();
+  if (trimmed.startsWith('http://localhost:5000') || trimmed.startsWith('http://127.0.0.1:5000')) {
     const backendBase = BASE_URL.replace('/api', '');
-    return url.replace(/^http:\/\/(localhost|127\.0\.0\.1):5000/, backendBase);
+    return trimmed.replace(/^http:\/\/(localhost|127\.0\.0\.1):5000/, backendBase);
   }
-  if (url.startsWith('/uploads/')) {
-    return `${BASE_URL.replace('/api', '')}${url}`;
+  if (trimmed.startsWith('/uploads/')) {
+    return `${BASE_URL.replace('/api', '')}${trimmed}`;
   }
-  return url;
+  return trimmed;
 };

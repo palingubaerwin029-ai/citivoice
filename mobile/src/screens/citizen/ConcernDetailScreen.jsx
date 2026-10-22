@@ -16,7 +16,6 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useConcerns } from '../../context/ConcernContext';
 import { useAuth, resolveImageUrl, mobileApi } from '../../context/AuthContext';
@@ -270,15 +269,18 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Image */}
-        {concern.image_url ? (
-          <TouchableOpacity activeOpacity={0.9} onPress={() => setModalImageUri(resolveImageUrl(concern.image_url))}>
-            <Image source={{ uri: resolveImageUrl(concern.image_url) }} style={styles.heroImage} />
-          </TouchableOpacity>
-        ) : (
-          <View style={[styles.heroPlaceholder, { backgroundColor: colors.bgCard }]}>
-            <Ionicons name="image-outline" size={40} color={colors.textMuted} />
-          </View>
-        )}
+        {(() => {
+          const imgUri = resolveImageUrl(concern?.image_url);
+          return imgUri ? (
+            <TouchableOpacity activeOpacity={0.9} onPress={() => setModalImageUri(imgUri)}>
+              <Image source={{ uri: imgUri }} style={styles.heroImage} />
+            </TouchableOpacity>
+          ) : (
+            <View style={[styles.heroPlaceholder, { backgroundColor: colors.bgCard }]}>
+              <Ionicons name="image-outline" size={40} color={colors.textMuted} />
+            </View>
+          );
+        })()}
 
         <View style={styles.body}>
           {/* Status + Category */}
@@ -338,66 +340,86 @@ export default function ConcernDetailScreen({ route, navigation }) {
           </View>
 
           {/* Location */}
-          {concern.location_lat && concern.location_lng && (
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                📍 {t('location')}
-              </Text>
+          {(() => {
+            const lat = parseFloat(concern?.location_lat);
+            const lng = parseFloat(concern?.location_lng);
+            const hasCoords = !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+            if (!hasCoords && !concern?.location_address) return null;
 
-              {/* Mini Map */}
-              <View style={[styles.miniMapContainer, { borderColor: colors.border }]}>
-                <MapView
-                  style={styles.miniMap}
-                  initialRegion={{
-                    latitude: Number(concern.location_lat),
-                    longitude: Number(concern.location_lng),
-                    latitudeDelta: 0.006,
-                    longitudeDelta: 0.006,
-                  }}
-                  scrollEnabled={false}
-                  zoomEnabled={false}
-                  rotateEnabled={false}
-                  pitchEnabled={false}
+            const mapUrl = hasCoords
+              ? `https://maps.google.com/?q=${lat},${lng}`
+              : `https://maps.google.com/?q=${encodeURIComponent((concern?.location_address || '') + ', Kabankalan City')}`;
+
+            return (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                  📍 {t('location')}
+                </Text>
+
+                {/* Location Interactive Card */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={[
+                    styles.locationCard,
+                    {
+                      backgroundColor: colors.bgCard,
+                      borderColor: colors.border,
+                      flexDirection: 'column',
+                      alignItems: 'stretch',
+                      padding: scale(16),
+                      gap: verticalScale(12),
+                    },
+                  ]}
+                  onPress={() => Linking.openURL(mapUrl)}
                 >
-                  <Marker
-                    coordinate={{
-                      latitude: Number(concern.location_lat),
-                      longitude: Number(concern.location_lng),
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(12) }}>
+                    <View
+                      style={{
+                        width: scale(40),
+                        height: scale(40),
+                        borderRadius: scale(20),
+                        backgroundColor: colors.primary + '18',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Ionicons name="location-sharp" size={22} color={colors.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.locationAddr, { color: colors.textPrimary, fontSize: rf(14) }]}>
+                        {concern?.location_address || 'Kabankalan City, Negros Occidental'}
+                      </Text>
+                      {hasCoords && (
+                        <Text style={[styles.locationCoords, { color: colors.textMuted, fontSize: rf(11), marginTop: verticalScale(2) }]}>
+                          GPS: {lat.toFixed(5)}°, {lng.toFixed(5)}°
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: scale(6),
+                      backgroundColor: colors.primary + '14',
+                      paddingVertical: verticalScale(10),
+                      borderRadius: moderateScale(10),
+                      borderWidth: 1,
+                      borderColor: colors.primary + '33',
                     }}
                   >
-                    <View style={styles.miniMapPin}>
-                      <Ionicons name="location" size={24} color={colors.primary} />
-                    </View>
-                  </Marker>
-                </MapView>
+                    <Ionicons name="map-outline" size={16} color={colors.primary} />
+                    <Text style={{ fontSize: rf(12), fontWeight: '700', color: colors.primary }}>
+                      {t('tapToOpenMaps') || 'Open in Google Maps'}
+                    </Text>
+                    <Ionicons name="open-outline" size={14} color={colors.primary} />
+                  </View>
+                </TouchableOpacity>
               </View>
-
-              {/* Address + Open in Maps */}
-              <TouchableOpacity
-                style={[
-                  styles.locationCard,
-                  { backgroundColor: colors.bgCard, borderColor: colors.border },
-                ]}
-                onPress={() =>
-                  Linking.openURL(
-                    `https://maps.google.com/?q=${concern.location_lat},${concern.location_lng}`,
-                  )
-                }
-              >
-                <Ionicons name="location" size={20} color={colors.accent} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.locationAddr, { color: colors.textPrimary }]}>
-                    {concern.location_address ||
-                      `${Number(concern.location_lat).toFixed(5)}, ${Number(concern.location_lng).toFixed(5)}`}
-                  </Text>
-                  <Text style={[styles.locationCoords, { color: colors.textMuted }]}>
-                    {t('tapToOpenMaps')}
-                  </Text>
-                </View>
-                <Ionicons name="open-outline" size={16} color={colors.textMuted} />
-              </TouchableOpacity>
-            </View>
-          )}
+            );
+          })()}
 
 
 
@@ -436,8 +458,10 @@ export default function ConcernDetailScreen({ route, navigation }) {
           })()}
 
           {/* Proof Photo — attached by admin */}
-          {concern.resolved_image_url && (() => {
-            const isResolved = concern.status === 'Resolved';
+          {(() => {
+            const proofUri = resolveImageUrl(concern?.resolved_image_url);
+            if (!proofUri) return null;
+            const isResolved = concern?.status === 'Resolved';
             const proofIcon = isResolved ? 'checkmark-circle' : 'camera';
             const proofIconColor = isResolved ? colors.statusResolved : colors.primary;
             const proofTitle = isResolved ? 'Proof of Completion' : 'Work-in-Progress Photo';
@@ -466,11 +490,11 @@ export default function ConcernDetailScreen({ route, navigation }) {
                 </View>
                 <TouchableOpacity
                   activeOpacity={0.9}
-                  onPress={() => setModalImageUri(resolveImageUrl(concern.resolved_image_url))}
+                  onPress={() => setModalImageUri(proofUri)}
                   style={{ position: 'relative' }}
                 >
                   <Image
-                    source={{ uri: resolveImageUrl(concern.resolved_image_url) }}
+                    source={{ uri: proofUri }}
                     style={{
                       width: '100%',
                       height: verticalScale(200),
@@ -612,7 +636,7 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
       {/* ── Fullscreen Image Modal ── */}
       <Modal
-        visible={!!modalImageUri}
+        visible={Boolean(modalImageUri)}
         transparent={true}
         animationType="fade"
         onRequestClose={() => setModalImageUri(null)}
@@ -632,28 +656,29 @@ export default function ConcernDetailScreen({ route, navigation }) {
               right: scale(20),
               zIndex: 10,
               padding: scale(10),
-              backgroundColor: 'rgba(255,255,255,0.1)',
+              backgroundColor: 'rgba(255,255,255,0.15)',
               borderRadius: scale(20),
             }}
             onPress={() => setModalImageUri(null)}
           >
             <Ionicons name="close" size={28} color="#fff" />
           </TouchableOpacity>
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}
-            maximumZoomScale={3}
-            minimumZoomScale={1}
-            showsHorizontalScrollIndicator={false}
-            showsVerticalScrollIndicator={false}
-            centerContent
+          <View
+            style={{
+              width: '100%',
+              height: '80%',
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingHorizontal: scale(16),
+            }}
           >
-            {modalImageUri && (
+            {modalImageUri ? (
               <Image
                 source={{ uri: modalImageUri }}
-                style={{ width: scale(350), height: verticalScale(500), resizeMode: 'contain' }}
+                style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
               />
-            )}
-          </ScrollView>
+            ) : null}
+          </View>
         </View>
       </Modal>
     </SafeAreaView>

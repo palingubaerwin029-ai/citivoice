@@ -87,15 +87,19 @@ export default function ConcernCard({ concern, onPress }) {
       ) : null}
 
       {/* ── Media Preview (Cleanly placed in card body) ── */}
-      {concern.image_url ? (
-        <View style={[S.imageContainer, { borderColor: colors.border }]}>
-          <Image
-            source={{ uri: resolveImageUrl(concern.image_url) }}
-            style={S.image}
-            resizeMode="cover"
-          />
-        </View>
-      ) : null}
+      {(() => {
+        const imgUri = resolveImageUrl(concern?.image_url);
+        if (!imgUri) return null;
+        return (
+          <View style={[S.imageContainer, { borderColor: colors.border }]}>
+            <Image
+              source={{ uri: imgUri }}
+              style={S.image}
+              resizeMode="cover"
+            />
+          </View>
+        );
+      })()}
 
       {/* ── Bottom Location ── */}
       <View style={[S.footer, { borderTopColor: colors.border }]}>
