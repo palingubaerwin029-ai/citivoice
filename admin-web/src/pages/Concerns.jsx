@@ -26,11 +26,17 @@ let memCache = {
 };
 
 export default function Concerns() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('search') || '');
-  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'All');
+  const initialBarangay = searchParams.get('barangay') || 'All';
+  const initialSearch = searchParams.get('search') || '';
+  const initialStatus = searchParams.get('status') || 'All';
+
+  const [search, setSearch] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [barangayFilter, setBarangayFilter] = useState(initialBarangay);
+  const [barangays, setBarangays] = useState([]);
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
   const [concernPage, setConcernPage] = useState(1);
@@ -39,10 +45,34 @@ export default function Concerns() {
   const [lightboxTitle, setLightboxTitle] = useState('');
   const navigate = useNavigate();
 
-  // Instant initial state from cache if available
-  const [concerns, setConcerns] = useState(() => memCache.data || []);
-  const [totalConcerns, setTotalConcerns] = useState(() => memCache.total || 0);
-  const [loading, setLoading] = useState(() => !memCache.data);
+  // Instant initial state from cache if available and matching no-filter default
+  const isDefaultFilter = initialBarangay === 'All' && !initialSearch && initialStatus === 'All';
+  const [concerns, setConcerns] = useState(() => (isDefaultFilter ? memCache.data || [] : []));
+  const [totalConcerns, setTotalConcerns] = useState(() => (isDefaultFilter ? memCache.total || 0 : 0));
+  const [loading, setLoading] = useState(() => (isDefaultFilter ? !memCache.data : true));
+
+  // Load barangays list for dropdown
+  useEffect(() => {
+    api
+      .get('/barangays')
+      .then((res) => {
+        if (Array.isArray(res)) setBarangays(res);
+      })
+      .catch(console.error);
+  }, []);
+
+  // Sync state when URL search params change (e.g. clicking a barangay in Barangays page)
+  useEffect(() => {
+    const b = searchParams.get('barangay') || 'All';
+    const q = searchParams.get('search') || '';
+    const st = searchParams.get('status') || 'All';
+
+    setBarangayFilter(b);
+    setSearch(q);
+    setDebouncedSearch(q);
+    setStatusFilter(st);
+    setConcernPage(1);
+  }, [searchParams]);
 
   // Debounce search input by 300ms to prevent request flood on typing
   useEffect(() => {
@@ -76,6 +106,7 @@ export default function Concerns() {
       limit: itemsPerPage,
       search: debouncedSearch,
       status: statusFilter === 'All' ? '' : statusFilter,
+      barangay: barangayFilter === 'All' ? '' : barangayFilter,
     };
 
     api
@@ -98,7 +129,7 @@ export default function Concerns() {
   useEffect(() => {
     connectSocket();
 
-    // Only show full skeleton if we have no data at all
+    // Show skeleton if loading or empty
     const hasData = concerns.length > 0;
     loadData(!hasData);
 
@@ -123,7 +154,7 @@ export default function Concerns() {
       socket.off('concern_updated', onUpdateConcern);
       socket.off('concern_stats_updated', onUpdateConcern);
     };
-  }, [concernPage, itemsPerPage, debouncedSearch, statusFilter, priorityFilter, sortBy]);
+  }, [concernPage, itemsPerPage, debouncedSearch, statusFilter, priorityFilter, sortBy, barangayFilter]);
 
   const totalConcernPages = Math.ceil(totalConcerns / itemsPerPage);
   
@@ -147,10 +178,40 @@ export default function Concerns() {
         <div className={s.pageTitleGroup}>
           <h1 className={s.pageTitle}>📋 Concerns Management</h1>
           <p className={s.pageSubtitle}>
-            {totalConcerns} concerns city-wide
+            {barangayFilter !== 'All' ? (
+              <span>
+                Showing concerns in <strong>📍 {barangayFilter}</strong> ({totalConcerns} total)
+              </span>
+            ) : (
+              `${totalConcerns} concerns city-wide`
+            )}
           </p>
         </div>
-
+        {barangayFilter !== 'All' && (
+          <button
+            className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              borderColor: 'rgba(59, 130, 246, 0.4)',
+              color: '#3B82F6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            }}
+            onClick={() => {
+              setBarangayFilter('All');
+              setConcernPage(1);
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete('barangay');
+                return next;
+              });
+            }}
+          >
+            <span>📍 {barangayFilter}</span>
+            <span style={{ fontWeight: 'bold' }}>✕ Clear Filter</span>
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -181,6 +242,32 @@ export default function Concerns() {
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
             <option value="priority">Highest Priority</option>
+          </select>
+        </div>
+
+        <div className={s.filterGroup}>
+          <span className={s.filterGroupLabel}>Barangay:</span>
+          <select
+            className={s.select}
+            value={barangayFilter}
+            onChange={(e) => {
+              const val = e.target.value;
+              setBarangayFilter(val);
+              setConcernPage(1);
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                if (val === 'All') next.delete('barangay');
+                else next.set('barangay', val);
+                return next;
+              });
+            }}
+          >
+            <option value="All">All Barangays</option>
+            {barangays.map((b) => (
+              <option key={b.id || b.name} value={b.name}>
+                {b.name}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -340,7 +427,27 @@ export default function Concerns() {
                         </td>
                         <td className={s.td}>
                           <div className={cStyles.ticketUser}>{c.user_name || 'Anonymous'}</div>
-                          <div className={cStyles.ticketBarangay}>{c.user_barangay}</div>
+                          <div className={cStyles.ticketBarangay}>
+                            📍 {c.incident_barangay || c.user_barangay || 'Kabankalan City'}
+                          </div>
+                          {c.user_barangay &&
+                            c.incident_barangay &&
+                            c.user_barangay.toLowerCase().trim() !==
+                              c.incident_barangay.toLowerCase().trim() && (
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: 'var(--text-3)',
+                                  marginTop: 2,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                }}
+                                title={`Citizen is a resident of ${c.user_barangay}, reporting an incident in ${c.incident_barangay}`}
+                              >
+                                <span>🏠 Resident: {c.user_barangay}</span>
+                              </div>
+                            )}
                         </td>
                         <td className={s.td}>
                           {(() => {

@@ -51,13 +51,13 @@ const listConcerns = async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
     
-    const { status, category, userId } = req.query;
+    const { status, category, userId, barangay, search } = req.query;
     const isMayor = req.user?.role === 'mayor';
     const validatedOnly = isMayor || req.query.validatedOnly === 'true' || req.query.validatedOnly === '1';
 
     const [rows, total] = await Promise.all([
-      selectAllConcerns(limit, offset, userId, status, category, validatedOnly),
-      countConcerns(userId, status, category, validatedOnly)
+      selectAllConcerns(limit, offset, userId, status, category, validatedOnly, barangay, search),
+      countConcerns(userId, status, category, validatedOnly, barangay, search)
     ]);
 
     const data = rows.map((r) => {

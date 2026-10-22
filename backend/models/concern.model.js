@@ -1,7 +1,16 @@
 const pool = require('../db');
 const { getIncidentBarangay } = require('../utils/barangayGeo');
 
-const selectAllConcerns = async (limit = 20, offset = 0, userId = null, status = null, category = null, validatedOnly = false) => {
+const selectAllConcerns = async (
+  limit = 20,
+  offset = 0,
+  userId = null,
+  status = null,
+  category = null,
+  validatedOnly = false,
+  barangay = null,
+  search = null
+) => {
   let query = 'SELECT * FROM concerns WHERE 1=1';
   const params = [];
 
@@ -20,6 +29,15 @@ const selectAllConcerns = async (limit = 20, offset = 0, userId = null, status =
   if (validatedOnly) {
     query += ' AND is_validated = 1';
   }
+  if (barangay && barangay !== 'All') {
+    query += ' AND (incident_barangay = ? OR (incident_barangay IS NULL AND user_barangay = ?))';
+    params.push(barangay, barangay);
+  }
+  if (search && search.trim()) {
+    const term = `%${search.trim()}%`;
+    query += ' AND (title LIKE ? OR description LIKE ? OR user_name LIKE ? OR location_address LIKE ? OR incident_barangay LIKE ? OR user_barangay LIKE ?)';
+    params.push(term, term, term, term, term, term);
+  }
 
   query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
   params.push(parseInt(limit), parseInt(offset));
@@ -28,7 +46,14 @@ const selectAllConcerns = async (limit = 20, offset = 0, userId = null, status =
   return rows;
 };
 
-const countConcerns = async (userId = null, status = null, category = null, validatedOnly = false) => {
+const countConcerns = async (
+  userId = null,
+  status = null,
+  category = null,
+  validatedOnly = false,
+  barangay = null,
+  search = null
+) => {
   let query = 'SELECT COUNT(*) as total FROM concerns WHERE 1=1';
   const params = [];
 
@@ -46,6 +71,15 @@ const countConcerns = async (userId = null, status = null, category = null, vali
   }
   if (validatedOnly) {
     query += ' AND is_validated = 1';
+  }
+  if (barangay && barangay !== 'All') {
+    query += ' AND (incident_barangay = ? OR (incident_barangay IS NULL AND user_barangay = ?))';
+    params.push(barangay, barangay);
+  }
+  if (search && search.trim()) {
+    const term = `%${search.trim()}%`;
+    query += ' AND (title LIKE ? OR description LIKE ? OR user_name LIKE ? OR location_address LIKE ? OR incident_barangay LIKE ? OR user_barangay LIKE ?)';
+    params.push(term, term, term, term, term, term);
   }
 
   const [rows] = await pool.query(query, params);
