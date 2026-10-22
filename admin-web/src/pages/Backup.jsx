@@ -18,14 +18,14 @@ import {
 } from 'react-icons/io5';
 import s from '../styles/Admin.module.css';
 import b from '../styles/Backup.module.css';
-import { api } from '../services/api';
+import { api, getApiHost } from '../services/api';
 import { useToast } from '../components/ToastProvider';
 import AnimatedCounter from '../components/AnimatedCounter';
 import Skeleton from '../components/Skeleton';
 import Pagination, { useFitPagination } from '../components/Pagination';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const BASE_URL = `${getApiHost()}/api`;
 const getToken = () => localStorage.getItem('cv_token');
 
 const fmtSize = (bytes) => {

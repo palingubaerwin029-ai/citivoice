@@ -1,8 +1,7 @@
 import { io } from 'socket.io-client';
+import { getApiHost } from './api';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-// Extract base url by removing '/api' from the end if it exists
-const BASE_URL = API_URL.replace(/\/api\/?$/, '');
+const BASE_URL = getApiHost();
 
 const getToken = () => localStorage.getItem('cv_token');
 

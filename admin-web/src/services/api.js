@@ -2,14 +2,21 @@
 // All requests automatically include the JWT token from localStorage
 
 export const getApiHost = () => {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL.replace(/\/api\/?$/, '');
+  }
   if (typeof window !== 'undefined' && window.location) {
     const loc = window.location;
+    // When running on Render or other cloud hosts, connect directly to production backend
+    if (loc.hostname.includes('onrender.com') || loc.hostname.includes('vercel.app')) {
+      return 'https://citivoice.onrender.com';
+    }
     // If accessing through Docker or network IP, align backend host with current browser host
     if (loc.hostname && loc.hostname !== 'localhost' && loc.hostname !== '127.0.0.1') {
       return `${loc.protocol}//${loc.hostname}:5000`;
     }
   }
-  return (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+  return 'https://citivoice.onrender.com';
 };
 
 const getBaseUrl = () => `${getApiHost()}/api`;
