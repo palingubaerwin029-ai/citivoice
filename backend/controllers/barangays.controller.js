@@ -4,6 +4,7 @@ const {
   insertBarangay,
   updateBarangay,
   deleteBarangay,
+  selectConcernsByBarangay,
 } = require('../models/barangay.model');
 const { invalidate } = require('../middleware/cache');
 
@@ -60,9 +61,28 @@ const removeBarangay = async (req, res) => {
   }
 };
 
+const getBarangayConcerns = async (req, res) => {
+  try {
+    const barangay = await selectBarangayById(req.params.id);
+    if (!barangay) {
+      return res.status(404).json({ error: 'Barangay not found' });
+    }
+    const concerns = await selectConcernsByBarangay(barangay.name);
+    res.json({
+      barangay,
+      concerns,
+      total: concerns.length,
+    });
+  } catch (err) {
+    console.error('Barangay concerns error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 module.exports = {
   listBarangays,
   createBarangay,
   editBarangay,
   removeBarangay,
+  getBarangayConcerns,
 };

@@ -103,6 +103,31 @@ export default function SubmitConcernScreen({ navigation, route }) {
     setShowMap(false);
   };
 
+  const handleReturnHome = () => {
+    try {
+      if (typeof navigation.popToTop === 'function' && navigation.canGoBack()) {
+        navigation.popToTop();
+      } else {
+        navigation.navigate('Feed');
+      }
+    } catch (_) {
+      try {
+        navigation.navigate('Feed');
+      } catch (__) {
+        try {
+          navigation.navigate('Home', { screen: 'Feed' });
+        } catch (___) {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          }
+        }
+      }
+    }
+    setTimeout(() => {
+      handleResetForm();
+    }, 300);
+  };
+
   const set = (key, val) => {
     setForm((f) => ({ ...f, [key]: val }));
     // Clear error for this field
@@ -406,9 +431,6 @@ export default function SubmitConcernScreen({ navigation, route }) {
                 </LinearGradient>
               </View>
             </View>
-            <View style={styles.confettiSparkleBadge}>
-              <Text style={{ fontSize: rf(16) }}>🎉</Text>
-            </View>
           </View>
 
           {/* 📣 Celebration Heading */}
@@ -537,8 +559,8 @@ export default function SubmitConcernScreen({ navigation, route }) {
                   <View style={[styles.stepConnectorLine, { backgroundColor: colors.borderMd }]} />
                 </View>
                 <View style={styles.stepContentCol}>
-                  <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Executive & Dept Evaluation</Text>
-                  <Text style={[styles.stepDesc, { color: colors.textMuted }]}>Target municipal department assigned for action.</Text>
+                  <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Evaluation & Action</Text>
+                  <Text style={[styles.stepDesc, { color: colors.textMuted }]}>Reviewed by city administration for action.</Text>
                 </View>
               </View>
 
@@ -569,20 +591,22 @@ export default function SubmitConcernScreen({ navigation, route }) {
             </View>
           </View>
 
-          {/* 🚀 Primary Action Button (Gradient) */}
+          {/* 🏠 Primary Action Button (Gradient) */}
           <TouchableOpacity
             style={styles.actionBtnWrap}
-            activeOpacity={0.88}
-            onPress={() => navigation.navigate('Feed')}
+            activeOpacity={0.8}
+            onPress={handleReturnHome}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <LinearGradient
               colors={[colors.primary, colors.primaryDark || '#D97706']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.primaryGradBtn}
+              pointerEvents="none"
             >
-              <Ionicons name="albums-outline" size={rf(18)} color="#FFFFFF" />
-              <Text style={styles.primaryGradBtnText}>{t('viewFeed')}</Text>
+              <Ionicons name="home-outline" size={rf(18)} color="#FFFFFF" />
+              <Text style={styles.primaryGradBtnText}>{t('returnHome') || 'Return to Home'}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -596,16 +620,6 @@ export default function SubmitConcernScreen({ navigation, route }) {
             <Text style={[styles.secondaryOutlinedBtnText, { color: colors.textPrimary }]}>
               {t('reportAnother')}
             </Text>
-          </TouchableOpacity>
-
-          {/* 🏠 Return Home Link */}
-          <TouchableOpacity
-            style={styles.homeLinkBtn}
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate('Home')}
-          >
-            <Ionicons name="home-outline" size={rf(14)} color={colors.textMuted} />
-            <Text style={[styles.homeLinkText, { color: colors.textMuted }]}>Return to Home</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>

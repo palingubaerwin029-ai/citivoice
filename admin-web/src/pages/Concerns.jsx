@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { api, fmtDateShort, resolveImageUrl } from '../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { socket, connectSocket } from '../services/socket';
-import { useToast } from '../components/ToastProvider';
 
 import s from '../styles/Admin.module.css';
 import cStyles from '../styles/Concerns.module.css';
@@ -28,7 +27,6 @@ let memCache = {
 
 export default function Concerns() {
   const [searchParams] = useSearchParams();
-  const { addToast } = useToast();
 
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('search') || '');
@@ -104,10 +102,7 @@ export default function Concerns() {
     const hasData = concerns.length > 0;
     loadData(!hasData);
 
-    const onNewConcern = (newConcern) => {
-      if (newConcern?.title) {
-        addToast(`📢 New concern received: ${newConcern.title}`);
-      }
+    const onNewConcern = () => {
       loadData(false);
     };
 
@@ -128,7 +123,7 @@ export default function Concerns() {
       socket.off('concern_updated', onUpdateConcern);
       socket.off('concern_stats_updated', onUpdateConcern);
     };
-  }, [concernPage, itemsPerPage, debouncedSearch, statusFilter, priorityFilter, sortBy, addToast]);
+  }, [concernPage, itemsPerPage, debouncedSearch, statusFilter, priorityFilter, sortBy]);
 
   const totalConcernPages = Math.ceil(totalConcerns / itemsPerPage);
   
@@ -371,129 +366,27 @@ export default function Concerns() {
                           </span>
                         </td>
                         <td className={s.td}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
-                            <span
-                              className={s.badge}
-                              style={{
-                                color: STATUS_COLORS[c.status],
-                                backgroundColor: (STATUS_COLORS[c.status] || '#8899BB') + '22',
-                              }}
-                            >
-                              {c.status}
-                            </span>
-                            {c.is_validated ? (
-                              c.priority === 'High' ? (
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    color: '#38BDF8',
-                                    background: 'rgba(56, 189, 248, 0.12)',
-                                    padding: '2px 6px',
-                                    borderRadius: 4,
-                                    border: '1px solid rgba(56, 189, 248, 0.35)',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                  title={`Validated by Admin (${c.validated_by_name || 'Admin'}) · Urgent Emergency Response Dispatched (Bypassed Mayoral Review)`}
-                                >
-                                  ⚡ Urgent Dispatched
-                                </span>
-                              ) : (
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 600,
-                                    color: '#10B981',
-                                    background: 'rgba(16, 185, 129, 0.1)',
-                                    padding: '2px 6px',
-                                    borderRadius: 4,
-                                    border: '1px solid rgba(16, 185, 129, 0.25)',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                  title={`Validated by ${c.validated_by_name || 'Admin'} & forwarded to Mayor's Office`}
-                                >
-                                  🛡️ Forwarded
-                                </span>
-                              )
-                            ) : (
-                              c.priority === 'High' ? (
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    color: '#EF4444',
-                                    background: 'rgba(239, 68, 68, 0.15)',
-                                    padding: '2px 6px',
-                                    borderRadius: 4,
-                                    border: '1px solid rgba(239, 68, 68, 0.4)',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    whiteSpace: 'nowrap',
-                                    animation: 'pulse 2s infinite',
-                                  }}
-                                  title="High-Priority Hazard: Requires Admin validation to bypass Mayor approval and dispatch immediately"
-                                >
-                                  🚨 Urgent Validation
-                                </span>
-                              ) : (
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 600,
-                                    color: '#F59E0B',
-                                    background: 'rgba(245, 158, 11, 0.1)',
-                                    padding: '2px 6px',
-                                    borderRadius: 4,
-                                    border: '1px solid rgba(245, 158, 11, 0.25)',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                  title="Needs Admin Validation before Mayor can review"
-                                >
-                                  ⏳ Needs Validation
-                                </span>
-                              )
-                            )}
-                          </div>
+                          <span
+                            className={s.badge}
+                            style={{
+                              color: STATUS_COLORS[c.status],
+                              backgroundColor: (STATUS_COLORS[c.status] || '#8899BB') + '22',
+                            }}
+                          >
+                            {c.status}
+                          </span>
                         </td>
 
                         <td className={s.td} style={{ fontSize: 12 }}>
                           {fmtDateShort(c.created_at)}
                         </td>
                         <td className={s.td}>
-                          {c.priority === 'High' && !c.is_validated ? (
-                            <button
-                              className={`${s.btn} ${s.btnSm}`}
-                              style={{
-                                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                                color: '#fff',
-                                border: '1px solid #EF4444',
-                                fontWeight: 700,
-                                whiteSpace: 'nowrap',
-                                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)',
-                              }}
-                              onClick={() => navigate(`/concerns/${c.id}`)}
-                              title="High-Priority Hazard: Click to review and validate for immediate emergency dispatch"
-                            >
-                              ⚡ Urgent Validate →
-                            </button>
-                          ) : (
-                            <button
-                              className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
-                              onClick={() => navigate(`/concerns/${c.id}`)}
-                            >
-                              Review →
-                            </button>
-                          )}
+                          <button
+                            className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
+                            onClick={() => navigate(`/concerns/${c.id}`)}
+                          >
+                            Review →
+                          </button>
                         </td>
                       </tr>
                     ))}

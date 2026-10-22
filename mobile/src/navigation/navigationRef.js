@@ -8,19 +8,12 @@ export function navigate(name, params) {
   }
 }
 
-export function navigateToConcern(concernId, isAdmin = false) {
+export function navigateToConcern(concernId) {
   if (!concernId) return;
   const numId = Number(concernId);
   const targetId = isNaN(numId) ? concernId : numId;
 
   if (navigationRef.isReady()) {
-    if (isAdmin) {
-      try {
-        navigationRef.navigate('AdminConcernDetail', { concernId: targetId });
-        return;
-      } catch (_) {}
-    }
-
     try {
       navigationRef.navigate('Home', {
         screen: 'ConcernDetail',

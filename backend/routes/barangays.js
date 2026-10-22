@@ -8,10 +8,14 @@ const {
   createBarangay,
   editBarangay,
   removeBarangay,
+  getBarangayConcerns,
 } = require('../controllers/barangays.controller');
 
-// ─── List all barangays (cached 10 min) ───────────────────────────────────────
-router.get('/', cacheMiddleware('barangays', 600), listBarangays);
+// ─── List all barangays ───────────────────────────────────────────────────────
+router.get('/', listBarangays);
+
+// ─── Get concerns in a specific barangay (admin only) ─────────────────────────
+router.get('/:id/concerns', auth, requireRole('admin'), validateIdParam, getBarangayConcerns);
 
 // ─── Add barangay (admin only) ────────────────────────────────────────────────
 router.post('/', auth, requireRole('admin'), validateBarangay, createBarangay);

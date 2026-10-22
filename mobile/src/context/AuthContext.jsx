@@ -46,9 +46,12 @@ export function AuthProvider({ children }) {
         const token = await AsyncStorage.getItem('cv_token');
         if (token) {
           const userData = await apiRequest('/auth/me');
-          const isBlocked =
-            userData.role !== 'admin' &&
-            userData.verification_status !== VERIFICATION_STATUS.VERIFIED;
+          if (userData.role === 'admin') {
+            await AsyncStorage.multiRemove(['cv_token', 'cv_user']);
+            setUser(null);
+            return;
+          }
+          const isBlocked = userData.verification_status !== VERIFICATION_STATUS.VERIFIED;
           setUser({ ...userData, _blocked: isBlocked });
           SocketService.connect();
         }
@@ -63,10 +66,13 @@ export function AuthProvider({ children }) {
 
   // ── Login ──────────────────────────────────────────────────────────────
   const startSession = async ({ token, user: userData }) => {
+    if (userData.role === 'admin') {
+      await AsyncStorage.multiRemove(['cv_token', 'cv_user']);
+      throw new Error('Administrator accounts must access CitiVoice via the Web Admin Console.');
+    }
     await AsyncStorage.setItem('cv_token', token);
     await AsyncStorage.setItem('cv_user', JSON.stringify(userData));
-    const isBlocked =
-      userData.role !== 'admin' && userData.verification_status !== VERIFICATION_STATUS.VERIFIED;
+    const isBlocked = userData.verification_status !== VERIFICATION_STATUS.VERIFIED;
     const fullUser = { ...userData, _blocked: isBlocked };
     setUser(fullUser);
     SocketService.connect();

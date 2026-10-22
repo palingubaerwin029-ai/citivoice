@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { api, fmtDateShort } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { api, fmtDateShort, resolveImageUrl } from '../services/api';
 import {
   IoBusinessOutline,
   IoPencilOutline,
@@ -11,7 +12,21 @@ import s from '../styles/Admin.module.css';
 
 const EMPTY = { name: '' };
 
+const STATUS_COLORS = {
+  Pending: { bg: 'rgba(245, 158, 11, 0.14)', text: '#F59E0B', border: 'rgba(245, 158, 11, 0.3)' },
+  'In Progress': { bg: 'rgba(59, 130, 246, 0.14)', text: '#3B82F6', border: 'rgba(59, 130, 246, 0.3)' },
+  Resolved: { bg: 'rgba(16, 185, 129, 0.14)', text: '#10B981', border: 'rgba(16, 185, 129, 0.3)' },
+  Rejected: { bg: 'rgba(239, 68, 68, 0.14)', text: '#EF4444', border: 'rgba(239, 68, 68, 0.3)' },
+};
+
+const PRIORITY_COLORS = {
+  High: { bg: 'rgba(239, 68, 68, 0.14)', text: '#EF4444' },
+  Medium: { bg: 'rgba(245, 158, 11, 0.14)', text: '#F59E0B' },
+  Low: { bg: 'rgba(16, 185, 129, 0.14)', text: '#10B981' },
+};
+
 export default function Barangays() {
+  const navigate = useNavigate();
   const [barangays, setBarangays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -20,6 +35,13 @@ export default function Barangays() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [search, setSearch] = useState('');
+
+  // Selected barangay concerns modal state
+  const [selectedBarangay, setSelectedBarangay] = useState(null);
+  const [barangayConcerns, setBarangayConcerns] = useState([]);
+  const [concernsLoading, setConcernsLoading] = useState(false);
+  const [modalFilter, setModalFilter] = useState('');
+  const [modalStatus, setModalStatus] = useState('All');
 
   const load = () =>
     api
@@ -70,11 +92,42 @@ export default function Barangays() {
     setShowForm(true);
   };
 
+  const handleOpenBarangayConcerns = async (b) => {
+    setSelectedBarangay(b);
+    setConcernsLoading(true);
+    setBarangayConcerns([]);
+    setModalFilter('');
+    setModalStatus('All');
+    try {
+      const res = await api.get(`/barangays/${b.id}/concerns`);
+      setBarangayConcerns(res.concerns || []);
+    } catch (err) {
+      console.error('Failed to load concerns for barangay:', err);
+    } finally {
+      setConcernsLoading(false);
+    }
+  };
+
   const filteredBarangays = useMemo(() => {
     if (!search.trim()) return barangays;
     const q = search.toLowerCase();
     return barangays.filter((b) => (b.name || '').toLowerCase().includes(q));
   }, [barangays, search]);
+
+  const filteredModalConcerns = useMemo(() => {
+    return barangayConcerns.filter((c) => {
+      const matchesStatus = modalStatus === 'All' || c.status === modalStatus;
+      const q = modalFilter.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        (c.title || '').toLowerCase().includes(q) ||
+        (c.category || '').toLowerCase().includes(q) ||
+        (c.citizen_name || '').toLowerCase().includes(q) ||
+        (c.location_address || '').toLowerCase().includes(q) ||
+        `#cv-${String(c.id).padStart(4, '0')}`.toLowerCase().includes(q);
+      return matchesStatus && matchesSearch;
+    });
+  }, [barangayConcerns, modalFilter, modalStatus]);
 
   return (
     <div className={s.page}>
@@ -147,40 +200,65 @@ export default function Barangays() {
                     <tr>
                       <th className={`${s.th} ${styles.indexCol}`}>#</th>
                       <th className={s.th}>Barangay Name</th>
+                      <th className={s.th}>Total Concerns</th>
                       <th className={s.th}>Added On</th>
                       <th className={`${s.th} ${styles.actionCol}`}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredBarangays.map((b, idx) => (
-                      <tr key={b.id} className={`${s.tr} ${styles.compactTr}`}>
-                        <td className={`${s.td} ${styles.indexCell}`}>{idx + 1}</td>
-                        <td className={`${s.td} ${s.tdPrimary}`}>
-                          <span style={{ fontWeight: 600, color: 'var(--text-1)' }}>{b.name}</span>
-                        </td>
-                        <td className={s.td} style={{ color: 'var(--text-3)', fontSize: 13 }}>
-                          {fmtDateShort(b.created_at)}
-                        </td>
-                        <td className={`${s.td} ${styles.actionCol}`}>
-                          <div className={styles.actions}>
-                            <button
-                              className={styles.editBtn}
-                              onClick={() => openEdit(b)}
-                              title="Edit Barangay"
+                    {filteredBarangays.map((b, idx) => {
+                      const count = Number(b.concern_count || 0);
+                      return (
+                        <tr
+                          key={b.id}
+                          className={`${s.tr} ${styles.compactTr} ${styles.clickableRow}`}
+                          onClick={() => handleOpenBarangayConcerns(b)}
+                          title={`Click to view concerns in ${b.name}`}
+                        >
+                          <td className={`${s.td} ${styles.indexCell}`}>{idx + 1}</td>
+                          <td className={`${s.td} ${s.tdPrimary}`}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: 14 }}>📍</span>
+                              <span style={{ fontWeight: 600, color: 'var(--text-1)' }}>{b.name}</span>
+                            </div>
+                          </td>
+                          <td className={s.td}>
+                            <span
+                              className={`${styles.concernCountPill} ${count === 0 ? styles.concernCountZero : ''}`}
                             >
-                              <IoPencilOutline size={14} />
-                            </button>
-                            <button
-                              className={styles.deleteBtn}
-                              onClick={() => setDeleteConfirm({ id: b.id, name: b.name })}
-                              title="Delete Barangay"
-                            >
-                              <IoTrashOutline size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              📋 {count} {count === 1 ? 'concern' : 'concerns'}
+                            </span>
+                          </td>
+                          <td className={s.td} style={{ color: 'var(--text-3)', fontSize: 13 }}>
+                            {fmtDateShort(b.created_at)}
+                          </td>
+                          <td className={`${s.td} ${styles.actionCol}`} onClick={(e) => e.stopPropagation()}>
+                            <div className={styles.actions}>
+                              <button
+                                className={styles.editBtn}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEdit(b);
+                                }}
+                                title="Edit Barangay"
+                              >
+                                <IoPencilOutline size={14} />
+                              </button>
+                              <button
+                                className={styles.deleteBtn}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirm({ id: b.id, name: b.name });
+                                }}
+                                title="Delete Barangay"
+                              >
+                                <IoTrashOutline size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -241,6 +319,197 @@ export default function Barangays() {
                 onClick={() => handleDelete(deleteConfirm.id)}
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Concerns by Barangay Modal */}
+      {selectedBarangay && (
+        <div className={styles.modalOverlay} onClick={() => setSelectedBarangay(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 20 }}>📍</span>
+                  <h2 className={styles.modalTitle}>{selectedBarangay.name}</h2>
+                  <span className={styles.concernPillCount}>
+                    {concernsLoading
+                      ? 'Loading...'
+                      : `${barangayConcerns.length} concern${barangayConcerns.length === 1 ? '' : 's'}`}
+                  </span>
+                </div>
+                <p className={styles.modalSubtitle}>
+                  Citizen concerns submitted within {selectedBarangay.name}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button
+                  className={styles.viewInConcernsBtn}
+                  onClick={() =>
+                    navigate(`/concerns?search=${encodeURIComponent(selectedBarangay.name)}`)
+                  }
+                  title="Open in Concerns Management Table"
+                >
+                  Open in Concerns Table ↗
+                </button>
+                <button
+                  className={styles.modalCloseBtn}
+                  onClick={() => setSelectedBarangay(null)}
+                  title="Close (Esc)"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Filter Toolbar */}
+            <div className={styles.modalToolbar}>
+              <div className={styles.modalSearchBox}>
+                <span style={{ fontSize: 13, color: 'var(--text-3)' }}>🔍</span>
+                <input
+                  type="text"
+                  placeholder="Filter by title, category, citizen, or docket #..."
+                  value={modalFilter}
+                  onChange={(e) => setModalFilter(e.target.value)}
+                  className={styles.modalSearchInput}
+                />
+                {modalFilter && (
+                  <button className={styles.clearBtn} onClick={() => setModalFilter('')}>
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Status filter chips */}
+              <div className={styles.statusChipGroup}>
+                {['All', 'Pending', 'In Progress', 'Resolved', 'Rejected'].map((st) => (
+                  <button
+                    key={st}
+                    className={`${styles.statusChip} ${modalStatus === st ? styles.statusChipActive : ''}`}
+                    onClick={() => setModalStatus(st)}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* List of Concerns */}
+            <div className={styles.modalBody}>
+              {concernsLoading ? (
+                <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-3)' }}>
+                  Loading concerns for {selectedBarangay.name}...
+                </div>
+              ) : filteredModalConcerns.length === 0 ? (
+                <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+                  <h3 style={{ margin: '0 0 6px', color: 'var(--text-1)' }}>No concerns found</h3>
+                  <p style={{ margin: 0, color: 'var(--text-3)', fontSize: 13 }}>
+                    {barangayConcerns.length === 0
+                      ? `There are no concerns reported in ${selectedBarangay.name} yet.`
+                      : 'No concerns match your search or filter.'}
+                  </p>
+                </div>
+              ) : (
+                <div className={styles.concernList}>
+                  {filteredModalConcerns.map((c) => (
+                    <div
+                      key={c.id}
+                      className={styles.concernCard}
+                      onClick={() => navigate(`/concerns/${c.id}`)}
+                      title="Click to view details"
+                    >
+                      {/* Thumbnail */}
+                      <div className={styles.concernThumbWrap}>
+                        {c.image_url ? (
+                          <img
+                            src={resolveImageUrl(c.image_url)}
+                            alt={c.title}
+                            className={styles.concernThumb}
+                          />
+                        ) : (
+                          <div className={styles.concernThumbFallback}>📷</div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className={styles.concernInfo}>
+                        <div className={styles.concernTopRow}>
+                          <span className={styles.concernDocket}>
+                            #CV-{String(c.id).padStart(4, '0')}
+                          </span>
+                          <span
+                            className={styles.concernStatusBadge}
+                            style={{
+                              backgroundColor:
+                                STATUS_COLORS[c.status]?.bg || 'rgba(255,255,255,0.08)',
+                              color: STATUS_COLORS[c.status]?.text || 'var(--text-1)',
+                              border: `1px solid ${STATUS_COLORS[c.status]?.border || 'transparent'}`,
+                            }}
+                          >
+                            {c.status}
+                          </span>
+                          <span
+                            className={styles.concernPriorityBadge}
+                            style={{
+                              backgroundColor: PRIORITY_COLORS[c.priority]?.bg || 'transparent',
+                              color: PRIORITY_COLORS[c.priority]?.text || 'var(--text-3)',
+                            }}
+                          >
+                            {c.priority} Priority
+                          </span>
+                          <span className={styles.concernDate}>{fmtDateShort(c.created_at)}</span>
+                        </div>
+
+                        <h4 className={styles.concernCardTitle}>{c.title}</h4>
+
+                        <div className={styles.concernMetaRow}>
+                          <span className={styles.concernCategoryTag}>
+                            📁 {c.category || 'General'}
+                          </span>
+                          {c.citizen_name && (
+                            <span className={styles.concernCitizenTag}>👤 {c.citizen_name}</span>
+                          )}
+                          {c.location_address && (
+                            <span className={styles.concernAddressTag} title={c.location_address}>
+                              📍 {c.location_address}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action */}
+                      <div className={styles.concernActionCol}>
+                        <button
+                          className={styles.reviewConcernBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/concerns/${c.id}`);
+                          }}
+                        >
+                          Review →
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className={styles.modalFooter}>
+              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                Showing {filteredModalConcerns.length} of {barangayConcerns.length} total concern
+                {barangayConcerns.length === 1 ? '' : 's'}
+              </span>
+              <button
+                className={styles.dialogCancel}
+                style={{ padding: '8px 16px', fontSize: 13 }}
+                onClick={() => setSelectedBarangay(null)}
+              >
+                Close
               </button>
             </div>
           </div>

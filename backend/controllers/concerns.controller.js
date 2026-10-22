@@ -424,13 +424,7 @@ const createConcern = async (req, res) => {
 
     const newConcern = await selectConcernById(insertId);
     
-    // Auto-assign (pass io for admin notifications)
     const io = req.app.get('io');
-    try {
-      if (!isNotTypical) await workflowService.autoAssign(newConcern, io);
-    } catch (e) {
-      console.error('[Workflow] Auto-assign error:', e);
-    }
     
     // Broadcast via socket to all portals (Admin & Mayor)
     if (io) {
@@ -501,8 +495,11 @@ const editConcern = async (req, res) => {
       values.push(priority);
     }
 
-    // Auto-update department when category or priority changes
-    if (category !== undefined || priority !== undefined) {
+    if (req.body.department !== undefined) {
+      fields.push('department = ?');
+      values.push(req.body.department || null);
+    } else if (category !== undefined || priority !== undefined) {
+      // Auto-update department when category or priority changes
       try {
         const existingConcern = await selectConcernById(req.params.id);
         const newCat = category || existingConcern.category;
@@ -585,17 +582,7 @@ const editConcern = async (req, res) => {
           concernId: concern.id,
         });
       }
-      if (admin_note) {
-        await dispatchSystemNotification({
-          userId: concern.user_id,
-          userObj: concern,
-          title: 'New Official Response',
-          message: `An admin has officially responded to your concern: "${concern.title}". Check the app to view the update.`,
-          socketRoom: `user:${concern.user_id}`,
-          io: req.app.get('io'),
-          concernId: concern.id,
-        });
-      }
+
       // Notify citizen when a proof photo is attached
       if (req.file) {
         const proofTitle = (status || concern.status) === 'Resolved'
@@ -624,14 +611,7 @@ const editConcern = async (req, res) => {
     const io = req.app.get('io');
 
 
-    // Re-assign to new department if category or priority changed
-    if (category !== undefined || priority !== undefined) {
-      try {
-        await workflowService.reassignConcern(updatedConcern, io);
-      } catch (e) {
-        console.error('[Workflow] Re-assign error:', e);
-      }
-    }
+
     
     // Broadcast via socket to all portals (Admin & Mayor)
     if (io) {
@@ -1132,172 +1112,8 @@ const forwardToMayor = async (req, res) => {
     if (!concern) return res.status(404).json({ error: 'Concern not found' });
 
     const adminName = req.user.name || 'System Administrator';
-    const isHighPriority = concern.priority === 'High';
 
-    if (isHighPriority) {
-      // ⚡ Emergency Protocol: High priority concern validated by Admin BYPASSES Mayoral approval for immediate urgent response!
-      const approverName = `${adminName} (Emergency Protocol — Bypassed Mayor Approval)`;
-      const dispatchResponse = (admin_note && !admin_note.includes('[High-Priority Hazard]'))
-        ? admin_note.trim()
-        : 'Done dispatch';
-      const approvalNotes = dispatchResponse;
-      const targetDepartment = department || concern.department;
-
-      const updateFields = [
-        'is_validated = 1',
-        'validated_at = NOW()',
-        'validated_by_name = ?',
-        'status = ?',
-        'approved_at = NOW()',
-        'approved_by_name = ?',
-        'approval_notes = ?',
-        'admin_note = ?',
-        'updated_at = NOW()'
-      ];
-      const updateValues = [
-        adminName,
-        'In Progress',
-        approverName,
-        approvalNotes,
-        dispatchResponse
-      ];
-
-      if (department) {
-        updateFields.push('department = ?');
-        updateValues.push(department);
-      }
-
-      await updateConcernFields(id, updateFields, updateValues);
-      invalidate('concerns', 'concern_detail', 'map_concerns');
-
-      // Duplicate cascade
-      try {
-        const linked = await selectLinkedConcerns(id);
-        const duplicateLinks = linked.filter(l => l.link_type === 'duplicate');
-        for (const dup of duplicateLinks) {
-          const dupFields = [
-            'updated_at = NOW()',
-            'status = ?',
-            'is_validated = 1',
-            'validated_at = NOW()',
-            'validated_by_name = ?',
-            'approved_at = NOW()',
-            'approved_by_name = ?',
-            'approval_notes = ?',
-            'admin_note = ?'
-          ];
-          const dupValues = ['In Progress', adminName, approverName, approvalNotes, dispatchResponse];
-          if (department) {
-            dupFields.push('department = ?');
-            dupValues.push(department);
-          }
-          await updateConcernFields(dup.id, dupFields, dupValues);
-        }
-      } catch (cascadeErr) {
-        console.error('[Duplicate Cascade Error on Urgent Validation]:', cascadeErr.message);
-      }
-
-      // Log audit
-      try {
-        await workflowService.logAudit(
-          'concern',
-          id,
-          'validated_and_bypassed_mayor_for_urgent_response',
-          req.user.id,
-          adminName,
-          { is_validated: concern.is_validated, status: concern.status },
-          { is_validated: 1, validated_by_name: adminName, approved_at: new Date(), approved_by_name: approverName, status: 'In Progress', department: targetDepartment }
-        );
-      } catch (auditErr) {
-        console.error('[Audit Error on forwardToMayor bypass]:', auditErr.message);
-      }
-
-      const updated = await selectConcernById(id);
-
-      // Find department details & email
-      let deptInfo = null;
-      if (updated.department) {
-        const baseDeptName = updated.department.split(' — ')[0].trim();
-        deptInfo = await selectDepartmentByName(baseDeptName);
-      }
-      if (!deptInfo && updated.category) {
-        deptInfo = await selectDepartmentByCategory(updated.category);
-      }
-
-      try {
-        await notifyDepartmentOnApproval(updated, approvalNotes, deptInfo, approverName);
-      } catch (deptErr) {
-        console.error('[Notification] Error sending urgent department email:', deptErr.message);
-      }
-
-      // Notify citizen immediately
-      if (updated.user_id) {
-        const citizenTitle = '🚨 High-Priority Concern: Validated & Dispatched';
-        const citizenMsg = `Your urgent report "${updated.title}" has been validated by Admin and immediately dispatched to ${updated.department || 'the emergency team'} for rapid intervention (bypassed Mayoral queue).`;
-        await insertNotification(updated.user_id, citizenTitle, citizenMsg, updated.id);
-        if (req.app.get('io')) {
-          req.app.get('io').to(`user:${updated.user_id}`).emit('new_notification', {
-            title: citizenTitle,
-            message: citizenMsg,
-            concern_id: updated.id,
-            concernId: updated.id,
-          });
-        }
-        notifyUser(
-          updated,
-          citizenTitle,
-          `Your urgent report "${updated.title}" has been validated by Admin and dispatched to ${updated.department || 'the emergency response team'} for immediate response.`,
-          `Urgent concern "${updated.title}" validated and dispatched immediately under emergency bypass protocol.`,
-          updated.id
-        );
-      }
-
-      // Notify Mayor's office that this high-priority concern was validated and bypassed for urgent response
-      try {
-        const pool = require('../db');
-        const [mayors] = await pool.query("SELECT id FROM users WHERE role = 'mayor'");
-        const notifTitle = '⚡ Urgent Hazard: Dispatched via Emergency Protocol';
-        const notifMsg = `High-priority concern #${updated.id} "${updated.title}" was validated by Admin ${adminName} and expedited directly to ${updated.department || 'the department'} (bypassed mayoral directive).`;
-        for (const m of mayors) {
-          await insertNotification(m.id, notifTitle, notifMsg, updated.id);
-          const io = req.app.get('io');
-          if (io) {
-            io.to(`user:${m.id}`).emit('new_notification', {
-              title: notifTitle,
-              message: notifMsg,
-              concern_id: updated.id,
-              concernId: updated.id,
-              created_at: new Date().toISOString()
-            });
-          }
-        }
-      } catch (notifErr) {
-        console.error('[Notification Error on emergency bypass]:', notifErr.message);
-      }
-
-      // Emit sockets
-      try {
-        const io = req.app.get('io');
-        if (io) {
-          io.to('admin').emit('concern_updated', updated);
-          io.to('admin').emit('concern_approved', updated);
-          io.to('mayor').emit('concern_updated', updated);
-          io.emit('concern_stats_updated', { concernId: updated.id, userId: updated.user_id });
-        }
-      } catch (e) {
-        // ignore socket error
-      }
-
-      return res.json({
-        success: true,
-        bypassedMayor: true,
-        isHighPriority: true,
-        concern: updated,
-        message: 'High-priority concern validated and expedited for urgent response (bypassed Mayoral approval).'
-      });
-    }
-
-    // ─── Standard Flow for Low / Medium Priority: Validated by Admin and Forwarded to Mayor's Desk ───
+    // ─── Standard Flow: Validated by Admin and Forwarded to Mayor's Desk ───
     const fields = ['is_validated = 1', 'validated_at = NOW()', 'validated_by_name = ?', 'updated_at = NOW()'];
     const values = [adminName];
 

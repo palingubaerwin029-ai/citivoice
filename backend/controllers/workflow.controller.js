@@ -106,7 +106,13 @@ const addComment = async (req, res) => {
 const getAudit = async (req, res) => {
   try {
     const auditLog = await workflowModel.getAuditLog('concern', req.params.id);
-    res.json(auditLog);
+    const filtered = (auditLog || []).filter(
+      (log) =>
+        !['auto_assigned', 'reassigned', 'auto assigned', 're-assigned'].includes(
+          log.action?.toLowerCase()
+        )
+    );
+    res.json(filtered);
   } catch (err) {
     console.error('getAudit error:', err);
     res.status(500).json({ error: 'Internal server error' });

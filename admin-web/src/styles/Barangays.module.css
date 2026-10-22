@@ -351,3 +351,370 @@
     cursor: pointer;
     font-size: 12px;
 }
+
+.clickableRow {
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.clickableRow:hover {
+    background: rgba(59, 130, 246, 0.08) !important;
+}
+
+.concernCountPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 700;
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    transition: all 0.15s ease;
+}
+
+.clickableRow:hover .concernCountPill {
+    background: #3b82f6;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+.concernCountZero {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-3);
+    border: 1px solid var(--border);
+}
+
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(6, 11, 25, 0.82);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modalContent {
+    background: var(--surface-2, #112240);
+    border: 1px solid var(--border, #1e3355);
+    border-radius: 20px;
+    width: 92%;
+    max-width: 860px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalScaleIn {
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 22px 26px 18px;
+    border-bottom: 1px solid var(--border, #1e3355);
+    background: var(--surface, #0d1a33);
+}
+
+.modalTitle {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-1, #ffffff);
+    margin: 0;
+}
+
+.modalSubtitle {
+    font-size: 13px;
+    color: var(--text-3, #8899bb);
+    margin: 4px 0 0;
+}
+
+.concernPillCount {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.viewInConcernsBtn {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
+    border-radius: 10px;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.viewInConcernsBtn:hover {
+    background: #3b82f6;
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
+.modalCloseBtn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border, #1e3355);
+    color: var(--text-3, #8899bb);
+    border-radius: 10px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.modalCloseBtn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.modalToolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 26px;
+    background: rgba(0, 0, 0, 0.15);
+    border-bottom: 1px solid var(--border, #1e3355);
+    flex-wrap: wrap;
+}
+
+.modalSearchBox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface, #0d1a33);
+    border: 1px solid var(--border, #1e3355);
+    border-radius: 10px;
+    padding: 0 12px;
+    flex: 1;
+    min-width: 220px;
+}
+
+.modalSearchInput {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-1, #ffffff);
+    font-size: 13px;
+    padding: 8px 0;
+    width: 100%;
+}
+
+.statusChipGroup {
+    display: flex;
+    gap: 6px;
+}
+
+.statusChip {
+    background: transparent;
+    border: 1px solid var(--border, #1e3355);
+    color: var(--text-3, #8899bb);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.statusChip:hover {
+    color: var(--text-1, #ffffff);
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.statusChipActive {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+.modalBody {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 26px;
+}
+
+.concernList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.concernCard {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    background: var(--surface, #0d1a33);
+    border: 1px solid var(--border, #1e3355);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.concernCard:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.concernThumbWrap {
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+    border: 1px solid var(--border, #1e3355);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.concernThumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.concernThumbFallback {
+    font-size: 22px;
+    color: var(--text-3, #8899bb);
+}
+
+.concernInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.concernTopRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+
+.concernDocket {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    font-weight: 700;
+    color: #60a5fa;
+    background: rgba(59, 130, 246, 0.12);
+    padding: 2px 7px;
+    border-radius: 6px;
+}
+
+.concernStatusBadge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 9999px;
+}
+
+.concernPriorityBadge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 6px;
+}
+
+.concernDate {
+    font-size: 11px;
+    color: var(--text-3, #8899bb);
+    margin-left: auto;
+}
+
+.concernCardTitle {
+    margin: 2px 0 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-1, #ffffff);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.concernMetaRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-3, #8899bb);
+    flex-wrap: wrap;
+}
+
+.concernCategoryTag, .concernCitizenTag, .concernAddressTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.concernAddressTag {
+    max-width: 240px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.concernActionCol {
+    flex-shrink: 0;
+}
+
+.reviewConcernBtn {
+    background: transparent;
+    border: 1px solid var(--border, #1e3355);
+    color: #60a5fa;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.concernCard:hover .reviewConcernBtn {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+.modalFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 26px;
+    border-top: 1px solid var(--border, #1e3355);
+    background: var(--surface, #0d1a33);
+}

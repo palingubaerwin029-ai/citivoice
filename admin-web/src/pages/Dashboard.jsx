@@ -17,7 +17,6 @@ import d from '../styles/Dashboard.module.css';
 import Skeleton from '../components/Skeleton';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { socket, connectSocket } from '../services/socket';
-import { useToast } from '../components/ToastProvider';
 
 const STATUS_COLORS = {
   Pending: '#F59E0B',
@@ -57,7 +56,6 @@ const STAT_CONFIGS = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { addToast } = useToast();
   const [concerns, setConcerns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [recentPage, setRecentPage] = useState(1);
@@ -115,11 +113,7 @@ export default function Dashboard() {
 
     fetchData();
 
-    // Listen to socket events
-    const handleNewConcern = (newConcern) => {
-      if (newConcern?.title) {
-        addToast(`📢 New concern: ${newConcern.title}`);
-      }
+    const handleNewConcern = () => {
       fetchData(true);
     };
 
@@ -140,7 +134,7 @@ export default function Dashboard() {
       socket.off('concern_updated', handleUpdateConcern);
       socket.off('concern_stats_updated', handleUpdateConcern);
     };
-  }, [addToast]);
+  }, []);
 
   const filteredConcerns = concerns.filter((c) => {
     if (!c.created_at) return true;

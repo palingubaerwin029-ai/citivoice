@@ -261,22 +261,18 @@ export default function LoginScreen({ navigation, route }) {
       // which will trigger the VerificationGate above.
       // But we also handle it here for immediate feedback.
 
-      if (userData.role !== 'admin') {
-        const st = userData.verification_status;
+      const st = userData.verification_status;
 
-        if (st === VERIFICATION_STATUS.UNVERIFIED) {
-          // Let onAuthStateChanged handle the redirect to gate
-          return;
-        }
-        if (st === VERIFICATION_STATUS.PENDING) {
-          return; // gate will show
-        }
-        if (st === VERIFICATION_STATUS.REJECTED) {
-          return; // gate will show with rejection reason
-        }
-        // st === 'verified' → AppNavigator will route to CitizenTabs
+      if (st === VERIFICATION_STATUS.UNVERIFIED) {
+        // Let onAuthStateChanged handle the redirect to gate
+        return;
       }
-      // admin → AppNavigator routes to AdminTabs
+      if (st === VERIFICATION_STATUS.PENDING) {
+        return; // gate will show
+      }
+      if (st === VERIFICATION_STATUS.REJECTED) {
+        return; // gate will show with rejection reason
+      }
     } catch (err) {
       const errKey = err?.code || err?.message || '';
 

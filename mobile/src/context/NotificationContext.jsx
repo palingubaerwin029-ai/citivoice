@@ -124,7 +124,7 @@ export const NotificationProvider = ({ children }) => {
           onPress: () => {
             const cid = data.concern_id || data.concernId;
             if (cid) {
-              navigateToConcern(cid, user?.role === 'admin');
+              navigateToConcern(cid);
             }
           },
         });
@@ -154,7 +154,7 @@ export const NotificationProvider = ({ children }) => {
         const pushData = response?.notification?.request?.content?.data;
         const cid = pushData?.concern_id || pushData?.concernId;
         if (cid) {
-          navigateToConcern(cid, user?.role === 'admin');
+          navigateToConcern(cid);
         }
       });
 
@@ -165,7 +165,7 @@ export const NotificationProvider = ({ children }) => {
           const cid = pushData?.concern_id || pushData?.concernId;
           if (cid) {
             setTimeout(() => {
-              navigateToConcern(cid, user?.role === 'admin');
+              navigateToConcern(cid);
             }, 600);
           }
         }

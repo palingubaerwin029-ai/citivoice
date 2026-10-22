@@ -1,4 +1,5 @@
 const pool = require('../db');
+const { getIncidentBarangay } = require('../utils/barangayGeo');
 
 const selectAllConcerns = async (limit = 20, offset = 0, userId = null, status = null, category = null, validatedOnly = false) => {
   let query = 'SELECT * FROM concerns WHERE 1=1';
@@ -110,14 +111,23 @@ const insertConcern = async (data) => {
     user_barangay,
     department,
   } = data;
+  const incident_barangay =
+    data.incident_barangay ||
+    getIncidentBarangay({
+      location_address,
+      location_lat,
+      location_lng,
+      user_barangay,
+    });
+
   const [result] = await pool.query(
     `INSERT INTO concerns
        (title, description, category, priority, status, image_url,
         location_address, location_lat, location_lng,
-        user_id, user_name, user_barangay, admin_note,
+        user_id, user_name, user_barangay, incident_barangay, admin_note,
         department,
         created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?, NULL, ?, NOW(), NOW())`,
+     VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NOW(), NOW())`,
     [
       title,
       description,
@@ -130,6 +140,7 @@ const insertConcern = async (data) => {
       user_id,
       user_name || null,
       user_barangay || null,
+      incident_barangay || null,
       department || null,
     ],
   );

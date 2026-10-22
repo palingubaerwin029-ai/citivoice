@@ -11,11 +11,9 @@ import MapView from './pages/MapView';
 import Users from './pages/Users';
 import Reports from './pages/Reports';
 import Login from './pages/Login';
-import MayorLogin from './pages/MayorLogin';
 import Verification from './pages/Verification';
 import Barangays from './pages/Barangays';
 import Backup from './pages/Backup';
-import MayorsOfficePortal from './pages/MayorsOfficePortal';
 import ToastProvider from './components/ToastProvider';
 
 export default function App() {
@@ -25,7 +23,7 @@ export default function App() {
       const saved = localStorage.getItem('cv_user');
       if (token && saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && (parsed.role === 'admin' || parsed.role === 'mayor' || parsed.id)) {
+        if (parsed && (parsed.role === 'admin' || parsed.id)) {
           return parsed;
         }
       }
@@ -62,7 +60,7 @@ export default function App() {
     api
       .get('/auth/me')
       .then((u) => {
-        if (u && (u.role === 'admin' || u.role === 'mayor')) {
+        if (u && u.role === 'admin') {
           setUser(u);
           localStorage.setItem('cv_user', JSON.stringify(u));
         } else {
@@ -90,56 +88,26 @@ export default function App() {
     connectSocket();
   };
 
-  const handleLogout = (targetPath) => {
-    const isMayorPath =
-      window.location.pathname.startsWith('/mayor') ||
-      window.location.pathname.startsWith('/mayors-office');
+  const handleLogout = () => {
     localStorage.removeItem('cv_token');
     localStorage.removeItem('cv_user');
     setUser(null);
     disconnectSocket();
-    if (typeof targetPath === 'string') {
-      window.location.href = targetPath;
-    } else if (isMayorPath) {
-      window.location.href = '/mayor/login';
-    } else {
-      window.location.href = '/login';
-    }
+    window.location.href = '/login';
   };
 
   if (loading) return <LoadingScreen />;
 
-  const isExecutiveUser = user && (user.role === 'mayor' || user.role === 'admin');
   const isAdminUser = user && user.role === 'admin';
 
   return (
     <ToastProvider>
       <BrowserRouter>
         <Routes>
-          {/* 🏛️ Mayor's Office Executive Desk Routes (Completely separate from Admin) */}
-          <Route
-            path="/mayor/login"
-            element={
-              isExecutiveUser ? (
-                <Navigate to="/mayor" replace />
-              ) : (
-                <MayorLogin onLogin={handleLogin} />
-              )
-            }
-          />
-          <Route
-            path="/mayor"
-            element={
-              isExecutiveUser ? (
-                <div style={styles.executivePortal}>
-                  <MayorsOfficePortal user={user} onLogout={handleLogout} />
-                </div>
-              ) : (
-                <Navigate to="/mayor/login" replace />
-              )
-            }
-          />
-          <Route path="/mayors-office" element={<Navigate to="/mayor" replace />} />
+          {/* Legacy Mayor routes redirect to Admin */}
+          <Route path="/mayor/*" element={<Navigate to="/login" replace />} />
+          <Route path="/mayor" element={<Navigate to="/login" replace />} />
+          <Route path="/mayors-office" element={<Navigate to="/login" replace />} />
 
           {/* ⚙️ CitiVoice Administrator Console Routes */}
           <Route
@@ -147,8 +115,6 @@ export default function App() {
             element={
               isAdminUser ? (
                 <Navigate to="/dashboard" replace />
-              ) : isExecutiveUser ? (
-                <Navigate to="/mayor" replace />
               ) : (
                 <Login onLogin={handleLogin} />
               )
@@ -220,13 +186,6 @@ function LoadingScreen() {
 const styles = {
   layout: { display: 'flex', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg)' },
   main: { flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: 'var(--bg)' },
-  executivePortal: {
-    minHeight: '100vh',
-    width: '100%',
-    height: '100vh',
-    overflowY: 'auto',
-    backgroundColor: '#090d16',
-  },
   loading: {
     display: 'flex',
     flexDirection: 'column',
