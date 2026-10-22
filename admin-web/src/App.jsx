@@ -130,8 +130,6 @@ export default function App() {
                   theme={theme}
                   onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 />
-              ) : isExecutiveUser ? (
-                <Navigate to="/mayor" replace />
               ) : (
                 <Navigate to="/login" replace />
               )
