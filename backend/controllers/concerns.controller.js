@@ -704,7 +704,6 @@ const KABANKALAN_BARANGAY_COORDS = [
   { name: 'Orong', lat: 9.910, lng: 122.800 },
   { name: 'Pinaguinpinan', lat: 9.950, lng: 122.780 },
   { name: 'Salong', lat: 9.970, lng: 122.760 },
-  { name: 'Tabao', lat: 10.030, lng: 122.830 },
   { name: 'Tabugon', lat: 9.780, lng: 122.850 },
   { name: 'Tagoc', lat: 9.930, lng: 122.770 },
   { name: 'Tagukon', lat: 9.740, lng: 122.830 },

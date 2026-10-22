@@ -23,7 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth, resolveImageUrl, BASE_URL, mobileApi } from '../../context/AuthContext';
 import { useConcerns } from '../../context/ConcernContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { RADIUS, SHADOWS, STATUS_CONFIG } from '../../utils/theme';
+import { RADIUS, SHADOWS, STATUS_CONFIG, getCategoryConfig } from '../../utils/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 import { LANGUAGES } from '../../i18n/translations';
@@ -447,15 +447,22 @@ export default function ProfileScreen({ navigation }) {
                     >
                       {c.title}
                     </Text>
-                    <Text
-                      style={{
-                        color: colors.textMuted,
-                        fontSize: rf(11),
-                        marginTop: verticalScale(2),
-                      }}
-                    >
-                      {c.category?.split(' ')[0]} · {c.userBarangay}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: verticalScale(2), gap: scale(4) }}>
+                      <Text
+                        style={{
+                          color: getCategoryConfig(colors)[c.category]?.color || colors.primary,
+                          fontSize: rf(11),
+                          fontWeight: '600',
+                        }}
+                      >
+                        {c.category?.split(' ')[0]}
+                      </Text>
+                      {c.userBarangay && (
+                        <Text style={{ color: colors.textMuted, fontSize: rf(11) }}>
+                          · {c.userBarangay}
+                        </Text>
+                      )}
+                    </View>
                   </View>
                   <View
                     style={{

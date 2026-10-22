@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { api, fmtDate, fmtDateShort, resolveImageUrl, getPinBarangay } from '../services/api';
+import { api, fmtDate, fmtDateShort, resolveImageUrl, getPinBarangay, getCategoryConfig } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import s from '../styles/Admin.module.css';
 import cd from '../styles/ConcernDetail.module.css';
@@ -317,16 +317,27 @@ export default function ConcernDetail() {
                 >
                   {concern.priority} Priority
                 </span>
-                <span
-                  className={s.badge}
-                  style={{
-                    background: 'rgba(59,130,246,0.1)',
-                    color: 'var(--blue-light)',
-                    fontSize: 12,
-                  }}
-                >
-                  {concern.category}
-                </span>
+                {(() => {
+                  const catCfg = getCategoryConfig(concern.category);
+                  return (
+                    <span
+                      className={s.badge}
+                      style={{
+                        background: catCfg.bg,
+                        color: catCfg.color,
+                        border: `1px solid ${catCfg.border}`,
+                        fontSize: 12,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <span>{catCfg.icon}</span>
+                      <span>{concern.category}</span>
+                    </span>
+                  );
+                })()}
 
               </div>
               <h2
@@ -1009,8 +1020,10 @@ export default function ConcernDetail() {
                         {(sc.link_type || sc.match_type) === 'duplicate' ? 'Duplicate' : 'Related'}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', gap: 8, fontSize: 11, color: 'var(--text-3)' }}>
-                      <span>{sc.category}</span>
+                    <div style={{ display: 'flex', gap: 8, fontSize: 11, color: 'var(--text-3)', alignItems: 'center' }}>
+                      <span style={{ color: getCategoryConfig(sc.category).color, fontWeight: 600 }}>
+                        {getCategoryConfig(sc.category).icon} {sc.category}
+                      </span>
                       <span>·</span>
                       <span style={{ color: SC[sc.status] || 'var(--text-3)' }}>{sc.status}</span>
                       {sc.similarity_score != null && (

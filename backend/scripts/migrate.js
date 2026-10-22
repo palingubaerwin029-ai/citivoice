@@ -11,6 +11,7 @@ async function migrate() {
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'citivoice',
     multipleStatements: true,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
   });
 
   try {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api, fmtDateShort, resolveImageUrl } from '../services/api';
+import { api, fmtDateShort, resolveImageUrl, getCategoryConfig } from '../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { socket, connectSocket } from '../services/socket';
 
@@ -343,15 +343,26 @@ export default function Concerns() {
                           <div className={cStyles.ticketBarangay}>{c.user_barangay}</div>
                         </td>
                         <td className={s.td}>
-                          <span
-                            className={s.badge}
-                            style={{
-                              background: 'rgba(26,107,255,0.13)',
-                              color: 'var(--primary-light)',
-                            }}
-                          >
-                            {c.category}
-                          </span>
+                          {(() => {
+                            const catCfg = getCategoryConfig(c.category);
+                            return (
+                              <span
+                                className={s.badge}
+                                style={{
+                                  background: catCfg.bg,
+                                  color: catCfg.color,
+                                  border: `1px solid ${catCfg.border}`,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <span>{catCfg.icon}</span>
+                                <span>{c.category || 'General'}</span>
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className={s.td}>
                           <span

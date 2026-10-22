@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { api, resolveImageUrl } from '../services/api';
+import { api, resolveImageUrl, getCategoryConfig } from '../services/api';
 import { socket } from '../services/socket';
 
 import L from 'leaflet';
@@ -463,7 +463,12 @@ export function MapView() {
                       )}
                       <div style={{ padding: '12px 14px', background: 'rgba(0,0,0,0.2)' }}>
                         <strong style={{ fontSize: 14, color: '#fff', display: 'block', marginBottom: 4, lineHeight: 1.2 }}>{c.title}</strong>
-                        <span style={{ color: color, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>● {c.status}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginTop: 4 }}>
+                          <span style={{ color: color, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>● {c.status}</span>
+                          <span style={{ color: getCategoryConfig(c.category).color, fontSize: 11, fontWeight: 600 }}>
+                            {getCategoryConfig(c.category).icon} {c.category?.split(' ')[0]}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </Popup>
@@ -584,6 +589,7 @@ export function MapView() {
             { key: 'Waste & Sanitation', label: '🚮 Sanitation' },
           ].map(({ key, label }) => {
             const isActive = categoryFilter === key;
+            const catColor = key === 'All' ? '#1A6BFF' : getCategoryConfig(key).color;
             return (
               <button
                 key={key}
@@ -591,8 +597,8 @@ export function MapView() {
                 className={`${s.chipBtn} ${isActive ? s.chipBtnActive : s.chipBtnInactive}`}
                 style={
                   isActive
-                    ? { background: '#1A6BFF', borderColor: '#1A6BFF', boxShadow: '0 0 12px rgba(26,107,255,0.4)' }
-                    : { background: 'rgba(13,25,48,0.7)', fontSize: 12 }
+                    ? { background: catColor, borderColor: catColor, boxShadow: `0 0 12px ${catColor}66`, color: '#fff' }
+                    : { background: 'rgba(13,25,48,0.7)', borderColor: `${catColor}33`, fontSize: 12 }
                 }
               >
                 {label}
@@ -654,7 +660,7 @@ export function MapView() {
             )}
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
                 <span
                   className={s.statusBadge}
                   style={{
@@ -664,6 +670,28 @@ export function MapView() {
                 >
                   {selected.status}
                 </span>
+                {(() => {
+                  const catCfg = getCategoryConfig(selected.category);
+                  return (
+                    <span
+                      style={{
+                        backgroundColor: catCfg.bg,
+                        color: catCfg.color,
+                        border: `1px solid ${catCfg.border}`,
+                        padding: '3px 9px',
+                        borderRadius: 12,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      <span>{catCfg.icon}</span>
+                      <span>{selected.category || 'General'}</span>
+                    </span>
+                  );
+                })()}
                 {selected.priority === 'High' && (
                   <span style={{ background: 'rgba(255,68,68,0.2)', color: '#FF4444', border: '1px solid rgba(255,68,68,0.4)', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
                     🔥 High Priority

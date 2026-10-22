@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocation } from '../../hooks/useLocation';
 import { useConcerns } from '../../context/ConcernContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { StatusBadge } from '../../components/UI';
+import { StatusBadge, CategoryBadge } from '../../components/UI';
 import { getCategoryConfig, getStatusConfig } from '../../utils/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
@@ -558,6 +558,7 @@ export default function MapScreen({ navigation }) {
                 {/* Badges Row */}
                 <View style={styles.cardMetaRow}>
                   <StatusBadge status={selectedConcern.status} />
+                  <CategoryBadge category={selectedConcern.category} />
 
                   {selectedConcern.priority === 'High' && (
                     <View style={[styles.priorityPill, { backgroundColor: colors.statusRejected + '20', borderColor: colors.statusRejected + '50' }]}>

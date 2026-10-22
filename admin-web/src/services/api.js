@@ -119,7 +119,6 @@ export const KABANKALAN_BARANGAY_COORDS = [
   { name: 'Orong', lat: 9.910, lng: 122.800 },
   { name: 'Pinaguinpinan', lat: 9.950, lng: 122.780 },
   { name: 'Salong', lat: 9.970, lng: 122.760 },
-  { name: 'Tabao', lat: 10.030, lng: 122.830 },
   { name: 'Tabugon', lat: 9.780, lng: 122.850 },
   { name: 'Tagoc', lat: 9.930, lng: 122.770 },
   { name: 'Tagukon', lat: 9.740, lng: 122.830 },
@@ -183,5 +182,70 @@ export const getPinBarangay = (c) => {
   }
 
   return 'Barangay 1';
+};
+
+// ── Standard Category Color Design System ──
+export const CATEGORY_COLORS = {
+  'Road & Infrastructure': {
+    color: '#F97316',
+    bg: 'rgba(249, 115, 22, 0.15)',
+    border: 'rgba(249, 115, 22, 0.35)',
+    icon: '🛣️',
+    label: 'Road & Infrastructure',
+  },
+  'Electricity': {
+    color: '#F59E0B',
+    bg: 'rgba(245, 158, 11, 0.15)',
+    border: 'rgba(245, 158, 11, 0.35)',
+    icon: '⚡',
+    label: 'Electricity',
+  },
+  'Drainage': {
+    color: '#3B82F6',
+    bg: 'rgba(59, 130, 246, 0.15)',
+    border: 'rgba(59, 130, 246, 0.35)',
+    icon: '🌊',
+    label: 'Drainage',
+  },
+  'Waste & Sanitation': {
+    color: '#10B981',
+    bg: 'rgba(16, 185, 129, 0.15)',
+    border: 'rgba(16, 185, 129, 0.35)',
+    icon: '🚮',
+    label: 'Waste & Sanitation',
+  },
+  'Water & Drainage': {
+    color: '#3B82F6',
+    bg: 'rgba(59, 130, 246, 0.15)',
+    border: 'rgba(59, 130, 246, 0.35)',
+    icon: '🌊',
+    label: 'Drainage',
+  },
+  'Public Safety': {
+    color: '#EF4444',
+    bg: 'rgba(239, 68, 68, 0.15)',
+    border: 'rgba(239, 68, 68, 0.35)',
+    icon: '🛡️',
+    label: 'Public Safety',
+  },
+  'Not a Typical Concern': {
+    color: '#8B5CF6',
+    bg: 'rgba(139, 92, 246, 0.15)',
+    border: 'rgba(139, 92, 246, 0.35)',
+    icon: '❓',
+    label: 'Not Typical',
+  },
+  'Other': {
+    color: '#06B6D4',
+    bg: 'rgba(6, 182, 212, 0.15)',
+    border: 'rgba(6, 182, 212, 0.35)',
+    icon: '📁',
+    label: 'Other',
+  },
+};
+
+export const getCategoryConfig = (category) => {
+  if (!category) return CATEGORY_COLORS['Other'];
+  return CATEGORY_COLORS[category] || CATEGORY_COLORS['Other'];
 };
 

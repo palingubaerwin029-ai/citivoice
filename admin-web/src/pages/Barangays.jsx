@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, fmtDateShort, resolveImageUrl } from '../services/api';
+import { api, fmtDateShort, resolveImageUrl, getCategoryConfig } from '../services/api';
 import {
   IoBusinessOutline,
   IoPencilOutline,
@@ -466,9 +466,22 @@ export default function Barangays() {
                         <h4 className={styles.concernCardTitle}>{c.title}</h4>
 
                         <div className={styles.concernMetaRow}>
-                          <span className={styles.concernCategoryTag}>
-                            📁 {c.category || 'General'}
-                          </span>
+                          {(() => {
+                            const catCfg = getCategoryConfig(c.category);
+                            return (
+                              <span
+                                className={styles.concernCategoryTag}
+                                style={{
+                                  backgroundColor: catCfg.bg,
+                                  color: catCfg.color,
+                                  borderColor: catCfg.border,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {catCfg.icon} {c.category || 'General'}
+                              </span>
+                            );
+                          })()}
                           {c.citizen_name && (
                             <span className={styles.concernCitizenTag}>👤 {c.citizen_name}</span>
                           )}

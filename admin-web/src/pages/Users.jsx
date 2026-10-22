@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api, fmtDateShort, maskEmail, resolveImageUrl } from '../services/api';
+import { api, fmtDateShort, maskEmail, resolveImageUrl, getCategoryConfig } from '../services/api';
 import s from '../styles/Admin.module.css';
 import u from '../styles/Users.module.css';
 import Pagination, { useFitPagination } from '../components/Pagination';
@@ -530,8 +530,15 @@ export default function Users() {
                   {userConcerns.map((c) => (
                     <a key={c.id} href={`/concerns/${c.id}`} className={u.recentItem}>
                       <div>
-                        <div className={u.recentItemTitle}>{c.title?.slice(0, 35)}…</div>
-                        <div className={u.recentItemMeta}>{c.category?.split(' ')[0]}</div>
+                        <div
+                          className={u.recentItemMeta}
+                          style={{
+                            color: getCategoryConfig(c.category).color,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {getCategoryConfig(c.category).icon} {c.category?.split(' ')[0] || 'General'}
+                        </div>
                       </div>
                       <span
                         className={s.badge}

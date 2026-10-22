@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, fmtDateShort } from '../services/api';
+import { api, fmtDateShort, getCategoryConfig } from '../services/api';
 import {
   BarChart,
   Bar,
@@ -327,8 +327,8 @@ export default function Dashboard() {
                     }
                     style={{ cursor: 'pointer' }}
                   >
-                    {catData.map((_, i) => (
-                      <Cell key={i} fill={CAT_COLORS[i % CAT_COLORS.length]} />
+                    {catData.map((d, i) => (
+                      <Cell key={i} fill={getCategoryConfig(d.name).color} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -508,12 +508,26 @@ export default function Dashboard() {
                         </span>
                       </td>
                       <td className={s.td}>
-                        <span
-                          className={s.badge}
-                          style={{ background: 'rgba(59,130,246,0.1)', color: 'var(--blue-light)' }}
-                        >
-                          {c.category?.split(' ')[0]}
-                        </span>
+                        {(() => {
+                          const catCfg = getCategoryConfig(c.category);
+                          return (
+                            <span
+                              className={s.badge}
+                              style={{
+                                background: catCfg.bg,
+                                color: catCfg.color,
+                                border: `1px solid ${catCfg.border}`,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                fontWeight: 600,
+                              }}
+                            >
+                              <span>{catCfg.icon}</span>
+                              <span>{c.category?.split(' ')[0] || 'General'}</span>
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className={s.td}>
                         <span

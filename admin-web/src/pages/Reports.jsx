@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, fmtDateShort, getPinBarangay, KABANKALAN_BARANGAY_COORDS } from '../services/api';
+import { api, fmtDateShort, getPinBarangay, getCategoryConfig, KABANKALAN_BARANGAY_COORDS } from '../services/api';
 import s from '../styles/Admin.module.css';
 import r from '../styles/Reports.module.css';
 
@@ -628,7 +628,31 @@ export default function Reports() {
                     <td className={r.titleCell}>
                       <span className={r.cellTextClamp}>{c.title || 'Untitled'}</span>
                     </td>
-                    <td className={r.categoryCell}>{c.category || 'General'}</td>
+                    <td className={r.categoryCell}>
+                      {(() => {
+                        const catCfg = getCategoryConfig(c.category);
+                        return (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5,
+                              padding: '2px 8px',
+                              borderRadius: 6,
+                              background: catCfg.bg,
+                              color: catCfg.color,
+                              border: `1px solid ${catCfg.border}`,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <span>{catCfg.icon}</span>
+                            <span>{c.category || 'General'}</span>
+                          </span>
+                        );
+                      })()}
+                    </td>
                     <td className={r.brgyCell}>
                       <span className={r.brgyTag}>{getPinBarangay(c)}</span>
                     </td>
