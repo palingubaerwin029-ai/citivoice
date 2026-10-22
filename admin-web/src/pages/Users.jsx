@@ -258,7 +258,13 @@ export default function Users() {
                             style={{ background: AC(u.id), overflow: 'hidden' }}
                           >
                             {u.avatar_url ? (
-                              <img src={resolveImageUrl(u.avatar_url)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              <img
+                                src={resolveImageUrl(u.avatar_url)}
+                                alt="Avatar"
+                                loading="lazy"
+                                decoding="async"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
                             ) : (
                               initials(u.name)
                             )}
@@ -367,7 +373,13 @@ export default function Users() {
                     style={{ background: AC(selected.id), borderRadius: 'var(--r-xl)', overflow: 'hidden' }}
                   >
                     {selected.avatar_url ? (
-                      <img src={resolveImageUrl(selected.avatar_url)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img
+                        src={resolveImageUrl(selected.avatar_url)}
+                        alt="Avatar"
+                        loading="lazy"
+                        decoding="async"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
                     ) : (
                       initials(selected.name)
                     )}
@@ -479,6 +491,8 @@ export default function Users() {
                           <img
                             src={resolveImageUrl(selected.id_image_url)}
                             alt="ID Preview"
+                            loading="lazy"
+                            decoding="async"
                             style={{ width: '100%', maxHeight: 180, objectFit: 'contain', display: 'block', background: '#000' }}
                             onError={() => setIdImgError(true)}
                           />

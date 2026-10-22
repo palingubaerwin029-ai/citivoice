@@ -308,7 +308,13 @@ export default function Verification() {
                             style={{ backgroundColor: avatarColor(u.id), borderRadius: 10, overflow: 'hidden' }}
                           >
                             {u.avatar_url ? (
-                              <img src={resolveImageUrl(u.avatar_url)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              <img
+                                src={resolveImageUrl(u.avatar_url)}
+                                alt="Avatar"
+                                loading="lazy"
+                                decoding="async"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
                             ) : (
                               initials(u.name)
                             )}
@@ -482,7 +488,13 @@ export default function Verification() {
                       style={{ backgroundColor: avatarColor(selected.id), borderRadius: 16, overflow: 'hidden' }}
                     >
                       {selected.avatar_url ? (
-                        <img src={resolveImageUrl(selected.avatar_url)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img
+                          src={resolveImageUrl(selected.avatar_url)}
+                          alt="Avatar"
+                          loading="lazy"
+                          decoding="async"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
                       ) : (
                         initials(selected.name)
                       )}
@@ -604,6 +616,8 @@ export default function Verification() {
                           <img
                             src={resolveImageUrl(selected.id_image_url)}
                             alt="ID"
+                            loading="lazy"
+                            decoding="async"
                             className={v.idPhotoImg}
                             onError={() => setIdImgError(true)}
                           />

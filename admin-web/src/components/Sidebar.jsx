@@ -64,7 +64,13 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
         <div className={s.userCard}>
           <div className={s.avatar} style={{ overflow: 'hidden' }}>
             {user?.avatar_url ? (
-              <img src={resolveImageUrl(user.avatar_url)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img
+                src={resolveImageUrl(user.avatar_url)}
+                alt="Avatar"
+                loading="lazy"
+                decoding="async"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
             ) : (
               initials
             )}

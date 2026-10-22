@@ -443,7 +443,13 @@ export function MapView() {
                     <div style={{ display: 'flex', flexDirection: 'column', width: 220 }}>
                       {c.image_url ? (
                         <div style={{ width: '100%', height: 110, overflow: 'hidden' }}>
-                          <img src={resolveImageUrl(c.image_url)} alt="Thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img
+                            src={resolveImageUrl(c.image_url)}
+                            alt="Thumbnail"
+                            loading="lazy"
+                            decoding="async"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
                         </div>
                       ) : (
                         <div style={{ width: '100%', height: 80, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -638,6 +644,8 @@ export function MapView() {
                 <img
                   src={resolveImageUrl(selected.image_url)}
                   alt="Problem"
+                  loading="lazy"
+                  decoding="async"
                   className={s.sideImage}
                 />
                 <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 8, fontSize: 11, color: '#fff' }}>

@@ -427,6 +427,8 @@ export default function Barangays() {
                           <img
                             src={resolveImageUrl(c.image_url)}
                             alt={c.title}
+                            loading="lazy"
+                            decoding="async"
                             className={styles.concernThumb}
                           />
                         ) : (

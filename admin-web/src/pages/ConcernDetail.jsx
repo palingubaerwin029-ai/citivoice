@@ -441,6 +441,8 @@ export default function ConcernDetail() {
                 <img
                   src={resolveImageUrl(concern.image_url)}
                   alt="Concern Attachment"
+                  loading="lazy"
+                  decoding="async"
                   style={{
                     width: '100%',
                     maxHeight: 320,
@@ -533,6 +535,8 @@ export default function ConcernDetail() {
                   <img
                     src={resolveImageUrl(concern.resolved_image_url)}
                     alt="Proof Photo"
+                    loading="lazy"
+                    decoding="async"
                     style={{
                       width: '100%',
                       maxHeight: 320,
@@ -800,6 +804,8 @@ export default function ConcernDetail() {
                     <img
                       src={resolveImageUrl(concern.resolved_image_url)}
                       alt="Resolution Proof"
+                      loading="lazy"
+                      decoding="async"
                       style={{ width: '100%', maxHeight: 150, objectFit: 'cover', display: 'block' }}
                     />
                     <div
