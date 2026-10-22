@@ -26,12 +26,11 @@ export const getGoogleIdToken = async () => {
     throw new Error('Google Client ID is not configured.');
   }
 
-  const isExpoGo =
-    Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient';
   const returnUrl = AuthSession.makeRedirectUri({
     scheme: 'citivoice',
   });
-  const redirectUri = isExpoGo ? EXPO_PROXY_REDIRECT : returnUrl;
+  // Always use the HTTPS Expo proxy redirect for Google Web Client ID so Google never receives custom scheme (citivoice://) which Google blocks
+  const redirectUri = EXPO_PROXY_REDIRECT;
 
   const nonce = Math.random().toString(36).substring(2, 15);
   const googleAuthUrl =
@@ -45,14 +44,12 @@ export const getGoogleIdToken = async () => {
       prompt: 'select_account',
     }).toString();
 
-  // In Expo Go, route through Expo's proxy so Google receives an HTTPS redirect URI
-  const finalAuthUrl = isExpoGo
-    ? `${EXPO_PROXY_REDIRECT}/start?` +
-      new URLSearchParams({
-        authUrl: googleAuthUrl,
-        returnUrl,
-      }).toString()
-    : googleAuthUrl;
+  const finalAuthUrl =
+    `${EXPO_PROXY_REDIRECT}/start?` +
+    new URLSearchParams({
+      authUrl: googleAuthUrl,
+      returnUrl,
+    }).toString();
 
   const result = await WebBrowser.openAuthSessionAsync(finalAuthUrl, returnUrl);
 

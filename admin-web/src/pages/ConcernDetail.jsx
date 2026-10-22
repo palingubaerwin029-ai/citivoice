@@ -46,6 +46,7 @@ export default function ConcernDetail() {
   // Lightbox viewer state for attached pictures
   const [lightboxImg, setLightboxImg] = useState(null);
   const [lightboxTitle, setLightboxTitle] = useState('');
+  const [imgError, setImgError] = useState(false);
 
   // Close lightbox on ESC key press & lock background scrolling
   useEffect(() => {
@@ -428,37 +429,57 @@ export default function ConcernDetail() {
               <div
                 style={{
                   position: 'relative',
-                  cursor: 'zoom-in',
+                  cursor: imgError ? 'default' : 'zoom-in',
                   overflow: 'hidden',
                   background: 'var(--surface-2)',
                 }}
                 onClick={() => {
+                  if (imgError) return;
                   setLightboxImg(resolveImageUrl(concern.image_url));
                   setLightboxTitle('Attached Citizen Photo');
                 }}
-                title="Click to view full size"
+                title={imgError ? undefined : 'Click to view full size'}
               >
-                <img
-                  src={resolveImageUrl(concern.image_url)}
-                  alt="Concern Attachment"
-                  loading="lazy"
-                  decoding="async"
-                  style={{
-                    width: '100%',
-                    maxHeight: 320,
-                    objectFit: 'cover',
-                    display: 'block',
-                    transition: 'transform 0.25s ease, filter 0.25s ease',
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.02)';
-                    e.currentTarget.style.filter = 'brightness(0.92)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.filter = 'none';
-                  }}
-                />
+                {imgError ? (
+                  <div
+                    style={{
+                      padding: '40px 20px',
+                      textAlign: 'center',
+                      background: 'rgba(239, 68, 68, 0.04)',
+                    }}
+                  >
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-1)', fontSize: 14, marginBottom: 4 }}>
+                      Photo File Not Found on Server (404)
+                    </div>
+                    <p style={{ margin: '0 auto', maxWidth: 440, fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5 }}>
+                      The file was cleared during a Render server restart (ephemeral disk storage). To persist photos permanently in production, use a Render persistent disk or cloud storage (e.g. S3 / Cloudinary).
+                    </p>
+                  </div>
+                ) : (
+                  <img
+                    src={resolveImageUrl(concern.image_url)}
+                    alt="Concern Attachment"
+                    loading="lazy"
+                    decoding="async"
+                    onError={() => setImgError(true)}
+                    style={{
+                      width: '100%',
+                      maxHeight: 320,
+                      objectFit: 'cover',
+                      display: 'block',
+                      transition: 'transform 0.25s ease, filter 0.25s ease',
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                      e.currentTarget.style.filter = 'brightness(0.92)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.filter = 'none';
+                    }}
+                  />
+                )}
               </div>
 
               <div

@@ -163,6 +163,35 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // ─── Static file serving for uploads (open CORS — public images) ─────────────
 // Must be before the restrictive API cors() so browsers can load images cross-origin
+const { getFileFromDb, initFileStorage } = require('./services/fileStorageService');
+initFileStorage();
+
+app.get('/uploads/:filename', cors({ origin: '*' }), async (req, res, next) => {
+  const filename = path.basename(req.params.filename);
+  const localPath = path.join(uploadsDir, filename);
+
+  if (fs.existsSync(localPath)) {
+    return res.sendFile(localPath);
+  }
+
+  // File not found on disk (e.g. after Render restart) — restore from persistent Aiven cloud DB
+  try {
+    const file = await getFileFromDb(filename);
+    if (file && file.data) {
+      try {
+        fs.writeFileSync(localPath, file.data);
+      } catch (_) {}
+      res.setHeader('Content-Type', file.mimetype || 'image/jpeg');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      return res.send(file.data);
+    }
+  } catch (err) {
+    console.error(`[FileStorage] Error restoring ${filename}:`, err);
+  }
+
+  return res.status(404).send('Image not found');
+});
+
 app.use('/uploads', cors({ origin: '*' }), express.static(uploadsDir));
 
 // ─── Apply global rate limiter to all /api/ routes ───────────────────────────

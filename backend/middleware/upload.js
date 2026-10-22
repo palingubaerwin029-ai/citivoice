@@ -112,6 +112,10 @@ const verifyImageSignature = (req, res, next) => {
       req.file.filename = req.file.filename + correctExt;
     }
 
+    // Automatically backup to persistent cloud database so it survives server restarts
+    const { saveFileToDb } = require('../services/fileStorageService');
+    saveFileToDb(req.file.filename, req.file.mimetype, req.file.path).catch(console.error);
+
     next();
   } catch (err) {
     console.error('Magic number check failed:', err);

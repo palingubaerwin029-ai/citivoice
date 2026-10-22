@@ -397,6 +397,12 @@ export default function Concerns() {
                                   alt="Attachment"
                                   loading="lazy"
                                   decoding="async"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    if (e.currentTarget.parentElement) {
+                                      e.currentTarget.parentElement.innerHTML = '<span style="font-size:16px;display:flex;align-items:center;justify-content:center;height:100%">📷</span>';
+                                    }
+                                  }}
                                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                                 />
                                 <div
