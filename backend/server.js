@@ -211,7 +211,15 @@ app.use('/api/backup', require('./routes/backup'));
 app.get('/api/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
-    res.json({ status: 'ok', db: 'up', uptime: Math.round(process.uptime()), time: new Date() });
+    const isEmailConfigured = !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
+    res.json({
+      status: 'ok',
+      db: 'up',
+      email: isEmailConfigured ? 'configured' : 'simulation_only_missing_env',
+      sender: process.env.GMAIL_USER ? process.env.GMAIL_USER.replace(/(.{3})(.*)(@.*)/, '$1***$3') : null,
+      uptime: Math.round(process.uptime()),
+      time: new Date(),
+    });
   } catch (err) {
     res.status(503).json({ status: 'degraded', db: 'down', time: new Date() });
   }
