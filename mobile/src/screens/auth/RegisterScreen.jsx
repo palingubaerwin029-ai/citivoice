@@ -25,6 +25,15 @@ import { scale, verticalScale, rf } from '../../utils/responsive';
 import { useImagePicker } from '../../hooks/useImagePicker';
 import { ConcernService } from '../../services/concernService';
 
+export const DEFAULT_BARANGAYS = [
+  'Bantayan', 'Barangay 1', 'Barangay 2', 'Barangay 3', 'Barangay 4',
+  'Barangay 5', 'Barangay 6', 'Barangay 7', 'Barangay 8', 'Barangay 9',
+  'Binicuil', 'Camansi', 'Camingawan', 'Camugao', 'Carol-an', 'Daan Banua',
+  'Hilamonan', 'Inapoy', 'Linao', 'Locotan', 'Magballo', 'Oringao',
+  'Orong', 'Pinaguinpinan', 'Salong', 'Tabugon', 'Tagoc', 'Tagukon',
+  'Talubangi', 'Tampalon', 'Tan-Awan', 'Tapi',
+];
+
 export const ID_CONFIGS = {
   'PhilSys (National ID)': {
     placeholder: '1234-5678-9012-3456',
@@ -202,7 +211,7 @@ export default function RegisterScreen({ navigation, route }) {
   const [scannedImageUri, setScannedImageUri] = useState(null);
   const [pwFocused, setPwFocused] = useState(false);
   const strengthAnim = useRef(new Animated.Value(0)).current;
-  const [availableBarangays, setAvailableBarangays] = useState([]);
+  const [availableBarangays, setAvailableBarangays] = useState(DEFAULT_BARANGAYS);
   const [barangaySearch, setBarangaySearch] = useState('');
 
   // Email verification state
@@ -296,17 +305,23 @@ export default function RegisterScreen({ navigation, route }) {
   }, [availableBarangays, barangaySearch]);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchBarangays = async () => {
       try {
         const rows = await mobileApi.get('/barangays');
-        const list = rows.map((r) => r.name);
-        list.sort((a, b) => a.localeCompare(b));
-        setAvailableBarangays(list);
+        if (isMounted && Array.isArray(rows) && rows.length > 0) {
+          const list = rows.map((r) => r.name);
+          list.sort((a, b) => a.localeCompare(b));
+          setAvailableBarangays(list);
+        }
       } catch (err) {
         console.log('Error fetching barangays', err);
       }
     };
     fetchBarangays();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));

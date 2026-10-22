@@ -252,7 +252,10 @@ export function MapView() {
   const [filter, setFilter] = useState('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
-  const [mapType, setMapType] = useState(localStorage.getItem('mv_layer') || 'Dark Matter');
+  const [mapType, setMapType] = useState(() => {
+    const saved = localStorage.getItem('mv_layer');
+    return saved && saved !== 'Dark Matter' && saved !== 'Positron (Light)' ? saved : 'Satellite';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [flyCoords, setFlyCoords] = useState(null);
@@ -406,20 +409,6 @@ export function MapView() {
         className={s.mapWrapper}
       >
         <LayersControl position="topright">
-          <LayersControl.BaseLayer checked={mapType === 'Dark Matter'} name="Dark Matter">
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              eventHandlers={{ add: () => setMapType('Dark Matter') }}
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer checked={mapType === 'Positron (Light)'} name="Positron (Light)">
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              eventHandlers={{ add: () => setMapType('Positron (Light)') }}
-            />
-          </LayersControl.BaseLayer>
           <LayersControl.BaseLayer checked={mapType === 'Satellite'} name="Satellite">
             <TileLayer
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
