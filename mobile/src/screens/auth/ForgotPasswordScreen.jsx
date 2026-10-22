@@ -60,6 +60,8 @@ export default function ForgotPasswordScreen({ navigation }) {
     }
   }, [sent]);
 
+  const [debugOtp, setDebugOtp] = useState(null);
+
   const validateEmail = (value) => {
     if (!value.trim()) return t('required');
     if (!/\S+@\S+\.\S+/.test(value)) return t('invalidEmail');
@@ -85,6 +87,7 @@ export default function ForgotPasswordScreen({ navigation }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Request failed');
 
+      if (data.debugOtp) setDebugOtp(data.debugOtp);
       setSent(true);
     } catch (err) {
       setError(err.message || t('error'));
@@ -94,7 +97,7 @@ export default function ForgotPasswordScreen({ navigation }) {
   };
 
   const handleContinue = () => {
-    navigation.navigate('ResetPassword', { email: email.trim() });
+    navigation.navigate('ResetPassword', { email: email.trim(), prefilledOtp: debugOtp });
   };
 
   return (
@@ -240,6 +243,24 @@ export default function ForgotPasswordScreen({ navigation }) {
                       {email.trim()}
                     </Text>
                   </View>
+
+                  {debugOtp && (
+                    <View
+                      style={{
+                        marginVertical: 10,
+                        padding: 12,
+                        backgroundColor: colors.success + '18',
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: colors.success + '44',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text style={{ color: colors.success, fontWeight: '700', fontSize: 13 }}>
+                        ✓ [TEST MODE] Reset Code: {debugOtp}
+                      </Text>
+                    </View>
+                  )}
 
                   {/* Continue to reset */}
                   <TouchableOpacity
