@@ -20,8 +20,8 @@ if (isEmailEnabled) {
     rateDelta: 1000,         // Rate limit window: 1 second
     rateLimit: 5,            // Max 5 messages per second to keep within Gmail policy
     auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
+      user: (process.env.GMAIL_USER || '').trim(),
+      pass: (process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, ''),
     },
   });
 }
