@@ -43,18 +43,35 @@ export function useLocation() {
   const getCurrentLocation = async (showErrors = true) => {
     setLoadingLocation(true);
     try {
+      const hasServices = await Location.hasServicesEnabledAsync().catch(() => true);
+      if (!hasServices) {
+        if (showErrors) {
+          Alert.alert(t('error') || 'GPS Disabled', 'Please turn on Location Services (GPS) in your phone settings.');
+        }
+        return null;
+      }
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         if (showErrors)
-          Alert.alert(t('error') || 'Permission required', 'Please allow location access.');
+          Alert.alert(t('error') || 'Permission required', 'Please allow location access to pin your concern.');
         return null;
       }
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
+
+      // Try balanced accuracy first (works fast indoors & outdoors without GPS lock freeze)
+      let loc = null;
+      try {
+        loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+      } catch (posErr) {
+        console.log('Balanced accuracy position failed, trying last known location:', posErr);
+        loc = await Location.getLastKnownPositionAsync().catch(() => null);
+      }
+
       return loc;
     } catch (err) {
-      if (showErrors) Alert.alert(t('error') || 'Error', 'Could not get location.');
+      if (showErrors) Alert.alert(t('error') || 'Error', 'Could not retrieve your location. Please check GPS settings.');
       console.log('Location error', err);
       return null;
     } finally {

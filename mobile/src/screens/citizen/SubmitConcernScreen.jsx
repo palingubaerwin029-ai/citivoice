@@ -184,16 +184,21 @@ export default function SubmitConcernScreen({ navigation, route }) {
   };
 
   const getLocation = async () => {
-    const loc = await getCurrentLocation(true);
-    if (!loc) return;
+    try {
+      const loc = await getCurrentLocation(true);
+      if (!loc || !loc.coords) return;
 
-    const address = await reverseGeocode(loc.coords.latitude, loc.coords.longitude);
-    setLocation({
-      latitude: loc.coords.latitude,
-      longitude: loc.coords.longitude,
-      address,
-    });
-    setShowMap(true);
+      const address = await reverseGeocode(loc.coords.latitude, loc.coords.longitude);
+      setLocation({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        address,
+      });
+      setShowMap(true);
+    } catch (err) {
+      console.error('Error getting location:', err);
+      Alert.alert(t('error') || 'Error', 'Could not get your location.');
+    }
   };
 
   const handleMapPinChange = async (coordinate) => {

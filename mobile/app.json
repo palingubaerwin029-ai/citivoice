@@ -27,6 +27,11 @@
         "backgroundColor": "#0A1628"
       },
       "package": "com.citivoice.app",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDCsB7L8XaSeq6RvIcaEnpPZ6xmfSMG4Gc"
+        }
+      },
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
