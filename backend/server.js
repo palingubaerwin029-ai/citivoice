@@ -225,6 +225,18 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// Diagnostic endpoint to test live outbound email delivery from this server
+app.get('/api/test-email', async (req, res) => {
+  const target = req.query.to || process.env.GMAIL_USER;
+  try {
+    const { sendEmail } = require('./services/notificationService');
+    const result = await sendEmail(target, 'CitiVoice Outbound SMTP Test', '<p>Testing Render outbound SMTP delivery.</p>');
+    res.json({ success: !!result && !result.error, target, result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ─── Unknown API routes ──────────────────────────────────────────────────────
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
