@@ -1,7 +1,12 @@
 import Constants from 'expo-constants';
 
 const getBaseUrl = () => {
-  // 1. Try to dynamically detect the Metro host IP from Expo Constants so IP changes adapt automatically
+  // 1. Prioritize environment variable if set
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 2. Try to dynamically detect the Metro host IP from Expo Constants for local dev
   const host =
     Constants?.expoConfig?.hostUri ||
     Constants?.manifest2?.extra?.expoGo?.debuggerHost ||
@@ -13,13 +18,8 @@ const getBaseUrl = () => {
     }
   }
 
-  // 2. Fall back to environment variable
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-
   // 3. Static fallback
-  return 'http://10.115.199.178:5000/api'; 
+  return 'https://citivoice.onrender.com/api'; 
 };
 
 export const BASE_URL = getBaseUrl();
