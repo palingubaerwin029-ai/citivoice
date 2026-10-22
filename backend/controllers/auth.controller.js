@@ -164,9 +164,15 @@ const sendRegistrationOtp = async (req, res) => {
       </div>
     `;
 
-    await sendEmail(cleanEmail, 'CitiVoice — Email Verification Code', htmlBody);
+    // Send email asynchronously in the background so the user receives an instant API response
+    sendEmail(cleanEmail, 'CitiVoice — Email Verification Code', htmlBody).catch((err) => {
+      console.error('❌ Background registration OTP dispatch error:', err);
+    });
 
-    res.json({ success: true, message: 'Verification code sent to your email.' });
+    res.json({
+      success: true,
+      message: 'Verification code sent! Please check your inbox and Spam/Promotions folder.',
+    });
   } catch (err) {
     console.error('Send registration OTP error:', err);
     res.status(500).json({ error: 'Failed to send verification code. Please try again.' });
@@ -365,7 +371,10 @@ const forgotPassword = async (req, res) => {
       </div>
     `;
 
-    await sendEmail(email, 'CitiVoice — Password Reset Code', htmlBody);
+    // Send reset code email asynchronously in the background
+    sendEmail(email, 'CitiVoice — Password Reset Code', htmlBody).catch((err) => {
+      console.error('❌ Background forgot-password email dispatch error:', err);
+    });
 
     res.json({ message: 'If this email is registered, a reset code has been sent.' });
   } catch (err) {

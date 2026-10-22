@@ -10,11 +10,15 @@ const expo = new Expo();
 // Ensure valid credentials before creating transporter or it will error
 const isEmailEnabled = !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
 
-
 let mailTransporter = null;
 if (isEmailEnabled) {
   mailTransporter = nodemailer.createTransport({
     service: 'gmail',
+    pool: true,              // Reuse persistent connections to avoid repeated TLS handshakes
+    maxConnections: 5,       // Allow up to 5 concurrent connections
+    maxMessages: 100,        // Max messages per connection before recycling
+    rateDelta: 1000,         // Rate limit window: 1 second
+    rateLimit: 5,            // Max 5 messages per second to keep within Gmail policy
     auth: {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASSWORD,
@@ -22,30 +26,49 @@ if (isEmailEnabled) {
   });
 }
 
-
-
 /**
  * Sends an email via Gmail
+ * @param {string} to - Recipient email address
+ * @param {string} subject - Email subject
+ * @param {string} htmlContent - HTML formatted email body
+ * @param {string} [textContent] - Optional plain text alternative (auto-generated if omitted)
  */
-const sendEmail = async (to, subject, htmlContent) => {
-  if (!to) return;
+const sendEmail = async (to, subject, htmlContent, textContent = null) => {
+  if (!to) return null;
   if (!isEmailEnabled) {
     console.log(`\n📧 [SIMULATION] EMAIL NOTIFICATION TO: ${to}`);
     console.log(`SUBJECT: ${subject}`);
     console.log(`CONTENT: ${htmlContent} \n`);
-    return;
+    return { messageId: 'simulated' };
   }
+
+  // Generate plain-text fallback so spam filters do not penalize HTML-only emails
+  const plainText =
+    textContent ||
+    htmlContent
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
   try {
     const info = await mailTransporter.sendMail({
       from: `"CitiVoice Admin" <${process.env.GMAIL_USER}>`,
       to,
       subject,
+      text: plainText,
       html: htmlContent,
+      headers: {
+        'X-Priority': '1',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'high',
+      },
     });
     console.log(`📧 Email sent to ${to}: ${info.messageId}`);
+    return info;
   } catch (error) {
-    console.error('❌ Failed to send email:', error);
+    console.error(`❌ Failed to send email to ${to}:`, error.message || error);
+    return null;
   }
 };
 
