@@ -74,13 +74,33 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 // CORS Configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:3000', 'http://localhost:5173']; // Common dev ports
+const rawOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+  : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'];
+
+const isWildcardOrigin = rawOrigins.includes('*');
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (isWildcardOrigin) return true;
+  if (rawOrigins.includes(origin)) return true;
+  try {
+    const { hostname } = new URL(origin);
+    if (hostname.endsWith('.onrender.com') || hostname === 'onrender.com') return true;
+    if (hostname.endsWith('.vercel.app') || hostname === 'vercel.app') return true;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+  } catch (_) {}
+  return false;
+};
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true,
   }),
 );
@@ -88,7 +108,12 @@ app.use(
 // ─── Socket.io Initialization ────────────────────────────────────────────────
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true,
   },
 });
