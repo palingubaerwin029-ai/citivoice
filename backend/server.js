@@ -216,29 +216,18 @@ app.use('/api/backup', require('./routes/backup'));
 app.get('/api/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
-    const isEmailConfigured = !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
+    const isGmailConfigured = !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
+    const isBrevoConfigured = !!process.env.BREVO_API_KEY;
     res.json({
       status: 'ok',
       db: 'up',
-      email: isEmailConfigured ? 'configured' : 'simulation_only_missing_env',
+      email: isBrevoConfigured ? 'brevo' : isGmailConfigured ? 'gmail_smtp' : 'simulation_only_missing_env',
       sender: process.env.GMAIL_USER ? process.env.GMAIL_USER.replace(/(.{3})(.*)(@.*)/, '$1***$3') : null,
       uptime: Math.round(process.uptime()),
       time: new Date(),
     });
   } catch (err) {
     res.status(503).json({ status: 'degraded', db: 'down', time: new Date() });
-  }
-});
-
-// Diagnostic endpoint to test live outbound email delivery from this server
-app.get('/api/test-email', async (req, res) => {
-  const target = req.query.to || process.env.GMAIL_USER;
-  try {
-    const { sendEmail } = require('./services/notificationService');
-    const result = await sendEmail(target, 'CitiVoice Outbound SMTP Test', '<p>Testing Render outbound SMTP delivery.</p>');
-    res.json({ success: !!result && !result.error, target, result });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
   }
 });
 

@@ -29,8 +29,39 @@ if (isEmailEnabled) {
   });
 }
 
+// ── Brevo (HTTPS API) Setup ───────────────────────────────────────────────────
+// Preferred sender: an HTTPS API call (~0.3s) instead of an SMTP handshake (5-7s).
+// Requires BREVO_API_KEY and a verified sender (BREVO_SENDER_EMAIL, defaults to GMAIL_USER).
+const BREVO_API_KEY = (process.env.BREVO_API_KEY || '').trim();
+const BREVO_SENDER_EMAIL = (process.env.BREVO_SENDER_EMAIL || process.env.GMAIL_USER || '').trim();
+const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME || 'CitiVoice Admin';
+const isBrevoEnabled = !!(BREVO_API_KEY && BREVO_SENDER_EMAIL);
+
+const sendViaBrevo = async (to, subject, htmlContent, plainText) => {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': BREVO_API_KEY,
+      'Content-Type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: BREVO_SENDER_NAME, email: BREVO_SENDER_EMAIL },
+      to: [{ email: to }],
+      subject,
+      htmlContent,
+      textContent: plainText,
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(`Brevo API ${res.status}: ${data.message || JSON.stringify(data)}`);
+  }
+  return { messageId: data.messageId, response: `Brevo accepted (${res.status})`, provider: 'brevo' };
+};
+
 /**
- * Sends an email via Gmail
+ * Sends an email via Brevo API (preferred) or Gmail SMTP (fallback)
  * @param {string} to - Recipient email address
  * @param {string} subject - Email subject
  * @param {string} htmlContent - HTML formatted email body
@@ -38,7 +69,7 @@ if (isEmailEnabled) {
  */
 const sendEmail = async (to, subject, htmlContent, textContent = null) => {
   if (!to) return null;
-  if (!isEmailEnabled) {
+  if (!isEmailEnabled && !isBrevoEnabled) {
     console.log(`\n📧 [SIMULATION] EMAIL NOTIFICATION TO: ${to}`);
     console.log(`SUBJECT: ${subject}`);
     console.log(`CONTENT: ${htmlContent} \n`);
@@ -53,6 +84,19 @@ const sendEmail = async (to, subject, htmlContent, textContent = null) => {
       .replace(/<[^>]+>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
+
+  if (isBrevoEnabled) {
+    try {
+      const started = Date.now();
+      const info = await sendViaBrevo(to, subject, htmlContent, plainText);
+      console.log(`📧 [Brevo] Email sent to ${to} in ${Date.now() - started}ms: ${info.messageId}`);
+      return info;
+    } catch (error) {
+      console.error(`❌ [Brevo] Failed for ${to}:`, error.message || error);
+      if (!isEmailEnabled) return null;
+      console.log('↩️  Falling back to Gmail SMTP...');
+    }
+  }
 
   try {
     const info = await mailTransporter.sendMail({
