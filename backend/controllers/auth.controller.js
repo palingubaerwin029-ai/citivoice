@@ -164,10 +164,8 @@ const sendRegistrationOtp = async (req, res) => {
       </div>
     `;
 
-    // Send email asynchronously in the background so the user receives an instant API response
-    sendEmail(cleanEmail, 'CitiVoice — Email Verification Code', htmlBody).catch((err) => {
-      console.error('❌ Background registration OTP dispatch error:', err);
-    });
+    // Await immediate email forwarding so the server completes handshake with Google SMTP before responding
+    await sendEmail(cleanEmail, 'CitiVoice — Email Verification Code', htmlBody);
 
     res.json({
       success: true,
@@ -371,10 +369,8 @@ const forgotPassword = async (req, res) => {
       </div>
     `;
 
-    // Send reset code email asynchronously in the background
-    sendEmail(email, 'CitiVoice — Password Reset Code', htmlBody).catch((err) => {
-      console.error('❌ Background forgot-password email dispatch error:', err);
-    });
+    // Await immediate reset code email forwarding
+    await sendEmail(email, 'CitiVoice — Password Reset Code', htmlBody);
 
     res.json({
       message: 'If this email is registered, a reset code has been sent.',

@@ -13,7 +13,10 @@ const isEmailEnabled = !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWO
 let mailTransporter = null;
 if (isEmailEnabled) {
   mailTransporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    family: 4,               // Force IPv4 to prevent IPv6 DNS timeout delays
     pool: true,              // Reuse persistent connections to avoid repeated TLS handshakes
     maxConnections: 5,       // Allow up to 5 concurrent connections
     maxMessages: 100,        // Max messages per connection before recycling
