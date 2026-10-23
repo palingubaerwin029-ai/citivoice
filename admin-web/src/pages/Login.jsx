@@ -40,9 +40,7 @@ export default function Login({ onLogin }) {
       <div className={s.card}>
         {/* Header */}
         <div className={s.header}>
-          <div className={s.logoWrap}>
-            <img src="/logo192.png" alt="CitiVoice Logo" className={s.logoImg} />
-          </div>
+          <img src="/logo.png" alt="CitiVoice Logo" className={s.logo} />
           <h1 className={s.title}>CitiVoice</h1>
           <p className={s.subtitle}>Kabankalan City — Admin Console</p>
           <p className={s.sealMotto}>
