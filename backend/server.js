@@ -20,6 +20,9 @@ const compression = require('compression');
 const app = express();
 const server = http.createServer(app);
 
+// ─── Trust Proxy (Required for Render, Cloudflare, and reverse proxies) ───────
+app.set('trust proxy', 1);
+
 // ─── Gzip responses (JSON lists are large) ───────────────────────────────────
 app.use(compression());
 
@@ -51,13 +54,15 @@ const globalLimiter = rateLimit({
   message: { error: 'Too many requests. Please slow down.' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 
 // Stricter limiter for auth routes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // limit each IP to 20 requests per windowMs for auth routes
+  max: 40, // limit each IP to 40 requests per windowMs for auth routes
   message: { error: 'Too many authentication attempts. Please try again later.' },
+  validate: { xForwardedForHeader: false },
 });
 
 // ─── Slow Down ───────────────────────────────────────────────────────────────
