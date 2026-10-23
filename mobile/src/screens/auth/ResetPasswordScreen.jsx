@@ -27,13 +27,7 @@ export default function ResetPasswordScreen({ navigation, route }) {
   const { t } = useLanguage();
   const email = route.params?.email || '';
 
-  const initialOtp = (() => {
-    const pre = route.params?.prefilledOtp ? String(route.params.prefilledOtp).trim().split('') : [];
-    if (pre.length === OTP_LENGTH) return pre;
-    return Array(OTP_LENGTH).fill('');
-  })();
-
-  const [otp, setOtp] = useState(initialOtp);
+  const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(''));
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPw, setShowPw] = useState(false);

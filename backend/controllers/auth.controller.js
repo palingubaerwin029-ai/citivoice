@@ -172,7 +172,6 @@ const sendRegistrationOtp = async (req, res) => {
     res.json({
       success: true,
       message: 'Verification code sent! Please check your inbox and Spam/Promotions folder.',
-      debugOtp: otp,
     });
   } catch (err) {
     console.error('Send registration OTP error:', err);
@@ -379,7 +378,6 @@ const forgotPassword = async (req, res) => {
 
     res.json({
       message: 'If this email is registered, a reset code has been sent.',
-      debugOtp: otp,
     });
   } catch (err) {
     console.error('Forgot password error:', err);

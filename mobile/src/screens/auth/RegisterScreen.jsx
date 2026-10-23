@@ -254,12 +254,8 @@ export default function RegisterScreen({ navigation, route }) {
       const res = await mobileApi.post('/auth/send-registration-otp', { email: cleanEmail });
       setOtpSent(true);
       setOtpCooldown(60);
-      if (res?.debugOtp) {
-        setOtpCode(res.debugOtp);
-        setOtpSuccess(`[TEST MODE] Code is ${res.debugOtp} (auto-filled). Tap Verify!`);
-      } else {
-        setOtpSuccess(res?.message || `Code sent to ${cleanEmail}. Check Inbox or Spam.`);
-      }
+      setOtpCode('');
+      setOtpSuccess(res?.message || `Verification code sent to ${cleanEmail}. Please check your Inbox and Spam folder.`);
     } catch (err) {
       const msg = err?.data?.message || err?.message || 'Failed to send verification code.';
       setOtpError(msg);
