@@ -194,19 +194,25 @@ export default function LoginScreen({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState(null);
-  const [successBanner, setSuccessBanner] = useState(null);
   const errorBannerAnim = useRef(new Animated.Value(0)).current;
 
+  // Clear stale errors when screen is focused or when returning from registration
   useEffect(() => {
-    if (route?.params?.registrationSuccess) {
-      if (route.params.registeredEmail) {
-        setEmail(route.params.registeredEmail);
-      }
-      setSuccessBanner(
-        'Registration submitted successfully! Your account is pending admin verification. You can log in once approved.',
-      );
+    const unsubscribe = navigation.addListener('focus', () => {
+      setErrors({});
+      setServerError(null);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  useEffect(() => {
+    if (route?.params?.registeredEmail) {
+      setEmail(route.params.registeredEmail);
+      setPassword('');
+      setErrors({});
+      setServerError(null);
     }
-  }, [route?.params?.registrationSuccess, route?.params?.registeredEmail]);
+  }, [route?.params?.registeredEmail]);
 
   // Animate error banner in/out
   useEffect(() => {
@@ -232,79 +238,80 @@ export default function LoginScreen({ navigation, route }) {
   const validateField = (field, value) => {
     let error = null;
     if (field === 'email') {
-      if (!value.trim()) error = t('required');
-      else if (!/\S+@\S+\.\S+/.test(value)) error = t('invalidEmail');
+      const trimmed = (value || '').trim();
+      if (!trimmed) {
+        error = 'Email is required';
+      } else if (!/\S+@\S+\.\S+/.test(trimmed)) {
+        error = 'Please enter a valid email address';
+      }
     } else if (field === 'password') {
-      if (!value) error = t('required');
+      if (!value) {
+        error = 'Password is required';
+      }
     }
-    setErrors((prev) => ({ ...prev, [field]: error }));
+    setErrors((prev) => {
+      const updated = { ...prev };
+      if (error) {
+        updated[field] = error;
+      } else {
+        delete updated[field];
+      }
+      return updated;
+    });
     return error;
   };
 
   const validate = () => {
-    const emailErr = validateField('email', email);
-    const passErr = validateField('password', password);
-    return !emailErr && !passErr;
+    const newErrors = {};
+    const trimmedEmail = (email || '').trim();
+    if (!trimmedEmail) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(trimmedEmail)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleLogin = async () => {
     if (!validate()) return;
     setLoading(true);
+    setServerError(null);
     try {
       const userData = await login(email.trim(), password);
 
-      // ── Intercept blocked statuses ──────────────────────────────────
-      // onAuthStateChanged will set user._blocked = true automatically,
-      // which will trigger the VerificationGate above.
-      // But we also handle it here for immediate feedback.
-
       const st = userData.verification_status;
-
-      if (st === VERIFICATION_STATUS.UNVERIFIED) {
-        // Let onAuthStateChanged handle the redirect to gate
+      if (st === VERIFICATION_STATUS.UNVERIFIED || st === VERIFICATION_STATUS.PENDING || st === VERIFICATION_STATUS.REJECTED) {
         return;
       }
-      if (st === VERIFICATION_STATUS.PENDING) {
-        return; // gate will show
-      }
-      if (st === VERIFICATION_STATUS.REJECTED) {
-        return; // gate will show with rejection reason
-      }
     } catch (err) {
-      const errKey = err?.code || err?.message || '';
+      const errKey = err?.code || err?.data?.error || err?.message || '';
+      const errField = err?.data?.field || err?.field;
+      const errMsg = err?.data?.message || err?.message || '';
 
-      // Map error codes to user-friendly messages
-      const messageMap = {
-        'auth/invalid-credential': 'Wrong email or password.',
-        'auth/user-not-found': 'No account with this email.',
-        'auth/wrong-password': 'Incorrect password.',
-        'auth/invalid-email': 'Invalid email address.',
-        'auth/too-many-requests': 'Too many attempts. Try again later.',
-        'auth/network-request-failed': 'No internet connection.',
-        NO_PROFILE: 'Account not set up. Please register.',
-      };
-
-      // Map certain errors to specific fields for inline display
-      const fieldMap = {
-        'auth/user-not-found': { email: 'No account found with this email.' },
-        'auth/invalid-email': { email: 'Please enter a valid email address.' },
-        'auth/wrong-password': { password: 'Incorrect password. Try again.' },
-        'auth/invalid-credential': {
-          email: 'Wrong email or password.',
-          password: 'Wrong email or password.',
-        },
-      };
-
-      // Set field-specific inline errors if applicable
-      const fieldErrors = fieldMap[errKey];
-      if (fieldErrors) {
-        setErrors((prev) => ({ ...prev, ...fieldErrors }));
+      if (errField === 'email' || errKey === 'auth/user-not-found' || errKey === 'auth/invalid-email') {
+        const text = errMsg || 'No account found with this email address.';
+        setErrors({ email: text });
+        setServerError(text);
+      } else if (errField === 'password' || errKey === 'auth/wrong-password') {
+        const text = errMsg || 'Incorrect password. Please try again.';
+        setErrors({ password: text });
+        setServerError(text);
+      } else if (errKey === 'auth/invalid-credential') {
+        setErrors({
+          email: 'Please check your email address.',
+          password: 'Please check your password.',
+        });
+        setServerError(errMsg || 'Invalid email or password.');
+      } else {
+        const text = errMsg || t('error');
+        setServerError(text);
       }
-
-      // Set the server error banner message
-      const errorText =
-        messageMap[errKey] || err?.response?.data?.message || err?.message || t('error');
-      setServerError(typeof err === 'string' ? err : errorText);
     } finally {
       setLoading(false);
     }
@@ -404,31 +411,6 @@ export default function LoginScreen({ navigation, route }) {
                   <Ionicons name="close" size={16} color={colors.danger} />
                 </TouchableOpacity>
               </Animated.View>
-            )}
-
-            {/* Success Banner */}
-            {successBanner && (
-              <View
-                style={[
-                  S.errorBanner,
-                  {
-                    backgroundColor: colors.success + '18',
-                    borderColor: colors.success + '66',
-                    marginBottom: verticalScale(14),
-                  },
-                ]}
-              >
-                <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                <Text style={[S.errorBannerText, { color: colors.success, flex: 1 }]}>
-                  {successBanner}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setSuccessBanner(null)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Ionicons name="close" size={16} color={colors.success} />
-                </TouchableOpacity>
-              </View>
             )}
 
             {/* Email */}

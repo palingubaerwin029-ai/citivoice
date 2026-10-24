@@ -544,7 +544,6 @@ export default function RegisterScreen({ navigation, route }) {
 
       await register({ ...form, idImageUrl, verificationToken });
       navigation.navigate('Login', {
-        registrationSuccess: true,
         registeredEmail: form.email.trim(),
       });
     } catch (err) {

@@ -42,11 +42,19 @@ const login = async (req, res) => {
     const user = await selectByEmail(email);
     const valid = user ? await bcrypt.compare(password, user.password_hash) : false;
 
-    // Unified credential check to prevent account/email enumeration
-    if (!user || !valid) {
+    if (!user) {
       return res.status(401).json({
-        error: 'auth/invalid-credential',
-        message: 'Invalid email or password.',
+        error: 'auth/user-not-found',
+        field: 'email',
+        message: 'No account found with this email address.',
+      });
+    }
+
+    if (!valid) {
+      return res.status(401).json({
+        error: 'auth/wrong-password',
+        field: 'password',
+        message: 'Incorrect password. Please try again.',
       });
     }
 
