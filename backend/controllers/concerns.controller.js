@@ -7,8 +7,6 @@ const { findSimilarConcerns } = require('../services/similarityService');
 const { generateText, isAvailable: isGeminiAvailable } = require('../services/groqService');
 const { cacheMiddleware, invalidate } = require('../middleware/cache');
 const { validateConcern, validateIdParam } = require('../middleware/validate');
-const workflowService = require('../services/workflowService');
-const workflowModel = require('../models/workflow.model');
 const {
   selectAllConcerns,
   countConcerns,
@@ -24,7 +22,36 @@ const {
   insertConcernLink,
   selectLinkedConcerns,
 } = require('../models/concern.model');
-const { selectDepartmentByCategory, selectDepartmentByName } = require('../models/department.model');
+
+const resolveDepartment = (category, priority) => {
+  try {
+    const routing = routeToDepartment(category, priority);
+    return routing ? `${routing.department} — ${routing.team}` : 'General Municipal Services';
+  } catch (_) {
+    return 'General Municipal Services';
+  }
+};
+
+const logAudit = async (entityType, entityId, action, changedBy, changedByName, oldValue, newValue) => {
+  try {
+    const pool = require('../db');
+    await pool.query(
+      `INSERT INTO audit_log (entity_type, entity_id, action, changed_by, changed_by_name, old_value, new_value)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        entityType,
+        entityId,
+        action,
+        changedBy || null,
+        changedByName || null,
+        oldValue ? JSON.stringify(oldValue) : null,
+        newValue ? JSON.stringify(newValue) : null,
+      ]
+    );
+  } catch (err) {
+    console.error('[Audit Log] Failed to write audit record:', err.message);
+  }
+};
 
 const BASE_URL = () => process.env.BASE_URL || 'http://localhost:5000';
 
@@ -296,7 +323,7 @@ const createConcern = async (req, res) => {
   // ─── Feature 4: Department Routing (Centralized) ─────────────────────────
   const department = isNotTypical
     ? null
-    : await workflowService.resolveDepartmentForConcern(finalCategory, finalPriority);
+    : resolveDepartment(finalCategory, finalPriority);
 
   const insertId = await insertConcern({
       title,
@@ -504,7 +531,7 @@ const editConcern = async (req, res) => {
         const existingConcern = await selectConcernById(req.params.id);
         const newCat = category || existingConcern.category;
         const newPri = priority || existingConcern.priority;
-        const updatedDept = await workflowService.resolveDepartmentForConcern(newCat, newPri);
+        const updatedDept = resolveDepartment(newCat, newPri);
         fields.push('department = ?');
         values.push(updatedDept);
 
@@ -557,7 +584,7 @@ const editConcern = async (req, res) => {
     // Audit log
     const changedFields = req.body;
     try {
-      await workflowService.logAudit(
+      await logAudit(
         'concern',
         req.params.id,
         'edited',
@@ -1028,26 +1055,27 @@ const approveConcern = async (req, res) => {
 
     const updatedConcern = await selectConcernById(req.params.id);
 
-    // Find department details
+    // Department details or municipal fallback
     let deptInfo = null;
     if (updatedConcern.department) {
-      const baseDeptName = updatedConcern.department.split(' — ')[0].trim();
-      deptInfo = await selectDepartmentByName(baseDeptName);
-    }
-    if (!deptInfo && updatedConcern.category) {
-      deptInfo = await selectDepartmentByCategory(updatedConcern.category);
+      deptInfo = {
+        name: updatedConcern.department,
+        email: process.env.DEPARTMENT_EMAIL || process.env.GMAIL_USER || null,
+      };
     }
 
-    // Email official approval notice to department
+    // Email official approval notice to department/admin
     try {
-      await notifyDepartmentOnApproval(updatedConcern, approval_notes, deptInfo, approverName);
+      if (deptInfo && (deptInfo.email || process.env.GMAIL_USER)) {
+        await notifyDepartmentOnApproval(updatedConcern, approval_notes, deptInfo, approverName);
+      }
     } catch (e) {
       console.error('[Notification] Error sending department email:', e.message);
     }
 
     // Log audit
     try {
-      await workflowService.logAudit(
+      await logAudit(
         'concern',
         updatedConcern.id,
         'approved_and_notified_department',
@@ -1076,11 +1104,16 @@ const approveConcern = async (req, res) => {
           concernId: updatedConcern.id,
         });
       }
+
+      // Fetch citizen details (name, email) for reliable Gmail notification
+      const citizenUser = await selectConcernWithUser(updatedConcern.id);
+      const recipient = citizenUser || updatedConcern;
+
       notifyUser(
-        updatedConcern,
+        recipient,
         'Concern Approved & Forwarded',
         `Great news! Your concern "${updatedConcern.title}" has been officially approved and sent to ${updatedConcern.department || 'the city department'} for resolution.`,
-        `The citizen's concern titled "${updatedConcern.title}" was approved by ${req.user.name} and sent to ${updatedConcern.department}.`,
+        `The citizen's concern titled "${updatedConcern.title}" was approved by ${req.user.name} and sent to ${updatedConcern.department || 'the responsible department'}.`,
         updatedConcern.id
       );
     }
@@ -1094,7 +1127,7 @@ const approveConcern = async (req, res) => {
     res.json({
       success: true,
       concern: updatedConcern,
-      department_notified: deptInfo ? `${deptInfo.name} (${deptInfo.email})` : 'Assigned Department'
+      department_notified: deptInfo?.email ? `${deptInfo.name} (${deptInfo.email})` : (updatedConcern.department || 'Assigned Department')
     });
   } catch (err) {
     console.error('Approve concern error:', err);
@@ -1130,7 +1163,7 @@ const forwardToMayor = async (req, res) => {
 
     // Add audit log entry
     try {
-      await workflowService.logAudit(
+      await logAudit(
         'concern',
         id,
         'validated_and_forwarded_to_mayor',

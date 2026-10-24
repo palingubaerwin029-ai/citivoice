@@ -149,7 +149,24 @@ const escapeHTML = (str) => {
 const notifyUser = async (user, subject, defaultMessage, notificationContext, concernId = null) => {
   if (!user) return;
 
-  const safeName = escapeHTML(user.name || 'Citizen');
+  // Resolve target citizen info if user is a concern object or missing email
+  let targetUser = { ...user };
+  if (!targetUser.email && (targetUser.user_id || targetUser.id)) {
+    try {
+      const pool = require('../db');
+      const uid = targetUser.user_id || targetUser.id;
+      const [rows] = await pool.query('SELECT name, email, fcm_token FROM users WHERE id = ?', [uid]);
+      if (rows && rows.length > 0) {
+        targetUser.email = rows[0].email;
+        targetUser.name = targetUser.name || rows[0].name;
+        targetUser.fcm_token = targetUser.fcm_token || rows[0].fcm_token;
+      }
+    } catch (e) {
+      console.error('[NotificationService] User lookup error:', e.message);
+    }
+  }
+
+  const safeName = escapeHTML(targetUser.name || 'Citizen');
 
   let finalMessage = defaultMessage;
 
@@ -157,7 +174,7 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext, co
   if (groqService.isAvailable() && notificationContext) {
     const prompt = `
       You are the official public relations assistant for the Office of the City Mayor, Kabankalan City.
-      Write a short, professional, empathetic, and reassuring notification message for citizen ${user.name || 'Citizen'}.
+      Write a short, professional, empathetic, and reassuring notification message for citizen ${targetUser.name || 'Citizen'}.
       Context of Update: ${notificationContext}
       
       Instructions:
@@ -233,15 +250,15 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext, co
   `;
 
   // Determine user contacts (handling cases where they might be empty)
-  const emailPromise = user.email ? sendEmail(user.email, subject, htmlBody) : Promise.resolve();
+  const emailPromise = targetUser.email ? sendEmail(targetUser.email, subject, htmlBody) : Promise.resolve();
 
   // Push Notification via Expo
   let pushPromise = Promise.resolve();
-  const targetConcernId = concernId || (user.user_id ? user.id : null);
-  if (user.fcm_token && Expo.isExpoPushToken(user.fcm_token)) {
+  const targetConcernId = concernId || (targetUser.user_id ? targetUser.id : null);
+  if (targetUser.fcm_token && Expo.isExpoPushToken(targetUser.fcm_token)) {
     const messages = [
       {
-        to: user.fcm_token,
+        to: targetUser.fcm_token,
         sound: 'default',
         title: subject,
         body: finalMessage,
@@ -259,13 +276,13 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext, co
         for (let chunk of chunks) {
           await expo.sendPushNotificationsAsync(chunk);
         }
-        console.log(`🚀 Push Notification sent to ${user.name || 'User'}`);
+        console.log(`🚀 Push Notification sent to ${targetUser.name || 'User'}`);
       } catch (error) {
         console.error('❌ Failed to send Push Notification:', error);
       }
     })();
-  } else if (user.fcm_token) {
-    console.log(`⚠️ Push Token is invalid for user ${user.name}: ${user.fcm_token}`);
+  } else if (targetUser.fcm_token) {
+    console.log(`⚠️ Push Token is invalid for user ${targetUser.name}: ${targetUser.fcm_token}`);
   }
 
   // Run efficiently in parallel

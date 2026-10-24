@@ -292,21 +292,21 @@ docker exec -i citivoice-mysql mysql -uroot -proot citivoice < backups/db/backup
 CitiVoice runs on MySQL 8.0 with InnoDB engine and `utf8mb4_unicode_ci` encoding.
 
 ### Primary Tables
-- **`users`** — Citizen, administrator, and mayor profiles (`phone`, `barangay`, street `address`, `reset_otp`, `reset_otp_expires`), hashed passwords, verification statuses, avatars, and uploaded ID card references.
-- **`email_verifications`** — Ephemeral 6-digit OTP verification records with expiration timestamps.
-- **`concerns`** — Incident reports containing title, description, category, priority, status, latitude, longitude, pinned address, official `admin_note`, admin validation flags (`is_validated`, `validated_at`, `validated_by_name`), mayor approvals (`approval_notes`, `approved_by_name`, `approved_at`), and media URLs.
-- **`concern_assignments`**, **`concern_comments`**, **`concern_links`** — Department assignments, internal/citizen comments, and AI-linked duplicate concerns.
-- **`audit_log`** — Chronological audit trail of status updates and administrator actions.
-- **`barangays`** — Kabankalan barangay records and reference centroids.
-- **`departments`** — Municipal department routing targets (e.g., Engineering, CENRO, NOCECO).
-- **`notifications`** — In-app citizen alerts and broadcast logs.
-- **`chat_sessions`**, **`chat_messages`** — AI assistant conversation history.
+- **`users`** — Citizen, administrator, and mayor accounts (`phone`, `barangay`, street `address`, `reset_otp`, `reset_otp_expires`), hashed passwords, verification statuses, avatars, and uploaded ID card references.
+- **`admin_2fa_codes`** — Ephemeral 6-digit OTP verification records for Administrator Two-Factor Authentication (2FA) with expiration timestamps.
+- **`email_verifications`** — Ephemeral 6-digit OTP pre-registration verification records with expiration timestamps and verification flags.
+- **`concerns`** — Incident reports containing title, description, category, priority, status, latitude, longitude, pinned address, official `admin_note`, admin validation flags (`is_validated`, `validated_at`, `validated_by_name`), mayor approvals (`approval_notes`, `approved_by_name`, `approved_at`), AI department routing label, and media URLs.
+- **`concern_links`** — Status-aware AI duplicate and related incident links.
+- **`audit_log`** — Chronological audit trail of status updates, validations, approvals, and administrative actions.
+- **`barangays`** — 32 Kabankalan barangay records and reference geographic centroids.
+- **`notifications`** — In-app citizen alerts, status change notices, and broadcast logs.
+- **`file_storage`** — Database-backed persistent binary storage ensuring uploaded images survive ephemeral cloud container restarts.
 
-> **Upgrading an existing database?** Run the automated schema synchronization script:
+> **Fresh or Existing Database?** Run the schema initializer or migration script:
 > ```bash
-> node backend/database/migrate-sync-schema.js
+> node backend/database/schema.sql
 > ```
-> This safely drops legacy upvote objects, ensures the `address` and `reset_otp` columns exist, and creates any missing performance indexes. Fresh installs get the clean schema automatically via `backend/database/schema.sql`.
+> Fresh installs get the clean schema automatically via `backend/database/schema.sql`.
 
 ### ⚡ Performance Indexes
 To guarantee sub-10ms query execution times under municipal load, the database schema implements inline performance indexes:
@@ -319,15 +319,14 @@ To guarantee sub-10ms query execution times under municipal load, the database s
 7. `idx_concerns_category` on `concerns(category)`
 8. `idx_concerns_priority` on `concerns(priority)`
 9. `idx_concerns_created_at` on `concerns(created_at)`
-10. `idx_concerns_department` on `concerns(department)`
-11. `idx_concerns_barangay` on `concerns(user_barangay)`
+10. `idx_concerns_barangay` on `concerns(user_barangay)`
+11. `idx_concerns_incident_barangay` on `concerns(incident_barangay)`
 12. `idx_concerns_validated` on `concerns(is_validated, status)`
 13. `idx_notifications_user_read` on `notifications(user_id, is_read)`
 14. `idx_notifications_user_created` on `notifications(user_id, created_at)`
-15. `idx_assignments_status` on `concern_assignments(status)`
-16. `idx_comments_concern_created` on `concern_comments(concern_id, created_at)`
-17. `idx_audit_entity` on `audit_log(entity_type, entity_id, created_at)`
-18. `idx_chat_messages_session_created` on `chat_messages(session_id, created_at)`
+15. `idx_audit_entity` on `audit_log(entity_type, entity_id, created_at)`
+16. `idx_admin_2fa_user` on `admin_2fa_codes(user_id, expires_at)`
+17. `idx_file_storage_filename` on `file_storage(filename)`
 
 ---
 
@@ -337,58 +336,62 @@ To guarantee sub-10ms query execution times under municipal load, the database s
 citivoice/
 ├── backend/
 │   ├── database/
-│   │   └── schema.sql              # MySQL schema & performance indexes
+│   │   └── schema.sql              # Clean MySQL schema & performance indexes
 │   ├── middleware/
 │   │   ├── auth.js                 # JWT verification & role-based guards
-│   │   ├── cache.js                # In-memory route caching middleware
-│   │   ├── requireRole.js          # Role-based authorization guard
+│   │   ├── cache.js                # In-memory route caching & selective invalidation
+│   │   ├── requireRole.js          # Role-based authorization guard ('admin', 'mayor')
 │   │   ├── upload.js               # Multer image storage and validation
-│   │   └── validate.js             # Express-validator schemas
+│   │   └── validate.js             # Express-validator input schemas
 │   ├── routes/
-│   │   ├── auth.js                 # Login, Google sign-in, Register, OTP, password reset
-│   │   ├── backup.js               # Database dumps, JSON export, and restore
+│   │   ├── auth.js                 # Login, 2FA verify/resend, Google, Register, OTP, Password reset
+│   │   ├── backup.js               # Database dumps, JSON export/import, and restore
 │   │   ├── barangays.js            # Barangay geographic records CRUD
-│   │   ├── concerns.js             # Incident reporting, status, mayor workflow, AI response
-│   │   ├── departments.js          # Municipal department records
+│   │   ├── concerns.js             # Incident reporting, status, workflow, AI response
 │   │   ├── notifications.js        # Citizen notifications and push triggers
-│   │   └── users.js                # Profile updates (phone/barangay/address), ID review, roles
+│   │   └── users.js                # Profile updates, ID verification queue, citizen deletion
 │   ├── services/
-│   │   ├── aiService.js            # Groq Llama 3.3 NLP pipeline
+│   │   ├── aiService.js            # Groq Llama 3.3 NLP pipeline & categorization
 │   │   ├── backupService.js        # Automated MySQL backup scheduler & rotation
-│   │   ├── idVerificationService.js # Government ID automated verification
-│   │   ├── notificationService.js  # Email & push notification dispatchers
-│   │   └── priorityService.js      # Age-based priority escalation
+│   │   ├── fileStorageService.js   # Hybrid disk/DB binary storage for Render dyno persistence
+│   │   ├── groqService.js          # Groq API client with vision & structured output
+│   │   ├── idVerificationService.js # Government ID OCR & automated verification
+│   │   ├── imageAnalyzer.js        # Visual photo verification & hazard detection
+│   │   ├── notificationService.js  # Dual-provider email (Brevo/Gmail) & Expo push alerts
+│   │   ├── priorityService.js      # Age-based priority escalation engine
+│   │   └── similarityService.js    # Status-aware duplicate detection & resolution sync
 │   ├── db.js                       # Connection pool with health monitoring
 │   └── server.js                   # Main application entry point with WebSockets
 │
 ├── admin-web/
 │   ├── public/                     # Static assets, branding, and HTML shell
 │   └── src/
-│       ├── components/             # Reusable UI components (Sidebar, Skeleton, etc.)
+│       ├── components/             # Sidebar, AnimatedCounter, Pagination, Skeleton, Toast
 │       ├── pages/
-│       │   ├── Dashboard.jsx       # Real-time analytics and high-level KPIs
-│       │   ├── Concerns.jsx        # Tabular concern management and filtering
+│       │   ├── Dashboard.jsx       # Real-time analytics, status ratios, and KPI metrics
+│       │   ├── Concerns.jsx        # Tabular concern management, drawer inspection, filters
 │       │   ├── ConcernDetail.jsx   # Concern review, status updates, AI draft response
-│       │   ├── MapView.jsx         # Full-screen Leaflet GIS map with heatmaps
+│       │   ├── MapView.jsx         # Full-screen Leaflet GIS map with heatmaps & clustering
 │       │   ├── Reports.jsx         # Executive analytics & 2-page print reporting
-│       │   ├── Barangays.jsx       # Barangay CRUD and statistics
-│       │   ├── Users.jsx           # User management and role assignment
-│       │   ├── Verification.jsx    # ID verification queue
+│       │   ├── Barangays.jsx       # Barangay CRUD and spatial statistics
+│       │   ├── Users.jsx           # Citizen user management and deletion
+│       │   ├── Verification.jsx    # ID verification queue with OCR data comparison
 │       │   ├── Backup.jsx          # On-demand backups, export/import, downloads
-│       │   ├── MayorsOfficePortal.jsx # Mayor approval portal
-│       │   └── Login.jsx / MayorLogin.jsx # Admin and mayor sign-in
+│       │   └── Login.jsx           # Administrator sign-in with 2FA Email OTP challenge
 │       ├── services/
-│       │   └── api.js              # Axios client & Kabankalan coordinate matching
+│       │   ├── api.js              # Centralized API client & Kabankalan coordinate matching
+│       │   └── socket.js           # Real-time Socket.io bi-directional client
 │       ├── styles/                 # Modular CSS stylesheets with dark/light theming
 │       └── index.css               # Global theme variables & Recharts tooltip styling
 │
 ├── mobile/
+│   ├── app.json                    # Expo configuration & native permissions
+│   ├── eas.json                    # EAS Build configuration (preview APK & production AAB)
 │   └── src/
 │       ├── screens/
 │       │   ├── auth/               # Login, Register, Email OTP, and ID Upload
-│       │   ├── citizen/            # Feed, Incident Submit, Map, My Concerns, Editable Profile
-│       │   └── admin/              # Mobile admin dashboard & concern dispatch
-│       ├── components/             # ConcernCard, UI kit (incl. CustomAlertModal), Skeleton
+│       │   └── citizen/            # Feed, Incident Submit, Detail, My Concerns, Editable Profile
+│       ├── components/             # ConcernCard, NetworkBanner, UI kit, Skeleton
 │       ├── navigation/             # AppNavigator and bottom tab configurations
 │       ├── services/               # API clients, auth helpers, socket connection
 │       ├── context/                # AuthContext, ThemeContext, LanguageContext
