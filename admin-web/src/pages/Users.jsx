@@ -94,7 +94,7 @@ export default function Users() {
   const [vStats, setVStats] = useState({ pending: 0, verified: 0, rejected: 0, unverified: 0, all: 0 });
   const [selected, setSelected] = useState(null);
   const [page, setPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 320);
+  const [itemsPerPage, setItemsPerPage] = useFitPagination(8, 54, 270, 5);
 
 
   const [lightboxImg, setLightboxImg] = useState(null);
@@ -389,8 +389,15 @@ export default function Users() {
           <>
             <div className={s.sidePanelOverlay} onClick={() => setSelected(null)} />
             <div className={s.sidePanelWrapper}>
-              <div className={s.card} style={{ alignSelf: 'start', maxHeight: '90vh', overflowY: 'auto' }}>
-                <div className={u.sidePanelHeader}>
+              <div className={`${s.card} ${s.sidePanelCard}`}>
+                <div
+                  className={u.sidePanelHeader}
+                  style={{
+                    flexShrink: 0,
+                    borderBottom: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                  }}
+                >
                   <UserAvatar
                     user={selected}
                     className={`${s.avatar} ${s.avatarLg}`}
@@ -403,7 +410,8 @@ export default function Users() {
                     ✕
                   </button>
                 </div>
-                <div className={u.sidePanelNameWrap}>
+                <div className={s.sidePanelScrollBody}>
+                  <div className={u.sidePanelNameWrap} style={{ paddingTop: 14 }}>
                   <div className={u.sidePanelName}>{selected.name}</div>
                   <span
                     className={s.badge}
@@ -581,8 +589,10 @@ export default function Users() {
                   {userConcerns.length === 0 && <p className={u.recentEmpty}>No concerns yet</p>}
                 </div>
 
+                </div>
+
                 {/* Danger Zone: Delete User */}
-                <div style={{ padding: '16px 18px', borderTop: '1px solid var(--border)', background: 'rgba(239, 68, 68, 0.04)' }}>
+                <div style={{ padding: '14px 18px', borderTop: '1px solid var(--border)', background: 'var(--surface)', flexShrink: 0 }}>
                   <button
                     className={`${s.btn}`}
                     style={{

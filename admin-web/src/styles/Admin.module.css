@@ -649,6 +649,37 @@
 
 .sidePanelWrapper {
   align-self: start;
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - 190px);
+}
+
+.sidePanelCard {
+  max-height: calc(100vh - 190px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidePanelScrollBody {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-md) transparent;
+}
+
+.sidePanelScrollBody::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidePanelScrollBody::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidePanelScrollBody::-webkit-scrollbar-thumb {
+  background: var(--border-md);
+  border-radius: 99px;
 }
 
 .sidePanelOverlay {

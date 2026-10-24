@@ -95,7 +95,7 @@ export default function Verification() {
   const [idImgError, setIdImgError] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useFitPagination(10, 60, 350);
+  const [itemsPerPage, setItemsPerPage] = useFitPagination(8, 54, counts.pending > 0 ? 340 : 280, 5);
 
   const [counts, setCounts] = useState({ pending: 0, verified: 0, rejected: 0, unverified: 0, all: 0 });
   const [totalUsers, setTotalUsers] = useState(0);
@@ -460,16 +460,18 @@ export default function Verification() {
             <div className={s.sidePanelOverlay} onClick={() => setSelected(null)} />
             <div className={s.sidePanelWrapper}>
               <div
-                className={s.card}
-                style={{ alignSelf: 'start', padding: 0, overflow: 'hidden' }}
+                className={`${s.card} ${s.sidePanelCard}`}
+                style={{ alignSelf: 'start', padding: 0 }}
               >
                 <div
                   style={{
-                    padding: '16px 18px',
+                    padding: '14px 18px',
                     borderBottom: '1px solid var(--border)',
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'flex-start',
+                    alignItems: 'center',
+                    background: 'var(--surface)',
+                    flexShrink: 0,
                   }}
                 >
                   <div>
@@ -478,7 +480,7 @@ export default function Verification() {
                         fontSize: 13,
                         fontWeight: 700,
                         color: 'var(--text-1)',
-                        marginBottom: 6,
+                        marginBottom: 4,
                       }}
                     >
                       Review Submission
@@ -502,6 +504,9 @@ export default function Verification() {
                     ✕
                   </button>
                 </div>
+
+                {/* Scrollable details, photos & actions */}
+                <div className={s.sidePanelScrollBody}>
 
                 {/* Citizen info */}
                 <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
@@ -757,6 +762,7 @@ export default function Verification() {
                       🗑️ Delete Citizen Account
                     </button>
                   </div>
+                </div>
                 </div>
               </div>
             </div>

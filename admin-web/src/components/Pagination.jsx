@@ -7,11 +7,11 @@ import s from '../styles/Pagination.module.css';
  * @param {number} rowHeight Estimated height of a single table row (px)
  * @param {number} offset Estimated height of headers, margins, and pagination (px)
  */
-export function useFitPagination(defaultItems = 10, rowHeight = 55, offset = 350) {
+export function useFitPagination(defaultItems = 10, rowHeight = 55, offset = 350, minItems = 5) {
   const getCount = () => {
     if (typeof window === 'undefined') return defaultItems;
     const availableHeight = window.innerHeight - offset;
-    return Math.max(10, Math.floor(availableHeight / rowHeight));
+    return Math.max(minItems, Math.floor(availableHeight / rowHeight));
   };
 
   const [itemsPerPage, setItemsPerPage] = useState(getCount);
@@ -23,7 +23,7 @@ export function useFitPagination(defaultItems = 10, rowHeight = 55, offset = 350
     };
     window.addEventListener('resize', calculate);
     return () => window.removeEventListener('resize', calculate);
-  }, [rowHeight, offset]);
+  }, [rowHeight, offset, minItems]);
 
   return [itemsPerPage, setItemsPerPage];
 }
