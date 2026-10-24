@@ -15,10 +15,10 @@ After scanning the full codebase (backend, mobile app, admin web), CitiVoice **m
 |---|---|
 | Structured concern submission (title, description, category, priority, photo, GPS) | `SubmitConcernScreen.jsx` |
 | AI-powered pre-submission draft analysis (duplicate/quality check) | `POST /concerns/analyze` → `analyzeConcernDraft` |
-| AI auto-categorization via Groq Vision + NLP fallback (Naive Bayes) | `aiService.js` |
-| Auto-routing to correct department (CEO, CENRO, NOCECO) by category + priority | `workflowService.js` → `autoAssign` |
+| AI auto-categorization via Groq Vision + NLP fallback | `aiService.js` |
+| Direct citizen-to-admin resolution workflow | `concerns.controller.js` |
 | Admin can update status, add official response/note, attach proof photo | `ConcernDetail.jsx` (admin web) |
-| Real-time socket updates on status change | `server.js` → Socket.io rooms |
+| Real-time socket updates on status change and comments | `server.js` → Socket.io rooms |
 
 **✅ MET** — The process is fully digitized, structured, and AI-assisted.
 
@@ -31,12 +31,11 @@ After scanning the full codebase (backend, mobile app, admin web), CitiVoice **m
 
 | Feature | Where |
 |---|---|
-| Full audit log per concern (every action recorded with who/when/what) | `GET /:id/audit` → `workflowModel.getAuditLog` |
-| Internal admin-only comment thread per concern | `POST /:id/comments` with `is_internal` flag |
-| Department assignment and routing per concern | `POST /:id/assign` → `workflowController.assignConcern` |
+| Full audit log per concern (every action recorded with who/when/what) | `GET /:id/audit` → `concerns.controller.getAudit` |
+| Direct two-way citizen-admin conversation thread per concern | `POST /:id/comments` & `GET /:id/comments` |
 | Admin web dashboard with live stats (total, pending, in progress, resolved, rejected) | `Dashboard.jsx` |
 | Citizen identity verification workflow (ID upload, review, approve/reject) | `Verification.jsx` + `idVerificationService.js` |
-| Real-time notifications to admins on new concerns (socket + in-app) | `notificationService.js` |
+| Real-time notifications to admins and citizens on new concerns/comments | `notificationService.js` |
 
 **✅ MET** — Recording and coordination tools are comprehensive.
 
@@ -50,24 +49,23 @@ After scanning the full codebase (backend, mobile app, admin web), CitiVoice **m
 **Mobile App (Citizen-facing):**
 - `SubmitConcernScreen` — multi-step wizard with GPS, photo, category, priority
 - `MyConcernsScreen` — citizens view and filter all their own submissions
-- `ConcernDetailScreen` — full detail view with status, official response, proof photo, timeline
+- `ConcernDetailScreen` — full detail view with status, official response, live comment thread, timeline
 - `NotificationsScreen` — real-time push and in-app notifications
-- `MapScreen` — citizen can view all concerns on a map
-- `HomeScreen` — feed of community concerns with upvoting
+- `ProfileScreen` — citizen profile management and ID verification
 
 **Admin Web (Management-facing):**
 - `Concerns.jsx` — searchable, filterable, sortable concern list
-- `ConcernDetail.jsx` — full management: status, priority, category, note, photo, comments, audit
+- `ConcernDetail.jsx` — full management: status, priority, category, note, citizen comment thread, audit
 - `Dashboard.jsx` — KPI stats + bar/pie charts + live updates via socket
 - `MapView.jsx` — Leaflet map with clustering, heat map, routing
-- `Users.jsx` — full citizen user management
-- `Barangays.jsx` — barangay management
-- `Reports.jsx` — date-filtered analytics with printable reports
-- `Verification.jsx` — citizen ID verification queue
+- `Users.jsx` — full citizen user management with contained side drawer
+- `Verification.jsx` — citizen ID verification queue with OCR data comparison
+- `Reports.jsx` — date-filtered analytics with strict 2-page print reporting
+- `Backup.jsx` — on-demand and automated database backup management
 
 **Backend API:**
-- 7 route groups covering auth, concerns, users, departments, barangays, notifications, workflow
-- JWT authentication + role-based access control (`citizen` / `admin`)
+- 6 route groups covering auth, concerns, users, barangays, notifications, backup
+- JWT authentication + Admin Email OTP 2FA + RBAC (`citizen` / `admin`)
 - Caching middleware (60s TTL) on read-heavy routes
 - File upload handling for images and ID documents
 

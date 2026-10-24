@@ -35,12 +35,13 @@
   - [Email OTP Verification Workflow](#-email-otp-verification-workflow)
   - [Precise Field Error Isolation & Seamless Auth Flow](#-precise-field-error-isolation--seamless-auth-flow)
   - [Editable Citizen Profile](#-editable-citizen-profile)
-  - [Mayor's Office Workflow, AI Responses & Executive Directives](#-mayors-office-workflow-ai-responses--executive-directives)
+  - [Direct Citizen-Admin Conversation Thread & Live Comments](#-direct-citizen-admin-conversation-thread--live-comments)
+  - [Adaptive Viewport Layout & Contained Side Drawers](#-adaptive-viewport-layout--contained-side-drawers)
   - [Real-Time WebSocket Sync & Silent Auto-Refresh](#-real-time-websocket-sync--silent-auto-refresh)
   - [Smart Status-Aware Duplicate Detection & Resolution Sync](#-smart-status-aware-duplicate-detection--resolution-sync)
   - [Citizen Incident Submission & Official Municipal Docket Receipt](#-citizen-incident-submission--official-municipal-docket-receipt)
   - [GIS Mapping & Spatial Visualization](#-gis-mapping--spatial-visualization)
-  - [Automated Database Backups](#-automated-database-backups)
+  - [Automated Database Backups & Cloud Sync](#-automated-database-backups--cloud-sync)
   - [Off-PC Backups to OneDrive](#-off-pc-backups-to-onedrive)
   - [Adaptive Dark & Light Theme System](#-adaptive-dark--light-theme-system)
   - [Mobile Android App & EAS Cloud Builds](#-mobile-android-app--eas-cloud-builds)
@@ -63,11 +64,11 @@
 **CitiVoice** is an end-to-end civic engagement ecosystem designed for municipal governments, tailored specifically for the **City of Kabankalan, Negros Occidental**. The platform bridges the communication gap between citizens and local government administrators through transparency, real-time feedback, and data-driven civic response:
 
 1. **Cross-Platform Citizen Mobile App** (iOS & Android via React Native & Expo SDK 57):
-   Allows residents to report public safety issues, infrastructure hazards, and municipal concerns using photos, GPS pin placement, and dynamic templates, while tracking resolution progress in real time.
+   Allows residents to report public safety issues, infrastructure hazards, and municipal concerns using photos, GPS pin placement, and dynamic templates, converse with administrators in real time, and track resolution progress.
 2. **Executive Web Admin Dashboard** (React 19):
-   Empowers city administrators, department heads, and municipal officers to manage incoming concerns, track spatial hotspot clusters on interactive GIS maps, dispatch actions, and generate official 2-page print analytics.
-3. **High-Performance REST & WebSocket Backend** (Express.js, Socket.io, MySQL 8.0):
-   Provides secure identity verification, AI-driven report categorization (Groq Llama 3.3), age-based priority escalation, real-time bi-directional notifications, and scheduled database backups with an off-PC OneDrive copy.
+   Empowers city administrators and municipal officers to manage incoming concerns directly, chat with citizens, track spatial hotspot clusters on interactive GIS maps, verify identities, and generate official 2-page print analytics.
+3. **High-Performance REST & WebSocket Backend** (Express.js, Socket.io, MySQL 8.0 / Aiven Cloud):
+   Provides secure identity verification, AI-driven report categorization (Groq Llama 3.3), age-based priority escalation, real-time bi-directional notifications, and scheduled database backups with custom directory and off-PC OneDrive synchronization.
 
 ---
 
@@ -75,7 +76,7 @@
 
 ```
 citivoice/
-├── backend/          # Express.js REST API + WebSocket Server (Node 20, MySQL 8.0)
+├── backend/          # Express.js REST API + WebSocket Server (Node 22, MySQL 8.0 / Cloud)
 ├── admin-web/        # React 19 Executive Admin Dashboard & GIS Mapping
 ├── mobile/           # React Native Citizen Application (Expo SDK 57)
 ├── backups/          # Automated database dumps & scheduled archives
@@ -86,9 +87,10 @@ citivoice/
 ```
 ┌─────────────────────────────────┐        ┌──────────────────────────────────┐
 │   Citizen Mobile App (Expo 57)  │        │   Admin Web Dashboard (React 19) │
-│  • Pinned GPS Incident Reports  │        │  • GIS Map & Incident Dispatch   │
-│  • Email OTP Verification       │        │  • 2-Page Executive Reports      │
-│  • My Concerns & Profile        │        │  • Barangay & User Management    │
+│  • Pinned GPS Incident Reports  │        │  • GIS Map & Direct Resolution   │
+│  • Email OTP Verification       │        │  • Direct Citizen Comments & AI  │
+│  • Direct Citizen-Admin Chat    │        │  • 2-Page Executive Reports      │
+│  • My Concerns & Profile        │        │  • Barangay & Citizen Management │
 │  • Real-Time Push Alerts        │        │  • Live WebSocket Dashboards     │
 └────────────────┬────────────────┘        └─────────────────┬────────────────┘
                  │                                           │
@@ -104,8 +106,8 @@ citivoice/
                      └───────────────┬──────────────┘
                                      │
                      ┌───────────────▼──────────────┐
-                     │    MySQL 8.0 + Auto Backup   │
-                     │  • 12 Performance Indexes    │
+                     │    MySQL 8.0 / Aiven Cloud   │
+                     │  • 17 Performance Indexes    │
                      │  • Daily Automated Dumps     │
                      └──────────────────────────────┘
 ```
@@ -161,17 +163,20 @@ citivoice/
 - **Polished Feedback** — Success, error, and sign-out confirmations use a custom `CustomAlertModal` (gradient icon badge, dark card) instead of the plain system alert.
 - **Multilingual** — Edit labels and messages are translated for English, Filipino, and Hiligaynon.
 
-### 🏛️ Mayor's Office Workflow, AI Responses & Executive Directives
-- **Dedicated Mayoral Portal** — An executive dashboard (`/mayor`) tailored specifically for the Local Chief Executive to inspect priority community concerns, issue directives, and monitor citywide response velocity.
-- **Streamlined Incident Docket** — Clean, high-focus docket table tracking reporting citizens, issue categories, severity urgency risk badges, and direct executive actions without visual clutter.
-- **Direct Mayoral Directives Card** — Full-width flex directive composer allowing the Mayor to issue formal action instructions, priority requirements, and inter-agency mandates directly to department heads.
-- **Filtered Mayoral Metrics** — Real-time KPI counters (`Total Received`, `Approved & Endorsed`, `Awaiting Review`, `Directives Issued`) and resolution percentage trackers strictly exclude dismissed or rejected tickets to preserve clean civic accountability metrics.
-- **Assignments, Comments & Audit Trail** — Department dispatching, citizen-visible updates, internal inter-office notes, and immutable chronological audit logging per concern.
-- **AI Draft Responses** — The **✨ AI Draft** button generates an official mayoral statement formatted in official executive tone; internal system tags are automatically filtered before citizen notification.
+### 💬 Direct Citizen-Admin Conversation Thread & Live Comments
+- **Unified Two-Way Discussion** — Every concern features a dedicated, direct conversation thread between the citizen (`👤 Citizen`) and city administrators (`🛡️ Admin Reply`).
+- **Real-Time Live Chat Sync** — Powered by `Socket.io` event listeners (`new_comment`, `concern_comment_added`), replies appear instantaneously without page refreshing on both the citizen mobile app and admin web portal.
+- **Streamlined Civic Resolution** — Bureaucratic validation gates, inter-office routing delays, and internal notes have been replaced with direct, transparent communication between citizens and administrators.
+- **AI-Assisted Administrator Responses** — Administrators can generate empathetic, official draft responses with **✨ AI Draft**, accelerating resolution times while maintaining an authoritative and helpful municipal tone.
+
+### 🖥️ Adaptive Viewport Layout & Contained Side Drawers
+- **Zero Whole-Page Scrolling** — The Admin Web Portal's **Citizens** (`/users`) and **Identity Verification** (`/verification`) pages are dynamically calibrated to fit cleanly inside the screen viewport.
+- **Dynamic Viewport Pagination** — `useFitPagination` intelligently adapts row counts based on screen height and Windows display scaling (125%/150%), with a responsive minimum of 5 items per page to prevent pagination controls from slipping off screen.
+- **Self-Contained Sticky Side Drawers** — Opening a user profile or ID verification docket activates a sleek, sticky side drawer (`.sidePanelCard`) with internal smooth scrolling and pinned action footers, preventing the browser window from stretching or jumping.
 
 ### ⚡ Real-Time WebSocket Sync & Silent Auto-Refresh
-- **Instant Bi-Directional Event Dispatch** — Powered by `Socket.io` rooms (`'mayor'`, `'admin'`). The backend broadcasts instant updates (`new_concern`, `update_concern`, `status_updated`) whenever reports are submitted or progress states change.
-- **Zero-Manual Reload Dashboards** — Both the **Mayor's Office Portal** and **Web Admin Dashboard** dynamically update their concern tables, metric cards, and charts in real time as citizen reports arrive.
+- **Instant Bi-Directional Event Dispatch** — Powered by `Socket.io` rooms (`'admin'` and user-specific channels). The backend broadcasts instant updates (`new_concern`, `update_concern`, `status_updated`, `new_comment`) whenever reports are submitted, comments are posted, or progress states change.
+- **Zero-Manual Reload Dashboards** — The **Web Admin Dashboard** dynamically updates concern tables, metric counters, and GIS maps in real time as citizen reports arrive.
 - **Silent Background Fallback Polling** — Built-in 30-second silent background polling guarantees data consistency even across intermittent mobile network reconnections.
 
 ### 🧠 Smart Status-Aware Duplicate Detection & Resolution Sync
@@ -189,19 +194,20 @@ citivoice/
   - Pinned geolocation coordinates/address and risk priority chip (`Low`, `Medium`, or `High Risk`).
 - **3-Step Transparent Municipal Pipeline Tracker** — Visual stepper keeping citizens informed of the resolution lifecycle:
   1. **Incident Report Registered** (Completed ✓) — Logged securely into the municipal intake queue.
-  2. **Executive & Dept Evaluation** (Active ⏳) — Dispatched to the relevant city department.
-  3. **Field Remediation & Resolution** (Upcoming 🛠️) — On-site fix with photo verification update.
-- **Real-Time Notification Reassurance** — Informs citizens that live push updates will track every milestone of their ticket until final resolution.
+  2. **Administrative Review & Field Action** (Active ⏳) — Assessed and investigated by city administrators.
+  3. **Field Remediation & Resolution** (Upcoming 🛠️) — On-site fix with verified photo proof and admin resolution note.
+- **Real-Time Notification Reassurance** — Informs citizens that live push updates and comments will track every milestone of their ticket until final resolution.
 
 ### 🗺️ GIS Mapping & Spatial Visualization
 - **Web Admin Leaflet Map** — Full-screen interactive map featuring marker clustering (`react-leaflet-cluster`), heatmap intensity overlays (`leaflet.heat`), and filtering by status, category, and barangay.
 - **Mobile Citizen Map** — Native React Native Maps integration displaying color-coded status pins, live user location, and cluster aggregation.
 
-### 💾 Automated Database Backups
-Three layers protect the data:
-- **Backend Scheduler (`backupService.js`)** — On startup and every `BACKUP_INTERVAL_MS` (default 24 h) it runs `mysqldump` **only if new data exists**, falls back to a JSON export if `mysqldump` is unavailable, and keeps the newest `BACKUP_MAX_FILES` (default 10) files in `backups/db/`.
-- **Containerized Daily Snapshot** — The `db-backup` service (`databack/mysql-backup`) dumps the database daily at 02:00 into `backups/`.
-- **Admin On-Demand Backups** — Administrators can trigger instant MySQL dumps, export portable JSON snapshots, import/restore, or download backups from the **Backup** page of the Web Admin dashboard. Windows users can also double-click `backup-db.bat`.
+### 💾 Automated Database Backups & Cloud Sync
+Three layers protect the civic data with zero maintenance:
+- **Backend Scheduler (`backupService.js`)** — On startup and every `BACKUP_INTERVAL_MS` (default 24 h) it automatically runs `mysqldump` **only if new data exists**, falls back to a portable JSON export if `mysqldump` is unavailable, and rotates old files keeping the newest `BACKUP_MAX_FILES` (default 10) snapshots.
+- **Custom Destination & Automatic Cloud Syncing** — By setting `BACKUP_DIR` in `.env` (e.g. `C:/Users/<User>/OneDrive/CitiVoice_Backups` or an external drive), all automated snapshots are saved directly to your chosen directory and instantly synced off-site.
+- **Database Engine Support** — Fully compatible with both local containerized MySQL 8.0 and Cloud MySQL databases (e.g. **Aiven for MySQL** with SSL encryption enabled).
+- **Admin On-Demand Backups** — Administrators can trigger instant MySQL dumps, export portable JSON snapshots, import/restore, or download backups directly from the **Backup** page of the Web Admin dashboard. Windows users can also double-click `backup-db.bat`.
 
 ### ☁️ Off-PC Backups to OneDrive
 Backups stored only on the host PC are lost if the disk fails, so a Windows scheduled task mirrors them to OneDrive:
@@ -297,7 +303,7 @@ CitiVoice runs on MySQL 8.0 with InnoDB engine and `utf8mb4_unicode_ci` encoding
 - **`email_verifications`** — Ephemeral 6-digit OTP pre-registration verification records with expiration timestamps and verification flags.
 - **`concerns`** — Incident reports containing title, description, category, priority, status, latitude, longitude, pinned address, official `admin_note`, and media URLs.
 - **`concern_links`** — Status-aware AI duplicate and related incident links.
-- **`concern_comments`** — Citizen discussions and internal administrative notes per concern.
+- **`concern_comments`** — Direct two-way conversation thread between citizens and administrators per concern.
 - **`audit_log`** — Chronological audit trail of status updates and administrative actions.
 - **`barangays`** — 32 Kabankalan barangay records and reference geographic centroids.
 - **`notifications`** — In-app citizen alerts, status change notices, and broadcast logs.
@@ -341,7 +347,7 @@ citivoice/
 │   ├── middleware/
 │   │   ├── auth.js                 # JWT verification & role-based guards
 │   │   ├── cache.js                # In-memory route caching & selective invalidation
-│   │   ├── requireRole.js          # Role-based authorization guard ('admin', 'mayor')
+│   │   ├── requireRole.js          # Role-based authorization guard ('admin')
 │   │   ├── upload.js               # Multer image storage and validation
 │   │   └── validate.js             # Express-validator input schemas
 │   ├── routes/
@@ -435,15 +441,13 @@ All endpoints are hosted under `/api`.
 | `POST` | `/api/concerns` | Citizen | Submit a new concern with photo attachments & GPS coords |
 | `POST` | `/api/concerns/analyze` · `/verify-image` | Authenticated | AI draft analysis and photo/description match check |
 | `GET`  | `/api/concerns/:id` | Authenticated | Retrieve complete concern details and location |
-| `PUT`  | `/api/concerns/:id` | Admin / Mayor | Update status, category, priority, official response, proof photo |
+| `PUT`  | `/api/concerns/:id` | Admin | Update status, category, priority, official response note |
 | `DELETE`| `/api/concerns/:id` | Owner / Admin | Delete a concern |
-| `POST` | `/api/concerns/:id/forward-to-mayor` | Admin | Validate and forward to the Mayor's Office |
-| `POST` | `/api/concerns/:id/approve` | Admin / Mayor | Approve a forwarded concern |
-| `POST` | `/api/concerns/:id/ai-response` | Admin / Mayor | Generate an AI draft of the official response |
-| `GET`  | `/api/concerns/:id/similar` · `POST /:id/link` | Admin / Mayor | Find and link duplicate concerns |
-| `GET`/`POST` | `/api/concerns/:id/assignments` · `/assign` | Authenticated / Admin | Department assignments |
-| `GET`/`POST` | `/api/concerns/:id/comments` | Authenticated | Internal and citizen-visible comments |
-| `GET`  | `/api/concerns/:id/audit` | Admin / Mayor | Audit trail |
+| `POST` | `/api/concerns/:id/ai-response` | Admin | Generate an AI draft of the official administrator response |
+| `GET`  | `/api/concerns/:id/similar` · `POST /:id/link` | Admin | Find and link duplicate concerns |
+| `GET`  | `/api/concerns/:id/comments` | Authenticated | List chronological two-way citizen and admin comments |
+| `POST` | `/api/concerns/:id/comments` | Authenticated | Post a comment or administrator reply to the concern thread |
+| `GET`  | `/api/concerns/:id/audit` | Admin | Chronological immutable audit trail |
 
 ### Barangays & Municipal Records
 | Method | Endpoint | Access | Description |
@@ -452,14 +456,6 @@ All endpoints are hosted under `/api`.
 | `POST` | `/api/barangays` | Admin | Create a new barangay entry |
 | `PUT`  | `/api/barangays/:id` | Admin | Update barangay name or boundary information |
 | `DELETE`| `/api/barangays/:id` | Admin | Delete a barangay record |
-
-### Municipal Departments
-| Method | Endpoint | Access | Description |
-|--------|----------|--------|-------------|
-| `GET`  | `/api/departments` | Authenticated | List all municipal departments |
-| `POST` | `/api/departments` | Admin | Create a new department entry |
-| `PUT`  | `/api/departments/:id` | Admin | Update department information |
-| `DELETE`| `/api/departments/:id` | Admin | Remove a department entry |
 
 ### User Management, Profile & ID Verification
 | Method | Endpoint | Access | Description |
@@ -519,24 +515,32 @@ Create the respective `.env` files in each subproject:
 ```env
 PORT=5000
 DB_HOST=localhost
+DB_PORT=3306
 DB_USER=root
-DB_PASSWORD=root
+DB_PASSWORD=your_mysql_password
 DB_NAME=citivoice
-DB_PORT=3307
+DB_SSL=false                      # Set to true for Aiven Cloud MySQL with SSL
+BASE_URL=http://localhost:5000
 JWT_SECRET=your_super_secret_jwt_key_here
 
+# Allowed Origins (CORS)
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+
+# Gmail SMTP for OTP Verification & 2FA (Nodemailer)
+GMAIL_USER=your_email@gmail.com
+GMAIL_APP_PASSWORD=your_16_char_app_password
+
 # Groq Llama 3.3 AI Integration
-GROQ_API_KEY=gsk_your_groq_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
 
-# Email OTP Verification & Notifications (Gmail / SMTP)
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_specific_password
+# Google Sign-In (Optional)
+GOOGLE_CLIENT_IDS=
 
-# Database Backups
+# Database Backups & Custom Cloud Sync Folder
 BACKUP_ENABLED=true
-BACKUP_INTERVAL_MS=86400000     # 24 h between automatic checks
-BACKUP_MAX_FILES=10             # newest N backups kept
-BACKUP_DIR=/usr/src/backups/db  # mapped to ./backups/db by docker-compose
+BACKUP_INTERVAL_MS=86400000       # 24 h between automatic checks
+BACKUP_MAX_FILES=10               # Newest N backups kept before rotation
+BACKUP_DIR=C:/CitiVoice_Backups   # Path to any local, external, or OneDrive sync folder
 ```
 
 ### **Admin Web (`admin-web/.env`)**
