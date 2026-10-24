@@ -1,6 +1,8 @@
 const router = require('express').Router();
 const {
   login,
+  verifyAdmin2FA,
+  resendAdmin2FA,
   googleLogin,
   sendRegistrationOtp,
   verifyRegistrationOtp,
@@ -20,6 +22,10 @@ const {
 
 // ─── Login (admin + mobile) ───────────────────────────────────────────────────
 router.post('/login', validateLogin, login);
+
+// ─── Admin 2FA Email OTP Verification ─────────────────────────────────────────
+router.post('/verify-admin-2fa', verifyAdmin2FA);
+router.post('/resend-admin-2fa', resendAdmin2FA);
 
 // ─── Google Sign-In (only for already-registered emails) ────────────────────────
 router.post('/google', googleLogin);

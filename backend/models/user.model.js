@@ -258,6 +258,43 @@ const deleteRegistrationOtp = async (email) => {
   await pool.query('DELETE FROM email_verifications WHERE email = ?', [email.toLowerCase()]);
 };
 
+// ── Admin 2FA Email OTP helpers ──────────────────────────────────────────────
+let admin2FATableReady = false;
+const ensureAdmin2FATable = async () => {
+  if (admin2FATableReady) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admin_2fa_codes (
+      user_id    INT PRIMARY KEY,
+      otp_hash   VARCHAR(255) NOT NULL,
+      expires_at DATETIME     NOT NULL,
+      created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+  admin2FATableReady = true;
+};
+
+const upsertAdmin2FA = async (userId, hashedOtp, expiresAt) => {
+  await ensureAdmin2FATable();
+  await pool.query(
+    `INSERT INTO admin_2fa_codes (user_id, otp_hash, expires_at, updated_at)
+     VALUES (?, ?, ?, NOW())
+     ON DUPLICATE KEY UPDATE otp_hash = VALUES(otp_hash), expires_at = VALUES(expires_at), updated_at = NOW()`,
+    [userId, hashedOtp, expiresAt],
+  );
+};
+
+const getAdmin2FA = async (userId) => {
+  await ensureAdmin2FATable();
+  const [rows] = await pool.query('SELECT * FROM admin_2fa_codes WHERE user_id = ?', [userId]);
+  return rows[0] || null;
+};
+
+const deleteAdmin2FA = async (userId) => {
+  await ensureAdmin2FATable();
+  await pool.query('DELETE FROM admin_2fa_codes WHERE user_id = ?', [userId]);
+};
+
 module.exports = {
   selectByEmail,
   selectByName,
@@ -281,4 +318,8 @@ module.exports = {
   getRegistrationOtp,
   markRegistrationEmailVerified,
   deleteRegistrationOtp,
+  upsertAdmin2FA,
+  getAdmin2FA,
+  deleteAdmin2FA,
 };
+

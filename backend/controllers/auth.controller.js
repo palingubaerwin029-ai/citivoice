@@ -15,6 +15,9 @@ const {
   getRegistrationOtp,
   markRegistrationEmailVerified,
   deleteRegistrationOtp,
+  upsertAdmin2FA,
+  getAdmin2FA,
+  deleteAdmin2FA,
 } = require('../models/user.model');
 const { OAuth2Client } = require('google-auth-library');
 const { sendEmail } = require('../services/notificationService');
@@ -55,6 +58,56 @@ const login = async (req, res) => {
         error: 'auth/wrong-password',
         field: 'password',
         message: 'Incorrect password. Please try again.',
+      });
+    }
+
+    // ── If Admin, require 2FA Email OTP Verification ──────────────────────────
+    if (user.role === 'admin') {
+      const otp = crypto.randomInt(100000, 999999).toString();
+      const hashedOtp = await bcrypt.hash(otp, 10);
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      await upsertAdmin2FA(user.id, hashedOtp, expiresAt);
+
+      // Sign temporary 10-minute token for 2FA completion
+      const mfaToken = jwt.sign(
+        { id: user.id, email: user.email, purpose: 'admin_2fa' },
+        JWT_SECRET,
+        { expiresIn: '10m' }
+      );
+
+      // Mask email for display: e.g. "adm***@citivoice.gov.ph"
+      const maskedEmail = user.email.replace(/(.{3})(.*)(@.*)/, '$1***$3');
+
+      // Send branded CitiVoice Admin 2FA Email
+      const htmlBody = `
+        <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px 20px; background-color: #0B1120; color: #E2E8F0; max-width: 580px; margin: auto; border-radius: 16px; border: 1px solid #1E293B;">
+          <div style="background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 50%, #3B82F6 100%); padding: 32px 20px; text-align: center; border-radius: 12px; margin-bottom: 28px; box-shadow: 0 4px 20px rgba(37, 99, 235, 0.25);">
+            <div style="font-size: 32px; margin-bottom: 8px;">🔐</div>
+            <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">CitiVoice Administrator Console</h1>
+            <p style="color: rgba(255,255,255,0.85); margin: 6px 0 0 0; font-size: 13px; font-weight: 500;">Kabankalan City Citizen Engagement System</p>
+          </div>
+          <div style="padding: 0 10px;">
+            <h2 style="font-size: 20px; color: #F8FAFC; margin-top: 0;">Two-Factor Authentication (2FA)</h2>
+            <p style="font-size: 14px; color: #94A3B8; line-height: 1.6;">An administrator login attempt was initiated for your CitiVoice account. Enter the 6-digit one-time verification code below to authorize your sign-in:</p>
+            <div style="background: #111827; padding: 24px; border-radius: 12px; border: 1px solid #374151; margin: 24px 0; text-align: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);">
+              <p style="font-size: 40px; font-weight: 800; letter-spacing: 10px; color: #38BDF8; margin: 0; font-family: monospace;">${otp}</p>
+            </div>
+            <p style="font-size: 13px; color: #64748B; line-height: 1.5;">This security code will expire in <strong style="color: #CBD5E1;">10 minutes</strong>.<br>If you did not attempt to log in to the CitiVoice Admin Console, please change your password immediately.</p>
+          </div>
+          <div style="margin-top: 36px; padding-top: 20px; border-top: 1px solid #1E293B; text-align: center;">
+            <p style="font-size: 11px; color: #64748B; margin: 0;">City Government of Kabankalan — Security & Information Systems Office</p>
+          </div>
+        </div>
+      `;
+
+      await sendEmail(user.email, 'CitiVoice Admin — 2FA Verification Code', htmlBody);
+
+      return res.json({
+        requires2FA: true,
+        mfaToken,
+        email: maskedEmail,
+        message: 'A 6-digit verification code has been sent to your administrator email.',
       });
     }
 
@@ -454,8 +507,135 @@ const verifyIdName = async (req, res) => {
   }
 };
 
+// ── Verify Admin 2FA Code ───────────────────────────────────────────────────
+const verifyAdmin2FA = async (req, res) => {
+  const { mfaToken, otp } = req.body || {};
+  if (!mfaToken || !otp) {
+    return res.status(400).json({ error: '2FA verification code is required.', field: 'otp' });
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(mfaToken, JWT_SECRET);
+    if (decoded.purpose !== 'admin_2fa') {
+      return res.status(401).json({ error: 'Invalid 2FA session token. Please sign in again.' });
+    }
+  } catch (err) {
+    return res.status(401).json({ error: 'Your 2FA session has expired. Please sign in again.' });
+  }
+
+  try {
+    const user = await selectById(decoded.id);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
+    }
+
+    const record = await getAdmin2FA(user.id);
+    if (!record) {
+      return res.status(400).json({ error: 'No active 2FA code found. Please request a new code.', field: 'otp' });
+    }
+
+    if (new Date() > new Date(record.expires_at)) {
+      return res.status(400).json({ error: 'Verification code has expired. Please click "Resend Code".', field: 'otp' });
+    }
+
+    const isValid = await bcrypt.compare(String(otp).trim(), record.otp_hash);
+    if (!isValid) {
+      return res.status(400).json({ error: 'Incorrect 6-digit verification code. Please check your email.', field: 'otp' });
+    }
+
+    // Clear used 2FA code
+    await deleteAdmin2FA(user.id);
+
+    // Issue standard admin JWT
+    const token = sign({ id: user.id, role: user.role, name: user.name });
+    res.json({
+      success: true,
+      token,
+      user: safe(user),
+    });
+  } catch (err) {
+    console.error('Verify admin 2FA error:', err);
+    res.status(500).json({ error: 'Verification failed. Please try again.' });
+  }
+};
+
+// ── Resend Admin 2FA Code ─────────────────────────────────────────────────────
+const resendAdmin2FA = async (req, res) => {
+  const { mfaToken } = req.body || {};
+  if (!mfaToken) {
+    return res.status(400).json({ error: 'Invalid 2FA session. Please sign in again.' });
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(mfaToken, JWT_SECRET);
+    if (decoded.purpose !== 'admin_2fa') {
+      return res.status(401).json({ error: 'Invalid 2FA session token.' });
+    }
+  } catch (err) {
+    return res.status(401).json({ error: 'Your 2FA session has expired. Please sign in again.' });
+  }
+
+  try {
+    const user = await selectById(decoded.id);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
+    // Cooldown check (prevent spamming: 30 seconds between requests)
+    const record = await getAdmin2FA(user.id);
+    if (record && record.updated_at) {
+      const secondsSinceLast = (Date.now() - new Date(record.updated_at).getTime()) / 1000;
+      if (secondsSinceLast < 30) {
+        const waitSec = Math.ceil(30 - secondsSinceLast);
+        return res.status(429).json({
+          error: `Please wait ${waitSec}s before requesting a new code.`,
+          retryAfter: waitSec,
+        });
+      }
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await upsertAdmin2FA(user.id, hashedOtp, expiresAt);
+
+    const htmlBody = `
+      <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px 20px; background-color: #0B1120; color: #E2E8F0; max-width: 580px; margin: auto; border-radius: 16px; border: 1px solid #1E293B;">
+        <div style="background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 50%, #3B82F6 100%); padding: 32px 20px; text-align: center; border-radius: 12px; margin-bottom: 28px;">
+          <div style="font-size: 32px; margin-bottom: 8px;">🔐</div>
+          <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">CitiVoice Administrator Console</h1>
+          <p style="color: rgba(255,255,255,0.85); margin: 6px 0 0 0; font-size: 13px; font-weight: 500;">Kabankalan City Citizen Engagement System</p>
+        </div>
+        <div style="padding: 0 10px;">
+          <h2 style="font-size: 20px; color: #F8FAFC; margin-top: 0;">New 2FA Verification Code</h2>
+          <p style="font-size: 14px; color: #94A3B8; line-height: 1.6;">Here is your replacement 6-digit one-time verification code for administrator sign-in:</p>
+          <div style="background: #111827; padding: 24px; border-radius: 12px; border: 1px solid #374151; margin: 24px 0; text-align: center;">
+            <p style="font-size: 40px; font-weight: 800; letter-spacing: 10px; color: #38BDF8; margin: 0; font-family: monospace;">${otp}</p>
+          </div>
+          <p style="font-size: 13px; color: #64748B; line-height: 1.5;">This code will expire in <strong style="color: #CBD5E1;">10 minutes</strong>.</p>
+        </div>
+      </div>
+    `;
+
+    await sendEmail(user.email, 'CitiVoice Admin — New 2FA Verification Code', htmlBody);
+
+    res.json({
+      success: true,
+      message: 'A new 6-digit code has been sent to your email.',
+    });
+  } catch (err) {
+    console.error('Resend admin 2FA error:', err);
+    res.status(500).json({ error: 'Failed to resend code. Please try again.' });
+  }
+};
+
 module.exports = {
   login,
+  verifyAdmin2FA,
+  resendAdmin2FA,
   googleLogin,
   sendRegistrationOtp,
   verifyRegistrationOtp,

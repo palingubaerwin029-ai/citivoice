@@ -290,6 +290,139 @@
   width: 100%;
 }
 
+/* ── 2FA Authentication ── */
+.twoFaHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.twoFaIconBadge {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-lg);
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blue-light);
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.twoFaNotice {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.twoFaNotice strong {
+  color: var(--text-1);
+}
+
+.otpInputWrap {
+  background: var(--surface-3);
+  border: 1.5px solid var(--border-md);
+  border-radius: var(--r-lg);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--t);
+  margin-bottom: 6px;
+}
+
+.otpInputWrap:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-glow);
+}
+
+.otpInput {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-1);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 10px;
+  text-align: center;
+  width: 100%;
+}
+
+.otpInput::placeholder {
+  letter-spacing: 8px;
+  color: var(--text-3);
+  opacity: 0.5;
+}
+
+.resendRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.resendBtn {
+  background: none;
+  border: none;
+  color: var(--blue-light);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity var(--t);
+}
+
+.resendBtn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.resendBtn:disabled {
+  color: var(--text-3);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: var(--text-2);
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color var(--t);
+}
+
+.backBtn:hover {
+  color: var(--text-1);
+}
+
+.successNotice {
+  padding: 10px 14px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--r-md);
+  color: #6EE7B7;
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ── Footer ── */
 .footer {
   display: flex;
