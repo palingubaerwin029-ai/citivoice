@@ -137,16 +137,14 @@ CREATE TABLE IF NOT EXISTS notifications (
   CONSTRAINT fk_notifications_concern FOREIGN KEY (concern_id) REFERENCES concerns(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ─── 8. Concern Comments (citizen discussions and internal admin notes) ───────
+-- ─── 8. Concern Comments (citizen discussions and administrative replies) ───────
 CREATE TABLE IF NOT EXISTS concern_comments (
-  id                INT AUTO_INCREMENT PRIMARY KEY,
-  concern_id        INT          NOT NULL,
-  user_id           INT          NOT NULL,
-  user_name         VARCHAR(255) DEFAULT NULL,
-  comment           TEXT         NOT NULL,
-  is_internal       TINYINT(1)   NOT NULL DEFAULT 0,
-  target_department VARCHAR(100) DEFAULT NULL,
-  created_at        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  concern_id INT          NOT NULL,
+  user_id    INT          NOT NULL,
+  user_name  VARCHAR(255) DEFAULT NULL,
+  comment    TEXT         NOT NULL,
+  created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_comments_concern_created (concern_id, created_at),
   KEY fk_concern_comments_user     (user_id),
   CONSTRAINT fk_concern_comments_concern FOREIGN KEY (concern_id) REFERENCES concerns(id) ON DELETE CASCADE,

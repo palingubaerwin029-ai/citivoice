@@ -86,8 +86,6 @@ export default function ConcernDetail() {
   const [auditLog, setAuditLog] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [newComment, setNewComment] = useState('');
-  const [isInternalComment, setIsInternalComment] = useState(false);
-  const [targetDeptComment, setTargetDeptComment] = useState('');
   const [addingComment, setAddingComment] = useState(false);
 
   const [selDept, setSelDept] = useState('');
@@ -239,15 +237,12 @@ export default function ConcernDetail() {
     try {
       await api.post(`/concerns/${id}/comments`, {
         comment: newComment.trim(),
-        is_internal: isInternalComment,
-        target_department: targetDeptComment || null,
       });
       setNewComment('');
-      setTargetDeptComment('');
       const updatedComments = await api.get(`/concerns/${id}/comments`);
       setComments(updatedComments || []);
     } catch (err) {
-      alert('Failed to add comment: ' + err.message);
+      alert('Failed to send reply: ' + err.message);
     }
     setAddingComment(false);
   };
@@ -702,12 +697,12 @@ export default function ConcernDetail() {
             </div>
           )}
 
-          {/* Comments & Citizen Discussion Card */}
+          {/* Citizen Comments & Admin Replies */}
           <div className={s.card}>
             <div className={s.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 16 }}>💬</span>
-                <span className={s.cardTitle}>Discussion & Comments</span>
+                <span className={s.cardTitle}>Citizen Comments</span>
                 <span style={{
                   fontSize: 11,
                   fontWeight: 700,
@@ -722,10 +717,10 @@ export default function ConcernDetail() {
             </div>
 
             <div style={{ padding: '16px' }}>
-              {/* Comment list */}
+              {/* Comment thread */}
               {comments.length === 0 ? (
                 <div style={{
-                  padding: '20px',
+                  padding: '22px 16px',
                   textAlign: 'center',
                   color: 'var(--text-3, #94a3b8)',
                   fontSize: 13,
@@ -734,54 +729,39 @@ export default function ConcernDetail() {
                   border: '1px dashed var(--border, #334155)',
                   marginBottom: 16
                 }}>
-                  No comments yet on this concern. Citizen discussions and administrative notes will appear here.
+                  No comments from the citizen yet. Any comments posted from the mobile app will appear here.
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16, maxHeight: 380, overflowY: 'auto' }}>
                   {comments.map((c) => {
                     const isAdmin = c.user_role === 'admin' || c.user_name?.toLowerCase().includes('admin');
-                    const isInternal = !!c.is_internal;
                     return (
                       <div
                         key={c.id}
                         style={{
                           padding: '12px 14px',
                           borderRadius: 10,
-                          background: isInternal ? 'rgba(245, 158, 11, 0.06)' : 'var(--bg-card-subtle, rgba(255,255,255,0.03))',
-                          border: isInternal ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid var(--border, rgba(255,255,255,0.08))',
-                          borderLeft: isInternal ? '4px solid #f59e0b' : '4px solid #3b82f6',
+                          background: isAdmin ? 'rgba(59, 130, 246, 0.08)' : 'var(--bg-card-subtle, rgba(255,255,255,0.03))',
+                          border: isAdmin ? '1px solid rgba(59, 130, 246, 0.25)' : '1px solid var(--border, rgba(255,255,255,0.08))',
+                          borderLeft: isAdmin ? '4px solid #3b82f6' : '4px solid #10b981',
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-1, #f8fafc)' }}>
-                              {c.user_name || 'Citizen'}
+                              {c.user_name || (isAdmin ? 'City Admin' : 'Citizen')}
                             </span>
-                            {isAdmin && (
-                              <span style={{
-                                fontSize: 10,
-                                fontWeight: 800,
-                                textTransform: 'uppercase',
-                                padding: '2px 6px',
-                                borderRadius: 6,
-                                background: '#1d4ed8',
-                                color: '#ffffff',
-                              }}>
-                                Admin
-                              </span>
-                            )}
-                            {isInternal && (
-                              <span style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                padding: '2px 6px',
-                                borderRadius: 6,
-                                background: 'rgba(245, 158, 11, 0.2)',
-                                color: '#fbbf24',
-                              }}>
-                                🔒 Internal Note
-                              </span>
-                            )}
+                            <span style={{
+                              fontSize: 10,
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                              padding: '2px 7px',
+                              borderRadius: 6,
+                              background: isAdmin ? '#2563eb' : 'rgba(16, 185, 129, 0.2)',
+                              color: isAdmin ? '#ffffff' : '#34d399',
+                            }}>
+                              {isAdmin ? '🛡️ Admin Reply' : '👤 Citizen'}
+                            </span>
                           </div>
                           <span style={{ fontSize: 11, color: 'var(--text-3, #94a3b8)' }}>
                             {fmtDateShort(c.created_at)}
@@ -796,12 +776,15 @@ export default function ConcernDetail() {
                 </div>
               )}
 
-              {/* Comment composer */}
+              {/* Admin Reply Composer */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid var(--border, rgba(255,255,255,0.08))', paddingTop: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2, #cbd5e1)' }}>
+                  Reply to Citizen
+                </div>
                 <textarea
                   className={s.textarea}
                   rows={3}
-                  placeholder="Write a comment or administrative note..."
+                  placeholder="Write an official response or update to the citizen..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   style={{
@@ -813,16 +796,7 @@ export default function ConcernDetail() {
                     resize: 'vertical',
                   }}
                 />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12, color: 'var(--text-2, #cbd5e1)' }}>
-                    <input
-                      type="checkbox"
-                      checked={isInternalComment}
-                      onChange={(e) => setIsInternalComment(e.target.checked)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <span>🔒 Internal note (visible to admins only)</span>
-                  </label>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
                   <button
                     type="button"
                     onClick={handleAddComment}
@@ -831,7 +805,7 @@ export default function ConcernDetail() {
                       background: 'var(--primary, #2563eb)',
                       color: '#ffffff',
                       border: 'none',
-                      padding: '8px 18px',
+                      padding: '8px 22px',
                       borderRadius: 8,
                       fontWeight: 700,
                       fontSize: 13,
@@ -840,9 +814,10 @@ export default function ConcernDetail() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: 6,
+                      boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
                     }}
                   >
-                    {addingComment ? 'Posting…' : 'Post Comment'}
+                    {addingComment ? 'Sending…' : 'Send Reply'}
                   </button>
                 </div>
               </div>
