@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Install mysql-client so mysqldump is available for on-demand backups
 RUN apk add --no-cache mysql-client
