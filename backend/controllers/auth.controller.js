@@ -244,20 +244,20 @@ const register = async (req, res) => {
   } = req.body;
   try {
     const existingName = await selectByName(name);
-    if (existingName) return res.status(400).json({ error: 'Name already registered' });
+    if (existingName) return res.status(400).json({ error: 'auth/name-already-in-use', field: 'name', message: 'Name already registered' });
 
     const existingEmail = await selectByEmail(email);
-    if (existingEmail) return res.status(400).json({ error: 'Email already registered' });
+    if (existingEmail) return res.status(400).json({ error: 'auth/email-already-in-use', field: 'email', message: 'Email already registered' });
 
     if (phone) {
       const existingPhone = await selectByPhone(phone);
-      if (existingPhone) return res.status(400).json({ error: 'Phone number already registered' });
+      if (existingPhone) return res.status(400).json({ error: 'auth/phone-already-in-use', field: 'phone', message: 'Phone number already registered' });
     }
 
     if (idNumber) {
       const exists = await checkExistingIdNumber(idNumber, 0);
       if (exists) {
-        return res.status(400).json({ error: 'This ID number is already linked to another account.' });
+        return res.status(400).json({ error: 'auth/id-already-in-use', field: 'idNumber', message: 'This ID number is already linked to another account.' });
       }
     }
 

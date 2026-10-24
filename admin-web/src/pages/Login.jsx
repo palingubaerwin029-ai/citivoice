@@ -21,14 +21,37 @@ export default function Login({ onLogin }) {
     [onLogin],
   );
 
+  const [fieldErrors, setFieldErrors] = useState({});
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setFieldErrors({});
+
     try {
       completeLogin(await api.post('/auth/login', { email, password }));
     } catch (err) {
-      setError(err.message || 'Invalid email or password. Please try again.');
+      const errKey = err.code || err.data?.error || err.message || '';
+      const errField = err.field || err.data?.field;
+      let msg = err.data?.message || err.message || 'Invalid email or password.';
+
+      if (msg === 'auth/invalid-credential' || errKey === 'auth/invalid-credential') {
+        msg = 'Invalid email or password. Please try again.';
+      }
+
+      if (errField === 'email' || errKey === 'auth/user-not-found') {
+        const text = msg.startsWith('auth/') ? 'No administrator account found with this email.' : msg;
+        setError(text);
+        setFieldErrors({ email: text });
+      } else if (errField === 'password' || errKey === 'auth/wrong-password') {
+        const text = msg.startsWith('auth/') ? 'Incorrect password. Please try again.' : msg;
+        setError(text);
+        setFieldErrors({ password: text });
+      } else {
+        setError(msg);
+        setFieldErrors({});
+      }
     } finally {
       setLoading(false);
     }
@@ -61,29 +84,38 @@ export default function Login({ onLogin }) {
           <form onSubmit={handleSubmit} className={s.form}>
             <div className={s.field}>
               <label className={s.label}>Email Address</label>
-              <div className={s.inputWrap}>
+              <div className={`${s.inputWrap} ${fieldErrors.email ? s.inputWrapError : ''}`}>
                 <IoMailOutline className={s.reactIcon} />
                 <input
                   className={s.input}
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                    if (error) setError('');
+                  }}
                   placeholder="admin@citivoice.gov.ph"
                   autoComplete="email"
                   required
                 />
               </div>
+              {fieldErrors.email && <span className={s.fieldErrorText}>⚠ {fieldErrors.email}</span>}
             </div>
 
             <div className={s.field}>
               <label className={s.label}>Password</label>
-              <div className={s.inputWrap}>
+              <div className={`${s.inputWrap} ${fieldErrors.password ? s.inputWrapError : ''}`}>
                 <IoLockClosedOutline className={s.reactIcon} />
                 <input
                   className={s.input}
                   type={showPw ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+                    if (error) setError('');
+                  }}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   required
@@ -92,6 +124,7 @@ export default function Login({ onLogin }) {
                   {showPw ? <IoEyeOffOutline /> : <IoEyeOutline />}
                 </button>
               </div>
+              {fieldErrors.password && <span className={s.fieldErrorText}>⚠ {fieldErrors.password}</span>}
             </div>
 
             <button type="submit" className={s.submit} disabled={loading}>

@@ -547,12 +547,26 @@ export default function RegisterScreen({ navigation, route }) {
         registeredEmail: form.email.trim(),
       });
     } catch (err) {
+      const errField = err?.data?.field || (
+        err?.code === 'auth/email-already-in-use' || err?.code === 'auth/invalid-email' ? 'email' :
+        err?.code === 'auth/weak-password' ? 'password' :
+        err?.code === 'auth/name-already-in-use' ? 'name' :
+        err?.code === 'auth/phone-already-in-use' ? 'phone' :
+        err?.code === 'auth/id-already-in-use' ? 'idNumber' : null
+      );
       const map = {
         'auth/email-already-in-use': 'This email is already registered.',
         'auth/invalid-email': 'Invalid email address.',
         'auth/weak-password': 'Password is too weak.',
+        'auth/name-already-in-use': 'Name is already registered.',
+        'auth/phone-already-in-use': 'Phone number is already registered.',
+        'auth/id-already-in-use': 'This ID number is already linked to another account.',
       };
-      setError(map[err.code] || err.message || t('error'));
+      const errorMsg = map[err?.code] || err?.data?.message || err?.message || t('error');
+      if (errField) {
+        setErrors((prev) => ({ ...prev, [errField]: errorMsg }));
+      }
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

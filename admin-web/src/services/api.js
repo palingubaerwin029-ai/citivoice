@@ -34,7 +34,12 @@ const request = async (path, options = {}) => {
   const res = await fetch(`${getBaseUrl()}${path}`, { ...options, headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'Request failed');
+    const error = new Error(err.message || err.error || 'Request failed');
+    error.code = err.error;
+    error.field = err.field;
+    error.status = res.status;
+    error.data = err;
+    throw error;
   }
   return res.json();
 };

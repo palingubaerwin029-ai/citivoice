@@ -302,14 +302,9 @@ export default function LoginScreen({ navigation, route }) {
         const text = errMsg || 'Incorrect password. Please try again.';
         setErrors({ password: text });
         setServerError(text);
-      } else if (errKey === 'auth/invalid-credential') {
-        setErrors({
-          email: 'Please check your email address.',
-          password: 'Please check your password.',
-        });
-        setServerError(errMsg || 'Invalid email or password.');
       } else {
-        const text = errMsg || t('error');
+        setErrors({});
+        const text = errMsg || 'Invalid credentials. Please try again.';
         setServerError(text);
       }
     } finally {
