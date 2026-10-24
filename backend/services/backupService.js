@@ -386,9 +386,7 @@ const runJsonExport = async () => {
             location_address, location_lat, location_lng,
             location_lat AS latitude, location_lng AS longitude,
             image_url, resolved_image_url, user_name, user_barangay,
-            admin_note, approval_notes, approved_by_name, approved_at,
-            is_validated, validated_at, validated_by_name,
-            department, created_at, updated_at
+            admin_note, created_at, updated_at
      FROM concerns
      ORDER BY id`,
   );

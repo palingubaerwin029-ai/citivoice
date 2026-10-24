@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { notifyUser, notifyDepartmentOnApproval, dispatchSystemNotification } = require('../services/notificationService');
+const { notifyUser, dispatchSystemNotification } = require('../services/notificationService');
 const { analyzeFullConcern, verifyImageAlignment, routeToDepartment, NOT_TYPICAL_CATEGORY, raisePriority } = require('../services/aiService');
 const { analyzeImage } = require('../services/imageAnalyzer');
 const { findSimilarConcerns } = require('../services/similarityService');
@@ -79,21 +79,18 @@ const listConcerns = async (req, res) => {
     const offset = (page - 1) * limit;
     
     const { status, category, userId, barangay, search } = req.query;
-    const isMayor = req.user?.role === 'mayor';
-    const validatedOnly = isMayor || req.query.validatedOnly === 'true' || req.query.validatedOnly === '1';
 
     const [rows, total] = await Promise.all([
-      selectAllConcerns(limit, offset, userId, status, category, validatedOnly, barangay, search),
-      countConcerns(userId, status, category, validatedOnly, barangay, search)
+      selectAllConcerns(limit, offset, userId, status, category, barangay, search),
+      countConcerns(userId, status, category, barangay, search)
     ]);
 
     const data = rows.map((r) => {
       const cleanR = {
         ...r,
         admin_note: cleanOfficialResponse(r.admin_note),
-        approval_notes: cleanOfficialResponse(r.approval_notes),
       };
-      if (req.user.role !== 'admin' && req.user.role !== 'mayor') {
+      if (req.user.role !== 'admin') {
         if (cleanR.user_id === req.user.id) return cleanR;
         const { user_id, user_name, user_barangay, ...rest } = cleanR;
         return rest;
@@ -148,19 +145,16 @@ const getConcern = async (req, res) => {
     const concern = await selectConcernById(req.params.id);
     if (!concern) return res.status(404).json({ error: 'Concern not found' });
 
-    // Attach linked/similar concerns for admin and mayor
-    if (req.user.role === 'admin' || req.user.role === 'mayor') {
+    // Attach linked/similar concerns for admin
+    if (req.user.role === 'admin') {
       concern.linked_concerns = await selectLinkedConcerns(concern.id);
     }
 
     if (concern.admin_note) {
       concern.admin_note = cleanOfficialResponse(concern.admin_note);
     }
-    if (concern.approval_notes) {
-      concern.approval_notes = cleanOfficialResponse(concern.approval_notes);
-    }
 
-    if (req.user.role !== 'admin' && req.user.role !== 'mayor' && concern.user_id !== req.user.id) {
+    if (req.user.role !== 'admin' && concern.user_id !== req.user.id) {
       const { user_id, user_name, user_barangay, ...rest } = concern;
       return res.json(rest);
     }
@@ -402,14 +396,6 @@ const createConcern = async (req, res) => {
                 fieldsToUpdate.push('admin_note = ?');
                 valuesToUpdate.push(cleanOfficialResponse(match.concern.admin_note));
               }
-              if (match.concern.approved_by_name) {
-                fieldsToUpdate.push('approved_by_name = ?');
-                valuesToUpdate.push(match.concern.approved_by_name);
-              }
-              if (match.concern.approved_at) {
-                fieldsToUpdate.push('approved_at = ?');
-                valuesToUpdate.push(match.concern.approved_at);
-              }
 
               await updateConcernFields(insertId, fieldsToUpdate, valuesToUpdate);
               invalidate('concerns', 'concern_detail', 'map_concerns');
@@ -453,10 +439,9 @@ const createConcern = async (req, res) => {
     
     const io = req.app.get('io');
     
-    // Broadcast via socket to all portals (Admin & Mayor)
+    // Broadcast via socket to admin portal
     if (io) {
       io.to('admin').emit('new_concern', newConcern);
-      io.to('mayor').emit('new_concern', newConcern);
       io.emit('new_concern', newConcern);
       io.to(`user:${req.user.id}`).emit('new_concern', newConcern);
       io.emit('concern_stats_updated', { concernId: newConcern.id, userId: req.user.id });
@@ -508,10 +493,6 @@ const editConcern = async (req, res) => {
     if (admin_note !== undefined) {
       fields.push('admin_note = ?');
       values.push(admin_note || null);
-    }
-    if (req.body.approval_notes !== undefined) {
-      fields.push('approval_notes = ?');
-      values.push(req.body.approval_notes || null);
     }
     if (category !== undefined) {
       fields.push('category = ?');
@@ -640,10 +621,9 @@ const editConcern = async (req, res) => {
 
 
     
-    // Broadcast via socket to all portals (Admin & Mayor)
+    // Broadcast via socket to admin portal
     if (io) {
       io.to('admin').emit('update_concern', updatedConcern);
-      io.to('mayor').emit('update_concern', updatedConcern);
       io.emit('update_concern', updatedConcern);
       io.emit('concern_updated', updatedConcern);
       if (updatedConcern.user_id) {
@@ -1017,215 +997,6 @@ const linkConcerns = async (req, res) => {
   }
 };
 
-const approveConcern = async (req, res) => {
-  const { approval_notes, target_department } = req.body;
-  try {
-    const concern = await selectConcernById(req.params.id);
-    if (!concern) return res.status(404).json({ error: 'Concern not found' });
-
-    const approverName = req.user.name || "Office of the City Mayor";
-    const fields = ['status = ?', 'approval_notes = ?', 'approved_by_name = ?', 'approved_at = NOW()', 'updated_at = NOW()'];
-    const values = ['In Progress', approval_notes || 'Approved for immediate evaluation and action.', approverName];
-
-    if (target_department) {
-      fields.push('department = ?');
-      values.push(target_department);
-    }
-
-    await updateConcernFields(req.params.id, fields, values);
-
-    // Cascade approval and status to linked duplicate concerns
-    try {
-      const linked = await selectLinkedConcerns(req.params.id);
-      const duplicateLinks = linked.filter(l => l.link_type === 'duplicate');
-      for (const dup of duplicateLinks) {
-        const dupFields = ['status = ?', 'approval_notes = ?', 'approved_by_name = ?', 'approved_at = NOW()', 'updated_at = NOW()'];
-        const dupValues = ['In Progress', cleanOfficialResponse(approval_notes || 'Approved for immediate evaluation and action.'), approverName];
-        if (target_department) {
-          dupFields.push('department = ?');
-          dupValues.push(target_department);
-        }
-        await updateConcernFields(dup.id, dupFields, dupValues);
-
-      }
-    } catch (cascadeErr) {
-      console.error('[Duplicate Cascade Error on Approve]:', cascadeErr.message);
-    }
-    invalidate('concerns', 'concern_detail', 'map_concerns');
-
-    const updatedConcern = await selectConcernById(req.params.id);
-
-    // Department details or municipal fallback
-    let deptInfo = null;
-    if (updatedConcern.department) {
-      deptInfo = {
-        name: updatedConcern.department,
-        email: process.env.DEPARTMENT_EMAIL || process.env.GMAIL_USER || null,
-      };
-    }
-
-    // Email official approval notice to department/admin
-    try {
-      if (deptInfo && (deptInfo.email || process.env.GMAIL_USER)) {
-        await notifyDepartmentOnApproval(updatedConcern, approval_notes, deptInfo, approverName);
-      }
-    } catch (e) {
-      console.error('[Notification] Error sending department email:', e.message);
-    }
-
-    // Log audit
-    try {
-      await logAudit(
-        'concern',
-        updatedConcern.id,
-        'approved_and_notified_department',
-        req.user.id,
-        req.user.name,
-        { status: concern.status },
-        { status: 'In Progress', department: updatedConcern.department, approval_notes }
-      );
-    } catch (e) {
-      console.error('[Workflow] Audit log error on approve:', e);
-    }
-
-    // Notify citizen
-    if (updatedConcern.user_id) {
-      await insertNotification(
-        updatedConcern.user_id,
-        'Concern Approved & Forwarded',
-        `Your concern "${updatedConcern.title}" has been approved by ${req.user.name} and forwarded to ${updatedConcern.department || 'the responsible department'}!`,
-        updatedConcern.id
-      );
-      if (req.app.get('io')) {
-        req.app.get('io').to(`user:${updatedConcern.user_id}`).emit('new_notification', {
-          title: 'Concern Approved & Forwarded',
-          message: `Your concern "${updatedConcern.title}" was approved and forwarded to ${updatedConcern.department || 'the responsible department'}.`,
-          concern_id: updatedConcern.id,
-          concernId: updatedConcern.id,
-        });
-      }
-
-      // Fetch citizen details (name, email) for reliable Gmail notification
-      const citizenUser = await selectConcernWithUser(updatedConcern.id);
-      const recipient = citizenUser || updatedConcern;
-
-      notifyUser(
-        recipient,
-        'Concern Approved & Forwarded',
-        `Great news! Your concern "${updatedConcern.title}" has been officially approved and sent to ${updatedConcern.department || 'the city department'} for resolution.`,
-        `The citizen's concern titled "${updatedConcern.title}" was approved by ${req.user.name} and sent to ${updatedConcern.department || 'the responsible department'}.`,
-        updatedConcern.id
-      );
-    }
-
-    // Broadcast socket event to admins
-    if (req.app.get('io')) {
-      req.app.get('io').to('admin').emit('concern_approved', updatedConcern);
-      req.app.get('io').emit('concern_stats_updated', { concernId: updatedConcern.id, userId: updatedConcern.user_id });
-    }
-
-    res.json({
-      success: true,
-      concern: updatedConcern,
-      department_notified: deptInfo?.email ? `${deptInfo.name} (${deptInfo.email})` : (updatedConcern.department || 'Assigned Department')
-    });
-  } catch (err) {
-    console.error('Approve concern error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-const forwardToMayor = async (req, res) => {
-  const { id } = req.params;
-  const { department, admin_note } = req.body;
-
-  try {
-    const concern = await selectConcernById(id);
-    if (!concern) return res.status(404).json({ error: 'Concern not found' });
-
-    const adminName = req.user.name || 'System Administrator';
-
-    // ─── Standard Flow: Validated by Admin and Forwarded to Mayor's Desk ───
-    const fields = ['is_validated = 1', 'validated_at = NOW()', 'validated_by_name = ?', 'updated_at = NOW()'];
-    const values = [adminName];
-
-    if (department) {
-      fields.push('department = ?');
-      values.push(department);
-    }
-    if (admin_note !== undefined) {
-      fields.push('admin_note = ?');
-      values.push(admin_note);
-    }
-
-    await updateConcernFields(id, fields, values);
-    invalidate('concerns', 'concern_detail', 'map_concerns');
-
-    // Add audit log entry
-    try {
-      await logAudit(
-        'concern',
-        id,
-        'validated_and_forwarded_to_mayor',
-        req.user.id,
-        adminName,
-        { is_validated: concern.is_validated },
-        { is_validated: 1, validated_by_name: adminName, department: department || concern.department }
-      );
-    } catch (auditErr) {
-      console.error('[Audit Error on forwardToMayor]:', auditErr.message);
-    }
-
-    const updated = await selectConcernById(id);
-
-    // Insert executive notification for all Mayor users
-    try {
-      const pool = require('../db');
-      const [mayors] = await pool.query("SELECT id FROM users WHERE role = 'mayor'");
-      const notifTitle = 'Concern Forwarded for Mayoral Directive';
-      const notifMessage = `Concern #${updated.id} "${updated.title}" was validated by ${adminName} and forwarded for executive directive.`;
-      for (const m of mayors) {
-        await insertNotification(m.id, notifTitle, notifMessage, updated.id);
-        const io = req.app.get('io');
-        if (io) {
-          io.to(`user:${m.id}`).emit('new_notification', {
-            title: notifTitle,
-            message: notifMessage,
-            concern_id: updated.id,
-            concernId: updated.id,
-            created_at: new Date().toISOString()
-          });
-        }
-      }
-    } catch (notifErr) {
-      console.error('[Notification Error on forwardToMayor]:', notifErr.message);
-    }
-
-    try {
-      const io = req.app.get('io');
-      if (io) {
-        io.to('admin').emit('concern_updated', updated);
-        io.to('mayor').emit('concern_forwarded_to_mayor', updated);
-        io.to('mayor').emit('new_notification', {
-          title: 'Concern Forwarded for Mayoral Directive',
-          message: `Concern #${updated.id} "${updated.title}" was validated by ${adminName} and forwarded for executive directive.`,
-          concern_id: updated.id,
-          concernId: updated.id,
-          created_at: new Date().toISOString()
-        });
-        io.emit('concern_stats_updated', { concernId: updated.id, userId: updated.user_id });
-      }
-    } catch (e) {
-      // ignore socket error
-    }
-
-    res.json({ success: true, bypassedMayor: false, isHighPriority: false, concern: updated });
-  } catch (err) {
-    console.error('forwardToMayor error:', err);
-    res.status(500).json({ error: 'Failed to forward concern to Mayor\'s Office' });
-  }
-};
-
 module.exports = {
   listConcerns,
   getMapConcerns,
@@ -1233,8 +1004,6 @@ module.exports = {
   getConcern,
   createConcern,
   editConcern,
-  approveConcern,
-  forwardToMayor,
   removeConcern,
   uploadIdImage,
   generateAiResponse,

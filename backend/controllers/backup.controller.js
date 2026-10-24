@@ -247,10 +247,8 @@ const importJsonBackup = async (req, res) => {
              (id, user_id, title, category, description, status, priority,
               location_address, location_lat, location_lng,
               image_url, resolved_image_url, user_name, user_barangay,
-              admin_note, approval_notes, approved_by_name, approved_at,
-              is_validated, validated_at, validated_by_name,
-              department, created_at, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+              admin_note, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
            ON DUPLICATE KEY UPDATE
              title            = VALUES(title),
              category         = VALUES(category),
@@ -259,8 +257,6 @@ const importJsonBackup = async (req, res) => {
              priority         = VALUES(priority),
              location_address = VALUES(location_address),
              admin_note       = VALUES(admin_note),
-             approval_notes   = VALUES(approval_notes),
-             department       = VALUES(department),
              updated_at       = VALUES(updated_at)`,
           [
             c.id, c.user_id || null,
@@ -273,10 +269,7 @@ const importJsonBackup = async (req, res) => {
             c.image_url || null,
             c.resolved_image_url || null,
             c.user_name || null, c.user_barangay || null,
-            c.admin_note || null, c.approval_notes || null,
-            c.approved_by_name || null, c.approved_at || null,
-            c.is_validated ? 1 : 0, c.validated_at || null, c.validated_by_name || null,
-            c.department || null,
+            c.admin_note || null,
             c.created_at || new Date(), c.updated_at || new Date(),
           ],
         );

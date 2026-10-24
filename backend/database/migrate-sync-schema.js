@@ -82,17 +82,7 @@ const run = async () => {
       console.log('✅ Added users.reset_otp');
     }
 
-    // 4. Ensure concerns validation columns
-    if (!(await columnExists('concerns', 'is_validated'))) {
-      console.log('➕ Adding concerns validation columns...');
-      await pool.query(`
-        ALTER TABLE concerns
-          ADD COLUMN is_validated TINYINT(1) NOT NULL DEFAULT 0 AFTER admin_note,
-          ADD COLUMN validated_at DATETIME DEFAULT NULL AFTER is_validated,
-          ADD COLUMN validated_by_name VARCHAR(255) DEFAULT NULL AFTER validated_at
-      `);
-      console.log('✅ Added concerns validation columns');
-    }
+
 
     // 5. Recommended performance indexes
     const indexes = [

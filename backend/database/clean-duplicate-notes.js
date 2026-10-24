@@ -9,7 +9,7 @@ async function cleanDuplicateNotes() {
   console.log('[CleanNotes] Starting cleanup of duplicate prefixes in concerns...');
   try {
     const [rows] = await pool.query(
-      "SELECT id, title, admin_note, approval_notes FROM concerns WHERE admin_note LIKE '%Duplicate%' OR approval_notes LIKE '%Duplicate%'"
+      "SELECT id, title, admin_note FROM concerns WHERE admin_note LIKE '%Duplicate%'"
     );
 
     console.log(`[CleanNotes] Found ${rows.length} rows to check.`);
@@ -17,12 +17,11 @@ async function cleanDuplicateNotes() {
     let updatedCount = 0;
     for (const row of rows) {
       const cleanedAdmin = cleanText(row.admin_note);
-      const cleanedApproval = cleanText(row.approval_notes);
 
-      if (cleanedAdmin !== row.admin_note || cleanedApproval !== row.approval_notes) {
+      if (cleanedAdmin !== row.admin_note) {
         await pool.query(
-          "UPDATE concerns SET admin_note = ?, approval_notes = ? WHERE id = ?",
-          [cleanedAdmin, cleanedApproval, row.id]
+          "UPDATE concerns SET admin_note = ? WHERE id = ?",
+          [cleanedAdmin, row.id]
         );
         console.log(`[CleanNotes] Cleaned concern #${row.id} ("${row.title}")`);
         console.log(`  Before admin_note: ${row.admin_note}`);

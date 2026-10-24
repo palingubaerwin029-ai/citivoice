@@ -7,7 +7,6 @@ const selectAllConcerns = async (
   userId = null,
   status = null,
   category = null,
-  validatedOnly = false,
   barangay = null,
   search = null
 ) => {
@@ -25,9 +24,6 @@ const selectAllConcerns = async (
   if (category && category !== 'All') {
     query += ' AND category = ?';
     params.push(category);
-  }
-  if (validatedOnly) {
-    query += ' AND is_validated = 1';
   }
   if (barangay && barangay !== 'All') {
     query += ' AND (incident_barangay = ? OR (incident_barangay IS NULL AND user_barangay = ?))';
@@ -50,7 +46,6 @@ const countConcerns = async (
   userId = null,
   status = null,
   category = null,
-  validatedOnly = false,
   barangay = null,
   search = null
 ) => {
@@ -68,9 +63,6 @@ const countConcerns = async (
   if (category && category !== 'All') {
     query += ' AND category = ?';
     params.push(category);
-  }
-  if (validatedOnly) {
-    query += ' AND is_validated = 1';
   }
   if (barangay && barangay !== 'All') {
     query += ' AND (incident_barangay = ? OR (incident_barangay IS NULL AND user_barangay = ?))';

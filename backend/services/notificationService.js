@@ -173,7 +173,7 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext, co
   // 1. Generate an empathetic personalized message using Gemini / Groq AI
   if (groqService.isAvailable() && notificationContext) {
     const prompt = `
-      You are the official public relations assistant for the Office of the City Mayor, Kabankalan City.
+      You are the official public service assistant for the City Government of Kabankalan.
       Write a short, professional, empathetic, and reassuring notification message for citizen ${targetUser.name || 'Citizen'}.
       Context of Update: ${notificationContext}
       
@@ -214,7 +214,7 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext, co
             CitiVoice Public Service
           </h1>
           <div style="font-size: 12px; font-weight: 600; color: #93c5fd; letter-spacing: 1px; text-transform: uppercase; margin-top: 4px;">
-            Office of the City Mayor · Official Citizen Update
+            City Government of Kabankalan · Official Citizen Update
           </div>
         </div>
 
@@ -230,7 +230,7 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext, co
           </div>
 
           <div style="font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 24px;">
-            The Office of the City Mayor and the City Government of Kabankalan are committed to responding promptly to community concerns. Thank you for actively contributing to the safety and improvement of our city.
+            The City Government of Kabankalan is committed to responding promptly to community concerns. Thank you for actively contributing to the safety and improvement of our city.
           </div>
         </div>
 
@@ -240,7 +240,7 @@ const notifyUser = async (user, subject, defaultMessage, notificationContext, co
             City Government of Kabankalan
           </div>
           <div style="font-size: 11px; color: #64748b; line-height: 1.5;">
-            Office of the City Mayor · CitiVoice Governance Network<br/>
+            CitiVoice Governance Network<br/>
             This is an automated official update. Please do not reply directly to this notification.
           </div>
         </div>

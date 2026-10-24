@@ -155,10 +155,6 @@ io.on('connection', (socket) => {
     socket.join('admin');
     console.log(`[Socket] User ${socket.user.id} joined room: admin`);
   }
-  if (socket.user.role === 'mayor' || socket.user.role === 'admin') {
-    socket.join('mayor');
-    console.log(`[Socket] User ${socket.user.id} joined room: mayor`);
-  }
 
   socket.on('disconnect', () => {
     console.log(`[Socket] Client disconnected: ${socket.id}`);

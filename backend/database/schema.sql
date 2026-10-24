@@ -18,7 +18,7 @@
 CREATE DATABASE IF NOT EXISTS citivoice CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE citivoice;
 
--- ─── 1. Users (citizens, administrators, mayoral accounts) ───────────────────
+-- ─── 1. Users (citizens and administrators) ───────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
   id                  INT AUTO_INCREMENT PRIMARY KEY,
   name                VARCHAR(255)  NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS users (
   phone               VARCHAR(50)   DEFAULT NULL,
   barangay            VARCHAR(255)  DEFAULT NULL,
   address             VARCHAR(255)  DEFAULT NULL,                 -- street / purok address
-  role                ENUM('admin','citizen',) NOT NULL DEFAULT 'citizen',
+  role                ENUM('admin','citizen') NOT NULL DEFAULT 'citizen',
   verification_status ENUM('unverified','pending','verified','rejected') NOT NULL DEFAULT 'unverified',
   is_verified         TINYINT(1)    NOT NULL DEFAULT 0,
   id_type             VARCHAR(100)  DEFAULT NULL,

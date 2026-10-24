@@ -21,7 +21,6 @@ const {
   getConcern,
   createConcern,
   editConcern,
-  approveConcern,
   removeConcern,
   uploadIdImage,
   generateAiResponse,
@@ -29,7 +28,6 @@ const {
   linkConcerns,
   analyzeConcernDraft,
   verifyConcernImage,
-  forwardToMayor,
 } = require('../controllers/concerns.controller');
 
 // ─── List all concerns (auth required, cached 60s) ────────────────────────────
@@ -53,12 +51,8 @@ router.post('/analyze', auth, analyzeConcernDraft);
 // ─── AI Pre-submission Check (Image alignment) ───────────────────────────────
 router.post('/verify-image', auth, upload.single('image'), verifyConcernImage);
 
-// ─── Update concern (admin or mayor: status, admin_note) ──────────────────────────
+// ─── Update concern (admin: status, admin_note) ───────────────────────────────
 router.put('/:id', auth, requireRole('admin'), upload.single('image'), validateIdParam, editConcern);
-
-
-// ─── Approve concern & email department (mayor or admin) ─────────────────────────
-router.post('/:id/approve', auth, requireRole('admin',), validateIdParam, approveConcern);
 
 // ─── Delete concern (admin or owner) ──────────────────────────────────────────
 router.delete('/:id', auth, validateIdParam, removeConcern);

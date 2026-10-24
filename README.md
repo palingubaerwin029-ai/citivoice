@@ -292,12 +292,12 @@ docker exec -i citivoice-mysql mysql -uroot -proot citivoice < backups/db/backup
 CitiVoice runs on MySQL 8.0 with InnoDB engine and `utf8mb4_unicode_ci` encoding.
 
 ### Primary Tables
-- **`users`** — Citizen, administrator, and mayor accounts (`phone`, `barangay`, street `address`, `reset_otp`, `reset_otp_expires`), hashed passwords, verification statuses, avatars, and uploaded ID card references.
+- **`users`** — Citizen and administrator accounts (`phone`, `barangay`, street `address`, `reset_otp`, `reset_otp_expires`), hashed passwords, verification statuses, avatars, and uploaded ID card references.
 - **`admin_2fa_codes`** — Ephemeral 6-digit OTP verification records for Administrator Two-Factor Authentication (2FA) with expiration timestamps.
 - **`email_verifications`** — Ephemeral 6-digit OTP pre-registration verification records with expiration timestamps and verification flags.
-- **`concerns`** — Incident reports containing title, description, category, priority, status, latitude, longitude, pinned address, official `admin_note`, admin validation flags (`is_validated`, `validated_at`, `validated_by_name`), mayor approvals (`approval_notes`, `approved_by_name`, `approved_at`), AI department routing label, and media URLs.
+- **`concerns`** — Incident reports containing title, description, category, priority, status, latitude, longitude, pinned address, official `admin_note`, and media URLs.
 - **`concern_links`** — Status-aware AI duplicate and related incident links.
-- **`audit_log`** — Chronological audit trail of status updates, validations, approvals, and administrative actions.
+- **`audit_log`** — Chronological audit trail of status updates and administrative actions.
 - **`barangays`** — 32 Kabankalan barangay records and reference geographic centroids.
 - **`notifications`** — In-app citizen alerts, status change notices, and broadcast logs.
 - **`file_storage`** — Database-backed persistent binary storage ensuring uploaded images survive ephemeral cloud container restarts.
@@ -321,12 +321,11 @@ To guarantee sub-10ms query execution times under municipal load, the database s
 9. `idx_concerns_created_at` on `concerns(created_at)`
 10. `idx_concerns_barangay` on `concerns(user_barangay)`
 11. `idx_concerns_incident_barangay` on `concerns(incident_barangay)`
-12. `idx_concerns_validated` on `concerns(is_validated, status)`
-13. `idx_notifications_user_read` on `notifications(user_id, is_read)`
-14. `idx_notifications_user_created` on `notifications(user_id, created_at)`
-15. `idx_audit_entity` on `audit_log(entity_type, entity_id, created_at)`
-16. `idx_admin_2fa_user` on `admin_2fa_codes(user_id, expires_at)`
-17. `idx_file_storage_filename` on `file_storage(filename)`
+12. `idx_notifications_user_read` on `notifications(user_id, is_read)`
+13. `idx_notifications_user_created` on `notifications(user_id, created_at)`
+14. `idx_audit_entity` on `audit_log(entity_type, entity_id, created_at)`
+15. `idx_admin_2fa_user` on `admin_2fa_codes(user_id, expires_at)`
+16. `idx_file_storage_filename` on `file_storage(filename)`
 
 ---
 
