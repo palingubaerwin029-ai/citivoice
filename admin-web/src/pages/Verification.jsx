@@ -306,16 +306,21 @@ export default function Verification() {
               <thead className={s.thead}>
                 <tr>
                   {[
-                    'Citizen',
-                    'Contact',
-                    'Barangay',
-                    'ID Type',
-                    'Status',
-                    'Submitted',
-                    'Actions',
-                  ].map((h) => (
-                    <th key={h} className={s.th}>
-                      {h}
+                    { label: 'Citizen', key: 'Citizen' },
+                    { label: 'Contact', key: 'Contact', hideOnSide: true },
+                    { label: 'Barangay', key: 'Barangay' },
+                    { label: 'ID Type', key: 'ID Type' },
+                    { label: 'Status', key: 'Status' },
+                    { label: 'Submitted', key: 'Submitted', hideOnSide: true },
+                    { label: 'Actions', key: 'Actions', isAction: true },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      className={`${s.th} ${col.hideOnSide ? s.hideOnSideOpen : ''} ${
+                        col.isAction ? s.thActions : ''
+                      }`}
+                    >
+                      {col.label}
                     </th>
                   ))}
                 </tr>
@@ -346,7 +351,7 @@ export default function Verification() {
                           </div>
                         </div>
                       </td>
-                      <td className={s.td} style={{ fontSize: 12 }}>
+                      <td className={`${s.td} ${s.hideOnSideOpen}`} style={{ fontSize: 12 }}>
                         {u.phone || '—'}
                       </td>
                       <td className={s.td}>
@@ -379,13 +384,13 @@ export default function Verification() {
                         </span>
                       </td>
                       <td
-                        className={s.td}
+                        className={`${s.td} ${s.hideOnSideOpen}`}
                         style={{ fontSize: 11, color: 'var(--text-3)', whiteSpace: 'nowrap' }}
                       >
                         {fmtDateShort(u.submitted_at)}
                       </td>
-                      <td className={s.td}>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <td className={`${s.td} ${s.tdActions}`} onClick={(e) => e.stopPropagation()}>
+                        <div className={s.actionsGroup}>
                           <button
                             className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
                             onClick={() => {
@@ -418,6 +423,7 @@ export default function Verification() {
                               padding: '5px 8px',
                               cursor: 'pointer',
                               borderRadius: 'var(--r-sm)',
+                              flexShrink: 0,
                             }}
                             title={`Delete citizen ${u.name}`}
                             onClick={(e) => {

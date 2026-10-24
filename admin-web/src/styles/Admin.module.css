@@ -222,12 +222,37 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
+}
+
+.thActions {
+  text-align: right !important;
+  white-space: nowrap !important;
+  width: 1%;
+  padding-right: 20px !important;
+}
+
+.tdActions {
+  text-align: right !important;
+  white-space: nowrap !important;
+  width: 1%;
+  padding-right: 20px !important;
+}
+
+.actionsGroup {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
 }
 
 .thead {
@@ -615,7 +640,11 @@
 .mainLayoutWithSide {
   display: grid;
   gap: 16px;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: minmax(0, 1fr) 380px;
+}
+
+.mainLayoutWithSide .hideOnSideOpen {
+  display: none !important;
 }
 
 .sidePanelWrapper {

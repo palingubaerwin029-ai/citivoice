@@ -258,17 +258,22 @@ export default function Users() {
               <thead className={s.thead}>
                 <tr>
                   {[
-                    'Citizen',
-                    'Contact',
-                    'Barangay',
-                    'Status',
-                    'Reports',
-                    'Resolved',
-                    'Member Since',
-                    'Actions',
-                  ].map((h) => (
-                    <th key={h} className={s.th}>
-                      {h}
+                    { label: 'Citizen', key: 'Citizen' },
+                    { label: 'Contact', key: 'Contact' },
+                    { label: 'Barangay', key: 'Barangay' },
+                    { label: 'Status', key: 'Status' },
+                    { label: 'Reports', key: 'Reports' },
+                    { label: 'Resolved', key: 'Resolved', hideOnSide: true },
+                    { label: 'Member Since', key: 'Member Since', hideOnSide: true },
+                    { label: 'Actions', key: 'Actions', isAction: true },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      className={`${s.th} ${col.hideOnSide ? s.hideOnSideOpen : ''} ${
+                        col.isAction ? s.thActions : ''
+                      }`}
+                    >
+                      {col.label}
                     </th>
                   ))}
                 </tr>
@@ -319,14 +324,14 @@ export default function Users() {
                       <td className={s.td} style={{ fontWeight: 700, color: 'var(--text-1)' }}>
                         {u.reports_count || 0}
                       </td>
-                      <td className={s.td} style={{ fontWeight: 700, color: 'var(--green)' }}>
+                      <td className={`${s.td} ${s.hideOnSideOpen}`} style={{ fontWeight: 700, color: 'var(--green)' }}>
                         {u.resolved_count || 0}
                       </td>
-                      <td className={s.td} style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                      <td className={`${s.td} ${s.hideOnSideOpen}`} style={{ fontSize: 11, color: 'var(--text-3)' }}>
                         {fmtDateShort(u.created_at)}
                       </td>
-                      <td className={s.td} onClick={(e) => e.stopPropagation()}>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <td className={`${s.td} ${s.tdActions}`} onClick={(e) => e.stopPropagation()}>
+                        <div className={s.actionsGroup}>
                           <button
                             className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
                             onClick={() => {
@@ -345,6 +350,7 @@ export default function Users() {
                               padding: '5px 8px',
                               cursor: 'pointer',
                               borderRadius: 'var(--r-sm)',
+                              flexShrink: 0,
                             }}
                             title={`Delete citizen ${u.name}`}
                             onClick={() => setUserToDelete(u)}
