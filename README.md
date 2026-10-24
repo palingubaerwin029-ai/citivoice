@@ -31,7 +31,7 @@
   - [Administrator Two-Factor Authentication (2FA) via Email OTP](#-administrator-two-factor-authentication-2fa-via-email-otp)
   - [GPS Pinned Coordinate Analytics](#-gps-pinned-coordinate-analytics)
   - [Priority Escalation Engine](#-priority-escalation-engine)
-  - [Executive 2-Page Municipal Print Reports](#-executive-2-page-municipal-print-reports)
+  - [Official Tabular Municipal Print Reports](#-official-tabular-municipal-print-reports)
   - [Email OTP Verification Workflow](#-email-otp-verification-workflow)
   - [Precise Field Error Isolation & Seamless Auth Flow](#-precise-field-error-isolation--seamless-auth-flow)
   - [Editable Citizen Profile](#-editable-citizen-profile)
@@ -138,13 +138,15 @@ citivoice/
   - Open (`Pending` / `In Progress`) for **> 3 days**: Escalated from `Low` to `Medium`.
   - Open for **> 7 days**: Escalated from `Medium` to `High`.
 - **Safety Safeguards** — Priority is strictly upgraded and never downgraded by automated jobs; flagged non-typical concerns are safely excluded.
-- **Direct & Focused Citizen Workflow** — Community feeds and upvote metrics have been completely removed across the system to maintain focus on direct citizen-to-government reporting, verified status tracking, and department accountability.
+- **Direct & Focused Citizen Workflow** — Community feeds and upvote metrics have been completely removed across the system to maintain focus on direct citizen-to-government reporting, verified status tracking, and administrative accountability.
 
-### 📄 Executive 2-Page Municipal Print Reports
-- **Strict 2-Page Layout Guarantee** — Uses CSS `@media print` rules (`@page { size: A4 portrait; margin: 8mm 10mm; }`) and explicit page-break boundaries to format official municipal analytics onto **exactly 2 pages** without spillover:
-  - **Page 1: Executive Overview & Trends** — Official Republic of the Philippines / City Government of Kabankalan header, 5 KPI metric cards, monthly submission & resolution trend table, status distribution, and priority breakdown.
-  - **Page 2: Geographic Analysis & Community Priorities** — Section running header, ranked barangay concerns table, top citizen concerns, resolution rate breakdown, and formal certification sign-off block (*Prepared by System Admin, Verified by Public Information Office, Noted by City Mayor*).
-- **Zero Screen Bleed** — Print headers, page breaks, and certification blocks are styled with `display: none !important` by default and render strictly during print preview (`window.print()`).
+### 📄 Official Tabular Municipal Print Reports
+- **Official Print Layout Guarantee** — Uses CSS `@media print` rules (`@page { size: landscape; margin: 8mm 10mm; }`) to format municipal records into an authoritative, print-ready document:
+  - **Official Government Letterhead** — Displays the Republic of the Philippines, Province of Negros Occidental, City Government of Kabankalan seal, system header, and document metadata (format, timestamp, and record count).
+  - **Summary Table Format** — Standard executive ledger columns (`Date / Month | Pending | In Progress | Resolved | Reject | Total`) with interactive row expansion on screen.
+  - **Detailed Records Format** — Full itemized incident ledger with Concern Title, Category badge, Pinned Barangay, Priority, Status, and Reporting Citizen.
+  - **3-Signatory Municipal Certification Block** — Formal legal verification footer ensuring administrative chain-of-custody (*Prepared by: System Administrator, Verified by: Public Information & Concerns Office, Noted by: Office of the City Mayor*).
+- **Zero Screen Bleed** — Interactive toolbars, filters, search bars, and navigation buttons use `.noPrint` (`display: none !important;`) so that only pristine, high-contrast municipal ledgers render during print preview (`window.print()`).
 
 ### ✉️ Email OTP Verification Workflow
 - **Pre-Registration Verification** — Prevents bot accounts and invalid registrations by requiring citizens to verify their email address via a 6-digit OTP code before an account can be created.
