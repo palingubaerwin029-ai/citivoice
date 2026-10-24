@@ -25,7 +25,6 @@ import HomeScreen from '../screens/citizen/HomeScreen';
 import SubmitConcernScreen from '../screens/citizen/SubmitConcernScreen';
 import ConcernDetailScreen from '../screens/citizen/ConcernDetailScreen';
 import MyConcernsScreen from '../screens/citizen/MyConcernsScreen';
-import MapScreen from '../screens/citizen/MapScreen';
 import ProfileScreen from '../screens/citizen/ProfileScreen';
 import NotificationsScreen from '../screens/citizen/NotificationsScreen';
 

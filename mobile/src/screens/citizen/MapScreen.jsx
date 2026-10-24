@@ -1,3 +1,9 @@
+/**
+ * UNCONNECTED / INACTIVE SCREEN: MapScreen.jsx
+ * This standalone map screen is currently not mounted in `AppNavigator.jsx`.
+ * In the CitiVoice citizen app, maps and coordinates are integrated directly inside
+ * `SubmitConcernScreen` (for pinning location) and `ConcernDetailScreen` (for viewing incident location).
+ */
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,

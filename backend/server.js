@@ -11,7 +11,8 @@ const fs = require('fs');
 const http = require('http');
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
-const workflowService = require('./services/workflowService');
+// UNCONNECTED: workflowService is handled directly by concerns and workflow controllers
+// const workflowService = require('./services/workflowService');
 const backupService = require('./services/backupService');
 const priorityService = require('./services/priorityService');
 const pool = require('./db');
@@ -65,13 +66,15 @@ const authLimiter = rateLimit({
   validate: { xForwardedForHeader: false },
 });
 
-// ─── Slow Down ───────────────────────────────────────────────────────────────
+// ─── Slow Down (UNCONNECTED: declared but not mounted globally via app.use) ────
+/*
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
   delayAfter: 50, // allow 50 requests per 15 minutes, then...
   delayMs: (hits) => (hits - 50) * 500, // begin adding 500ms of delay per request above 50
   maxDelayMs: 5000, // max delay of 5 seconds
 });
+*/
 
 // ─── Ensure uploads directory exists ─────────────────────────────────────────
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -206,7 +209,6 @@ app.use('/api', globalLimiter);
 app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/concerns', require('./routes/concerns'));
-app.use('/api/workflow', require('./routes/workflow'));
 app.use('/api/barangays', require('./routes/barangays'));
 app.use('/api/departments', require('./routes/departments'));
 app.use('/api/notifications', require('./routes/notifications'));

@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Node.js-v20-339933?logo=node.js&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/Node.js-v22-339933?logo=node.js&logoColor=white" alt="Node.js" />
   <img src="https://img.shields.io/badge/Express.js-v4.19-000000?logo=express&logoColor=white" alt="Express" />
   <img src="https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white" alt="MySQL" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React" />
@@ -28,10 +28,12 @@
 - [System Architecture](#-system-architecture)
 - [Key Features](#-key-features)
   - [Artificial Intelligence (Groq & Llama 3.3)](#-artificial-intelligence-groq--llama-33)
+  - [Administrator Two-Factor Authentication (2FA) via Email OTP](#-administrator-two-factor-authentication-2fa-via-email-otp)
   - [GPS Pinned Coordinate Analytics](#-gps-pinned-coordinate-analytics)
   - [Priority Escalation Engine](#-priority-escalation-engine)
   - [Executive 2-Page Municipal Print Reports](#-executive-2-page-municipal-print-reports)
   - [Email OTP Verification Workflow](#-email-otp-verification-workflow)
+  - [Precise Field Error Isolation & Seamless Auth Flow](#-precise-field-error-isolation--seamless-auth-flow)
   - [Editable Citizen Profile](#-editable-citizen-profile)
   - [Mayor's Office Workflow, AI Responses & Executive Directives](#-mayors-office-workflow-ai-responses--executive-directives)
   - [Real-Time WebSocket Sync & Silent Auto-Refresh](#-real-time-websocket-sync--silent-auto-refresh)
@@ -41,6 +43,7 @@
   - [Automated Database Backups](#-automated-database-backups)
   - [Off-PC Backups to OneDrive](#-off-pc-backups-to-onedrive)
   - [Adaptive Dark & Light Theme System](#-adaptive-dark--light-theme-system)
+  - [Mobile Android App & EAS Cloud Builds](#-mobile-android-app--eas-cloud-builds)
 - [Tech Stack](#-tech-stack)
 - [Database Schema & Optimization](#-database-schema--optimization)
 - [Project Directory Structure](#-project-directory-structure)
@@ -116,6 +119,13 @@ citivoice/
 - **Severity & Urgency Scoring** — Automatically evaluates urgency and detects public hazards to assign initial priority flags.
 - **Dialect & Localization Awareness** — Understands local dialects and colloquial terms (Hiligaynon, Cebuano, Filipino, and English), accurately processing place names and dialect expressions such as *"baha"*, *"lubak"*, or *"kuryente"*.
 
+### 🔐 Administrator Two-Factor Authentication (2FA) via Email OTP
+- **Enhanced Console Protection** — Administrator portal sign-ins enforce a mandatory second factor to guard against unauthorized access and credential compromise.
+- **Dynamic 6-Digit Email Code** — Upon validating email and password, the system generates a secure, cryptographically random 6-digit OTP delivered directly to the administrator's official registered mailbox.
+- **Branded Notification Template** — Outgoing emails use an official Kabankalan City government HTML format with clear expiration warnings (10-minute validity).
+- **Transient MFA Token** — Uses short-lived signed tokens (`mfaToken`) to authenticate the OTP verification request, preventing full JWT emission until the code is verified.
+- **Rate-Limited Resend Protection** — Features a 45-second cooldown timer on the admin login UI to prevent email flooding or spamming.
+
 ### 📍 GPS Pinned Coordinate Analytics
 - **Pinpoint Geolocation** — Citizen reports capture precise coordinates via device GPS or interactive map pin placement.
 - **Kabankalan Centroid Distance Matching** — Automatically matches every concern to the nearest of all **32 Kabankalan barangays** (e.g., *Oringao, Bantayan, Barangay 1, Camingawan, Dancalan*) using exact Euclidean centroid distance calculation. This guarantees reports reflect the **actual incident location**, regardless of where the reporting citizen resides.
@@ -138,6 +148,11 @@ citivoice/
 - **Pre-Registration Verification** — Prevents bot accounts and invalid registrations by requiring citizens to verify their email address via a 6-digit OTP code before an account can be created.
 - **Secure Hash Validation** — OTPs are hashed and verified with expiration timestamps and anti-tampering guards.
 - **Account Recovery** — Secure email dispatch via Nodemailer for password resets.
+
+### 🎯 Precise Field Error Isolation & Seamless Auth Flow
+- **Granular Error Attribution** — Specific backend error codes (`auth/user-not-found` vs `auth/wrong-password`) map strictly to their respective input fields, ensuring only the single incorrect field is highlighted with an error state.
+- **Zero False-Positive Errors** — Removed stale error states and eliminated confusing `"This field is required"` messages on prefilled or autofilled inputs.
+- **Seamless Registration Transition** — Streamlined the mobile registration flow by eliminating intrusive post-registration modal banners and automatic login button triggers, enabling immediate, smooth transition into the sign-in screen.
 
 ### 👤 Editable Citizen Profile
 - **Edit from the Mobile App** — Citizens tap **Edit** on *Account Information* to update their **phone number**, **barangay** (searchable list of all Kabankalan barangays), and **street / purok address**.
@@ -213,6 +228,17 @@ docker exec -i citivoice-mysql mysql -uroot -proot citivoice < backups/db/backup
 - **Curated High-Contrast Design System** — Tailored CSS variables (`--bg`, `--surface`, `--text-1`, `--border-md`).
 - **High-Visibility Tooltips** — Recharts tooltips adaptively render crisp, high-visibility white text in dark mode (`#F1F5F9`) and dark slate in light mode (`#0F172A`) across both Dashboard and Reports.
 
+### 📲 Mobile Android App & EAS Cloud Builds
+- **Expo SDK 57 & React Native 0.86** — Modern native citizen mobile application optimized with fluid animations and responsive layouts.
+- **Universal Android Compatibility** — Compatible with **Android 7.0 (Nougat, API 24) through Android 15 & 16 (API 35/36)**, covering ~98.5% of all active Android devices globally.
+- **Multi-Architecture Support** — Packages native shared libraries for `arm64-v8a` (modern 64-bit phones), `armeabi-v7a` (32-bit devices), and `x86_64` (emulators and Chromebooks).
+- **Direct Standalone APK Builds** — Configured with Expo Application Services (EAS) for one-command standalone APK generation:
+  ```bash
+  cd mobile
+  npm run build:apk   # Generates standalone installable Android .apk
+  npm run build:aab   # Generates production Google Play app bundle
+  ```
+
 ---
 
 ## 🛠️ Tech Stack
@@ -220,7 +246,7 @@ docker exec -i citivoice-mysql mysql -uroot -proot citivoice < backups/db/backup
 ### Backend API
 | Package | Version | Purpose |
 |---------|---------|---------|
-| **Node.js** | 20.x | JavaScript runtime environment |
+| **Node.js** | 22.x | JavaScript runtime environment |
 | **Express.js** | 4.19.2 | REST API routing and middleware |
 | **MySQL** | 8.0 | Primary relational database |
 | **mysql2** | 3.9.7 | High-performance MySQL client with connection pooling |
@@ -389,7 +415,9 @@ All endpoints are hosted under `/api`.
 | `POST` | `/api/auth/verify-registration-otp` | Public | Validate email OTP code before registration |
 | `POST` | `/api/auth/verify-id-name` | Public | AI pre-registration check of the name on a government ID |
 | `POST` | `/api/auth/register` | Public | Register a new citizen account |
-| `POST` | `/api/auth/login` | Public | Authenticate user and issue JWT bearer token |
+| `POST` | `/api/auth/login` | Public | Authenticate user (issues JWT or triggers Admin 2FA challenge) |
+| `POST` | `/api/auth/verify-admin-2fa` | Public (MFA Token) | Verify 6-digit Email OTP and complete Administrator sign-in |
+| `POST` | `/api/auth/resend-admin-2fa` | Public (MFA Token) | Request a replacement 6-digit OTP code (45s rate limit) |
 | `POST` | `/api/auth/google` | Public | Google sign-in (already-registered emails only) |
 | `POST` | `/api/auth/forgot-password` | Public | Email a password-reset code |
 | `POST` | `/api/auth/reset-password` | Public | Reset password with the emailed code |
@@ -457,9 +485,10 @@ All endpoints are hosted under `/api`.
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) v18 or v20 LTS
+- [Node.js](https://nodejs.org/) v18, v20, or v22 LTS
 - [Docker & Docker Compose](https://www.docker.com/) (Recommended for full-stack orchestration)
 - [Expo Go](https://expo.dev/expo-go) app installed on your physical mobile device (or Android/iOS Simulator)
+- [EAS CLI](https://docs.expo.dev/build/setup/) (`npm install -g eas-cli`) for standalone cloud mobile builds
 
 ### 1. Clone the Repository
 
@@ -572,16 +601,31 @@ npx expo start --tunnel
    npx expo start -c
    ```
 
+### 📱 Building the Standalone Android App (APK / AAB)
+To generate installable Android binaries without needing Android Studio installed locally:
+
+```bash
+# Navigate to the mobile directory
+cd mobile
+
+# 1. Build Standalone Installable APK (for direct phone installation / testing)
+npm run build:apk
+
+# 2. Build Production App Bundle (AAB for Google Play Console submission)
+npm run build:aab
+```
+
 ---
 
 ## 🔒 Security & Compliance
 
+- **Two-Factor Authentication (2FA)** — Administrator console sign-in requires second-factor verification via email one-time password (OTP) with hashed codes and expiration timestamps.
 - **Stateless JWT Authorization** — Expiring bearer tokens validated on every authenticated API route.
 - **Bcrypt Password Hashing** — Passwords hashed with 10 salt rounds before persistence.
 - **Strict Role-Based Access Control (RBAC)** — Granular route guards separating `citizen` and `admin` permissions.
 - **Cross-Origin Security** — Custom CORS & CORP headers protecting uploads while allowing cross-platform asset rendering.
 - **SQL Injection Prevention** — Prepared statements and parameterized queries via `mysql2`.
-- **Rate Limiting & Slowdown** — `express-rate-limit` and `express-slow-down` protecting authentication and incident submission endpoints.
+- **Rate Limiting & Anti-Bruteforce** — `express-rate-limit` protecting authentication routes, ID upload endpoints, and 2FA verification.
 - **Input Sanitization** — `express-validator` schema validation on all incoming payload bodies.
 
 ---
