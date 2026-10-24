@@ -28,6 +28,9 @@ const {
   linkConcerns,
   analyzeConcernDraft,
   verifyConcernImage,
+  getComments,
+  addComment,
+  getAudit,
 } = require('../controllers/concerns.controller');
 
 // ─── List all concerns (auth required, cached 60s) ────────────────────────────
@@ -69,11 +72,15 @@ router.post('/:id/link', auth, requireRole('admin'), validateIdParam, linkConcer
 // ─── Upload ID image (mobile verification) ────────────────────────────────────
 router.post('/upload/id-image', idUploadLimiter, upload.single('image'), uploadIdImage);
 
-// ─── Workflow & Assignments (safely return empty lists if not configured) ────
+// ─── Comments: Citizen discussion & internal admin notes ─────────────────────
+router.get('/:id/comments', auth, validateIdParam, getComments);
+router.post('/:id/comments', auth, validateIdParam, addComment);
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+router.get('/:id/audit', auth, requireRole('admin'), validateIdParam, getAudit);
+
+// ─── Assignments stub (safely return empty list) ─────────────────────────────
 router.get('/:id/assignments', auth, validateIdParam, (req, res) => res.json([]));
 router.post('/:id/assign', auth, requireRole('admin'), validateIdParam, (req, res) => res.json({ success: true }));
-router.get('/:id/comments', auth, validateIdParam, (req, res) => res.json([]));
-router.post('/:id/comments', auth, validateIdParam, (req, res) => res.json({ success: true }));
-router.get('/:id/audit', auth, requireRole('admin'), validateIdParam, (req, res) => res.json([]));
 
 module.exports = router;

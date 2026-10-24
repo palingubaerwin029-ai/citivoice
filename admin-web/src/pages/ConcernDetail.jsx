@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api, fmtDate, fmtDateShort, resolveImageUrl, getPinBarangay, getCategoryConfig } from '../services/api';
+import { socket } from '../services/socket';
 import { useParams, useNavigate } from 'react-router-dom';
 import s from '../styles/Admin.module.css';
 import cd from '../styles/ConcernDetail.module.css';
@@ -85,7 +86,7 @@ export default function ConcernDetail() {
   const [auditLog, setAuditLog] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [newComment, setNewComment] = useState('');
-  const [isInternalComment, setIsInternalComment] = useState(true);
+  const [isInternalComment, setIsInternalComment] = useState(false);
   const [targetDeptComment, setTargetDeptComment] = useState('');
   const [addingComment, setAddingComment] = useState(false);
 
@@ -140,6 +141,25 @@ export default function ConcernDetail() {
       .catch(console.error)
       .finally(() => setLoading(false));
 
+  }, [id]);
+
+  useEffect(() => {
+    const handleNewComment = (payload) => {
+      if (payload && Number(payload.concern_id) === Number(id)) {
+        setComments((prev) => {
+          if (prev.some((c) => c.id === payload.id)) return prev;
+          return [...prev, payload];
+        });
+      }
+    };
+
+    socket.on('new_comment', handleNewComment);
+    socket.on('concern_comment_added', handleNewComment);
+
+    return () => {
+      socket.off('new_comment', handleNewComment);
+      socket.off('concern_comment_added', handleNewComment);
+    };
   }, [id]);
 
 
@@ -681,6 +701,153 @@ export default function ConcernDetail() {
               </div>
             </div>
           )}
+
+          {/* Comments & Citizen Discussion Card */}
+          <div className={s.card}>
+            <div className={s.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16 }}>💬</span>
+                <span className={s.cardTitle}>Discussion & Comments</span>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  background: 'rgba(59, 130, 246, 0.15)',
+                  color: 'var(--primary, #3b82f6)',
+                }}>
+                  {comments.length}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ padding: '16px' }}>
+              {/* Comment list */}
+              {comments.length === 0 ? (
+                <div style={{
+                  padding: '20px',
+                  textAlign: 'center',
+                  color: 'var(--text-3, #94a3b8)',
+                  fontSize: 13,
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: 8,
+                  border: '1px dashed var(--border, #334155)',
+                  marginBottom: 16
+                }}>
+                  No comments yet on this concern. Citizen discussions and administrative notes will appear here.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16, maxHeight: 380, overflowY: 'auto' }}>
+                  {comments.map((c) => {
+                    const isAdmin = c.user_role === 'admin' || c.user_name?.toLowerCase().includes('admin');
+                    const isInternal = !!c.is_internal;
+                    return (
+                      <div
+                        key={c.id}
+                        style={{
+                          padding: '12px 14px',
+                          borderRadius: 10,
+                          background: isInternal ? 'rgba(245, 158, 11, 0.06)' : 'var(--bg-card-subtle, rgba(255,255,255,0.03))',
+                          border: isInternal ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid var(--border, rgba(255,255,255,0.08))',
+                          borderLeft: isInternal ? '4px solid #f59e0b' : '4px solid #3b82f6',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-1, #f8fafc)' }}>
+                              {c.user_name || 'Citizen'}
+                            </span>
+                            {isAdmin && (
+                              <span style={{
+                                fontSize: 10,
+                                fontWeight: 800,
+                                textTransform: 'uppercase',
+                                padding: '2px 6px',
+                                borderRadius: 6,
+                                background: '#1d4ed8',
+                                color: '#ffffff',
+                              }}>
+                                Admin
+                              </span>
+                            )}
+                            {isInternal && (
+                              <span style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                padding: '2px 6px',
+                                borderRadius: 6,
+                                background: 'rgba(245, 158, 11, 0.2)',
+                                color: '#fbbf24',
+                              }}>
+                                🔒 Internal Note
+                              </span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: 11, color: 'var(--text-3, #94a3b8)' }}>
+                            {fmtDateShort(c.created_at)}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--text-2, #cbd5e1)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                          {c.comment}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Comment composer */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid var(--border, rgba(255,255,255,0.08))', paddingTop: 14 }}>
+                <textarea
+                  className={s.textarea}
+                  rows={3}
+                  placeholder="Write a comment or administrative note..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '10px 12px',
+                    fontSize: 13,
+                    borderRadius: 8,
+                    resize: 'vertical',
+                  }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12, color: 'var(--text-2, #cbd5e1)' }}>
+                    <input
+                      type="checkbox"
+                      checked={isInternalComment}
+                      onChange={(e) => setIsInternalComment(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>🔒 Internal note (visible to admins only)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddComment}
+                    disabled={addingComment || !newComment.trim()}
+                    style={{
+                      background: 'var(--primary, #2563eb)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '8px 18px',
+                      borderRadius: 8,
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: addingComment || !newComment.trim() ? 'not-allowed' : 'pointer',
+                      opacity: addingComment || !newComment.trim() ? 0.6 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    {addingComment ? 'Posting…' : 'Post Comment'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Audit Trail */}
           <div className={s.card}>

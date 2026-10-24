@@ -997,6 +997,92 @@ const linkConcerns = async (req, res) => {
   }
 };
 
+const getComments = async (req, res) => {
+  const concernId = req.params.id;
+  try {
+    const pool = require('../db');
+    let query = `
+      SELECT c.*, u.avatar_url, u.role as user_role
+      FROM concern_comments c
+      LEFT JOIN users u ON c.user_id = u.id
+      WHERE c.concern_id = ?
+    `;
+    const params = [concernId];
+
+    if (req.user?.role !== 'admin') {
+      query += ' AND (c.is_internal = 0 OR c.user_id = ?)';
+      params.push(req.user?.id || 0);
+    }
+
+    query += ' ORDER BY c.created_at ASC';
+
+    const [rows] = await pool.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('getComments error:', err);
+    res.status(500).json({ error: 'Failed to fetch comments' });
+  }
+};
+
+const addComment = async (req, res) => {
+  const concernId = req.params.id;
+  const { comment, is_internal, target_department } = req.body;
+  if (!comment || !comment.trim()) {
+    return res.status(400).json({ error: 'Comment text is required' });
+  }
+
+  try {
+    const pool = require('../db');
+    const isAdmin = req.user?.role === 'admin';
+    const internalFlag = isAdmin && (is_internal === true || is_internal === 'true' || is_internal === 1) ? 1 : 0;
+    const authorName = req.user?.name || (isAdmin ? 'Admin' : 'Citizen');
+
+    const [result] = await pool.query(
+      `INSERT INTO concern_comments (concern_id, user_id, user_name, comment, is_internal, target_department)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [concernId, req.user?.id, authorName, comment.trim(), internalFlag, target_department || null]
+    );
+
+    const newComment = {
+      id: result.insertId,
+      concern_id: Number(concernId),
+      user_id: req.user?.id,
+      user_name: authorName,
+      comment: comment.trim(),
+      is_internal: internalFlag,
+      target_department: target_department || null,
+      created_at: new Date().toISOString(),
+    };
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to('admin').emit('new_comment', newComment);
+      if (!internalFlag) {
+        io.emit('concern_comment_added', newComment);
+      }
+    }
+
+    res.status(201).json({ success: true, comment: newComment });
+  } catch (err) {
+    console.error('addComment error:', err);
+    res.status(500).json({ error: 'Failed to post comment' });
+  }
+};
+
+const getAudit = async (req, res) => {
+  try {
+    const pool = require('../db');
+    const [rows] = await pool.query(
+      'SELECT * FROM audit_log WHERE entity_type = "concern" AND entity_id = ? ORDER BY created_at DESC',
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('getAudit error:', err);
+    res.status(500).json({ error: 'Failed to fetch audit log' });
+  }
+};
+
 module.exports = {
   listConcerns,
   getMapConcerns,
@@ -1011,4 +1097,7 @@ module.exports = {
   linkConcerns,
   analyzeConcernDraft,
   verifyConcernImage,
+  getComments,
+  addComment,
+  getAudit,
 };
