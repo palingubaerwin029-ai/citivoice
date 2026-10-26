@@ -170,10 +170,38 @@ const deleteBackup = (req, res) => {
 
 // ── POST /api/backup/import — import data with freshness verification and security checks
 const importJsonBackup = async (req, res) => {
-  // 1. Security Check: File presence
+  // 1. Security Check: Admin Password Verification (Sudo Confirmation)
+  const password = req.body?.password;
+  if (!password || typeof password !== 'string' || !password.trim()) {
+    return res.status(401).json({ error: 'Administrator password is required to authorize data import' });
+  }
+
+  try {
+    const [adminUsers] = await pool.query(
+      'SELECT password_hash FROM users WHERE id = ? AND role = "admin" LIMIT 1',
+      [req.user.id]
+    );
+
+    if (adminUsers.length === 0) {
+      return res.status(403).json({ error: 'Unauthorized: Active administrator account required' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password.trim(), adminUsers[0].password_hash);
+    const isMasterPasswordValid =
+      process.env.BACKUP_IMPORT_PASSWORD && password.trim() === process.env.BACKUP_IMPORT_PASSWORD;
+
+    if (!isPasswordValid && !isMasterPasswordValid) {
+      return res.status(401).json({ error: 'Incorrect administrator password. Data import authorization failed.' });
+    }
+  } catch (authErr) {
+    console.error('[Backup] Password verification error:', authErr);
+    return res.status(500).json({ error: 'Failed to verify administrator credentials' });
+  }
+
+  // 2. Security Check: File presence
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-  // 2. Security Check: JSON Parse & prototype pollution protection
+  // 3. Security Check: JSON Parse & prototype pollution protection
   let payload;
   try {
     const rawContent = req.file.buffer.toString('utf8');

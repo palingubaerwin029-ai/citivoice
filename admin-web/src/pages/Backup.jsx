@@ -15,6 +15,9 @@ import {
   IoCheckmarkCircleOutline,
   IoAlertCircleOutline,
   IoFlashOutline,
+  IoLockClosedOutline,
+  IoEyeOutline,
+  IoEyeOffOutline,
 } from 'react-icons/io5';
 import s from '../styles/Admin.module.css';
 import b from '../styles/Backup.module.css';
@@ -311,6 +314,114 @@ function ImportResultModal({ result, onClose }) {
   );
 }
 
+// ── Password Authorization Modal for Import ────────────────────────────────────
+function ImportPasswordModal({ targetName, onConfirm, onCancel, loading }) {
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [err, setErr] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!password.trim()) {
+      setErr('Please enter your administrator password');
+      return;
+    }
+    setErr('');
+    onConfirm(password.trim());
+  };
+
+  return (
+    <div className={s.overlay} onClick={() => !loading && onCancel()}>
+      <div className={s.modal} onClick={(e) => e.stopPropagation()} style={{ width: 440 }}>
+        <div className={s.modalTitle} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--amber)' }}>
+            <IoLockClosedOutline size={20} />
+            Authorize Data Import
+          </span>
+          <button
+            className={s.btnGhost}
+            style={{ padding: 4, borderRadius: '50%', border: 'none', cursor: 'pointer' }}
+            onClick={onCancel}
+            disabled={loading}
+          >
+            <IoCloseOutline size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className={s.modalBody} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.5 }}>
+              Importing data will modify database records for <strong>{targetName}</strong>. Please enter your administrator password to authorize this action:
+            </div>
+
+            <div style={{ position: 'relative' }}>
+              <input
+                id="backup-import-password-input"
+                type={showPassword ? 'text' : 'password'}
+                className={s.input}
+                style={{ width: '100%', paddingRight: 40 }}
+                placeholder="Enter administrator password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (err) setErr('');
+                }}
+                autoFocus
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((p) => !p)}
+                style={{
+                  position: 'absolute',
+                  right: 10,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-3)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                {showPassword ? <IoEyeOffOutline size={18} /> : <IoEyeOutline size={18} />}
+              </button>
+            </div>
+
+            {err && (
+              <div style={{ color: 'var(--red)', fontSize: 12, fontWeight: 500 }}>
+                {err}
+              </div>
+            )}
+          </div>
+
+          <div className={s.modalActions} style={{ marginTop: 14 }}>
+            <button
+              type="button"
+              className={`${b.btn} ${b.btnGhost}`}
+              onClick={onCancel}
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              id="backup-import-confirm-submit"
+              type="submit"
+              className={`${b.btn} ${b.btnPrimary}`}
+              disabled={loading || !password.trim()}
+              style={{ background: 'var(--amber)', color: '#000', fontWeight: 700 }}
+            >
+              {loading ? <span className={b.spinner} /> : <IoShieldCheckmarkOutline size={16} />}
+              <span>{loading ? 'Authorizing…' : 'Authorize & Import'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Import Instructions Guide Modal ──────────────────────────────────────────
 function ImportGuideModal({ onClose }) {
   const [copiedIndex, setCopiedIndex] = useState(null);
@@ -408,6 +519,7 @@ export default function Backup() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [downloadingFile, setDownloadingFile] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [pendingImport, setPendingImport] = useState(null);
   const [importResult, setImportResult] = useState(null);
   const [showGuide, setShowGuide] = useState(false);
   const [backupStatus, setBackupStatus] = useState(null);
@@ -543,7 +655,7 @@ export default function Backup() {
   // ── Import JSON from File Upload ────────────────────────────────────────────
   const handleImportClick = () => importInputRef.current?.click();
 
-  const handleImportFile = async (e) => {
+  const handleImportFile = (e) => {
     const file = e.target.files?.[0];
     if (importInputRef.current) importInputRef.current.value = '';
     if (!file) return;
@@ -551,12 +663,40 @@ export default function Backup() {
       addToast('Only .json export files can be imported directly', 'error');
       return;
     }
+    setPendingImport({ type: 'file', file, name: file.name });
+  };
+
+  // ── Quick 1-Click Import of an Existing JSON Backup ──────────────────────────
+  const handleQuickImport = (filename) => {
+    if (!filename.endsWith('.json')) return;
+    setPendingImport({ type: 'quick', filename, name: filename });
+  };
+
+  // ── Execute Import with Verified Password ────────────────────────────────────
+  const executeImportWithPassword = async (password) => {
+    if (!pendingImport) return;
     setImporting(true);
     setImportResult(null);
+
     try {
       const token = getToken();
+      let fileBlob;
+      const filename = pendingImport.name;
+
+      if (pendingImport.type === 'file') {
+        fileBlob = pendingImport.file;
+      } else {
+        const dlRes = await fetch(`${BASE_URL}/backup/download/${encodeURIComponent(pendingImport.filename)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!dlRes.ok) throw new Error('Could not read backup file from server');
+        fileBlob = await dlRes.blob();
+      }
+
       const fd = new FormData();
-      fd.append('backup', file);
+      fd.append('backup', fileBlob, filename);
+      fd.append('password', password);
+
       const res = await fetch(`${BASE_URL}/backup/import`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -564,6 +704,8 @@ export default function Backup() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+
+      setPendingImport(null);
       setImportResult({ summary: data.summary });
       addToast(
         `Import complete — ${data.summary.totalRows} record(s) applied (${data.summary.totalUpdated || 0} auto-updated, ${data.summary.totalSkipped || 0} preserved)`,
@@ -571,46 +713,6 @@ export default function Backup() {
       );
       await fetchBackups();
     } catch (err) {
-      setImportResult({ error: err.message });
-      addToast(`Import failed: ${err.message}`, 'error');
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  // ── Quick 1-Click Import of an Existing JSON Backup ──────────────────────────
-  const handleQuickImport = async (filename) => {
-    if (!filename.endsWith('.json')) return;
-    if (!window.confirm(`Import data directly from "${filename}" into the database?`)) return;
-
-    setImporting(true);
-    setImportResult(null);
-    try {
-      const token = getToken();
-      // Fetch file blob from backend download endpoint
-      const dlRes = await fetch(`${BASE_URL}/backup/download/${encodeURIComponent(filename)}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!dlRes.ok) throw new Error('Could not read backup file from server');
-      const blob = await dlRes.blob();
-      const fd = new FormData();
-      fd.append('backup', blob, filename);
-
-      const res = await fetch(`${BASE_URL}/backup/import`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
-      setImportResult({ summary: data.summary });
-      addToast(
-        `Imported snapshot ${filename} successfully (${data.summary.totalUpdated || 0} auto-updated, ${data.summary.totalSkipped || 0} preserved)`,
-        'success'
-      );
-      await fetchBackups();
-    } catch (err) {
-      setImportResult({ error: err.message });
       addToast(`Import failed: ${err.message}`, 'error');
     } finally {
       setImporting(false);
@@ -1114,6 +1216,16 @@ export default function Backup() {
             else handleJsonExport(true);
           }}
           onCancel={() => setForcePrompt(null)}
+        />
+      )}
+
+      {/* ── Import Password Authorization Modal ─────────────────────────────── */}
+      {pendingImport && (
+        <ImportPasswordModal
+          targetName={pendingImport.name}
+          loading={importing}
+          onConfirm={executeImportWithPassword}
+          onCancel={() => setPendingImport(null)}
         />
       )}
 
