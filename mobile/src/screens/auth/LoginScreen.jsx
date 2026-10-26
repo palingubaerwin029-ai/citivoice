@@ -20,6 +20,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { RADIUS, SHADOWS } from '../../utils/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf } from '../../utils/responsive';
+import { getGoogleIdToken } from '../../services/googleAuth';
 
 const LANGS = [
   { code: 'en', label: 'EN' },
@@ -185,7 +186,7 @@ function VerificationGate({ user, onLogout, onGoVerify }) {
 // ── Main Login Screen ──────────────────────────────────────────────────────
 export default function LoginScreen({ navigation, route }) {
   const { colors } = useTheme();
-  const { login, logout, user } = useAuth();
+  const { login, loginWithGoogle, logout, user } = useAuth();
   const { t, language, changeLanguage } = useLanguage();
 
   const [email, setEmail] = useState('');
@@ -309,6 +310,44 @@ export default function LoginScreen({ navigation, route }) {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setServerError(null);
+    try {
+      const idToken = await getGoogleIdToken();
+      if (!idToken) {
+        setGoogleLoading(false);
+        return;
+      }
+      try {
+        const userData = await loginWithGoogle(idToken);
+        const st = userData?.verification_status;
+        if (st === VERIFICATION_STATUS.UNVERIFIED || st === VERIFICATION_STATUS.PENDING || st === VERIFICATION_STATUS.REJECTED) {
+          return;
+        }
+      } catch (err) {
+        if (err?.code === 'auth/not-registered' || err?.data?.error === 'auth/not-registered') {
+          // Pre-fill and pre-verify on registration screen!
+          navigation.navigate('Register', {
+            email: err?.data?.email || '',
+            name: err?.data?.name || '',
+            isGoogleVerified: true,
+            verificationToken: err?.data?.verificationToken || 'google_verified',
+          });
+          return;
+        }
+        const text = err?.data?.message || err?.message || 'Google sign-in failed.';
+        setServerError(text);
+      }
+    } catch (err) {
+      setServerError(err?.message || 'Google sign-in failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -511,7 +550,35 @@ export default function LoginScreen({ navigation, route }) {
               )}
             </TouchableOpacity>
 
+            {/* Divider */}
+            <View style={S.dividerRow}>
+              <View style={[S.dividerLine, { backgroundColor: colors.border }]} />
+              <Text style={[S.dividerText, { color: colors.textMuted }]}>{t('or') || 'OR'}</Text>
+              <View style={[S.dividerLine, { backgroundColor: colors.border }]} />
+            </View>
 
+            {/* Google Sign In Button */}
+            <TouchableOpacity
+              style={[
+                S.googleBtn,
+                { backgroundColor: colors.bgCardAlt, borderColor: colors.border },
+                googleLoading && { opacity: 0.65 },
+              ]}
+              onPress={handleGoogleSignIn}
+              disabled={loading || googleLoading}
+              activeOpacity={0.85}
+            >
+              {googleLoading ? (
+                <ActivityIndicator size="small" color={colors.primaryLight} />
+              ) : (
+                <>
+                  <Ionicons name="logo-google" size={18} color="#EA4335" />
+                  <Text style={[S.googleText, { color: colors.textPrimary }]}>
+                    Continue with Google
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
 
             {/* Register link */}
             <View style={S.registerRow}>

@@ -1,5 +1,21 @@
 import { Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+
+export async function optimizeImage(uri, maxWidth = 1280, quality = 0.7) {
+  if (!uri) return uri;
+  try {
+    const result = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: maxWidth } }],
+      { compress: quality, format: ImageManipulator.SaveFormat.JPEG }
+    );
+    return result.uri;
+  } catch (err) {
+    console.warn('Image optimization skipped, using original:', err);
+    return uri;
+  }
+}
 
 export function useImagePicker() {
   const pickImage = async (options = {}) => {
@@ -11,7 +27,7 @@ export function useImagePicker() {
       }
 
       const defaultOptions = {
-        mediaTypes: ImagePicker.MediaTypeOptions?.Images || 'Images',
+        mediaTypes: ['images'],
         quality: 0.7,
       };
 
@@ -23,7 +39,8 @@ export function useImagePicker() {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        return result.assets[0].uri;
+        const rawUri = result.assets[0].uri;
+        return await optimizeImage(rawUri, options.maxWidth || 1280, options.quality || 0.7);
       }
       return null;
     } catch (err) {
@@ -41,7 +58,7 @@ export function useImagePicker() {
       }
 
       const defaultOptions = {
-        mediaTypes: ImagePicker.MediaTypeOptions?.Images || 'Images',
+        mediaTypes: ['images'],
         quality: 0.7,
       };
 
@@ -52,7 +69,8 @@ export function useImagePicker() {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        return result.assets[0].uri;
+        const rawUri = result.assets[0].uri;
+        return await optimizeImage(rawUri, options.maxWidth || 1280, options.quality || 0.7);
       }
       return null;
     } catch (err) {
@@ -66,3 +84,4 @@ export function useImagePicker() {
     takePhoto,
   };
 }
+

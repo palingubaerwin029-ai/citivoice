@@ -24,6 +24,7 @@ import { mobileApi } from '../../context/AuthContext';
 import { scale, verticalScale, rf } from '../../utils/responsive';
 import { useImagePicker } from '../../hooks/useImagePicker';
 import { ConcernService } from '../../services/concernService';
+import { getGoogleIdToken } from '../../services/googleAuth';
 
 export const DEFAULT_BARANGAYS = [
   'Bantayan', 'Barangay 1', 'Barangay 2', 'Barangay 3', 'Barangay 4',
@@ -183,12 +184,14 @@ export const ID_TYPES = Object.keys(ID_CONFIGS);
 
 export default function RegisterScreen({ navigation, route }) {
   const { colors } = useTheme();
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
   const { t, language, changeLanguage } = useLanguage();
 
   // Pre-filled when redirected from "Continue with Google" with an unregistered Gmail
   const prefill = route?.params || {};
   const isGooglePreVerified = Boolean(prefill?.isGoogleVerified || (prefill?.email && prefill?.name));
+  const [isGoogleVerified, setIsGoogleVerified] = useState(isGooglePreVerified);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const [form, setForm] = useState({
     name: prefill.name || '',
@@ -231,6 +234,72 @@ export default function RegisterScreen({ navigation, route }) {
     const timer = setTimeout(() => setOtpCooldown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [otpCooldown]);
+
+  // Sync route params when navigated with prefill data
+  useEffect(() => {
+    if (route?.params?.email) {
+      setForm((prev) => ({
+        ...prev,
+        email: route.params.email,
+        name: route.params.name || prev.name,
+      }));
+      if (route.params.isGoogleVerified) {
+        setIsGoogleVerified(true);
+        setEmailVerified(true);
+        setVerificationToken(route.params.verificationToken || 'google_verified');
+      }
+    }
+  }, [route?.params]);
+
+  const handleGooglePreVerify = async () => {
+    setGoogleLoading(true);
+    setError(null);
+    try {
+      const idToken = await getGoogleIdToken();
+      if (!idToken) {
+        setGoogleLoading(false);
+        return;
+      }
+      try {
+        await loginWithGoogle(idToken);
+        navigation.navigate('Login');
+      } catch (err) {
+        if (err?.code === 'auth/not-registered' || err?.data?.error === 'auth/not-registered') {
+          const gEmail = err?.data?.email || '';
+          const gName = err?.data?.name || '';
+          const vToken = err?.data?.verificationToken || 'google_verified';
+          setForm((prev) => ({
+            ...prev,
+            email: gEmail || prev.email,
+            name: prev.name || gName,
+          }));
+          setIsGoogleVerified(true);
+          setEmailVerified(true);
+          setVerificationToken(vToken);
+          setOtpSent(false);
+          setOtpCode('');
+          setOtpError(null);
+          setOtpSuccess(null);
+          setErrors((prev) => {
+            const next = { ...prev };
+            delete next.email;
+            if (gName) delete next.name;
+            return next;
+          });
+          Alert.alert(
+            'Google Email Verified',
+            `Signed in with ${gEmail}. Email OTP verification is skipped!`
+          );
+          return;
+        }
+        setError(err?.data?.message || err?.message || 'Google verification failed.');
+      }
+    } catch (err) {
+      setError(err?.message || 'Google verification failed.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSendOtp = async () => {
     const cleanEmail = form.email.trim().toLowerCase();
@@ -686,6 +755,144 @@ export default function RegisterScreen({ navigation, route }) {
 
           {/* Form */}
           <View style={[S.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+            {/* Google Quick Pre-Verification Button */}
+            {!emailVerified && (
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: scale(10),
+                  backgroundColor: colors.bgCardAlt,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                  borderRadius: RADIUS.md,
+                  height: verticalScale(48),
+                  marginBottom: verticalScale(14),
+                }}
+                onPress={handleGooglePreVerify}
+                disabled={googleLoading}
+                activeOpacity={0.85}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator size="small" color={colors.primaryLight} />
+                ) : (
+                  <>
+                    <Ionicons name="logo-google" size={18} color="#EA4335" />
+                    <Text style={{ fontSize: rf(13.5), fontWeight: '700', color: colors.textPrimary }}>
+                      Verify Email with Google (Skip OTP)
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {isGoogleVerified && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: scale(10),
+                  backgroundColor: (colors.statusResolved || '#10B981') + '15',
+                  borderColor: (colors.statusResolved || '#10B981') + '40',
+                  borderWidth: 1,
+                  borderRadius: RADIUS.md,
+                  padding: scale(12),
+                  marginBottom: verticalScale(14),
+                }}
+              >
+                <Ionicons name="checkmark-circle" size={20} color={colors.statusResolved || '#10B981'} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: rf(12.5), fontWeight: '700', color: colors.statusResolved || '#10B981' }}>
+                    Email Pre-Verified with Google
+                  </Text>
+                  <Text style={{ fontSize: rf(11), color: colors.textSecondary }} numberOfLines={1}>
+                    {form.email} · 6-digit OTP code skipped
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* ⚡ Fast-Fill with ID Banner */}
+            <View
+              style={{
+                backgroundColor: colors.primary + '12',
+                borderColor: colors.primary + '38',
+                borderWidth: 1,
+                borderRadius: RADIUS.md,
+                padding: scale(14),
+                marginBottom: verticalScale(18),
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(8), marginBottom: verticalScale(4) }}>
+                <Ionicons name="sparkles" size={17} color={colors.accentWarm || colors.primaryLight} />
+                <Text style={{ fontSize: rf(13.5), fontWeight: '700', color: colors.textPrimary }}>
+                  Fast Registration with AI
+                </Text>
+              </View>
+              <Text style={{ fontSize: rf(11.5), color: colors.textSecondary, marginBottom: verticalScale(10), lineHeight: rf(16) }}>
+                Upload or snap your Philippine ID first to automatically extract and fill your Name, ID Type, and ID Number.
+              </Text>
+              {form.idImage ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6), flex: 1 }}>
+                    <Ionicons name="checkmark-circle" size={16} color={colors.statusResolved || '#10B981'} />
+                    <Text style={{ fontSize: rf(12), color: colors.statusResolved || '#10B981', fontWeight: '600' }} numberOfLines={1}>
+                      {aiVerifying ? 'Scanning ID with AI...' : 'ID Attached & Scanned'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={takePhoto}
+                    style={{
+                      paddingHorizontal: scale(10),
+                      paddingVertical: verticalScale(5),
+                      backgroundColor: colors.primary + '20',
+                      borderRadius: RADIUS.sm,
+                    }}
+                  >
+                    <Text style={{ fontSize: rf(11.5), color: colors.primaryLight, fontWeight: '600' }}>Retake</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', gap: scale(8) }}>
+                  <TouchableOpacity
+                    onPress={takePhoto}
+                    style={{
+                      flex: 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: scale(6),
+                      backgroundColor: colors.primary,
+                      paddingVertical: verticalScale(8),
+                      borderRadius: RADIUS.sm,
+                    }}
+                  >
+                    <Ionicons name="camera-outline" size={16} color="#fff" />
+                    <Text style={{ fontSize: rf(12), color: '#fff', fontWeight: '700' }}>Snap ID Photo</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={pickPhoto}
+                    style={{
+                      flex: 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: scale(6),
+                      backgroundColor: colors.bgDark || '#1E293B',
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                      paddingVertical: verticalScale(8),
+                      borderRadius: RADIUS.sm,
+                    }}
+                  >
+                    <Ionicons name="images-outline" size={16} color={colors.textPrimary} />
+                    <Text style={{ fontSize: rf(12), color: colors.textPrimary, fontWeight: '600' }}>From Gallery</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
             <View style={{ marginBottom: verticalScale(14) }}>
               <Text style={[S.fieldLabel, { color: colors.textSecondary }]}>
                 {`${t('fullName').toUpperCase()} (AS ON ID)`} *
@@ -719,9 +926,9 @@ export default function RegisterScreen({ navigation, route }) {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(4) }}>
                     <Ionicons name="checkmark-circle" size={14} color={colors.success} />
                     <Text style={{ fontSize: rf(11), fontWeight: '700', color: colors.success }}>
-                      {isGooglePreVerified ? 'Verified by Google' : 'Email Verified'}
+                      {isGoogleVerified ? 'Verified by Google' : 'Email Verified'}
                     </Text>
-                    {!isGooglePreVerified && (
+                    {!isGoogleVerified && (
                       <TouchableOpacity
                         onPress={() => {
                           setEmailVerified(false);

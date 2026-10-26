@@ -149,11 +149,20 @@ const googleLogin = async (req, res) => {
     const user = await selectByEmail(email);
 
     if (!user) {
+      // Issue a cryptographically signed 1-hour verification token for streamlined registration
+      const verificationToken = jwt.sign(
+        { email, name: payload.name || '', type: 'google_email_verified' },
+        JWT_SECRET,
+        { expiresIn: '1h' },
+      );
+
       return res.status(404).json({
         error: 'auth/not-registered',
-        message: 'This Google account is not registered in CitiVoice. Please sign up first.',
+        message: 'This Google account is not registered in CitiVoice. Please complete registration to continue.',
         email,
         name: payload.name || '',
+        isGoogleVerified: true,
+        verificationToken,
       });
     }
 
@@ -296,23 +305,18 @@ const register = async (req, res) => {
     verificationToken,
   } = req.body;
   try {
-    const existingName = await selectByName(name);
+    // Run database duplicate checks in parallel for maximum speed
+    const [existingName, existingEmail, existingPhone, existingId] = await Promise.all([
+      selectByName(name),
+      selectByEmail(email),
+      phone ? selectByPhone(phone) : Promise.resolve(null),
+      idNumber ? checkExistingIdNumber(idNumber, 0) : Promise.resolve(null),
+    ]);
+
     if (existingName) return res.status(400).json({ error: 'auth/name-already-in-use', field: 'name', message: 'Name already registered' });
-
-    const existingEmail = await selectByEmail(email);
     if (existingEmail) return res.status(400).json({ error: 'auth/email-already-in-use', field: 'email', message: 'Email already registered' });
-
-    if (phone) {
-      const existingPhone = await selectByPhone(phone);
-      if (existingPhone) return res.status(400).json({ error: 'auth/phone-already-in-use', field: 'phone', message: 'Phone number already registered' });
-    }
-
-    if (idNumber) {
-      const exists = await checkExistingIdNumber(idNumber, 0);
-      if (exists) {
-        return res.status(400).json({ error: 'auth/id-already-in-use', field: 'idNumber', message: 'This ID number is already linked to another account.' });
-      }
-    }
+    if (existingPhone) return res.status(400).json({ error: 'auth/phone-already-in-use', field: 'phone', message: 'Phone number already registered' });
+    if (existingId) return res.status(400).json({ error: 'auth/id-already-in-use', field: 'idNumber', message: 'This ID number is already linked to another account.' });
 
     // ── AI Name Verification (server-side enforcement) ───────────────────
     if (idImageUrl) {
@@ -352,7 +356,7 @@ const register = async (req, res) => {
       });
     }
 
-    const hash = await bcrypt.hash(password, 12);
+    const hash = await bcrypt.hash(password, 10);
     const insertId = await insertUser(
       name,
       email,

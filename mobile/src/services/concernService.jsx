@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 import { BASE_URL } from '../context/AuthContext';
 
@@ -30,9 +31,21 @@ export const ConcernService = {
   // ── Upload an image to the backend ──────────────────────────────────────
   async uploadImage(imageUri) {
     const token = await getToken();
+    let uploadUri = imageUri;
+    try {
+      const manip = await ImageManipulator.manipulateAsync(
+        imageUri,
+        [{ resize: { width: 1280 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      if (manip?.uri) uploadUri = manip.uri;
+    } catch (_) {
+      // Fallback to original imageUri if manipulation fails
+    }
+
     const uploadResult = await FileSystem.uploadAsync(
       `${BASE_URL}/concerns/upload/id-image`,
-      imageUri,
+      uploadUri,
       {
         httpMethod: 'POST',
         uploadType: 1, // FileSystemUploadType.MULTIPART
