@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   IoGridOutline,
-  IoChatbubbleEllipsesOutline,
-  IoMegaphoneOutline,
   IoShieldCheckmarkOutline,
   IoPeopleOutline,
   IoBusinessOutline,
@@ -21,7 +19,6 @@ const ADMIN_NAV = [
   { section: 'Overview' },
   { path: '/dashboard', icon: <IoGridOutline />, label: 'Dashboard' },
   { section: 'Management' },
-  { path: '/concerns', icon: <IoChatbubbleEllipsesOutline />, label: 'Concerns' },
   { path: '/verification', icon: <IoShieldCheckmarkOutline />, label: 'Verification' },
   { path: '/users', icon: <IoPeopleOutline />, label: 'Users' },
   { path: '/barangays', icon: <IoBusinessOutline />, label: 'Barangays' },
