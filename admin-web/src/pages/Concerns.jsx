@@ -7,6 +7,7 @@ import s from '../styles/Admin.module.css';
 import cStyles from '../styles/Concerns.module.css';
 import Pagination, { useFitPagination } from '../components/Pagination';
 import Skeleton from '../components/Skeleton';
+import NotificationBell from '../components/NotificationBell';
 
 const STATUS_COLORS = {
   Pending: '#FFB800',
@@ -187,31 +188,34 @@ export default function Concerns() {
             )}
           </p>
         </div>
-        {barangayFilter !== 'All' && (
-          <button
-            className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              borderColor: 'rgba(59, 130, 246, 0.4)',
-              color: '#3B82F6',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            }}
-            onClick={() => {
-              setBarangayFilter('All');
-              setConcernPage(1);
-              setSearchParams((prev) => {
-                const next = new URLSearchParams(prev);
-                next.delete('barangay');
-                return next;
-              });
-            }}
-          >
-            <span>📍 {barangayFilter}</span>
-            <span style={{ fontWeight: 'bold' }}>✕ Clear Filter</span>
-          </button>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {barangayFilter !== 'All' && (
+            <button
+              className={`${s.btn} ${s.btnGhost} ${s.btnSm}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                borderColor: 'rgba(59, 130, 246, 0.4)',
+                color: '#3B82F6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              }}
+              onClick={() => {
+                setBarangayFilter('All');
+                setConcernPage(1);
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev);
+                  next.delete('barangay');
+                  return next;
+                });
+              }}
+            >
+              <span>📍 {barangayFilter}</span>
+              <span style={{ fontWeight: 'bold' }}>✕ Clear Filter</span>
+            </button>
+          )}
+          <NotificationBell />
+        </div>
       </div>
 
       {/* Filters */}

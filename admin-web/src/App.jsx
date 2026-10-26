@@ -4,7 +4,6 @@ import { api } from './services/api';
 import { connectSocket, disconnectSocket } from './services/socket';
 
 import Sidebar from './components/Sidebar';
-import AdminHeader from './components/AdminHeader';
 import Dashboard from './pages/Dashboard';
 import Concerns from './pages/Concerns';
 import ConcernDetail from './pages/ConcernDetail';
@@ -16,6 +15,7 @@ import Verification from './pages/Verification';
 import Barangays from './pages/Barangays';
 import Backup from './pages/Backup';
 import ToastProvider from './components/ToastProvider';
+import { NotificationProvider } from './context/NotificationContext';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -103,41 +103,43 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Legacy Mayor routes redirect to Admin */}
-          <Route path="/mayor/*" element={<Navigate to="/login" replace />} />
-          <Route path="/mayor" element={<Navigate to="/login" replace />} />
-          <Route path="/mayors-office" element={<Navigate to="/login" replace />} />
+      <NotificationProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Legacy Mayor routes redirect to Admin */}
+            <Route path="/mayor/*" element={<Navigate to="/login" replace />} />
+            <Route path="/mayor" element={<Navigate to="/login" replace />} />
+            <Route path="/mayors-office" element={<Navigate to="/login" replace />} />
 
-          {/* ⚙️ CitiVoice Administrator Console Routes */}
-          <Route
-            path="/login"
-            element={
-              isAdminUser ? (
-                <Navigate to="/dashboard" replace />
-              ) : (
-                <Login onLogin={handleLogin} />
-              )
-            }
-          />
-          <Route
-            path="/*"
-            element={
-              isAdminUser ? (
-                <AdminLayout
-                  user={user}
-                  onLogout={handleLogout}
-                  theme={theme}
-                  onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-        </Routes>
-      </BrowserRouter>
+            {/* ⚙️ CitiVoice Administrator Console Routes */}
+            <Route
+              path="/login"
+              element={
+                isAdminUser ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
+                  <Login onLogin={handleLogin} />
+                )
+              }
+            />
+            <Route
+              path="/*"
+              element={
+                isAdminUser ? (
+                  <AdminLayout
+                    user={user}
+                    onLogout={handleLogout}
+                    theme={theme}
+                    onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </NotificationProvider>
     </ToastProvider>
   );
 }
@@ -151,28 +153,21 @@ function AdminLayout({ user, onLogout, theme, onThemeToggle }) {
         theme={theme}
         onThemeToggle={onThemeToggle}
       />
-      <div style={styles.contentWrap}>
-        <AdminHeader
-          user={user}
-          theme={theme}
-          onThemeToggle={onThemeToggle}
-        />
-        <main style={styles.main}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/concerns" element={<Concerns />} />
-            <Route path="/concerns/:id" element={<ConcernDetail />} />
-            <Route path="/map" element={<MapView />} />
-            <Route path="/verification" element={<Verification />} />
-            <Route path="/users" element={<Users />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/barangays" element={<Barangays />} />
-            <Route path="/backup" element={<Backup />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </main>
-      </div>
+      <main style={styles.main}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/concerns" element={<Concerns />} />
+          <Route path="/concerns/:id" element={<ConcernDetail />} />
+          <Route path="/map" element={<MapView />} />
+          <Route path="/verification" element={<Verification />} />
+          <Route path="/users" element={<Users />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/barangays" element={<Barangays />} />
+          <Route path="/backup" element={<Backup />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </main>
     </div>
   );
 }
@@ -191,8 +186,7 @@ function LoadingScreen() {
 
 const styles = {
   layout: { display: 'flex', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg)' },
-  contentWrap: { flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', minWidth: 0 },
-  main: { flex: 1, overflowY: 'auto', backgroundColor: 'var(--bg)' },
+  main: { flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: 'var(--bg)' },
   loading: {
     display: 'flex',
     flexDirection: 'column',

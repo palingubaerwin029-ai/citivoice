@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   IoNotificationsOutline,
@@ -9,163 +9,28 @@ import {
   IoCheckmarkDoneOutline,
   IoLocationOutline,
   IoChevronForwardOutline,
-  IoTimeOutline,
 } from 'react-icons/io5';
-import { socket } from '../services/socket';
-import { api, getCategoryConfig } from '../services/api';
-import { playChimeSound, isSoundEnabled, setSoundEnabled } from '../utils/audio';
-import { useToast } from './ToastProvider';
+import { useNotifications } from '../context/NotificationContext';
+import { getCategoryConfig } from '../services/api';
 import s from '../styles/NotificationBell.module.css';
-
-const STORAGE_READ_KEY = 'cv_admin_read_concerns';
 
 export default function NotificationBell() {
   const navigate = useNavigate();
-  const { addToast } = useToast();
+  const {
+    notifications,
+    readIds,
+    unreadCount,
+    isRinging,
+    soundOn,
+    toggleSound,
+    handleTestRing,
+    markAsRead,
+    markAllAsRead,
+    clearAll,
+  } = useNotifications();
 
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [readIds, setReadIds] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_READ_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [soundOn, setSoundOn] = useState(isSoundEnabled);
-  const [isRinging, setIsRinging] = useState(false);
   const popoverRef = useRef(null);
-  const ringTimeoutRef = useRef(null);
-
-  // Sync read IDs with localStorage
-  const markAsRead = useCallback((id) => {
-    setReadIds((prev) => {
-      if (prev.includes(id)) return prev;
-      const next = [...prev, id];
-      try {
-        localStorage.setItem(STORAGE_READ_KEY, JSON.stringify(next.slice(-200)));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
-  }, []);
-
-  const markAllAsRead = useCallback(() => {
-    const allIds = notifications.map((n) => n.id);
-    setReadIds((prev) => {
-      const combined = Array.from(new Set([...prev, ...allIds]));
-      try {
-        localStorage.setItem(STORAGE_READ_KEY, JSON.stringify(combined.slice(-200)));
-      } catch {
-        // ignore
-      }
-      return combined;
-    });
-  }, [notifications]);
-
-  const clearAll = useCallback(() => {
-    setNotifications([]);
-  }, []);
-
-  const toggleSound = () => {
-    const next = !soundOn;
-    setSoundOn(next);
-    setSoundEnabled(next);
-    if (next) {
-      playChimeSound(0.5, true);
-    }
-  };
-
-  const handleTestRing = () => {
-    triggerRingAnimation();
-    playChimeSound(0.7, true);
-    addToast('🔔 Test chime played successfully!', 'success');
-  };
-
-  const triggerRingAnimation = () => {
-    setIsRinging(true);
-    if (ringTimeoutRef.current) clearTimeout(ringTimeoutRef.current);
-    ringTimeoutRef.current = setTimeout(() => {
-      setIsRinging(false);
-    }, 2200);
-  };
-
-  // Request browser notification permission once
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'default') {
-        Notification.requestPermission().catch(() => {});
-      }
-    }
-  }, []);
-
-  // Initial load of latest concerns
-  useEffect(() => {
-    let mounted = true;
-    api
-      .get('/concerns', { limit: 12 })
-      .then((data) => {
-        if (!mounted) return;
-        const list = Array.isArray(data) ? data : data?.concerns || [];
-        setNotifications(list);
-      })
-      .catch((err) => {
-        console.warn('[Notifications] Failed to fetch initial concerns:', err);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // Real-time socket listener for incoming new concerns
-  useEffect(() => {
-    const handleNewConcern = (concern) => {
-      if (!concern || !concern.id) return;
-
-      console.log('[NotificationBell] 🔔 New concern received:', concern.title);
-
-      // 1. Play real-time chime sound
-      playChimeSound(0.65);
-
-      // 2. Trigger bell shake / ring animation
-      triggerRingAnimation();
-
-      // 3. Prepend to notification list
-      setNotifications((prev) => {
-        const filtered = prev.filter((item) => item.id !== concern.id);
-        return [concern, ...filtered].slice(0, 30);
-      });
-
-      // 4. In-app floating toast with direct link
-      addToast(`📢 New Concern: ${concern.title} (${concern.barangay || 'Citywide'})`, 'success', 6000);
-
-      // 5. Native OS notification if permission granted
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        try {
-          const notif = new Notification(`New Citizen Concern: ${concern.title}`, {
-            body: `${concern.category || 'Issue'} · ${concern.barangay || 'Kabankalan City'} · Priority: ${concern.priority || 'Medium'}`,
-            icon: '/logo.png',
-          });
-          notif.onclick = () => {
-            window.focus();
-            navigate(`/concerns/${concern.id}`);
-          };
-        } catch {
-          // ignore
-        }
-      }
-    };
-
-    socket.on('new_concern', handleNewConcern);
-
-    return () => {
-      socket.off('new_concern', handleNewConcern);
-      if (ringTimeoutRef.current) clearTimeout(ringTimeoutRef.current);
-    };
-  }, [addToast, navigate]);
 
   // Click outside listener to dismiss popover
   useEffect(() => {
@@ -181,9 +46,6 @@ export default function NotificationBell() {
       document.removeEventListener('mousedown', handleOutsideClick);
     };
   }, [open]);
-
-  // Compute unread count
-  const unreadCount = notifications.filter((n) => !readIds.includes(n.id)).length;
 
   const handleItemClick = (concern) => {
     markAsRead(concern.id);
