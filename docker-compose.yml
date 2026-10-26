@@ -19,6 +19,20 @@ services:
       retries: 10
       start_period: 30s
 
+  redis:
+    image: redis:7-alpine
+    container_name: citivoice-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -29,6 +43,8 @@ services:
     environment:
       DB_HOST: database
       DB_PASSWORD: root
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - "5000:5000"
     volumes:
@@ -36,6 +52,8 @@ services:
       - ./backups/db:/usr/src/backups/db
     depends_on:
       database:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5000/api/health || exit 1"]
@@ -68,3 +86,4 @@ services:
 
 volumes:
   mysql_data:
+  redis_data:

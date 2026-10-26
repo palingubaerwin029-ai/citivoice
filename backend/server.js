@@ -15,6 +15,7 @@ const jwt = require('jsonwebtoken');
 // const workflowService = require('./services/workflowService');
 const backupService = require('./services/backupService');
 const priorityService = require('./services/priorityService');
+const redisService = require('./services/redisService');
 const pool = require('./db');
 const compression = require('compression');
 
@@ -215,9 +216,11 @@ app.get('/api/health', async (req, res) => {
     await pool.query('SELECT 1');
     const isGmailConfigured = !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
     const isBrevoConfigured = !!process.env.BREVO_API_KEY;
+    const isRedisPingOk = await redisService.ping();
     res.json({
       status: 'ok',
       db: 'up',
+      redis: isRedisPingOk ? 'up' : (redisService.isAvailable() ? 'ready' : 'fallback_in_memory'),
       email: isBrevoConfigured ? 'brevo' : isGmailConfigured ? 'gmail_smtp' : 'simulation_only_missing_env',
       sender: process.env.GMAIL_USER ? process.env.GMAIL_USER.replace(/(.{3})(.*)(@.*)/, '$1***$3') : null,
       uptime: Math.round(process.uptime()),
@@ -262,6 +265,11 @@ const shutdown = (signal) => {
   backupService.stopScheduler();
   priorityService.stopScheduler();
   io.close();
+  if (redisService.client) {
+    try {
+      redisService.client.quit();
+    } catch (_) {}
+  }
   server.close(async () => {
     try {
       await pool.end();
