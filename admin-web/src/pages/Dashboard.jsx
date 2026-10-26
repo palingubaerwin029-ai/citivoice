@@ -17,7 +17,6 @@ import d from '../styles/Dashboard.module.css';
 import Skeleton from '../components/Skeleton';
 import AnimatedCounter from '../components/AnimatedCounter';
 import NotificationBell from '../components/NotificationBell';
-import { IoMegaphoneOutline } from 'react-icons/io5';
 import { socket, connectSocket } from '../services/socket';
 
 const STATUS_COLORS = {
@@ -204,19 +203,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div className={d.dateFilterRow}>
-          {/* Relocated uncrashed entities: Concerns Quick Nav & Notification Bell */}
-          <div className={d.headerActions}>
-            <button
-              type="button"
-              className={d.concernsQuickBtn}
-              onClick={() => navigate('/concerns')}
-              title="Open Concerns Management"
-            >
-              <IoMegaphoneOutline size={15} />
-              <span>Concerns</span>
-            </button>
-            <NotificationBell />
-          </div>
+          <NotificationBell />
 
           <div className={d.dateFilterGroup}>
             <select

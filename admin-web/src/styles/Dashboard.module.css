@@ -38,35 +38,6 @@
   gap: 12px;
 }
 
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.concernsQuickBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 14px;
-  height: 38px;
-  border-radius: var(--r-md);
-  background: rgba(234, 179, 8, 0.15);
-  border: 1px solid rgba(234, 179, 8, 0.35);
-  color: #EAB308;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all var(--t);
-  outline: none;
-}
-
-.concernsQuickBtn:hover {
-  background: rgba(234, 179, 8, 0.3);
-  color: #FDE047;
-  border-color: rgba(234, 179, 8, 0.6);
-  transform: translateY(-1px);
-}
 
 .dateFilterGroup {
   display: flex;
