@@ -18,6 +18,7 @@ import { scale, verticalScale, rf } from '../../utils/responsive';
 import { InputField, PrimaryButton } from '../../components/UI';
 import { useImagePicker } from '../../hooks/useImagePicker';
 import { ConcernService } from '../../services/concernService';
+import { useLanguage } from '../../context/LanguageContext';
 
 const ID_TYPES = [
   'PhilSys (National ID)',
@@ -34,6 +35,7 @@ const ID_TYPES = [
 export default function VerifyIdentityScreen() {
   const { colors } = useTheme();
   const { user, logout, submitVerification } = useAuth();
+  const { t } = useLanguage();
 
   const currentStatus = user?.verification_status;
   const isRejected = currentStatus === VERIFICATION_STATUS.REJECTED;
@@ -119,12 +121,12 @@ export default function VerifyIdentityScreen() {
               />
             </View>
             <Text style={[S.title, { color: colors.textPrimary }]}>
-              {isRejected ? 'Verification Rejected' : 'Verification Required'}
+              {isRejected ? t('verificationRejected') : t('verificationRequired')}
             </Text>
             <Text style={[S.subtitle, { color: colors.textSecondary }]}>
               {isRejected
-                ? 'Unfortunately, your ID verification was rejected. Please resubmit using a valid government ID.'
-                : 'To protect the community, we require all citizens to verify their identity before accessing CitiVoice.'}
+                ? t('verificationRejectedSubtitle')
+                : t('verificationRequiredSubtitle')}
             </Text>
           </View>
 
@@ -141,7 +143,7 @@ export default function VerifyIdentityScreen() {
             >
               <Ionicons name="alert-circle" size={18} color={colors.statusRejected} />
               <View style={{ flex: 1 }}>
-                <Text style={[S.noticeTitle, { color: colors.statusRejected }]}>Rejection Reason</Text>
+                <Text style={[S.noticeTitle, { color: colors.statusRejected }]}>{t('rejectionReason')}</Text>
                 <Text style={[S.noticeText, { color: colors.textSecondary }]}>
                   {user.rejection_reason}
                 </Text>
@@ -177,7 +179,7 @@ export default function VerifyIdentityScreen() {
           <View style={[S.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
             {/* ID Type picker */}
             <View style={{ marginBottom: 14 }}>
-              <Text style={[S.fieldLabel, { color: colors.textMuted }]}>ID TYPE *</Text>
+              <Text style={[S.fieldLabel, { color: colors.textMuted }]}>{`${t('idType').toUpperCase()} *`}</Text>
               <TouchableOpacity
                 style={[
                   S.picker,
@@ -194,7 +196,7 @@ export default function VerifyIdentityScreen() {
                     !idType && { color: colors.textMuted },
                   ]}
                 >
-                  {idType || 'Select government ID type…'}
+                  {idType || t('selectIdType')}
                 </Text>
                 <Ionicons
                   name={showIdPicker ? 'chevron-up' : 'chevron-down'}
@@ -253,7 +255,7 @@ export default function VerifyIdentityScreen() {
 
             {/* ID Number Input */}
             <InputField
-              label="ID NUMBER *"
+              label={`${t('idNumber').toUpperCase()} *`}
               value={idNumber}
               onChangeText={(v) => {
                 const cleaned = v.replace(/[^A-Z0-9]/gi, '').toUpperCase();
@@ -272,7 +274,7 @@ export default function VerifyIdentityScreen() {
 
             {/* ID Photo Picker */}
             <View style={{ marginBottom: 16 }}>
-              <Text style={[S.fieldLabel, { color: colors.textMuted }]}>ID PHOTO *</Text>
+              <Text style={[S.fieldLabel, { color: colors.textMuted }]}>{`${t('idPhoto').toUpperCase()} *`}</Text>
               {idImage ? (
                 <View style={{ width: '100%', marginBottom: 16 }}>
                   <Image
@@ -282,7 +284,7 @@ export default function VerifyIdentityScreen() {
                   />
                   <TouchableOpacity style={S.retakeBadge} onPress={() => setIdImage(null)}>
                     <Ionicons name="refresh-outline" size={16} color="#fff" />
-                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Retake</Text>
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{t('retake')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -300,10 +302,10 @@ export default function VerifyIdentityScreen() {
                     style={{ marginBottom: verticalScale(10), opacity: 0.6 }}
                   />
                   <Text style={[S.photoBoxTitle, { color: colors.textSecondary }]}>
-                    Upload your ID photo
+                    {t('uploadIdPhoto')}
                   </Text>
                   <Text style={[S.photoBoxSub, { color: colors.textMuted }]}>
-                    Make sure the photo is clear and well-lit
+                    {t('photoClearNotice')}
                   </Text>
                   <View style={S.photoActions}>
                     <TouchableOpacity
@@ -317,7 +319,7 @@ export default function VerifyIdentityScreen() {
                       onPress={pickPhoto}
                     >
                       <Ionicons name="images-outline" size={18} color={colors.primaryLight} />
-                      <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>Gallery</Text>
+                      <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>{t('gallery')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -330,7 +332,7 @@ export default function VerifyIdentityScreen() {
                       onPress={takePhoto}
                     >
                       <Ionicons name="camera-outline" size={18} color={colors.primaryLight} />
-                      <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>Camera</Text>
+                      <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>{t('camera')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -345,7 +347,7 @@ export default function VerifyIdentityScreen() {
 
             {/* Submit Button */}
             <PrimaryButton
-              title="Submit Verification"
+              title={t('submitForVerification')}
               onPress={handleSubmit}
               loading={submitLoading}
               style={{ marginTop: 8 }}
@@ -354,7 +356,7 @@ export default function VerifyIdentityScreen() {
             {/* Logout Option */}
             <TouchableOpacity style={S.logoutBtn} onPress={handleLogout}>
               <Ionicons name="log-out-outline" size={18} color={colors.textMuted} />
-              <Text style={[S.logoutText, { color: colors.textMuted }]}>Log Out</Text>
+              <Text style={[S.logoutText, { color: colors.textMuted }]}>{t('signOut')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -381,26 +383,26 @@ export default function VerifyIdentityScreen() {
         >
           <Text style={{ fontSize: rf(36) }}>⏳</Text>
         </View>
-        <Text style={[S.statusTitle, { color: colors.textPrimary }]}>Under Review</Text>
+        <Text style={[S.statusTitle, { color: colors.textPrimary }]}>{t('underReview')}</Text>
         <Text style={[S.statusMessage, { color: colors.textSecondary }]}>
-          Your account and ID have been submitted and are being reviewed by the administrator. You'll be notified once approved.
+          {t('underReviewMsg')}
         </Text>
 
         <View
           style={[S.pendingInfo, { backgroundColor: colors.bgCardAlt, borderColor: colors.border }]}
         >
-          <InfoRow icon="person-outline" label="Name" value={user?.name} colors={colors} />
-          <InfoRow icon="mail-outline" label="Email" value={user?.email} colors={colors} />
+          <InfoRow icon="person-outline" label={t('fullName')} value={user?.name} colors={colors} />
+          <InfoRow icon="mail-outline" label={t('email')} value={user?.email} colors={colors} />
           <InfoRow
             icon="card-outline"
-            label="ID Type"
+            label={t('idType')}
             value={user?.id_type || '—'}
             colors={colors}
           />
           <InfoRow
             icon="shield-half-outline"
-            label="Status"
-            value="Pending Review"
+            label={t('priority') ? 'Status' : 'Status'}
+            value={t('pendingReview')}
             valueColor={colors.statusPending}
             colors={colors}
           />
@@ -408,7 +410,7 @@ export default function VerifyIdentityScreen() {
 
         {user?.id_image_url && (
           <View style={{ width: '100%', marginBottom: verticalScale(20) }}>
-            <Text style={[S.fieldLabel, { color: colors.textMuted }]}>SUBMITTED ID</Text>
+            <Text style={[S.fieldLabel, { color: colors.textMuted }]}>{`${t('submittedId').toUpperCase()}`}</Text>
             <Image
               source={{ uri: resolveImageUrl(user.id_image_url) }}
               style={{
@@ -425,7 +427,7 @@ export default function VerifyIdentityScreen() {
 
         <TouchableOpacity style={S.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={18} color={colors.textMuted} />
-          <Text style={[S.logoutText, { color: colors.textMuted }]}>Log Out</Text>
+          <Text style={[S.logoutText, { color: colors.textMuted }]}>{t('signOut')}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

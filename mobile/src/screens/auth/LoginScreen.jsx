@@ -553,7 +553,7 @@ export default function LoginScreen({ navigation, route }) {
             {/* Divider */}
             <View style={S.dividerRow}>
               <View style={[S.dividerLine, { backgroundColor: colors.border }]} />
-              <Text style={[S.dividerText, { color: colors.textMuted }]}>{t('or') || 'OR'}</Text>
+              <Text style={[S.dividerText, { color: colors.textMuted }]}>{t('orWord') || 'OR'}</Text>
               <View style={[S.dividerLine, { backgroundColor: colors.border }]} />
             </View>
 
@@ -574,7 +574,7 @@ export default function LoginScreen({ navigation, route }) {
                 <>
                   <Ionicons name="logo-google" size={18} color="#EA4335" />
                   <Text style={[S.googleText, { color: colors.textPrimary }]}>
-                    Continue with Google
+                    {t('continueWithGoogle')}
                   </Text>
                 </>
               )}

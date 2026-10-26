@@ -414,14 +414,14 @@ export default function ProfileScreen({ navigation }) {
               <Ionicons name="alert-circle" size={22} color={colors.warning} style={{ marginTop: 2 }} />
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.textPrimary, fontSize: rf(14), fontWeight: '700', marginBottom: verticalScale(3) }}>
-                  Complete Your Profile
+                  {t('completeYourProfile')}
                 </Text>
                 <Text style={{ color: colors.textSecondary, fontSize: rf(12), lineHeight: rf(17), marginBottom: verticalScale(10) }}>
                   {!user?.phone && user?.verification_status !== 'verified'
-                    ? 'Please add your phone number and submit your Government ID to verify your citizen account and access all services.'
+                    ? t('profileIncompleteNoticeBoth')
                     : !user?.phone
-                    ? 'Please add your mobile number so barangay and city officials can contact you regarding your reports.'
-                    : 'Submit your Government ID to verify your citizen identity and unlock all community features.'}
+                    ? t('profileIncompleteNoticePhone')
+                    : t('profileIncompleteNoticeId')}
                 </Text>
                 <View style={{ flexDirection: 'row', gap: scale(8), flexWrap: 'wrap' }}>
                   {!user?.phone && (
@@ -438,7 +438,7 @@ export default function ProfileScreen({ navigation }) {
                       }}
                     >
                       <Ionicons name="call-outline" size={14} color="#fff" />
-                      <Text style={{ color: '#fff', fontSize: rf(12), fontWeight: '700' }}>Add Phone Number</Text>
+                      <Text style={{ color: '#fff', fontSize: rf(12), fontWeight: '700' }}>{t('addPhoneNumber')}</Text>
                     </TouchableOpacity>
                   )}
                   {user?.verification_status !== 'verified' && (
@@ -457,7 +457,7 @@ export default function ProfileScreen({ navigation }) {
                       }}
                     >
                       <Ionicons name="shield-checkmark-outline" size={14} color={colors.primaryLight} />
-                      <Text style={{ color: colors.primaryLight, fontSize: rf(12), fontWeight: '700' }}>Verify ID</Text>
+                      <Text style={{ color: colors.primaryLight, fontSize: rf(12), fontWeight: '700' }}>{t('verifyId')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>

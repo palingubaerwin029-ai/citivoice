@@ -133,8 +133,8 @@ export default function RegisterScreen({ navigation, route }) {
             return next;
           });
           Alert.alert(
-            'Google Email Verified',
-            `Signed in with ${gEmail}. Email OTP verification is skipped! Fill in your password and barangay to finish.`
+            t('googleEmailVerified'),
+            `${t('welcomeBack')}, ${gEmail}. ${t('googleEmailVerifiedNotice')}`
           );
           return;
         }
@@ -295,23 +295,23 @@ export default function RegisterScreen({ navigation, route }) {
     if (!form.name.trim()) {
       e.name = t('required');
     } else if (form.name.trim().split(/[\s-]+/).filter(Boolean).length < 2) {
-      e.name = 'Please enter your full name (First and Last name)';
+      e.name = t('fullNameRequired');
     } else if (!nameRegex.test(form.name)) {
-      e.name = 'Name can only contain letters, spaces, hyphens (-), periods, and apostrophes';
+      e.name = t('nameLettersOnly');
     }
     if (!form.email.trim()) e.email = t('required');
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = t('invalidEmail');
-    else if (!form.email.trim().toLowerCase().endsWith('@gmail.com')) e.email = 'Email must be a Gmail address (@gmail.com)';
-    else if (!emailVerified) e.email = 'Please verify your email address before continuing.';
+    else if (!form.email.trim().toLowerCase().endsWith('@gmail.com')) e.email = t('gmailRequired');
+    else if (!emailVerified) e.email = t('verifyEmailBeforeRegister');
     if (!form.password) e.password = t('required');
-    else if (form.password.length < 8) e.password = 'Password must be at least 8 characters.';
+    else if (form.password.length < 8) e.password = t('pwReqLength');
     else if (
       !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(form.password)
     ) {
-      e.password = 'Must include uppercase, lowercase, numbers, and symbols.';
+      e.password = t('min8CharsComplexity');
     }
     if (!form.barangay) e.barangay = t('selectBarangay');
-    if (!agreeToTerms) e.agreeToTerms = 'You must agree to the Terms and Privacy Policy';
+    if (!agreeToTerms) e.agreeToTerms = t('agreeTermsRequired');
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -334,11 +334,11 @@ export default function RegisterScreen({ navigation, route }) {
       });
 
       Alert.alert(
-        'Account Created Successfully! 🎉',
-        'Welcome to CitiVoice. Please sign in to access your dashboard. Note that you will need to update your phone number and submit your Government ID in your Profile settings to unlock all services.',
+        t('accountCreatedSuccess'),
+        t('accountCreatedMsg'),
         [
           {
-            text: 'Sign In Now',
+            text: t('signInNow'),
             onPress: () => {
               navigation.navigate('Login', {
                 registeredEmail: form.email.trim(),
@@ -448,10 +448,10 @@ export default function RegisterScreen({ navigation, route }) {
             <Ionicons name="shield-checkmark-outline" size={18} color={colors.primaryLight} />
             <View style={{ flex: 1 }}>
               <Text style={[S.noticeTitle, { color: colors.primaryLight }]}>
-                Quick Citizen Sign-Up
+                {t('quickSignUpTitle')}
               </Text>
               <Text style={[S.noticeText, { color: colors.textSecondary }]}>
-                Create your account in seconds. You can update your phone number and submit your Government ID verification in your Profile after signing in.
+                {t('quickSignUpNotice')}
               </Text>
             </View>
           </View>
@@ -510,7 +510,7 @@ export default function RegisterScreen({ navigation, route }) {
                   <>
                     <Ionicons name="logo-google" size={18} color="#EA4335" />
                     <Text style={{ fontSize: rf(13.5), fontWeight: '700', color: colors.textPrimary }}>
-                      Verify Email with Google (Skip OTP)
+                      {t('verifyEmailGoogle')}
                     </Text>
                   </>
                 )}
@@ -534,10 +534,10 @@ export default function RegisterScreen({ navigation, route }) {
                 <Ionicons name="checkmark-circle" size={20} color={colors.statusResolved || '#10B981'} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: rf(12.5), fontWeight: '700', color: colors.statusResolved || '#10B981' }}>
-                    Email Pre-Verified with Google
+                    {t('emailPreVerifiedGoogle')}
                   </Text>
                   <Text style={{ fontSize: rf(11), color: colors.textSecondary }} numberOfLines={1}>
-                    {form.email} · 6-digit OTP code skipped
+                    {form.email} · {t('otpSkipped')}
                   </Text>
                 </View>
               </View>
@@ -577,7 +577,7 @@ export default function RegisterScreen({ navigation, route }) {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(4) }}>
                     <Ionicons name="checkmark-circle" size={14} color={colors.success} />
                     <Text style={{ fontSize: rf(11), fontWeight: '700', color: colors.success }}>
-                      {isGoogleVerified ? 'Verified by Google' : 'Email Verified'}
+                      {isGoogleVerified ? t('verifiedByGoogle') : t('emailVerifiedSuccess')}
                     </Text>
                     {!isGoogleVerified && (
                       <TouchableOpacity
@@ -598,7 +598,7 @@ export default function RegisterScreen({ navigation, route }) {
                             textDecorationLine: 'underline',
                           }}
                         >
-                          Change
+                          {t('changeEmail')}
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -624,12 +624,12 @@ export default function RegisterScreen({ navigation, route }) {
                       }}
                     >
                       {sendingOtp
-                        ? 'Sending...'
+                        ? t('sendingCode')
                         : otpCooldown > 0
-                        ? `Resend (${otpCooldown}s)`
+                        ? `${t('resendCodeIn')} (${otpCooldown}s)`
                         : otpSent
-                        ? 'Resend Code'
-                        : 'Verify Email'}
+                        ? t('resendCode')
+                        : t('verifyEmail')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -766,7 +766,7 @@ export default function RegisterScreen({ navigation, route }) {
                         <ActivityIndicator size="small" color="#fff" />
                       ) : (
                         <Text style={{ color: otpCode.length === 6 ? '#fff' : colors.textMuted, fontWeight: '700', fontSize: rf(12) }}>
-                          Verify
+                          {t('verifyBtn')}
                         </Text>
                       )}
                     </TouchableOpacity>
@@ -806,7 +806,7 @@ export default function RegisterScreen({ navigation, route }) {
                   }}
                   onFocus={() => setPwFocused(true)}
                   onBlur={() => setPwFocused(false)}
-                  placeholder="Min. 8 characters"
+                  placeholder={t('min8Chars')}
                   placeholderTextColor={colors.textMuted}
                   secureTextEntry={!showPw}
                 />
@@ -896,10 +896,10 @@ export default function RegisterScreen({ navigation, route }) {
 
             {/* Optional Phone */}
             <InputField
-              label={`${t('phone').toUpperCase()} (OPTIONAL)`}
+              label={`${t('phoneOptional').toUpperCase()}`}
               value={form.phone}
               onChangeText={(v) => set('phone', v)}
-              placeholder="09XXXXXXXXX (or add later in Profile)"
+              placeholder={t('phonePlaceholderOptional')}
               keyboardType="phone-pad"
               maxLength={11}
               leftIcon="call-outline"
@@ -1043,10 +1043,10 @@ export default function RegisterScreen({ navigation, route }) {
               <Ionicons name="information-circle-outline" size={18} color={colors.primaryLight} style={{ marginTop: 1 }} />
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: rf(12), fontWeight: '700', color: colors.primaryLight, marginBottom: 2 }}>
-                  ID Verification in Profile
+                  {t('idVerificationInProfile')}
                 </Text>
                 <Text style={{ fontSize: rf(11), color: colors.textSecondary, lineHeight: rf(15) }}>
-                  Government ID verification is not required right now. You will be prompted to verify your ID and phone number in your Profile settings after signing in.
+                  {t('idVerificationInProfileNotice')}
                 </Text>
               </View>
             </View>
