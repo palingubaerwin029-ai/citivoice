@@ -26,7 +26,7 @@ import { useToast } from '../components/ToastProvider';
 import AnimatedCounter from '../components/AnimatedCounter';
 import Skeleton from '../components/Skeleton';
 import Pagination, { useFitPagination } from '../components/Pagination';
-import { connectSocket } from '../services/socket';
+import { socket, connectSocket } from '../services/socket';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const BASE_URL = `${getApiHost()}/api`;
@@ -550,13 +550,17 @@ export default function Backup() {
 
   useEffect(() => {
     fetchBackups();
-    const sock = connectSocket();
+    connectSocket();
     const handleRemoteImport = () => {
       fetchBackups();
     };
-    sock.on('backup:imported', handleRemoteImport);
+    if (socket) {
+      socket.on('backup:imported', handleRemoteImport);
+    }
     return () => {
-      sock.off('backup:imported', handleRemoteImport);
+      if (socket) {
+        socket.off('backup:imported', handleRemoteImport);
+      }
     };
   }, [fetchBackups]);
 

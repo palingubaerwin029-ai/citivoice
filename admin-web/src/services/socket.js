@@ -17,6 +17,7 @@ export const connectSocket = () => {
   if (!socket.connected && getToken()) {
     socket.connect();
   }
+  return socket;
 };
 
 export const disconnectSocket = () => {
