@@ -346,7 +346,8 @@
   color: var(--blue);
 }
 
-.iconBtnRestore:hover:not(:disabled) {
+.iconBtnRestore:hover:not(:disabled),
+.iconBtnImport:hover:not(:disabled) {
   background: rgba(16, 185, 129, 0.15);
   border-color: rgba(16, 185, 129, 0.35);
   color: var(--green);
