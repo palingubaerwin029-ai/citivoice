@@ -4,6 +4,7 @@ import { api } from './services/api';
 import { connectSocket, disconnectSocket } from './services/socket';
 
 import Sidebar from './components/Sidebar';
+import AdminHeader from './components/AdminHeader';
 import Dashboard from './pages/Dashboard';
 import Concerns from './pages/Concerns';
 import ConcernDetail from './pages/ConcernDetail';
@@ -150,21 +151,28 @@ function AdminLayout({ user, onLogout, theme, onThemeToggle }) {
         theme={theme}
         onThemeToggle={onThemeToggle}
       />
-      <main style={styles.main}>
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/concerns" element={<Concerns />} />
-          <Route path="/concerns/:id" element={<ConcernDetail />} />
-          <Route path="/map" element={<MapView />} />
-          <Route path="/verification" element={<Verification />} />
-          <Route path="/users" element={<Users />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/barangays" element={<Barangays />} />
-          <Route path="/backup" element={<Backup />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </main>
+      <div style={styles.contentWrap}>
+        <AdminHeader
+          user={user}
+          theme={theme}
+          onThemeToggle={onThemeToggle}
+        />
+        <main style={styles.main}>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/concerns" element={<Concerns />} />
+            <Route path="/concerns/:id" element={<ConcernDetail />} />
+            <Route path="/map" element={<MapView />} />
+            <Route path="/verification" element={<Verification />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/barangays" element={<Barangays />} />
+            <Route path="/backup" element={<Backup />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </main>
+      </div>
     </div>
   );
 }
@@ -183,7 +191,8 @@ function LoadingScreen() {
 
 const styles = {
   layout: { display: 'flex', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg)' },
-  main: { flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: 'var(--bg)' },
+  contentWrap: { flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', minWidth: 0 },
+  main: { flex: 1, overflowY: 'auto', backgroundColor: 'var(--bg)' },
   loading: {
     display: 'flex',
     flexDirection: 'column',
