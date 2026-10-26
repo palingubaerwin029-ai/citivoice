@@ -42,10 +42,11 @@ const selectById = async (id) => {
 
 const insertUser = async (name, email, hash, phone, barangay, idType, idNumber, idImageUrl) => {
   try {
+    const status = idImageUrl ? 'pending' : 'unverified';
     const [result] = await pool.query(
       `INSERT INTO users (name, email, password_hash, phone, barangay, role, verification_status, is_verified, id_type, id_number, id_image_url, submitted_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'citizen', 'pending', 0, ?, ?, ?, NOW(), NOW(), NOW())`,
-      [name, email, hash, phone || null, barangay || null, idType, idNumber, idImageUrl],
+       VALUES (?, ?, ?, ?, ?, 'citizen', ?, 0, ?, ?, ?, NOW(), NOW(), NOW())`,
+      [name, email, hash, phone || null, barangay || null, status, idType || null, idNumber || null, idImageUrl || null],
     );
     return result.insertId;
   } catch (err) {

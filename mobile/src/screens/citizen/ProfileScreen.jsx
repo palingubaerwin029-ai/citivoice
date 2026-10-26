@@ -396,6 +396,76 @@ export default function ProfileScreen({ navigation }) {
           </Text>
         </LinearGradient>
 
+        {/* Profile Completion & Verification Alert Banner */}
+        {(!user?.phone || user?.verification_status !== 'verified') && (
+          <View
+            style={{
+              marginHorizontal: scale(16),
+              marginTop: verticalScale(14),
+              marginBottom: verticalScale(14),
+              backgroundColor: colors.warning + '14',
+              borderColor: colors.warning + '44',
+              borderWidth: 1,
+              borderRadius: RADIUS.lg,
+              padding: scale(14),
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: scale(10) }}>
+              <Ionicons name="alert-circle" size={22} color={colors.warning} style={{ marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.textPrimary, fontSize: rf(14), fontWeight: '700', marginBottom: verticalScale(3) }}>
+                  Complete Your Profile
+                </Text>
+                <Text style={{ color: colors.textSecondary, fontSize: rf(12), lineHeight: rf(17), marginBottom: verticalScale(10) }}>
+                  {!user?.phone && user?.verification_status !== 'verified'
+                    ? 'Please add your phone number and submit your Government ID to verify your citizen account and access all services.'
+                    : !user?.phone
+                    ? 'Please add your mobile number so barangay and city officials can contact you regarding your reports.'
+                    : 'Submit your Government ID to verify your citizen identity and unlock all community features.'}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: scale(8), flexWrap: 'wrap' }}>
+                  {!user?.phone && (
+                    <TouchableOpacity
+                      onPress={handleOpenEdit}
+                      style={{
+                        backgroundColor: colors.primary,
+                        paddingHorizontal: scale(12),
+                        paddingVertical: verticalScale(7),
+                        borderRadius: RADIUS.sm,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: scale(5),
+                      }}
+                    >
+                      <Ionicons name="call-outline" size={14} color="#fff" />
+                      <Text style={{ color: '#fff', fontSize: rf(12), fontWeight: '700' }}>Add Phone Number</Text>
+                    </TouchableOpacity>
+                  )}
+                  {user?.verification_status !== 'verified' && (
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate('VerifyIdentity')}
+                      style={{
+                        backgroundColor: colors.bgCardAlt,
+                        borderColor: colors.border,
+                        borderWidth: 1,
+                        paddingHorizontal: scale(12),
+                        paddingVertical: verticalScale(7),
+                        borderRadius: RADIUS.sm,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: scale(5),
+                      }}
+                    >
+                      <Ionicons name="shield-checkmark-outline" size={14} color={colors.primaryLight} />
+                      <Text style={{ color: colors.primaryLight, fontSize: rf(12), fontWeight: '700' }}>Verify ID</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
         {myConcerns.length > 0 && (
           <View style={{ paddingHorizontal: scale(16), marginBottom: verticalScale(20) }}>
             <Text
