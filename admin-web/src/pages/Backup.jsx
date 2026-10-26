@@ -23,6 +23,7 @@ import { useToast } from '../components/ToastProvider';
 import AnimatedCounter from '../components/AnimatedCounter';
 import Skeleton from '../components/Skeleton';
 import Pagination, { useFitPagination } from '../components/Pagination';
+import { connectSocket } from '../services/socket';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const BASE_URL = `${getApiHost()}/api`;
@@ -194,16 +195,20 @@ function ImportResultModal({ result, onClose }) {
                   }}
                 >
                   <div style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Users Imported
+                    Users Processed
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-1)', marginTop: 4 }}>
-                    {summary.usersInserted}
-                    {summary.usersSkipped > 0 && (
-                      <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 400, marginLeft: 6 }}>
-                        ({summary.usersSkipped} skipped)
-                      </span>
-                    )}
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-1)', marginTop: 4 }}>
+                    {(summary.usersInserted || 0) + (summary.usersUpdated || 0)}
                   </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 4 }}>
+                    <span style={{ color: 'var(--green)', fontWeight: 600 }}>+{summary.usersInserted || 0}</span> new •{' '}
+                    <span style={{ color: 'var(--blue)', fontWeight: 600 }}>+{summary.usersUpdated || 0}</span> updated
+                  </div>
+                  {summary.usersSkipped > 0 && (
+                    <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      {summary.usersSkipped} skipped (already latest)
+                    </div>
+                  )}
                 </div>
 
                 <div
@@ -215,17 +220,40 @@ function ImportResultModal({ result, onClose }) {
                   }}
                 >
                   <div style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Concerns Imported
+                    Concerns Processed
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-1)', marginTop: 4 }}>
-                    {summary.concernsInserted}
-                    {summary.concernsSkipped > 0 && (
-                      <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 400, marginLeft: 6 }}>
-                        ({summary.concernsSkipped} skipped)
-                      </span>
-                    )}
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-1)', marginTop: 4 }}>
+                    {(summary.concernsInserted || 0) + (summary.concernsUpdated || 0)}
                   </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 4 }}>
+                    <span style={{ color: 'var(--green)', fontWeight: 600 }}>+{summary.concernsInserted || 0}</span> new •{' '}
+                    <span style={{ color: 'var(--blue)', fontWeight: 600 }}>+{summary.concernsUpdated || 0}</span> updated
+                  </div>
+                  {summary.concernsSkipped > 0 && (
+                    <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      {summary.concernsSkipped} skipped (already latest)
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              <div
+                style={{
+                  background: 'rgba(59, 130, 246, 0.08)',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--r-md)',
+                  fontSize: 12,
+                  color: 'var(--text-2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <span style={{ fontSize: 16 }}>🛡️</span>
+                <span>
+                  <strong>Security & Freshness Verified:</strong> Only newer records were auto-updated. Stale data was safely preserved.
+                </span>
               </div>
 
               <div
@@ -241,7 +269,7 @@ function ImportResultModal({ result, onClose }) {
                   justifyContent: 'space-between',
                 }}
               >
-                <span>✨ Total Records Processed:</span>
+                <span>✨ Total Records Auto-Updated & Inserted:</span>
                 <strong style={{ fontSize: 16 }}>{summary.totalRows}</strong>
               </div>
 
@@ -410,6 +438,14 @@ export default function Backup() {
 
   useEffect(() => {
     fetchBackups();
+    const sock = connectSocket();
+    const handleRemoteImport = () => {
+      fetchBackups();
+    };
+    sock.on('backup:imported', handleRemoteImport);
+    return () => {
+      sock.off('backup:imported', handleRemoteImport);
+    };
   }, [fetchBackups]);
 
   // ── Trigger DB backup (SQL) ─────────────────────────────────────────────────
@@ -529,7 +565,10 @@ export default function Backup() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
       setImportResult({ summary: data.summary });
-      addToast(`Import complete — ${data.summary.totalRows} record(s) imported`, 'success');
+      addToast(
+        `Import complete — ${data.summary.totalRows} record(s) applied (${data.summary.totalUpdated || 0} auto-updated, ${data.summary.totalSkipped || 0} preserved)`,
+        'success'
+      );
       await fetchBackups();
     } catch (err) {
       setImportResult({ error: err.message });
@@ -565,7 +604,10 @@ export default function Backup() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
       setImportResult({ summary: data.summary });
-      addToast(`Imported snapshot ${filename} successfully`, 'success');
+      addToast(
+        `Imported snapshot ${filename} successfully (${data.summary.totalUpdated || 0} auto-updated, ${data.summary.totalSkipped || 0} preserved)`,
+        'success'
+      );
       await fetchBackups();
     } catch (err) {
       setImportResult({ error: err.message });

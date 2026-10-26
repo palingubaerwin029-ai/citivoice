@@ -19,7 +19,18 @@ const {
   importJsonBackup,
 } = require('../controllers/backup.controller');
 
+const rateLimit = require('express-rate-limit');
+
 const adminOnly = [auth, requireRole('admin')];
+
+// Dedicated rate limiter for data import (prevent DoS/resource abuse)
+const importLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // max 10 imports per 15 minutes
+  message: { error: 'Too many data import attempts. Please wait 15 minutes before trying again.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Multer: store imported JSON entirely in memory (max 50 MB)
 const importUpload = multer({
@@ -46,8 +57,8 @@ router.post('/db', ...adminOnly, triggerDbBackup);
 // POST   /api/backup/export               — run JSON data export now
 router.post('/export', ...adminOnly, triggerJsonExport);
 
-// POST   /api/backup/import               — import a JSON data export
-router.post('/import', ...adminOnly, importUpload.single('backup'), importJsonBackup);
+// POST   /api/backup/import               — import a JSON data export with security rate limit
+router.post('/import', ...adminOnly, importLimiter, importUpload.single('backup'), importJsonBackup);
 
 // GET    /api/backup/download/:filename   — stream/download a file
 router.get('/download/:filename', ...adminOnly, downloadBackup);

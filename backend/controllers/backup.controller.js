@@ -8,8 +8,11 @@
 
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const backup = require('../services/backupService');
 const pool = require('../db');
+const { invalidate } = require('../middleware/cache');
 
 // ── GET /api/backup — list all existing backup files + current status ─────────
 const listBackups = async (req, res) => {
@@ -165,141 +168,322 @@ const deleteBackup = (req, res) => {
   }
 };
 
-// ── POST /api/backup/import — restore data from a JSON export file ─────────────────────
+// ── POST /api/backup/import — import data with freshness verification and security checks
 const importJsonBackup = async (req, res) => {
-  // req.file is set by multer memoryStorage
+  // 1. Security Check: File presence
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
+  // 2. Security Check: JSON Parse & prototype pollution protection
   let payload;
   try {
-    payload = JSON.parse(req.file.buffer.toString('utf8'));
+    const rawContent = req.file.buffer.toString('utf8');
+    if (
+      rawContent.includes('"__proto__"') ||
+      rawContent.includes('"constructor"') ||
+      rawContent.includes('"prototype"')
+    ) {
+      console.warn(`[Security Alert] Prototype pollution attempt blocked during backup import from IP ${req.ip}`);
+      return res.status(400).json({ error: 'Security violation: Malformed JSON structure detected' });
+    }
+    payload = JSON.parse(rawContent);
   } catch {
     return res.status(400).json({ error: 'Invalid JSON — file could not be parsed' });
   }
 
-  // Minimal shape validation
-  if (!payload || typeof payload !== 'object') {
-    return res.status(400).json({ error: 'JSON root must be an object' });
+  // 3. Security Check: Minimal shape validation & bounds check
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return res.status(400).json({ error: 'Security violation: JSON root must be an object' });
   }
 
-  const users    = Array.isArray(payload.users)    ? payload.users    : [];
+  const users = Array.isArray(payload.users) ? payload.users : [];
   const concerns = Array.isArray(payload.concerns) ? payload.concerns : [];
 
   if (users.length === 0 && concerns.length === 0) {
-    return res.status(400).json({ error: 'JSON file contains no users or concerns to import' });
+    return res.status(400).json({ error: 'JSON file contains no valid users or concerns to import' });
   }
 
-  let usersInserted = 0, usersSkipped = 0;
-  let concernsInserted = 0, concernsSkipped = 0;
+  if (users.length > 50000 || concerns.length > 50000) {
+    return res.status(400).json({ error: 'Security violation: Payload exceeds maximum allowed entity count (50,000)' });
+  }
+
+  let usersInserted = 0, usersUpdated = 0, usersSkipped = 0;
+  let concernsInserted = 0, concernsUpdated = 0, concernsSkipped = 0;
   const errors = [];
 
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
-    // ── Import users ──────────────────────────────────────────────────────────────────────────────────
+    // ── 4. Import & Auto-Update Users (Latest Data Only + Sanitization) ──────────────
     for (const u of users) {
-      if (!u.id || !u.email) { usersSkipped++; continue; }
-      try {
+      if (!u || typeof u !== 'object') { usersSkipped++; continue; }
+
+      const email = typeof u.email === 'string' ? u.email.trim().toLowerCase() : null;
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        usersSkipped++;
+        errors.push(`User skipped: invalid or missing email`);
+        continue;
+      }
+
+      const id = Number.isInteger(Number(u.id)) ? Number(u.id) : null;
+      if (!id || id <= 0) {
+        usersSkipped++;
+        errors.push(`User skipped: invalid id`);
+        continue;
+      }
+
+      // Sanitize fields (prevent injection, buffer overrun, privilege escalation)
+      const name = typeof u.name === 'string' ? u.name.trim().slice(0, 255) : 'Citizen';
+      const phone = typeof u.phone === 'string' ? u.phone.trim().slice(0, 50) : null;
+      const barangay = typeof u.barangay === 'string' ? u.barangay.trim().slice(0, 255) : null;
+      const address = typeof u.address === 'string' ? u.address.trim().slice(0, 255) : null;
+      const idType = typeof u.id_type === 'string' ? u.id_type.trim().slice(0, 100) : null;
+      const idNumber = typeof u.id_number === 'string' ? u.id_number.trim().slice(0, 100) : null;
+      const avatarUrl = typeof u.avatar_url === 'string' ? u.avatar_url.trim().slice(0, 1000) : null;
+      const idImageUrl = typeof u.id_image_url === 'string' ? u.id_image_url.trim().slice(0, 1000) : null;
+      const rejectionReason = typeof u.rejection_reason === 'string' ? u.rejection_reason.trim().slice(0, 1000) : null;
+
+      const verificationStatus = ['unverified', 'pending', 'verified', 'rejected'].includes(u.verification_status)
+        ? u.verification_status
+        : 'unverified';
+      const isVerified = Boolean(u.is_verified) ? 1 : 0;
+      const requestedRole = u.role === 'admin' ? 'admin' : 'citizen';
+
+      // Parse timestamps safely
+      const incomingCreatedAt = u.created_at && !isNaN(new Date(u.created_at).getTime())
+        ? new Date(u.created_at)
+        : new Date();
+      const incomingUpdatedAt = u.updated_at && !isNaN(new Date(u.updated_at).getTime())
+        ? new Date(u.updated_at)
+        : incomingCreatedAt;
+
+      // Check if user already exists
+      const [existingUsers] = await conn.query(
+        'SELECT id, role, updated_at FROM users WHERE id = ? OR email = ? LIMIT 1',
+        [id, email]
+      );
+
+      if (existingUsers.length === 0) {
+        // User does not exist -> INSERT new user
+        const dummyPasswordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+
         await conn.query(
           `INSERT INTO users
-             (id, name, email, phone, barangay, role, department,
+             (id, name, email, password_hash, phone, barangay, address, role,
               verification_status, is_verified, id_type, id_number,
               avatar_url, id_image_url, submitted_at, verified_at,
               rejection_reason, created_at, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-           ON DUPLICATE KEY UPDATE
-             name               = VALUES(name),
-             phone              = VALUES(phone),
-             barangay           = VALUES(barangay),
-             role               = VALUES(role),
-             department         = VALUES(department),
-             verification_status= VALUES(verification_status),
-             is_verified        = VALUES(is_verified),
-             avatar_url         = VALUES(avatar_url),
-             updated_at         = VALUES(updated_at)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            u.id, u.name || null, u.email,
-            u.phone || null, u.barangay || null,
-            u.role || 'citizen', u.department || null,
-            u.verification_status || 'unverified',
-            u.is_verified ? 1 : 0,
-            u.id_type || null, u.id_number || null,
-            u.avatar_url || null, u.id_image_url || null,
+            id, name, email, dummyPasswordHash, phone, barangay, address,
+            requestedRole, verificationStatus, isVerified,
+            idType, idNumber, avatarUrl, idImageUrl,
             u.submitted_at || null, u.verified_at || null,
-            u.rejection_reason || null,
-            u.created_at || new Date(), u.updated_at || new Date(),
-          ],
+            rejectionReason, incomingCreatedAt, incomingUpdatedAt,
+          ]
         );
         usersInserted++;
-      } catch (e) {
-        usersSkipped++;
-        errors.push(`User id=${u.id}: ${e.message}`);
+      } else {
+        const existing = existingUsers[0];
+        const existingTime = new Date(existing.updated_at).getTime();
+        const incomingTime = incomingUpdatedAt.getTime();
+
+        // 🌟 Freshness Check: Only update if imported data is strictly newer
+        if (incomingTime > existingTime) {
+          await conn.query(
+            `UPDATE users
+             SET name = ?, phone = ?, barangay = ?, address = ?,
+                 verification_status = ?, is_verified = ?, id_type = ?, id_number = ?,
+                 avatar_url = ?, id_image_url = ?, rejection_reason = ?,
+                 updated_at = ?
+             WHERE id = ?`,
+            [
+              name, phone, barangay, address,
+              verificationStatus, isVerified, idType, idNumber,
+              avatarUrl, idImageUrl, rejectionReason,
+              incomingUpdatedAt, existing.id,
+            ]
+          );
+          usersUpdated++;
+        } else {
+          // Existing record is already newer or identical -> preserve live database state
+          usersSkipped++;
+        }
       }
     }
 
-    // ── Import concerns ───────────────────────────────────────────────────────────────────────────
+    // ── 5. Import & Auto-Update Concerns (Latest Data Only + Sanitization) ───────────
     for (const c of concerns) {
-      if (!c.id) { concernsSkipped++; continue; }
-      try {
+      if (!c || typeof c !== 'object') { concernsSkipped++; continue; }
+
+      const id = Number.isInteger(Number(c.id)) ? Number(c.id) : null;
+      if (!id || id <= 0) {
+        concernsSkipped++;
+        errors.push(`Concern skipped: invalid id`);
+        continue;
+      }
+
+      const title = typeof c.title === 'string' ? c.title.trim().slice(0, 500) : null;
+      if (!title) {
+        concernsSkipped++;
+        errors.push(`Concern id=${id} skipped: missing title`);
+        continue;
+      }
+
+      const description = typeof c.description === 'string' ? c.description.trim().slice(0, 5000) : '';
+      const category = typeof c.category === 'string' ? c.category.trim().slice(0, 100) : 'General';
+      const status = ['Pending', 'In Progress', 'Resolved', 'Rejected'].includes(c.status) ? c.status : 'Pending';
+      const priority = ['High', 'Medium', 'Low'].includes(c.priority) ? c.priority : 'Medium';
+
+      const locationAddress = typeof c.location_address === 'string'
+        ? c.location_address.trim().slice(0, 500)
+        : (typeof c.location === 'string' ? c.location.trim().slice(0, 500) : null);
+
+      const lat = parseFloat(c.location_lat || c.latitude);
+      const locationLat = (!isNaN(lat) && lat >= -90 && lat <= 90) ? lat : null;
+
+      const lng = parseFloat(c.location_lng || c.longitude);
+      const locationLng = (!isNaN(lng) && lng >= -180 && lng <= 180) ? lng : null;
+
+      const userId = Number.isInteger(Number(c.user_id)) && Number(c.user_id) > 0 ? Number(c.user_id) : null;
+      const userName = typeof c.user_name === 'string' ? c.user_name.trim().slice(0, 255) : null;
+      const userBarangay = typeof c.user_barangay === 'string' ? c.user_barangay.trim().slice(0, 255) : null;
+      const incidentBarangay = typeof c.incident_barangay === 'string' ? c.incident_barangay.trim().slice(0, 255) : null;
+      const adminNote = typeof c.admin_note === 'string' ? c.admin_note.trim().slice(0, 5000) : null;
+      const imageUrl = typeof c.image_url === 'string' ? c.image_url.trim().slice(0, 1000) : null;
+      const resolvedImageUrl = typeof c.resolved_image_url === 'string' ? c.resolved_image_url.trim().slice(0, 1000) : null;
+
+      const incomingCreatedAt = c.created_at && !isNaN(new Date(c.created_at).getTime())
+        ? new Date(c.created_at)
+        : new Date();
+      const incomingUpdatedAt = c.updated_at && !isNaN(new Date(c.updated_at).getTime())
+        ? new Date(c.updated_at)
+        : incomingCreatedAt;
+
+      // Check if concern already exists
+      const [existingConcerns] = await conn.query(
+        'SELECT id, updated_at FROM concerns WHERE id = ? LIMIT 1',
+        [id]
+      );
+
+      if (existingConcerns.length === 0) {
+        // Concern does not exist -> INSERT
         await conn.query(
           `INSERT INTO concerns
              (id, user_id, title, category, description, status, priority,
               location_address, location_lat, location_lng,
-              image_url, resolved_image_url, user_name, user_barangay,
+              image_url, resolved_image_url, user_name, user_barangay, incident_barangay,
               admin_note, created_at, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-           ON DUPLICATE KEY UPDATE
-             title            = VALUES(title),
-             category         = VALUES(category),
-             description      = VALUES(description),
-             status           = VALUES(status),
-             priority         = VALUES(priority),
-             location_address = VALUES(location_address),
-             admin_note       = VALUES(admin_note),
-             updated_at       = VALUES(updated_at)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            c.id, c.user_id || null,
-            c.title || null, c.category || null,
-            c.description || null,
-            c.status || 'Pending', c.priority || 'Medium',
-            c.location_address || c.location || null,
-            c.latitude  || c.location_lat  || null,
-            c.longitude || c.location_lng  || null,
-            c.image_url || null,
-            c.resolved_image_url || null,
-            c.user_name || null, c.user_barangay || null,
-            c.admin_note || null,
-            c.created_at || new Date(), c.updated_at || new Date(),
-          ],
+            id, userId, title, category, description, status, priority,
+            locationAddress, locationLat, locationLng,
+            imageUrl, resolvedImageUrl, userName, userBarangay, incidentBarangay,
+            adminNote, incomingCreatedAt, incomingUpdatedAt,
+          ]
         );
         concernsInserted++;
-      } catch (e) {
-        concernsSkipped++;
-        errors.push(`Concern id=${c.id}: ${e.message}`);
+      } else {
+        const existing = existingConcerns[0];
+        const existingTime = new Date(existing.updated_at).getTime();
+        const incomingTime = incomingUpdatedAt.getTime();
+
+        // 🌟 Freshness Check: Only update if imported data is strictly newer
+        if (incomingTime > existingTime) {
+          await conn.query(
+            `UPDATE concerns
+             SET title = ?, category = ?, description = ?, status = ?, priority = ?,
+                 location_address = ?, location_lat = ?, location_lng = ?,
+                 image_url = ?, resolved_image_url = ?, user_name = ?,
+                 user_barangay = ?, incident_barangay = ?, admin_note = ?,
+                 updated_at = ?
+             WHERE id = ?`,
+            [
+              title, category, description, status, priority,
+              locationAddress, locationLat, locationLng,
+              imageUrl, resolvedImageUrl, userName,
+              userBarangay, incidentBarangay, adminNote,
+              incomingUpdatedAt, id,
+            ]
+          );
+          concernsUpdated++;
+        } else {
+          // Existing record is already newer or identical -> preserve live database state
+          concernsSkipped++;
+        }
       }
+    }
+
+    // ── 6. Security Audit Trail ─────────────────────────────────────────────────────
+    try {
+      const adminId = req.user?.id || 0;
+      const details = JSON.stringify({
+        ip: req.ip,
+        filename: req.file?.originalname || 'upload.json',
+        usersInserted,
+        usersUpdated,
+        usersSkipped,
+        concernsInserted,
+        concernsUpdated,
+        concernsSkipped,
+        totalRows: usersInserted + usersUpdated + concernsInserted + concernsUpdated,
+      });
+
+      await conn.query(
+        `INSERT INTO audit_log (entity_type, entity_id, action, changed_by, new_value)
+         VALUES ('backup', 0, 'IMPORT_DATA', ?, ?)`,
+        [adminId, details]
+      );
+    } catch (auditErr) {
+      console.warn('[Backup] Audit logging non-fatal warning:', auditErr.message);
     }
 
     await conn.commit();
   } catch (err) {
     await conn.rollback();
     console.error('[Backup] Import rollback:', err.message);
-    return res.status(500).json({ error: `Import failed and was rolled back: ${err.message}` });
+    return res.status(500).json({ error: `Import failed and was rolled back securely: ${err.message}` });
   } finally {
     conn.release();
   }
 
-  console.log(`[Backup] ✅  Import complete — users: +${usersInserted} skipped:${usersSkipped}, concerns: +${concernsInserted} skipped:${concernsSkipped}`);
+  // ── 7. Auto-Update: Invalidate Cache & Broadcast Live Socket Event ───────────────
+  try {
+    invalidate('concerns', 'concern_detail', 'map_concerns', 'barangays');
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('concerns:updated');
+      io.to('admin').emit('backup:imported', {
+        usersInserted,
+        usersUpdated,
+        usersSkipped,
+        concernsInserted,
+        concernsUpdated,
+        concernsSkipped,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  } catch (syncErr) {
+    console.warn('[Backup] Post-import sync warning:', syncErr.message);
+  }
+
+  console.log(`[Backup] ✅ Secure Import complete — users: (+${usersInserted} ins, +${usersUpdated} upd, ${usersSkipped} skipped), concerns: (+${concernsInserted} ins, +${concernsUpdated} upd, ${concernsSkipped} skipped)`);
 
   return res.json({
     success: true,
     summary: {
       usersInserted,
+      usersUpdated,
       usersSkipped,
       concernsInserted,
+      concernsUpdated,
       concernsSkipped,
-      totalRows: usersInserted + concernsInserted,
-      errors: errors.slice(0, 20),   // cap at 20 error lines
+      totalInserted: usersInserted + concernsInserted,
+      totalUpdated: usersUpdated + concernsUpdated,
+      totalSkipped: usersSkipped + concernsSkipped,
+      totalRows: usersInserted + usersUpdated + concernsInserted + concernsUpdated,
+      securityVerified: true,
+      errors: errors.slice(0, 20),
     },
   });
 };
