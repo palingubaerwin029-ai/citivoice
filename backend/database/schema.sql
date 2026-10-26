@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS concerns (
   user_barangay      VARCHAR(255)  DEFAULT NULL,                  -- citizen home barangay snapshot
   incident_barangay  VARCHAR(255)  DEFAULT NULL,                  -- matched barangay of actual incident coordinates
   admin_note         TEXT          DEFAULT NULL,                  -- official response shown to the citizen
+  admin_viewed_at    DATETIME      DEFAULT NULL,                  -- timestamp when administrator first opened/viewed concern
   created_at         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_concerns_user_created     (user_id, created_at),

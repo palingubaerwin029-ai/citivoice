@@ -82,7 +82,12 @@ const run = async () => {
       console.log('✅ Added users.reset_otp');
     }
 
-
+    // 4. Ensure concern columns
+    if (!(await columnExists('concerns', 'admin_viewed_at'))) {
+      console.log('➕ Adding concerns.admin_viewed_at...');
+      await pool.query('ALTER TABLE concerns ADD COLUMN admin_viewed_at DATETIME DEFAULT NULL AFTER admin_note');
+      console.log('✅ Added concerns.admin_viewed_at');
+    }
 
     // 5. Recommended performance indexes
     const indexes = [

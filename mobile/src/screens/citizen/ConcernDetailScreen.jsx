@@ -317,17 +317,48 @@ export default function ConcernDetailScreen({ route, navigation }) {
                 {concern.priority}
               </Text>
             </View>
+            {concern.admin_viewed_at ? (
+              <View
+                style={[
+                  styles.priorityBadge,
+                  {
+                    backgroundColor: (colors.info || '#3B82F6') + '22',
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.priorityText,
+                    {
+                      color: colors.info || '#3B82F6',
+                    },
+                  ]}
+                >
+                  👁️ Viewed
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           <Text style={[styles.title, { color: colors.textPrimary }]}>{concern.title}</Text>
 
           {/* Date Filed */}
-          <View style={[styles.dateRow, { marginBottom: verticalScale(16) }]}>
+          <View style={[styles.dateRow, { marginBottom: concern.admin_viewed_at ? verticalScale(6) : verticalScale(16) }]}>
             <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
             <Text style={{ fontSize: rf(12), color: colors.textMuted, marginLeft: scale(6), fontWeight: '500' }}>
               {t('dateFiled')}: {fmt(concern.created_at)}
             </Text>
           </View>
+
+          {/* Admin Viewed Date */}
+          {concern.admin_viewed_at ? (
+            <View style={[styles.dateRow, { marginBottom: verticalScale(16) }]}>
+              <Ionicons name="eye-outline" size={14} color={colors.info || '#3B82F6'} />
+              <Text style={{ fontSize: rf(12), color: colors.info || '#3B82F6', marginLeft: scale(6), fontWeight: '600' }}>
+                Viewed by Admin: {fmt(concern.admin_viewed_at)}
+              </Text>
+            </View>
+          ) : null}
 
           {/* Description */}
           <View style={styles.section}>

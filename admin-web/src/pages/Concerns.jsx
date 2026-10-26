@@ -506,7 +506,38 @@ export default function Concerns() {
                         </td>
 
                         <td className={s.td} style={{ fontSize: 12 }}>
-                          {fmtDateShort(c.created_at)}
+                          <div style={{ fontWeight: 500 }}>{fmtDateShort(c.created_at)}</div>
+                          {c.admin_viewed_at ? (
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: '#3B82F6',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                marginTop: 2,
+                                fontWeight: 600,
+                              }}
+                              title={`Viewed by admin: ${fmtDateShort(c.admin_viewed_at)}`}
+                            >
+                              <span>👁️</span>
+                              <span>Viewed {fmtDateShort(c.admin_viewed_at)}</span>
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: 'var(--text-3, #94a3b8)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                marginTop: 2,
+                              }}
+                              title="Not yet viewed by admin"
+                            >
+                              <span>⏳ Unviewed</span>
+                            </div>
+                          )}
                         </td>
                         <td className={s.td}>
                           <button

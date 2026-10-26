@@ -378,6 +378,9 @@ const importJsonBackup = async (req, res) => {
       const userBarangay = typeof c.user_barangay === 'string' ? c.user_barangay.trim().slice(0, 255) : null;
       const incidentBarangay = typeof c.incident_barangay === 'string' ? c.incident_barangay.trim().slice(0, 255) : null;
       const adminNote = typeof c.admin_note === 'string' ? c.admin_note.trim().slice(0, 5000) : null;
+      const adminViewedAt = c.admin_viewed_at && !isNaN(new Date(c.admin_viewed_at).getTime())
+        ? new Date(c.admin_viewed_at)
+        : null;
       const imageUrl = typeof c.image_url === 'string' ? c.image_url.trim().slice(0, 1000) : null;
       const resolvedImageUrl = typeof c.resolved_image_url === 'string' ? c.resolved_image_url.trim().slice(0, 1000) : null;
 
@@ -401,13 +404,13 @@ const importJsonBackup = async (req, res) => {
              (id, user_id, title, category, description, status, priority,
               location_address, location_lat, location_lng,
               image_url, resolved_image_url, user_name, user_barangay, incident_barangay,
-              admin_note, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              admin_note, admin_viewed_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id, userId, title, category, description, status, priority,
             locationAddress, locationLat, locationLng,
             imageUrl, resolvedImageUrl, userName, userBarangay, incidentBarangay,
-            adminNote, incomingCreatedAt, incomingUpdatedAt,
+            adminNote, adminViewedAt, incomingCreatedAt, incomingUpdatedAt,
           ]
         );
         concernsInserted++;
@@ -424,6 +427,7 @@ const importJsonBackup = async (req, res) => {
                  location_address = ?, location_lat = ?, location_lng = ?,
                  image_url = ?, resolved_image_url = ?, user_name = ?,
                  user_barangay = ?, incident_barangay = ?, admin_note = ?,
+                 admin_viewed_at = COALESCE(?, admin_viewed_at),
                  updated_at = ?
              WHERE id = ?`,
             [
@@ -431,6 +435,7 @@ const importJsonBackup = async (req, res) => {
               locationAddress, locationLat, locationLng,
               imageUrl, resolvedImageUrl, userName,
               userBarangay, incidentBarangay, adminNote,
+              adminViewedAt,
               incomingUpdatedAt, id,
             ]
           );

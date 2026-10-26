@@ -121,6 +121,15 @@ export default function ConcernDetail() {
         }
 
         setConcern(cData);
+        if (!cData.admin_viewed_at) {
+          api.post(`/concerns/${id}/view`)
+            .then((vRes) => {
+              if (vRes?.admin_viewed_at) {
+                setConcern((prev) => (prev ? { ...prev, admin_viewed_at: vRes.admin_viewed_at } : prev));
+              }
+            })
+            .catch(() => {});
+        }
         setSelStatus(cData.status || 'Pending');
         setSelCategory(cData.category || 'Other');
         setSelPriority(cData.priority || 'Medium');
@@ -355,6 +364,25 @@ export default function ConcernDetail() {
                   );
                 })()}
 
+                {concern.admin_viewed_at && (
+                  <span
+                    className={s.badge}
+                    style={{
+                      background: 'rgba(59, 130, 246, 0.15)',
+                      color: '#3B82F6',
+                      border: '1px solid rgba(59, 130, 246, 0.35)',
+                      fontSize: 12,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      fontWeight: 600,
+                    }}
+                    title={`Admin viewed on ${fmtDate(concern.admin_viewed_at)}`}
+                  >
+                    <span>👁️</span>
+                    <span>Viewed {fmtDateShort(concern.admin_viewed_at)}</span>
+                  </span>
+                )}
               </div>
               <h2
                 style={{
@@ -390,6 +418,11 @@ export default function ConcernDetail() {
                   ),
               },
               { icon: '📅', label: 'Date Filed', value: fmtDate(concern.created_at) },
+              {
+                icon: '👁️',
+                label: 'Admin Viewed',
+                value: concern.admin_viewed_at ? fmtDate(concern.admin_viewed_at) : 'First Viewed Just Now',
+              },
             ].map((m, i) => (
               <div
                 key={i}

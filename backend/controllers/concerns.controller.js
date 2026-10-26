@@ -145,6 +145,29 @@ const getConcern = async (req, res) => {
     const concern = await selectConcernById(req.params.id);
     if (!concern) return res.status(404).json({ error: 'Concern not found' });
 
+    // When viewed by admin, record admin_viewed_at timestamp if not already set
+    if (req.user?.role === 'admin' && !concern.admin_viewed_at) {
+      const now = new Date();
+      try {
+        const pool = require('../db');
+        await pool.query('UPDATE concerns SET admin_viewed_at = ? WHERE id = ?', [now, concern.id]);
+        concern.admin_viewed_at = now;
+        invalidate('concerns', 'concern_detail', 'map_concerns');
+
+        const io = req.app?.get('io');
+        if (io) {
+          io.to('admin').emit('concern_updated', { id: concern.id, admin_viewed_at: now });
+          io.emit('concern_updated', { id: concern.id, admin_viewed_at: now });
+          if (concern.user_id) {
+            io.to(`user:${concern.user_id}`).emit('concern_viewed', { concernId: concern.id, admin_viewed_at: now });
+            io.to(`user:${concern.user_id}`).emit('concern_updated', { id: concern.id, admin_viewed_at: now });
+          }
+        }
+      } catch (viewErr) {
+        console.error('Failed to update admin_viewed_at on getConcern:', viewErr);
+      }
+    }
+
     // Attach linked/similar concerns for admin
     if (req.user.role === 'admin') {
       concern.linked_concerns = await selectLinkedConcerns(concern.id);
@@ -162,6 +185,37 @@ const getConcern = async (req, res) => {
   } catch (err) {
     console.error('Concern fetch error:', err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const markConcernViewed = async (req, res) => {
+  try {
+    const concernId = req.params.id;
+    const pool = require('../db');
+    const [rows] = await pool.query('SELECT id, user_id, admin_viewed_at FROM concerns WHERE id = ?', [concernId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Concern not found' });
+
+    let viewedAt = rows[0].admin_viewed_at;
+    if (!viewedAt) {
+      viewedAt = new Date();
+      await pool.query('UPDATE concerns SET admin_viewed_at = ? WHERE id = ?', [viewedAt, concernId]);
+      invalidate('concerns', 'concern_detail', 'map_concerns');
+
+      const io = req.app?.get('io');
+      if (io) {
+        io.to('admin').emit('concern_updated', { id: Number(concernId), admin_viewed_at: viewedAt });
+        io.emit('concern_updated', { id: Number(concernId), admin_viewed_at: viewedAt });
+        if (rows[0].user_id) {
+          io.to(`user:${rows[0].user_id}`).emit('concern_viewed', { concernId: Number(concernId), admin_viewed_at: viewedAt });
+          io.to(`user:${rows[0].user_id}`).emit('concern_updated', { id: Number(concernId), admin_viewed_at: viewedAt });
+        }
+      }
+    }
+
+    res.json({ success: true, admin_viewed_at: viewedAt });
+  } catch (err) {
+    console.error('markConcernViewed error:', err);
+    res.status(500).json({ error: 'Failed to mark concern as viewed' });
   }
 };
 
@@ -522,6 +576,9 @@ const editConcern = async (req, res) => {
     }
 
     if (!fields.length) return res.status(400).json({ error: 'Nothing to update' });
+    if (req.user?.role === 'admin') {
+      fields.push('admin_viewed_at = COALESCE(admin_viewed_at, NOW())');
+    }
     fields.push('updated_at = NOW()');
 
     await updateConcernFields(req.params.id, fields, values);
@@ -1078,6 +1135,7 @@ module.exports = {
   getMapConcerns,
   getConcernStats,
   getConcern,
+  markConcernViewed,
   createConcern,
   editConcern,
   removeConcern,

@@ -19,6 +19,7 @@ const {
   getMapConcerns,
   getConcernStats,
   getConcern,
+  markConcernViewed,
   createConcern,
   editConcern,
   removeConcern,
@@ -44,6 +45,9 @@ router.get('/map', auth, cacheMiddleware('map_concerns', 60), getMapConcerns);
 
 // ─── Get single concern (auth required, cached 60s) ──────────────────────────
 router.get('/:id', auth, validateIdParam, cacheMiddleware('concern_detail', 60), getConcern);
+
+// ─── Mark concern as viewed by admin ──────────────────────────────────────────
+router.post('/:id/view', auth, requireRole('admin'), validateIdParam, markConcernViewed);
 
 // ─── Submit new concern (checks attached picture alignment with AI) ────────────
 router.post('/', auth, upload.single('image'), validateConcern, createConcern);
