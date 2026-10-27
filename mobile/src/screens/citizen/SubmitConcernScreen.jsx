@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocation } from '../../hooks/useLocation';
@@ -1020,6 +1020,8 @@ export default function SubmitConcernScreen({ navigation, route }) {
                     <View style={styles.mapContainer}>
                       <MapView
                         ref={mapRef}
+                        provider={PROVIDER_GOOGLE}
+                        loadingEnabled={true}
                         style={styles.mapView}
                         initialRegion={{
                           latitude: location.latitude,
