@@ -1079,7 +1079,7 @@ const getComments = async (req, res) => {
     const pool = require('../db');
     // Fetch all discussion comments between citizens and administrators
     const [rows] = await pool.query(
-      `SELECT c.id, c.concern_id, c.user_id, c.user_name, c.comment, c.created_at,
+      `SELECT c.id, c.concern_id, c.user_id, c.user_name, c.comment, c.image_url, c.created_at,
               u.avatar_url, u.role as user_role
        FROM concern_comments c
        LEFT JOIN users u ON c.user_id = u.id
@@ -1096,9 +1096,11 @@ const getComments = async (req, res) => {
 
 const addComment = async (req, res) => {
   const concernId = req.params.id;
-  const { comment } = req.body;
-  if (!comment || !comment.trim()) {
-    return res.status(400).json({ error: 'Comment text is required' });
+  const text = (req.body.comment || '').trim();
+  const imageUrl = req.file ? `${BASE_URL()}/uploads/${req.file.filename}` : (req.body.image_url || null);
+
+  if (!text && !imageUrl) {
+    return res.status(400).json({ error: 'Comment text or image is required' });
   }
 
   try {
@@ -1107,9 +1109,9 @@ const addComment = async (req, res) => {
     const authorName = req.user?.name || (isAdmin ? 'Admin' : 'Citizen');
 
     const [result] = await pool.query(
-      `INSERT INTO concern_comments (concern_id, user_id, user_name, comment)
-       VALUES (?, ?, ?, ?)`,
-      [concernId, req.user?.id, authorName, comment.trim()]
+      `INSERT INTO concern_comments (concern_id, user_id, user_name, comment, image_url)
+       VALUES (?, ?, ?, ?, ?)`,
+      [concernId, req.user?.id, authorName, text || '', imageUrl]
     );
 
     const newComment = {
@@ -1118,7 +1120,8 @@ const addComment = async (req, res) => {
       user_id: req.user?.id,
       user_name: authorName,
       user_role: req.user?.role || (isAdmin ? 'admin' : 'citizen'),
-      comment: comment.trim(),
+      comment: text,
+      image_url: imageUrl,
       created_at: new Date().toISOString(),
     };
 

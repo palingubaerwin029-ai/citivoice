@@ -30,6 +30,14 @@ const autoMigrate = async () => {
       await pool.query('ALTER TABLE concerns ADD COLUMN is_validated TINYINT(1) DEFAULT 0 AFTER admin_note, ADD COLUMN validated_at DATETIME DEFAULT NULL AFTER is_validated, ADD COLUMN validated_by_name VARCHAR(255) DEFAULT NULL AFTER validated_at');
       console.log('✅ [AutoMigrate] Added concerns validation columns');
     }
+
+    // 4. Ensure concern_comments.image_url exists
+    const [commentImageCols] = await pool.query("SHOW COLUMNS FROM concern_comments LIKE 'image_url'");
+    if (commentImageCols.length === 0) {
+      console.log('➕ [AutoMigrate] Adding concern_comments.image_url...');
+      await pool.query('ALTER TABLE concern_comments ADD COLUMN image_url VARCHAR(1000) DEFAULT NULL AFTER comment');
+      console.log('✅ [AutoMigrate] Added concern_comments.image_url');
+    }
   } catch (err) {
     console.warn('⚠️ [AutoMigrate] Schema sync notice:', err.message);
   }

@@ -78,7 +78,7 @@ router.post('/upload/id-image', idUploadLimiter, upload.single('image'), uploadI
 
 // ─── Comments: Citizen discussion & internal admin notes ─────────────────────
 router.get('/:id/comments', auth, validateIdParam, getComments);
-router.post('/:id/comments', auth, validateIdParam, addComment);
+router.post('/:id/comments', auth, upload.single('image'), validateIdParam, addComment);
 
 // ─── Audit Log ────────────────────────────────────────────────────────────────
 router.get('/:id/audit', auth, requireRole('admin'), validateIdParam, getAudit);

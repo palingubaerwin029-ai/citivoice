@@ -14,11 +14,15 @@ import {
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
+  ActionSheetIOS,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system/legacy';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useConcerns } from '../../context/ConcernContext';
-import { useAuth, resolveImageUrl, mobileApi } from '../../context/AuthContext';
+import { useAuth, resolveImageUrl, mobileApi, BASE_URL } from '../../context/AuthContext';
+import { useImagePicker } from '../../hooks/useImagePicker';
 import { useLanguage } from '../../context/LanguageContext';
 import { StatusBadge, CategoryBadge } from '../../components/UI';
 import { getStatusConfig } from '../../utils/theme';
@@ -50,7 +54,47 @@ export default function ConcernDetailScreen({ route, navigation }) {
   const [assignments, setAssignments] = useState([]);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [commentImageUri, setCommentImageUri] = useState(null);
   const [posting, setPosting] = useState(false);
+  const { pickImage, takePhoto } = useImagePicker();
+
+  const handleAttachImage = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Photo', 'Choose from Library'],
+          cancelButtonIndex: 0,
+        },
+        async (buttonIndex) => {
+          if (buttonIndex === 1) {
+            const uri = await takePhoto();
+            if (uri) setCommentImageUri(uri);
+          } else if (buttonIndex === 2) {
+            const uri = await pickImage();
+            if (uri) setCommentImageUri(uri);
+          }
+        }
+      );
+    } else {
+      Alert.alert('Attach Photo', 'Select photo source', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Camera',
+          onPress: async () => {
+            const uri = await takePhoto();
+            if (uri) setCommentImageUri(uri);
+          },
+        },
+        {
+          text: 'Gallery',
+          onPress: async () => {
+            const uri = await pickImage();
+            if (uri) setCommentImageUri(uri);
+          },
+        },
+      ]);
+    }
+  };
 
   useEffect(() => {
     if (!isPositiveIntegerId) return;
@@ -90,15 +134,41 @@ export default function ConcernDetailScreen({ route, navigation }) {
   }, [concernId, isPositiveIntegerId]);
 
   const postComment = async () => {
-    if (!newComment.trim() || !isPositiveIntegerId) return;
+    if ((!newComment.trim() && !commentImageUri) || !isPositiveIntegerId) return;
     setPosting(true);
     try {
-      await mobileApi.post(`/concerns/${concernId}/comments`, { comment: newComment.trim() });
+      const token = await AsyncStorage.getItem('cv_token');
+      if (commentImageUri) {
+        const uploadResult = await FileSystem.uploadAsync(
+          `${BASE_URL}/concerns/${concernId}/comments`,
+          commentImageUri,
+          {
+            httpMethod: 'POST',
+            uploadType: 1, // MULTIPART
+            fieldName: 'image',
+            headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            parameters: {
+              comment: newComment.trim(),
+            },
+          }
+        );
+        if (uploadResult.status >= 400) {
+          let errJson = {};
+          try {
+            errJson = JSON.parse(uploadResult.body);
+          } catch (_) {}
+          throw new Error(errJson.error || 'Failed to post comment');
+        }
+      } else {
+        await mobileApi.post(`/concerns/${concernId}/comments`, { comment: newComment.trim() });
+      }
+
       setNewComment('');
+      setCommentImageUri(null);
       const cRes = await mobileApi.get(`/concerns/${concernId}/comments`);
       setComments(cRes.data || cRes || []);
     } catch (err) {
-      Alert.alert('Error', 'Failed to post comment');
+      Alert.alert('Error', err?.message || 'Failed to post comment');
     }
     setPosting(false);
   };
@@ -613,27 +683,139 @@ export default function ConcernDetailScreen({ route, navigation }) {
               {comments.length === 0 ? (
                 <Text style={{ color: colors.textMuted, fontSize: rf(13), textAlign: 'center' }}>No comments yet.</Text>
               ) : (
-                comments.map(c => (
-                  <View key={c.id} style={{ 
-                    padding: scale(12), 
-                    backgroundColor: colors.bgCard, 
-                    borderRadius: moderateScale(8),
-                    borderLeftWidth: 3,
-                    borderLeftColor: colors.primary
-                  }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: verticalScale(4) }}>
-                      <Text style={{ fontSize: rf(12), fontWeight: '600', color: colors.textPrimary }}>{c.user_name}</Text>
-                      <Text style={{ fontSize: rf(10), color: colors.textMuted }}>{fmt(c.created_at)}</Text>
+                comments.map(c => {
+                  const commentImgUri = resolveImageUrl(c.image_url);
+                  return (
+                    <View key={c.id} style={{ 
+                      padding: scale(12), 
+                      backgroundColor: colors.bgCard, 
+                      borderRadius: moderateScale(8),
+                      borderLeftWidth: 3,
+                      borderLeftColor: colors.primary
+                    }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: verticalScale(4) }}>
+                        <Text style={{ fontSize: rf(12), fontWeight: '600', color: colors.textPrimary }}>{c.user_name}</Text>
+                        <Text style={{ fontSize: rf(10), color: colors.textMuted }}>{fmt(c.created_at)}</Text>
+                      </View>
+                      {c.comment ? (
+                        <Text style={{ fontSize: rf(13), color: colors.textSecondary, lineHeight: rf(20) }}>
+                          {c.comment}
+                        </Text>
+                      ) : null}
+                      {commentImgUri ? (
+                        <TouchableOpacity
+                          activeOpacity={0.88}
+                          onPress={() => setModalImageUri(commentImgUri)}
+                          style={{
+                            marginTop: verticalScale(8),
+                            borderRadius: moderateScale(8),
+                            overflow: 'hidden',
+                            position: 'relative',
+                          }}
+                        >
+                          <Image
+                            source={{ uri: commentImgUri }}
+                            style={{
+                              width: '100%',
+                              height: verticalScale(160),
+                              borderRadius: moderateScale(8),
+                              backgroundColor: colors.border,
+                            }}
+                            resizeMode="cover"
+                          />
+                          <View
+                            style={{
+                              position: 'absolute',
+                              bottom: moderateScale(6),
+                              right: moderateScale(6),
+                              backgroundColor: 'rgba(0,0,0,0.6)',
+                              paddingHorizontal: scale(8),
+                              paddingVertical: verticalScale(3),
+                              borderRadius: moderateScale(10),
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: scale(4),
+                            }}
+                          >
+                            <Ionicons name="expand-outline" size={11} color="#fff" />
+                            <Text style={{ fontSize: rf(10), color: '#fff', fontWeight: '600' }}>Tap to view</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ) : null}
                     </View>
-                    <Text style={{ fontSize: rf(13), color: colors.textSecondary, lineHeight: rf(20) }}>
-                      {c.comment}
-                    </Text>
-                  </View>
-                ))
+                  );
+                })
               )}
             </View>
 
+            {/* Attached Image Thumbnail Preview */}
+            {commentImageUri ? (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: colors.bgCard,
+                  padding: scale(6),
+                  borderRadius: moderateScale(10),
+                  marginBottom: verticalScale(8),
+                  borderWidth: 1,
+                  borderColor: colors.primary + '55',
+                  alignSelf: 'flex-start',
+                  gap: scale(8),
+                }}
+              >
+                <Image
+                  source={{ uri: commentImageUri }}
+                  style={{
+                    width: scale(52),
+                    height: scale(52),
+                    borderRadius: moderateScale(6),
+                    backgroundColor: colors.border,
+                  }}
+                />
+                <View style={{ paddingRight: scale(6) }}>
+                  <Text style={{ fontSize: rf(11), color: colors.textPrimary, fontWeight: '600' }}>
+                    Photo attached
+                  </Text>
+                  <Text style={{ fontSize: rf(10), color: colors.textMuted }}>
+                    Ready to post with comment
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setCommentImageUri(null)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={{
+                    backgroundColor: colors.statusRejected + '22',
+                    padding: scale(4),
+                    borderRadius: scale(12),
+                    marginLeft: scale(4),
+                  }}
+                >
+                  <Ionicons name="close" size={14} color={colors.statusRejected} />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
             <View style={{ flexDirection: 'row', gap: scale(8), alignItems: 'center' }}>
+              <TouchableOpacity
+                onPress={handleAttachImage}
+                style={{
+                  backgroundColor: commentImageUri ? colors.primary + '22' : colors.bgCard,
+                  padding: scale(10),
+                  borderRadius: scale(20),
+                  borderWidth: 1,
+                  borderColor: commentImageUri ? colors.primary : colors.border,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons
+                  name={commentImageUri ? 'image' : 'camera-outline'}
+                  size={19}
+                  color={commentImageUri ? colors.primary : colors.textMuted}
+                />
+              </TouchableOpacity>
+
               <TextInput 
                 style={{ 
                   flex: 1, 
@@ -646,25 +828,29 @@ export default function ConcernDetailScreen({ route, navigation }) {
                   borderWidth: 1,
                   borderColor: colors.border
                 }}
-                placeholder="Add a comment..."
+                placeholder={commentImageUri ? "Add a caption (optional)..." : "Add a comment..."}
                 placeholderTextColor={colors.textMuted}
                 value={newComment}
                 onChangeText={setNewComment}
               />
               <TouchableOpacity 
                 style={{ 
-                  backgroundColor: newComment.trim() ? colors.primary : colors.bgCard,
+                  backgroundColor: (newComment.trim() || commentImageUri) ? colors.primary : colors.bgCard,
                   padding: scale(10),
                   borderRadius: scale(20),
                   opacity: posting ? 0.7 : 1
                 }}
                 onPress={postComment}
-                disabled={!newComment.trim() || posting}
+                disabled={(!newComment.trim() && !commentImageUri) || posting}
               >
                 {posting ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Ionicons name="send" size={18} color={newComment.trim() ? '#fff' : colors.textMuted} />
+                  <Ionicons
+                    name="send"
+                    size={18}
+                    color={(newComment.trim() || commentImageUri) ? '#fff' : colors.textMuted}
+                  />
                 )}
               </TouchableOpacity>
             </View>

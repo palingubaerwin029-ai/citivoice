@@ -145,6 +145,7 @@ CREATE TABLE IF NOT EXISTS concern_comments (
   user_id    INT          NOT NULL,
   user_name  VARCHAR(255) DEFAULT NULL,
   comment    TEXT         NOT NULL,
+  image_url  VARCHAR(1000) DEFAULT NULL,
   created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_comments_concern_created (concern_id, created_at),
   KEY fk_concern_comments_user     (user_id),

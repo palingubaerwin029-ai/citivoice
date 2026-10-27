@@ -795,9 +795,35 @@ export default function ConcernDetail() {
                             {fmtDateShort(c.created_at)}
                           </span>
                         </div>
-                        <div style={{ fontSize: 13, color: 'var(--text-2, #cbd5e1)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
-                          {c.comment}
-                        </div>
+                        {c.comment && (
+                          <div style={{ fontSize: 13, color: 'var(--text-2, #cbd5e1)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                            {c.comment}
+                          </div>
+                        )}
+                        {c.image_url && (
+                          <div style={{ marginTop: 8 }}>
+                            <img
+                              src={resolveImageUrl(c.image_url)}
+                              alt="Attached by citizen"
+                              onClick={() => {
+                                setLightboxTitle(`Attached Photo — ${c.user_name || 'Citizen'}`);
+                                setLightboxImg(resolveImageUrl(c.image_url));
+                              }}
+                              style={{
+                                maxWidth: 220,
+                                maxHeight: 160,
+                                borderRadius: 8,
+                                border: '1px solid var(--border, rgba(255,255,255,0.12))',
+                                objectFit: 'cover',
+                                cursor: 'zoom-in',
+                                display: 'block',
+                                transition: 'transform 0.2s ease',
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
+                              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                            />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
