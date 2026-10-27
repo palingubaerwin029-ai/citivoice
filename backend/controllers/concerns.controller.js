@@ -166,11 +166,9 @@ const getConcern = async (req, res) => {
 
         const io = req.app?.get('io');
         if (io) {
-          io.to('admin').emit('concern_updated', { id: concern.id, admin_viewed_at: now });
           io.emit('concern_updated', { id: concern.id, admin_viewed_at: now });
           if (concern.user_id) {
             io.to(`user:${concern.user_id}`).emit('concern_viewed', { concernId: concern.id, admin_viewed_at: now });
-            io.to(`user:${concern.user_id}`).emit('concern_updated', { id: concern.id, admin_viewed_at: now });
           }
         }
       } catch (viewErr) {
@@ -223,11 +221,9 @@ const markConcernViewed = async (req, res) => {
 
       const io = req.app?.get('io');
       if (io) {
-        io.to('admin').emit('concern_updated', { id: Number(concernId), admin_viewed_at: viewedAt });
         io.emit('concern_updated', { id: Number(concernId), admin_viewed_at: viewedAt });
         if (rows[0].user_id) {
           io.to(`user:${rows[0].user_id}`).emit('concern_viewed', { concernId: Number(concernId), admin_viewed_at: viewedAt });
-          io.to(`user:${rows[0].user_id}`).emit('concern_updated', { id: Number(concernId), admin_viewed_at: viewedAt });
         }
       }
     }
@@ -550,11 +546,9 @@ const createConcern = async (req, res) => {
     
     const io = req.app.get('io');
     
-    // Broadcast via socket to admin portal
+    // Broadcast via socket to admin portal and connected clients (emit once)
     if (io) {
-      io.to('admin').emit('new_concern', newConcern);
       io.emit('new_concern', newConcern);
-      io.to(`user:${req.user.id}`).emit('new_concern', newConcern);
       io.emit('concern_stats_updated', { concernId: newConcern.id, userId: req.user.id });
     }
 
@@ -743,9 +737,8 @@ const editConcern = async (req, res) => {
 
 
     
-    // Broadcast via socket to admin portal
+    // Broadcast via socket to admin portal and clients
     if (io) {
-      io.to('admin').emit('update_concern', updatedConcern);
       io.emit('update_concern', updatedConcern);
       io.emit('concern_updated', updatedConcern);
       if (updatedConcern.user_id) {

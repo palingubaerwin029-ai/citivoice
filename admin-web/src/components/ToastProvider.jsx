@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 const ToastContext = createContext(null);
 
@@ -24,15 +24,23 @@ export default function ToastProvider({ children }) {
 
   const addToast = useCallback((message, type = 'success', duration = 4500) => {
     const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, message, type, exiting: false }]);
+    setToasts((prev) => {
+      // Prevent duplicate identical toasts from appearing concurrently
+      if (prev.some((t) => t.message === message && !t.exiting)) {
+        return prev;
+      }
+      return [...prev, { id, message, type, exiting: false }];
+    });
 
     setTimeout(() => {
       removeToast(id);
     }, duration);
   }, [removeToast]);
 
+  const contextValue = useMemo(() => ({ addToast, removeToast }), [addToast, removeToast]);
+
   return (
-    <ToastContext.Provider value={{ addToast, removeToast }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       {/* Keyframe animation injection for smooth slide-in */}
       <style>{`

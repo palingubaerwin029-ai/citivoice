@@ -31,6 +31,7 @@ export function NotificationProvider({ children }) {
   const [soundOn, setSoundOn] = useState(isSoundEnabled);
   const [isRinging, setIsRinging] = useState(false);
   const ringTimeoutRef = useRef(null);
+  const processedConcernsRef = useRef(new Set());
 
   // Sync read IDs with localStorage
   const markAsRead = useCallback((id) => {
@@ -104,8 +105,16 @@ export function NotificationProvider({ children }) {
       .get('/concerns', { limit: 15 })
       .then((data) => {
         if (!mounted) return;
-        const list = Array.isArray(data) ? data : data?.concerns || [];
-        setNotifications(list);
+        const list = Array.isArray(data) ? data : (data?.data || data?.concerns || []);
+        const seen = new Set();
+        const unique = [];
+        for (const item of list) {
+          if (item?.id && !seen.has(item.id)) {
+            seen.add(item.id);
+            unique.push(item);
+          }
+        }
+        setNotifications(unique);
       })
       .catch((err) => {
         console.warn('[Notifications] Failed to fetch initial concerns:', err);
@@ -120,6 +129,15 @@ export function NotificationProvider({ children }) {
   useEffect(() => {
     const handleNewConcern = (concern) => {
       if (!concern || !concern.id) return;
+
+      // De-duplicate: ignore if concern was already processed in the last 10 seconds
+      if (processedConcernsRef.current.has(concern.id)) {
+        return;
+      }
+      processedConcernsRef.current.add(concern.id);
+      setTimeout(() => {
+        processedConcernsRef.current.delete(concern.id);
+      }, 10000);
 
       console.log('[NotificationContext] 🔔 New concern received:', concern.title);
 
