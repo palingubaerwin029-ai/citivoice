@@ -21,7 +21,18 @@ const apiRequest = async (path, options = {}) => {
     ...options.headers,
   };
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
-  const data = await res.json();
+  const rawText = await res.text();
+  let data = {};
+  try {
+    data = rawText ? JSON.parse(rawText) : {};
+  } catch (_) {
+    if (!res.ok) {
+      const error = new Error(`Server temporarily unavailable (${res.status})`);
+      error.status = res.status;
+      throw error;
+    }
+    throw new Error('Invalid server response format');
+  }
   if (!res.ok) {
     const error = new Error(data.error || 'Request failed');
     error.code = data.error;
