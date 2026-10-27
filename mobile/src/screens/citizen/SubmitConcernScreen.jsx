@@ -345,6 +345,8 @@ export default function SubmitConcernScreen({ navigation, route }) {
         imageUri,
         location: finalLocation,
         id: res?.id || res?.data?.id || null,
+        status: res?.status || 'Pending',
+        admin_note: res?.admin_note || null,
         offline: !!(res && res.offline),
       });
       setSubmitted(true);
@@ -416,51 +418,112 @@ export default function SubmitConcernScreen({ navigation, route }) {
       submittedData?.location?.address || location?.address || manualAddress || 'Kabankalan City';
     const displayPriority = submittedData?.priority || form.priority || 'Medium';
 
+    const isAutoRejected =
+      submittedData?.status === 'Rejected' ||
+      (submittedData?.admin_note && submittedData.admin_note.includes('Outside City Jurisdiction'));
+
     return (
       <SafeAreaView style={[styles.successSafeArea, { backgroundColor: colors.bgDeep }]}>
         <ScrollView
           contentContainerStyle={styles.successScrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* 🌟 Glowing Celebration Emblem */}
+          {/* 🌟 Celebration / Status Emblem */}
           <View style={styles.celebrationWrap}>
-            <View style={[styles.celebrationHaloOuter, { backgroundColor: 'rgba(16, 185, 129, 0.08)' }]}>
-              <View style={[styles.celebrationHaloMid, { backgroundColor: 'rgba(16, 185, 129, 0.16)' }]}>
+            <View
+              style={[
+                styles.celebrationHaloOuter,
+                {
+                  backgroundColor: isAutoRejected
+                    ? 'rgba(239, 68, 68, 0.08)'
+                    : 'rgba(16, 185, 129, 0.08)',
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.celebrationHaloMid,
+                  {
+                    backgroundColor: isAutoRejected
+                      ? 'rgba(239, 68, 68, 0.16)'
+                      : 'rgba(16, 185, 129, 0.16)',
+                  },
+                ]}
+              >
                 <LinearGradient
-                  colors={['#10B981', '#059669']}
+                  colors={isAutoRejected ? ['#EF4444', '#DC2626'] : ['#10B981', '#059669']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.celebrationCoreCircle}
                 >
-                  <Ionicons name="checkmark-sharp" size={scale(40)} color="#FFFFFF" />
+                  <Ionicons
+                    name={isAutoRejected ? 'close-sharp' : 'checkmark-sharp'}
+                    size={scale(40)}
+                    color="#FFFFFF"
+                  />
                 </LinearGradient>
               </View>
             </View>
           </View>
 
-          {/* 📣 Celebration Heading */}
-          <Text style={[styles.successHeadline, { color: colors.textPrimary }]}>
-            {wasSavedOffline ? t('submittedOffline') : t('submitted')}
+          {/* 📣 Heading & Subtext */}
+          <Text style={[styles.successHeadline, { color: isAutoRejected ? colors.danger : colors.textPrimary }]}>
+            {isAutoRejected
+              ? 'Report Automatically Rejected'
+              : wasSavedOffline
+                ? t('submittedOffline')
+                : t('submitted')}
           </Text>
           <Text style={[styles.successSubtext, { color: colors.textSecondary }]}>
-            {wasSavedOffline
-              ? t('submittedOfflineMsg')
-              : 'Your civic report has been received and routed for official municipal review.'}
+            {isAutoRejected
+              ? (submittedData?.admin_note || 'This concern was automatically rejected because the reported location is outside Kabankalan City jurisdiction.')
+              : wasSavedOffline
+                ? t('submittedOfflineMsg')
+                : 'Your civic report has been received and routed for official municipal review.'}
           </Text>
 
           {/* 🏛️ Official Docket Receipt Card */}
-          <View style={[styles.receiptCard, { backgroundColor: colors.bgCard, borderColor: colors.borderMd }]}>
+          <View style={[styles.receiptCard, { backgroundColor: colors.bgCard, borderColor: isAutoRejected ? colors.danger + '44' : colors.borderMd }]}>
             {/* Card Header Strip */}
             <View style={styles.receiptHeaderRow}>
               <View style={styles.receiptSealGroup}>
-                <Ionicons name="shield-checkmark" size={rf(15)} color={colors.primary} />
-                <Text style={[styles.receiptSealText, { color: colors.primaryLight }]}>
-                  {wasSavedOffline ? 'OFFLINE CIVIC QUEUE' : 'OFFICIAL MUNICIPAL DOCKET'}
+                <Ionicons
+                  name={isAutoRejected ? 'alert-circle' : 'shield-checkmark'}
+                  size={rf(15)}
+                  color={isAutoRejected ? colors.danger : colors.primary}
+                />
+                <Text style={[styles.receiptSealText, { color: isAutoRejected ? colors.danger : colors.primaryLight }]}>
+                  {isAutoRejected
+                    ? 'AUTO-VALIDATION RECORD'
+                    : wasSavedOffline
+                      ? 'OFFLINE CIVIC QUEUE'
+                      : 'OFFICIAL MUNICIPAL DOCKET'}
                 </Text>
               </View>
-              <View style={[styles.receiptStatusPill, { backgroundColor: 'rgba(245, 158, 11, 0.14)' }]}>
-                <View style={styles.pulsingStatusDot} />
-                <Text style={styles.receiptStatusText}>Pending Review</Text>
+              <View
+                style={[
+                  styles.receiptStatusPill,
+                  {
+                    backgroundColor: isAutoRejected
+                      ? 'rgba(239, 68, 68, 0.16)'
+                      : 'rgba(245, 158, 11, 0.14)',
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.pulsingStatusDot,
+                    isAutoRejected && { backgroundColor: colors.danger },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.receiptStatusText,
+                    isAutoRejected && { color: colors.danger },
+                  ]}
+                >
+                  {isAutoRejected ? 'Rejected (Outside Bounds)' : 'Pending Review'}
+                </Text>
               </View>
             </View>
 
@@ -1050,6 +1113,37 @@ export default function SubmitConcernScreen({ navigation, route }) {
                               <Text style={[styles.coordsText, { color: colors.textMuted }]}>
                                 {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
                               </Text>
+                              {/* Boundary check warning */}
+                              {(location.latitude < 9.55 ||
+                                location.latitude > 10.15 ||
+                                location.longitude < 122.68 ||
+                                location.longitude > 123.05) && (
+                                <View
+                                  style={{
+                                    marginTop: verticalScale(6),
+                                    padding: scale(6),
+                                    borderRadius: moderateScale(6),
+                                    backgroundColor: colors.danger + '18',
+                                    borderColor: colors.danger + '40',
+                                    borderWidth: 1,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    gap: scale(4),
+                                  }}
+                                >
+                                  <Ionicons name="warning" size={14} color={colors.danger} />
+                                  <Text
+                                    style={{
+                                      fontSize: rf(10.5),
+                                      color: colors.danger,
+                                      fontWeight: '600',
+                                      flex: 1,
+                                    }}
+                                  >
+                                    Outside Kabankalan City. Reports outside the city boundary will be automatically rejected.
+                                  </Text>
+                                </View>
+                              )}
                             </>
                           )}
                         </View>

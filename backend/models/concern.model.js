@@ -146,6 +146,9 @@ const insertConcern = async (data) => {
       user_barangay,
     });
 
+  const status = data.status || 'Pending';
+  const admin_note = data.admin_note || null;
+
   const [result] = await pool.query(
     `INSERT INTO concerns
        (title, description, category, priority, status, image_url,
@@ -153,12 +156,13 @@ const insertConcern = async (data) => {
         user_id, user_name, user_barangay, incident_barangay, admin_note,
         department,
         created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NOW(), NOW())`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
     [
       title,
       description,
       category,
       priority || 'Medium',
+      status,
       image_url,
       location_address || null,
       location_lat || null,
@@ -167,6 +171,7 @@ const insertConcern = async (data) => {
       user_name || null,
       user_barangay || null,
       incident_barangay || null,
+      admin_note,
       department || null,
     ],
   );

@@ -7,6 +7,7 @@ const { findSimilarConcerns } = require('../services/similarityService');
 const { generateText, isAvailable: isGeminiAvailable } = require('../services/groqService');
 const { cacheMiddleware, invalidate } = require('../middleware/cache');
 const { validateConcern, validateIdParam } = require('../middleware/validate');
+const { isInsideKabankalan } = require('../utils/barangayGeo');
 const {
   selectAllConcerns,
   countConcerns,
@@ -392,55 +393,92 @@ const createConcern = async (req, res) => {
     ? null
     : resolveDepartment(finalCategory, finalPriority);
 
+  // ─── Feature 5: Jurisdiction Validation (Kabankalan City Bounds) ─────────
+  const geoCheck = isInsideKabankalan({ location_address, location_lat, location_lng });
+  const isOutsideCity = !geoCheck.inside;
+
+  let initialStatus = 'Pending';
+  let initialAdminNote = null;
+
+  if (isOutsideCity) {
+    initialStatus = 'Rejected';
+    initialAdminNote = `[Auto-Rejected: Outside City Jurisdiction] ${geoCheck.reason || 'This concern is located outside Kabankalan City.'} Only concerns within Kabankalan City jurisdiction are accepted for municipal action.`;
+    console.log(`[Jurisdiction] Concern "${title}" automatically REJECTED: ${geoCheck.reason}`);
+  } else if (isNotTypical) {
+    initialAdminNote = `[AI Flag: Not a typical concern] ${validityReason || 'Photo/text does not match a municipal concern category.'} Needs admin review.`;
+  }
+
   const insertId = await insertConcern({
-      title,
-      description,
-      category: finalCategory,
-      priority: finalPriority,
-      image_url,
-      location_address,
-      location_lat,
-      location_lng,
-      user_id: req.user.id,
-      user_name,
-      user_barangay,
-      department,
-    });
-    invalidate('concerns', 'concern_detail', 'map_concerns');
+    title,
+    description,
+    category: finalCategory,
+    priority: finalPriority,
+    status: initialStatus,
+    admin_note: initialAdminNote,
+    image_url,
+    location_address,
+    location_lat,
+    location_lng,
+    user_id: req.user.id,
+    user_name,
+    user_barangay,
+    department: isOutsideCity ? 'City Administration' : department,
+  });
+  invalidate('concerns', 'concern_detail', 'map_concerns');
 
-    if (isNotTypical) {
-      await updateConcernFields(
-        insertId,
-        ['admin_note = ?'],
-        [`[AI Flag: Not a typical concern] ${validityReason || 'Photo/text does not match a municipal concern category.'} Needs admin review.`],
-      );
-    } else if (finalPriority === 'High') {
-      console.log(`[Priority] High-priority concern #${insertId} flagged. Awaiting Admin validation for urgent response bypass.`);
+  if (isOutsideCity) {
+    logAudit(
+      'concern',
+      insertId,
+      'AUTO_REJECT_OUTSIDE_JURISDICTION',
+      null,
+      'System Auto-Validation',
+      null,
+      { status: 'Rejected', reason: geoCheck.reason }
+    );
 
-      // Notify citizen immediately that high priority report was received and is awaiting admin validation
-      setImmediate(async () => {
-        try {
-          if (req.user?.id) {
-            await insertNotification(
-              req.user.id,
-              '⚠️ Urgent Hazard Received — Awaiting Admin Validation',
-              `Your urgent report "${title}" has been flagged as High Priority. It is currently awaiting Admin validation for immediate emergency response dispatch.`,
-              insertId,
-            );
-          }
-        } catch (notifErr) {
-          console.error('[Notification] Error creating citizen high-priority received notif:', notifErr.message);
-        }
-      });
-    }
-
-    // ─── Feature 3: Duplicate Detection (async, non-blocking) ─────────────
+    // Notify citizen immediately that concern was automatically rejected
     setImmediate(async () => {
       try {
-        if (isNotTypical) return;
-        const allConcerns = await selectAllConcerns();
-        const newConcern = await selectConcernById(insertId);
-        if (!newConcern) return;
+        if (req.user?.id) {
+          await insertNotification(
+            req.user.id,
+            '❌ Concern Automatically Rejected — Outside Kabankalan City',
+            `Your report "${title}" was automatically rejected because the reported location is outside Kabankalan City jurisdiction (${geoCheck.reason}).`,
+            insertId,
+          );
+        }
+      } catch (notifErr) {
+        console.error('[Notification] Error creating citizen auto-reject notif:', notifErr.message);
+      }
+    });
+  } else if (finalPriority === 'High') {
+    console.log(`[Priority] High-priority concern #${insertId} flagged. Awaiting Admin validation for urgent response bypass.`);
+
+    // Notify citizen immediately that high priority report was received and is awaiting admin validation
+    setImmediate(async () => {
+      try {
+        if (req.user?.id) {
+          await insertNotification(
+            req.user.id,
+            '⚠️ Urgent Hazard Received — Awaiting Admin Validation',
+            `Your urgent report "${title}" has been flagged as High Priority. It is currently awaiting Admin validation for immediate emergency response dispatch.`,
+            insertId,
+          );
+        }
+      } catch (notifErr) {
+        console.error('[Notification] Error creating citizen high-priority received notif:', notifErr.message);
+      }
+    });
+  }
+
+  // ─── Feature 3: Duplicate Detection (async, non-blocking) ─────────────
+  setImmediate(async () => {
+    try {
+      if (isNotTypical || isOutsideCity) return;
+      const allConcerns = await selectAllConcerns();
+      const newConcern = await selectConcernById(insertId);
+      if (!newConcern) return;
 
         const similar = findSimilarConcerns(newConcern, allConcerns);
         let isDuplicate = false;

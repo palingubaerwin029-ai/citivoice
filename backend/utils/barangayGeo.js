@@ -82,7 +82,82 @@ function getIncidentBarangay({ location_address, location_lat, location_lng, use
   return user_barangay || 'Barangay 1';
 }
 
+// Bounding box for Kabankalan City, Negros Occidental
+const KABANKALAN_BOUNDS = {
+  minLat: 9.55,
+  maxLat: 10.15,
+  minLng: 122.68,
+  maxLng: 123.05,
+};
+
+// Neighboring or other known outside cities/municipalities
+const OUTSIDE_CITIES_REGEX = /\b(Bacolod|Himamaylan|Binalbagan|Cauayan|Ilog|Candoni|Sipalay|Hinoba-an|San Enrique|Valladolid|Pontevedra|La Carlota|Moises Padilla|Isabela|Dumaguete|Mabinay|Bais|Manjuyod|Tanjay|Cebu|Iloilo|Manila|Quezon City|Davao)\b/i;
+
+function isInsideKabankalan({ location_address, location_lat, location_lng }) {
+  const lat = parseFloat(location_lat);
+  const lng = parseFloat(location_lng);
+  const hasCoords = !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+
+  if (hasCoords) {
+    // 1. Check latitude and longitude bounding box
+    if (
+      lat < KABANKALAN_BOUNDS.minLat ||
+      lat > KABANKALAN_BOUNDS.maxLat ||
+      lng < KABANKALAN_BOUNDS.minLng ||
+      lng > KABANKALAN_BOUNDS.maxLng
+    ) {
+      return {
+        inside: false,
+        reason: `Coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)}) are outside the geographical boundary of Kabankalan City.`,
+      };
+    }
+
+    // 2. Compute minimum distance to any known Kabankalan barangay center
+    let minDistanceKm = Infinity;
+    for (const b of KABANKALAN_BARANGAY_COORDS) {
+      const R = 6371; // km
+      const dLat = (b.lat - lat) * (Math.PI / 180);
+      const dLng = (b.lng - lng) * (Math.PI / 180);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat * (Math.PI / 180)) *
+          Math.cos(b.lat * (Math.PI / 180)) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const dist = R * c;
+      if (dist < minDistanceKm) {
+        minDistanceKm = dist;
+      }
+    }
+
+    // Furthest reaches of mountainous barangays (Tan-awan/Camingawan/Tagukon) are within ~22 km
+    if (minDistanceKm > 22) {
+      return {
+        inside: false,
+        reason: `Location is approx. ${minDistanceKm.toFixed(1)} km away from the nearest Kabankalan City barangay.`,
+      };
+    }
+  }
+
+  // 3. Check address text keywords
+  const address = (location_address || '').trim();
+  if (address) {
+    // If the address explicitly mentions another municipality/city and DOES NOT mention Kabankalan
+    if (OUTSIDE_CITIES_REGEX.test(address) && !/Kabankalan/i.test(address)) {
+      const match = address.match(OUTSIDE_CITIES_REGEX);
+      return {
+        inside: false,
+        reason: `Address refers to ${match ? match[0] : 'another municipality'}, which is outside Kabankalan City jurisdiction.`,
+      };
+    }
+  }
+
+  return { inside: true };
+}
+
 module.exports = {
   KABANKALAN_BARANGAY_COORDS,
   getIncidentBarangay,
+  isInsideKabankalan,
 };
