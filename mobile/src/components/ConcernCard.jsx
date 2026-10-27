@@ -96,14 +96,6 @@ export default function ConcernCard({ concern, onPress }) {
             </Text>
           </View>
         ) : null}
-
-        <View style={{ flex: 1 }} />
-
-        {/* Date */}
-        <View style={S.dateWrap}>
-          <Ionicons name="time-outline" size={11} color={colors.textMuted} />
-          <Text style={[S.dateText, { color: colors.textMuted }]}>{fmt(concern.created_at)}</Text>
-        </View>
       </View>
 
       {/* ── Title & Content ── */}
