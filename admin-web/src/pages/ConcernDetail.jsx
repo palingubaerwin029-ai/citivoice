@@ -19,6 +19,13 @@ const STATUSES = [
   { key: 'Rejected', icon: '❌', label: 'Rejected' },
 ];
 
+const STATUS_ORDER = {
+  Pending: 0,
+  'In Progress': 1,
+  Resolved: 2,
+  Rejected: 2,
+};
+
 const CATEGORIES = [
   'Road & Infrastructure',
   'Electricity',
@@ -227,7 +234,31 @@ export default function ConcernDetail() {
     setSaving(false);
   };
 
-  const handleAiGenerate = async () => {
+  const isStatusDisabled = (stKey) => {
+    const savedStatus = concern?.status || 'Pending';
+    const effectiveStatus = selStatus || savedStatus;
+
+    const savedOrder = STATUS_ORDER[savedStatus] ?? 0;
+    const currentOrder = STATUS_ORDER[effectiveStatus] ?? 0;
+    const maxOrder = Math.max(savedOrder, currentOrder);
+
+    // If the status is strictly before the current or reached status, it cannot be clicked
+    if ((STATUS_ORDER[stKey] ?? 0) < maxOrder) {
+      return true;
+    }
+
+    // Terminal statuses in DB cannot switch to other statuses
+    if (savedStatus === 'Resolved' && stKey !== 'Resolved') {
+      return true;
+    }
+    if (savedStatus === 'Rejected' && stKey !== 'Rejected') {
+      return true;
+    }
+
+    return false;
+  };
+
+  const handleAiGenerate = async (isAuto = false) => {
     setAiGenerating(true);
     try {
       const result = await api.post(`/concerns/${id}/ai-response`);
@@ -235,9 +266,22 @@ export default function ConcernDetail() {
         setNote(result.response);
       }
     } catch (err) {
-      alert('AI generation failed: ' + err.message);
+      console.warn('AI generation notice:', err.message);
+      if (!isAuto) {
+        alert('AI generation failed: ' + err.message);
+      }
     }
     setAiGenerating(false);
+  };
+
+  const handleSelectStatus = async (statusKey) => {
+    if (isStatusDisabled(statusKey)) return;
+    setSelStatus(statusKey);
+
+    // Auto AI draft when clicking In Progress
+    if (statusKey === 'In Progress') {
+      await handleAiGenerate(true);
+    }
   };
 
   const handleAddComment = async () => {
@@ -939,19 +983,27 @@ export default function ConcernDetail() {
                 <div className={cd.statusGrid}>
                   {STATUSES.map((st) => {
                     const active = selStatus === st.key;
+                    const disabled = isStatusDisabled(st.key);
                     const c = SC[st.key];
                     return (
                       <button
                         key={st.key}
-                        className={`${cd.statusBtn} ${active ? cd.statusBtnActive : ''}`}
+                        disabled={disabled}
+                        title={disabled ? 'Previous status cannot be selected' : `Set status to ${st.label}`}
+                        className={`${cd.statusBtn} ${active ? cd.statusBtnActive : ''} ${disabled ? cd.statusBtnDisabled : ''}`}
                         style={{
                           background: active ? c + '18' : 'var(--surface-3)',
                           border: `1px solid ${active ? c : 'var(--border)'}`,
                           color: active ? c : 'var(--text-2)',
+                          opacity: disabled ? 0.35 : 1,
+                          cursor: disabled ? 'not-allowed' : 'pointer',
                         }}
-                        onClick={() => setSelStatus(st.key)}
+                        onClick={() => handleSelectStatus(st.key)}
                       >
                         <span>{st.icon}</span> {st.label}
+                        {disabled && (
+                          <span style={{ fontSize: 10, marginLeft: 4, opacity: 0.7 }} title="Previous status cannot be selected">🔒</span>
+                        )}
                       </button>
                     );
                   })}
@@ -963,7 +1015,7 @@ export default function ConcernDetail() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <span className={s.sectionLabel}>Official Response (Visible to citizen)</span>
                   <button
-                    onClick={handleAiGenerate}
+                    onClick={() => handleAiGenerate(false)}
                     disabled={aiGenerating}
                     className={`${cd.aiDraftBtn} ${aiGenerating ? cd.aiDraftBtnGenerating : ''}`}
                     style={{ fontSize: 11, padding: '3px 8px' }}
@@ -979,7 +1031,7 @@ export default function ConcernDetail() {
                   onChange={(e) => {
                     setNote(e.target.value);
                   }}
-                  placeholder="e.g. Road crew dispatched. Expected completion: Dec 15. Thank you for your report."
+                  placeholder={aiGenerating ? "✨ Generating official AI response draft..." : "e.g. Road crew dispatched. Expected completion: Dec 15. Thank you for your report."}
                   rows={5}
                   style={{
                     minHeight: 130,

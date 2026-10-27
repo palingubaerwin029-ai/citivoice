@@ -559,7 +559,15 @@ const editConcern = async (req, res) => {
         }
       } catch (e) {}
     }
-    if (status !== undefined) {
+    if (status !== undefined && status !== concern.status) {
+      const order = { Pending: 0, 'In Progress': 1, Resolved: 2, Rejected: 2 };
+      const currentOrder = order[concern.status] ?? 0;
+      const newOrder = order[status] ?? 0;
+      if (newOrder < currentOrder) {
+        return res.status(400).json({
+          error: `Cannot revert status from "${concern.status}" to previous status "${status}"`,
+        });
+      }
       fields.push('status = ?');
       values.push(status);
     }
