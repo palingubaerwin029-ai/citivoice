@@ -4,7 +4,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { mobileApi, useAuth } from './AuthContext';
 import { SocketService } from '../services/socketService';
-import Toast from 'react-native-root-toast';
+import InAppNotification from '../components/InAppNotification';
 import { navigateToConcern } from '../navigation/navigationRef';
 
 // Remote push was removed from Expo Go on Android (SDK 53+); importing the
@@ -35,8 +35,24 @@ export const NotificationProvider = ({ children }) => {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [expoPushToken, setExpoPushToken] = useState('');
+  const [activeNotification, setActiveNotification] = useState(null);
   const notificationListener = useRef();
   const responseListener = useRef();
+
+  const showInAppNotification = (notif) => {
+    if (!notif) return;
+    setActiveNotification({
+      id: Date.now(),
+      title: notif.title || '',
+      message: notif.message || '',
+      concernId: notif.concernId || notif.concern_id || null,
+      type: notif.type || 'info',
+    });
+  };
+
+  const dismissNotification = () => {
+    setActiveNotification(null);
+  };
 
   async function registerForPushNotificationsAsync() {
     let token;
@@ -112,21 +128,12 @@ export const NotificationProvider = ({ children }) => {
 
       setUnreadCount((prev) => prev + 1);
       
-      // Show in-app toast for socket notifications
+      // Show natural minimal in-app notification for socket events
       if (data && data.title) {
-        Toast.show(`${data.title}: ${data.message}`, {
-          duration: Toast.durations.LONG,
-          position: Toast.positions.TOP,
-          shadow: true,
-          animation: true,
-          hideOnPress: true,
-          delay: 0,
-          onPress: () => {
-            const cid = data.concern_id || data.concernId;
-            if (cid) {
-              navigateToConcern(cid);
-            }
-          },
+        showInAppNotification({
+          title: data.title,
+          message: data.message,
+          concernId: data.concern_id || data.concernId,
         });
       }
     };
@@ -185,8 +192,27 @@ export const NotificationProvider = ({ children }) => {
   }, [user]);
 
   return (
-    <NotificationContext.Provider value={{ unreadCount, fetchUnreadCount, setUnreadCount }}>
+    <NotificationContext.Provider
+      value={{
+        unreadCount,
+        fetchUnreadCount,
+        setUnreadCount,
+        showInAppNotification,
+        dismissNotification,
+      }}
+    >
       {children}
+      <InAppNotification
+        notification={activeNotification}
+        onDismiss={dismissNotification}
+        onPress={(notif) => {
+          dismissNotification();
+          const cid = notif?.concernId || notif?.concern_id;
+          if (cid) {
+            navigateToConcern(cid);
+          }
+        }}
+      />
     </NotificationContext.Provider>
   );
 };

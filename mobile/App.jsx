@@ -8,18 +8,14 @@ import AppNavigator from "./src/navigation/AppNavigator";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import { NetworkProvider } from "./src/context/NetworkContext";
 
-import { RootSiblingParent } from 'react-native-root-siblings';
-
 // ── Root component ─────────────────────────────────────────────────────────
 export default function App() {
   return (
-    <RootSiblingParent>
-      <ThemeProvider>
-        <NetworkProvider>
-          <AppContent />
-        </NetworkProvider>
-      </ThemeProvider>
-    </RootSiblingParent>
+    <ThemeProvider>
+      <NetworkProvider>
+        <AppContent />
+      </NetworkProvider>
+    </ThemeProvider>
   );
 }
 
