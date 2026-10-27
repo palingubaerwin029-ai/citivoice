@@ -25,7 +25,6 @@ export default function ToastProvider({ children }) {
   const addToast = useCallback((message, type = 'success', duration = 4500) => {
     const id = Date.now() + Math.random();
     setToasts((prev) => {
-      // Prevent duplicate identical toasts from appearing concurrently
       if (prev.some((t) => t.message === message && !t.exiting)) {
         return prev;
       }
@@ -42,7 +41,7 @@ export default function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
-      {/* Keyframe animation injection for smooth slide-in */}
+      {/* Toast scoped styles: fully adaptive for Dark and Light mode */}
       <style>{`
         @keyframes cvToastSlide {
           from {
@@ -54,8 +53,187 @@ export default function ToastProvider({ children }) {
             opacity: 1;
           }
         }
+
+        .cv-toast-container {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          z-index: 99999;
+          pointer-events: none;
+          max-width: calc(100vw - 40px);
+        }
+
+        /* Dark mode card (default) */
+        .cv-toast-card {
+          pointer-events: auto;
+          width: 360px;
+          max-width: 100%;
+          border-radius: 14px;
+          padding: 12px 14px;
+          font-family: var(--font, inherit);
+          transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease;
+          animation: cvToastSlide 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          background: rgba(13, 27, 46, 0.96);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          box-shadow: 0 14px 34px -4px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.3);
+          color: #F8FAFC;
+        }
+
+        /* Light mode card */
+        [data-theme="light"] .cv-toast-card {
+          background: rgba(255, 255, 255, 0.98);
+          border: 1px solid rgba(15, 23, 42, 0.14);
+          box-shadow: 0 14px 32px -4px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.08);
+          color: #0F172A;
+        }
+
+        .cv-toast-card.exiting {
+          opacity: 0 !important;
+          transform: translateX(110%) scale(0.95) !important;
+        }
+
+        .cv-toast-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 7px;
+        }
+
+        .cv-toast-header-left {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .cv-toast-badge {
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.6px;
+          color: #F59E0B;
+        }
+
+        [data-theme="light"] .cv-toast-badge {
+          color: #D97706;
+        }
+
+        .cv-toast-badge.error {
+          color: #EF4444;
+        }
+
+        [data-theme="light"] .cv-toast-badge.error {
+          color: #DC2626;
+        }
+
+        .cv-toast-dot {
+          font-size: 10px;
+          color: #64748B;
+          line-height: 1;
+        }
+
+        .cv-toast-time {
+          font-size: 10.5px;
+          color: #94A3B8;
+          font-weight: 500;
+        }
+
+        [data-theme="light"] .cv-toast-time {
+          color: #64748B;
+        }
+
+        .cv-toast-close {
+          background: none;
+          border: none;
+          color: #94A3B8;
+          cursor: pointer;
+          padding: 2px 5px;
+          font-size: 12px;
+          line-height: 1;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: color 0.15s ease, background 0.15s ease;
+        }
+
+        [data-theme="light"] .cv-toast-close {
+          color: #64748B;
+        }
+
+        .cv-toast-close:hover {
+          color: #F8FAFC;
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="light"] .cv-toast-close:hover {
+          color: #0F172A;
+          background: rgba(0, 0, 0, 0.06);
+        }
+
+        .cv-toast-body {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+        }
+
+        .cv-toast-icon {
+          width: 28px;
+          height: 28px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+
+        .cv-toast-icon.success {
+          background: rgba(16, 185, 129, 0.18);
+          color: #10B981;
+        }
+
+        [data-theme="light"] .cv-toast-icon.success {
+          background: rgba(16, 185, 129, 0.14);
+          color: #059669;
+        }
+
+        .cv-toast-icon.error {
+          background: rgba(239, 68, 68, 0.18);
+          color: #EF4444;
+        }
+
+        [data-theme="light"] .cv-toast-icon.error {
+          background: rgba(239, 68, 68, 0.14);
+          color: #DC2626;
+        }
+
+        .cv-toast-icon.info {
+          background: rgba(6, 182, 212, 0.18);
+          color: #22D3EE;
+        }
+
+        [data-theme="light"] .cv-toast-icon.info {
+          background: rgba(6, 182, 212, 0.14);
+          color: #0891B2;
+        }
+
+        .cv-toast-message {
+          font-size: 13px;
+          line-height: 18px;
+          font-weight: 500;
+          word-break: break-word;
+          color: #F8FAFC;
+        }
+
+        [data-theme="light"] .cv-toast-message {
+          color: #0F172A !important;
+        }
       `}</style>
-      <div style={containerStyle} aria-live="polite">
+      <div className="cv-toast-container" aria-live="polite">
         {toasts.map((toast) => (
           <ToastCard
             key={toast.id}
@@ -70,52 +248,38 @@ export default function ToastProvider({ children }) {
 
 function ToastCard({ toast, onClose }) {
   const { type, message, exiting } = toast;
-
   const isError = type === 'error';
   const isInfo = type === 'info';
-
-  const accentColor = isError ? 'var(--red, #EF4444)' : isInfo ? 'var(--cyan, #06B6D4)' : 'var(--green, #10B981)';
-  const iconBg = isError
-    ? 'rgba(239, 68, 68, 0.16)'
-    : isInfo
-    ? 'rgba(6, 182, 212, 0.16)'
-    : 'rgba(16, 185, 129, 0.16)';
+  const variant = isError ? 'error' : isInfo ? 'info' : 'success';
 
   return (
     <div
-      style={{
-        ...cardStyle,
-        opacity: exiting ? 0 : 1,
-        transform: exiting ? 'translateX(110%) scale(0.95)' : 'translateX(0) scale(1)',
-        borderColor: isError ? 'rgba(239, 68, 68, 0.28)' : 'rgba(255, 255, 255, 0.09)',
-      }}
+      className={`cv-toast-card ${exiting ? 'exiting' : ''}`}
+      style={isError ? { borderColor: 'rgba(239, 68, 68, 0.35)' } : {}}
       role="status"
     >
       {/* Top Header Bar */}
-      <div style={headerStyle}>
-        <div style={headerLeftStyle}>
-          <span style={{ ...badgeStyle, color: isError ? 'var(--red, #EF4444)' : 'var(--amber, #F59E0B)' }}>
+      <div className="cv-toast-header">
+        <div className="cv-toast-header-left">
+          <span className={`cv-toast-badge ${isError ? 'error' : ''}`}>
             CITIVOICE
           </span>
-          <span style={dotStyle}>•</span>
-          <span style={timeStyle}>Just now</span>
+          <span className="cv-toast-dot">•</span>
+          <span className="cv-toast-time">Just now</span>
         </div>
         <button
           onClick={onClose}
-          style={closeBtnStyle}
+          className="cv-toast-close"
           title="Dismiss"
           aria-label="Dismiss notification"
-          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-1, #F1F5F9)')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-3, #64748B)')}
         >
           ✕
         </button>
       </div>
 
       {/* Main Body */}
-      <div style={bodyStyle}>
-        {/* Minimal Icon Badge */}
-        <div style={{ ...iconBadgeStyle, background: iconBg, color: accentColor }}>
+      <div className="cv-toast-body">
+        <div className={`cv-toast-icon ${variant}`}>
           {isError ? (
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
@@ -125,7 +289,7 @@ function ToastCard({ toast, onClose }) {
           ) : isInfo ? (
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="8" x2="12.01" y2="8" />
             </svg>
           ) : (
@@ -135,111 +299,10 @@ function ToastCard({ toast, onClose }) {
           )}
         </div>
 
-        {/* Message Content */}
-        <div style={messageStyle}>
+        <div className="cv-toast-message">
           {message}
         </div>
       </div>
     </div>
   );
 }
-
-const containerStyle = {
-  position: 'fixed',
-  top: 20,
-  right: 20,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 10,
-  zIndex: 99999,
-  pointerEvents: 'none',
-  maxWidth: 'calc(100vw - 40px)',
-};
-
-const cardStyle = {
-  pointerEvents: 'auto',
-  width: 360,
-  maxWidth: '100%',
-  background: 'rgba(13, 27, 46, 0.95)',
-  backdropFilter: 'blur(16px)',
-  WebkitBackdropFilter: 'blur(16px)',
-  border: '1px solid rgba(255, 255, 255, 0.09)',
-  borderRadius: '14px',
-  boxShadow: '0 12px 30px -4px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3)',
-  padding: '11px 14px',
-  color: 'var(--text-1, #F1F5F9)',
-  fontFamily: 'var(--font, inherit)',
-  transition: 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease',
-  animation: 'cvToastSlide 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
-};
-
-const headerStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  marginBottom: 7,
-};
-
-const headerLeftStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 6,
-};
-
-const badgeStyle = {
-  fontSize: '10px',
-  fontWeight: 800,
-  letterSpacing: '0.6px',
-};
-
-const dotStyle = {
-  fontSize: '10px',
-  color: 'var(--text-3, #64748B)',
-  lineHeight: 1,
-};
-
-const timeStyle = {
-  fontSize: '10.5px',
-  color: 'var(--text-3, #64748B)',
-  fontWeight: 500,
-};
-
-const closeBtnStyle = {
-  background: 'none',
-  border: 'none',
-  color: 'var(--text-3, #64748B)',
-  cursor: 'pointer',
-  padding: '2px 4px',
-  fontSize: '12px',
-  lineHeight: 1,
-  borderRadius: '4px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  transition: 'color 0.15s ease',
-};
-
-const bodyStyle = {
-  display: 'flex',
-  alignItems: 'flex-start',
-  gap: 10,
-};
-
-const iconBadgeStyle = {
-  width: 28,
-  height: 28,
-  borderRadius: 8,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-  marginTop: 1,
-};
-
-const messageStyle = {
-  fontSize: '12.5px',
-  lineHeight: '17px',
-  color: 'var(--text-1, #F1F5F9)',
-  fontWeight: 500,
-  wordBreak: 'break-word',
-};

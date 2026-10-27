@@ -69,8 +69,19 @@
   --border: rgba(0, 0, 0, 0.08);
   --border-md: rgba(0, 0, 0, 0.15);
 
+  --blue: #D97706;
+  --blue-light: #B45309;
+  --blue-glow: rgba(217, 119, 6, 0.15);
+
+  --cyan: #0891B2;
+  --green: #059669;
+  --amber: #D97706;
+  --red: #DC2626;
+  --purple: #7C3AED;
+  --orange: #EA580C;
+
   --text-1: #0F172A;
-  --text-2: #475569;
+  --text-2: #334155;
   --text-3: #64748B;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);

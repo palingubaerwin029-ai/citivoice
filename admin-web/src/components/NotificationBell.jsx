@@ -72,12 +72,12 @@ export default function NotificationBell() {
   const getPriorityStyle = (priority) => {
     switch (String(priority).toLowerCase()) {
       case 'high':
-        return { background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444' };
+        return { background: 'rgba(239, 68, 68, 0.15)', color: 'var(--red)' };
       case 'medium':
-        return { background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B' };
+        return { background: 'rgba(245, 158, 11, 0.15)', color: 'var(--amber)' };
       case 'low':
       default:
-        return { background: 'rgba(16, 185, 129, 0.15)', color: '#10B981' };
+        return { background: 'rgba(16, 185, 129, 0.15)', color: 'var(--green)' };
     }
   };
 
