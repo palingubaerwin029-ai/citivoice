@@ -3,7 +3,6 @@ import { api, fmtDateShort, maskEmail, resolveImageUrl } from '../services/api';
 import s from '../styles/Admin.module.css';
 import v from '../styles/Verification.module.css';
 import Pagination, { useFitPagination } from '../components/Pagination';
-import NotificationBell from '../components/NotificationBell';
 
 const STATUS = {
   unverified: {
@@ -213,26 +212,23 @@ export default function Verification() {
           <h1 className={s.pageTitle}>Identity Verification</h1>
           <p className={s.pageSubtitle}>Review and approve citizen identity submissions</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {counts.pending > 0 && (
-            <div
-              className={s.alertBanner}
-              style={{
-                backgroundColor: 'rgba(245,158,11,0.1)',
-                border: '1px solid rgba(245,158,11,0.25)',
-              }}
-            >
-              <span style={{ fontSize: 18 }}>⚠️</span>
-              <div>
-                <div style={{ color: '#F59E0B', fontWeight: 800, fontSize: 15 }}>
-                  {counts.pending} Pending
-                </div>
-                <div style={{ color: 'var(--text-3)', fontSize: 12 }}>Awaiting your review</div>
+        {counts.pending > 0 && (
+          <div
+            className={s.alertBanner}
+            style={{
+              backgroundColor: 'rgba(245,158,11,0.1)',
+              border: '1px solid rgba(245,158,11,0.25)',
+            }}
+          >
+            <span style={{ fontSize: 18 }}>⚠️</span>
+            <div>
+              <div style={{ color: '#F59E0B', fontWeight: 800, fontSize: 15 }}>
+                {counts.pending} Pending
               </div>
+              <div style={{ color: 'var(--text-3)', fontSize: 12 }}>Awaiting your review</div>
             </div>
-          )}
-          <NotificationBell />
-        </div>
+          </div>
+        )}
       </div>
 
 
