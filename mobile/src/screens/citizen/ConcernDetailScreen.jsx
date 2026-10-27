@@ -227,6 +227,19 @@ export default function ConcernDetailScreen({ route, navigation }) {
       : d.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
+  const fmtViewedDetail = (ts) => {
+    if (!ts) return '';
+    try {
+      const d = new Date(ts);
+      if (isNaN(d)) return 'First Viewed Just Now';
+      const diffMins = Math.floor((Date.now() - d.getTime()) / 60000);
+      if (diffMins < 5) return 'First Viewed Just Now';
+      return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+    } catch (e) {
+      return 'First Viewed Just Now';
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -283,46 +296,21 @@ export default function ConcernDetailScreen({ route, navigation }) {
         })()}
 
         <View style={styles.body}>
-          {/* Status + Category */}
-          <View style={styles.badgeRow}>
-            <StatusBadge status={concern.status} />
-            <CategoryBadge category={concern.category} />
-            <View
-              style={[
-                styles.priorityBadge,
-                {
-                  backgroundColor:
-                    concern.priority === 'High'
-                      ? colors.statusRejected + '22'
-                      : concern.priority === 'Medium'
-                        ? colors.statusPending + '22'
-                        : colors.statusResolved + '22',
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.priorityText,
-                  {
-                    color:
-                      concern.priority === 'High'
-                        ? colors.statusRejected
-                        : concern.priority === 'Medium'
-                          ? colors.statusPending
-                          : colors.statusResolved,
-                  },
-                ]}
-              >
-                {concern.priority === 'High' ? '🔴' : concern.priority === 'Medium' ? '🟡' : '🟢'}{' '}
-                {concern.priority}
-              </Text>
-            </View>
-            {concern.admin_viewed_at ? (
+          {/* Top Meta Row: Badges on left, ADMIN VIEWED in upper right */}
+          <View style={styles.topMetaRow}>
+            <View style={styles.badgeRow}>
+              <StatusBadge status={concern.status} />
+              <CategoryBadge category={concern.category} />
               <View
                 style={[
                   styles.priorityBadge,
                   {
-                    backgroundColor: (colors.info || '#3B82F6') + '22',
+                    backgroundColor:
+                      concern.priority === 'High'
+                        ? colors.statusRejected + '22'
+                        : concern.priority === 'Medium'
+                          ? colors.statusPending + '22'
+                          : colors.statusResolved + '22',
                   },
                 ]}
               >
@@ -330,12 +318,41 @@ export default function ConcernDetailScreen({ route, navigation }) {
                   style={[
                     styles.priorityText,
                     {
-                      color: colors.info || '#3B82F6',
+                      color:
+                        concern.priority === 'High'
+                          ? colors.statusRejected
+                          : concern.priority === 'Medium'
+                            ? colors.statusPending
+                            : colors.statusResolved,
                     },
                   ]}
                 >
-                  👁️ Viewed
+                  {concern.priority === 'High' ? '🔴' : concern.priority === 'Medium' ? '🟡' : '🟢'}{' '}
+                  {concern.priority}
                 </Text>
+              </View>
+            </View>
+
+            {/* In the Upper Right: ADMIN VIEWED card */}
+            {concern.admin_viewed_at ? (
+              <View
+                style={[
+                  styles.adminViewedCard,
+                  {
+                    backgroundColor: colors.bgCard,
+                    borderColor: (colors.info || '#3B82F6') + '40',
+                  },
+                ]}
+              >
+                <Ionicons name="eye" size={16} color={colors.info || '#3B82F6'} />
+                <View style={{ marginLeft: scale(6) }}>
+                  <Text style={[styles.adminViewedLabel, { color: colors.info || '#3B82F6' }]}>
+                    ADMIN VIEWED
+                  </Text>
+                  <Text style={[styles.adminViewedValue, { color: colors.textPrimary }]}>
+                    {fmtViewedDetail(concern.admin_viewed_at)}
+                  </Text>
+                </View>
               </View>
             ) : null}
           </View>
@@ -343,22 +360,12 @@ export default function ConcernDetailScreen({ route, navigation }) {
           <Text style={[styles.title, { color: colors.textPrimary }]}>{concern.title}</Text>
 
           {/* Date Filed */}
-          <View style={[styles.dateRow, { marginBottom: concern.admin_viewed_at ? verticalScale(6) : verticalScale(16) }]}>
+          <View style={[styles.dateRow, { marginBottom: verticalScale(16) }]}>
             <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
             <Text style={{ fontSize: rf(12), color: colors.textMuted, marginLeft: scale(6), fontWeight: '500' }}>
               {t('dateFiled')}: {fmt(concern.created_at)}
             </Text>
           </View>
-
-          {/* Admin Viewed Date */}
-          {concern.admin_viewed_at ? (
-            <View style={[styles.dateRow, { marginBottom: verticalScale(16) }]}>
-              <Ionicons name="eye-outline" size={14} color={colors.info || '#3B82F6'} />
-              <Text style={{ fontSize: rf(12), color: colors.info || '#3B82F6', marginLeft: scale(6), fontWeight: '600' }}>
-                Viewed by Admin: {fmt(concern.admin_viewed_at)}
-              </Text>
-            </View>
-          ) : null}
 
           {/* Description */}
           <View style={styles.section}>
@@ -775,11 +782,37 @@ const styles = StyleSheet.create({
   heroPlaceholder: { height: verticalScale(120), alignItems: 'center', justifyContent: 'center' },
 
   body: { padding: scale(20) },
+  topMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: verticalScale(14),
+  },
   badgeRow: {
+    flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: scale(8),
-    marginBottom: verticalScale(14),
+    marginRight: scale(8),
+  },
+  adminViewedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(6),
+    borderRadius: moderateScale(10),
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  adminViewedLabel: {
+    fontSize: rf(8.5),
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  adminViewedValue: {
+    fontSize: rf(11),
+    fontWeight: '700',
+    marginTop: verticalScale(1),
   },
   priorityBadge: {
     paddingHorizontal: scale(10),

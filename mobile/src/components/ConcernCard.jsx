@@ -31,6 +31,19 @@ export default function ConcernCard({ concern, onPress }) {
     }
   };
 
+  const fmtViewed = (ts) => {
+    if (!ts) return '';
+    try {
+      const d = new Date(ts);
+      if (isNaN(d)) return '';
+      const diffMins = Math.floor((Date.now() - d.getTime()) / 60000);
+      if (diffMins < 5) return 'Just now';
+      return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+    } catch (e) {
+      return '';
+    }
+  };
+
   return (
     <TouchableOpacity
       style={[
@@ -66,30 +79,32 @@ export default function ConcernCard({ concern, onPress }) {
           </View>
         )}
 
-        {/* Admin Viewed Badge */}
-        {concern.admin_viewed_at ? (
-          <View
-            style={[
-              S.viewedBadge,
-              {
-                backgroundColor: (colors.info || '#3B82F6') + '1A',
-                borderColor: (colors.info || '#3B82F6') + '40',
-              },
-            ]}
-          >
-            <Ionicons name="eye" size={11} color={colors.info || '#3B82F6'} />
-            <Text style={[S.viewedText, { color: colors.info || '#3B82F6' }]}>
-              Viewed {fmt(concern.admin_viewed_at)}
-            </Text>
-          </View>
-        ) : null}
-
         <View style={{ flex: 1 }} />
 
-        {/* Date */}
-        <View style={S.dateWrap}>
-          <Ionicons name="time-outline" size={12} color={colors.textMuted} />
-          <Text style={[S.dateText, { color: colors.textMuted }]}>{fmt(concern.created_at)}</Text>
+        {/* ── Upper Right: Viewed Badge & Date ── */}
+        <View style={S.upperRightCol}>
+          {concern.admin_viewed_at ? (
+            <View
+              style={[
+                S.viewedBadge,
+                {
+                  backgroundColor: (colors.info || '#3B82F6') + '1A',
+                  borderColor: (colors.info || '#3B82F6') + '40',
+                },
+              ]}
+            >
+              <Ionicons name="eye" size={10} color={colors.info || '#3B82F6'} />
+              <Text style={[S.viewedText, { color: colors.info || '#3B82F6' }]}>
+                Viewed {fmtViewed(concern.admin_viewed_at)}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Date */}
+          <View style={S.dateWrap}>
+            <Ionicons name="time-outline" size={11} color={colors.textMuted} />
+            <Text style={[S.dateText, { color: colors.textMuted }]}>{fmt(concern.created_at)}</Text>
+          </View>
         </View>
       </View>
 
@@ -183,6 +198,12 @@ const S = StyleSheet.create({
   prioText: {
     fontSize: rf(10),
     fontWeight: '700',
+  },
+
+  upperRightCol: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: verticalScale(3),
   },
 
   viewedBadge: {

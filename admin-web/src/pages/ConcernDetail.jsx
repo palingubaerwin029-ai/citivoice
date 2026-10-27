@@ -418,11 +418,6 @@ export default function ConcernDetail() {
                   ),
               },
               { icon: '📅', label: 'Date Filed', value: fmtDate(concern.created_at) },
-              {
-                icon: '👁️',
-                label: 'Admin Viewed',
-                value: concern.admin_viewed_at ? fmtDate(concern.admin_viewed_at) : 'First Viewed Just Now',
-              },
             ].map((m, i) => (
               <div
                 key={i}
