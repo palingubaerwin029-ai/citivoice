@@ -247,9 +247,17 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`✅ CitiVoice API & Socket running → http://localhost:${PORT}`);
   console.log(`📁 Uploads served at   → http://localhost:${PORT}/uploads`);
+
+  // ─── Automatic Database Schema Synchronization ───────────────────────────
+  try {
+    const autoMigrate = require('./database/autoMigrate');
+    await autoMigrate();
+  } catch (mErr) {
+    console.warn('[Server] Auto-migrate warning:', mErr.message);
+  }
 
   priorityService.startScheduler();
 

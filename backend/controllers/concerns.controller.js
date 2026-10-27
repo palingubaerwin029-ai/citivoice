@@ -150,7 +150,16 @@ const getConcern = async (req, res) => {
       const now = new Date();
       try {
         const pool = require('../db');
-        await pool.query('UPDATE concerns SET admin_viewed_at = ? WHERE id = ?', [now, concern.id]);
+        try {
+          await pool.query('UPDATE concerns SET admin_viewed_at = ? WHERE id = ?', [now, concern.id]);
+        } catch (colErr) {
+          if (colErr.code === 'ER_BAD_FIELD_ERROR' || colErr.errno === 1054) {
+            await pool.query('ALTER TABLE concerns ADD COLUMN admin_viewed_at DATETIME DEFAULT NULL AFTER admin_note');
+            await pool.query('UPDATE concerns SET admin_viewed_at = ? WHERE id = ?', [now, concern.id]);
+          } else {
+            throw colErr;
+          }
+        }
         concern.admin_viewed_at = now;
         invalidate('concerns', 'concern_detail', 'map_concerns');
 
@@ -192,7 +201,17 @@ const markConcernViewed = async (req, res) => {
   try {
     const concernId = req.params.id;
     const pool = require('../db');
-    const [rows] = await pool.query('SELECT id, user_id, admin_viewed_at FROM concerns WHERE id = ?', [concernId]);
+    let rows;
+    try {
+      [rows] = await pool.query('SELECT id, user_id, admin_viewed_at FROM concerns WHERE id = ?', [concernId]);
+    } catch (colErr) {
+      if (colErr.code === 'ER_BAD_FIELD_ERROR' || colErr.errno === 1054) {
+        await pool.query('ALTER TABLE concerns ADD COLUMN admin_viewed_at DATETIME DEFAULT NULL AFTER admin_note');
+        [rows] = await pool.query('SELECT id, user_id, admin_viewed_at FROM concerns WHERE id = ?', [concernId]);
+      } else {
+        throw colErr;
+      }
+    }
     if (rows.length === 0) return res.status(404).json({ error: 'Concern not found' });
 
     let viewedAt = rows[0].admin_viewed_at;
@@ -1120,8 +1139,8 @@ const getAudit = async (req, res) => {
   try {
     const pool = require('../db');
     const [rows] = await pool.query(
-      'SELECT * FROM audit_log WHERE entity_type = "concern" AND entity_id = ? ORDER BY created_at DESC',
-      [req.params.id]
+      'SELECT * FROM audit_log WHERE entity_type = ? AND entity_id = ? ORDER BY created_at DESC',
+      ['concern', req.params.id]
     );
     res.json(rows);
   } catch (err) {
