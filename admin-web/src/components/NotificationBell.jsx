@@ -205,10 +205,6 @@ export default function NotificationBell() {
                         <span className={s.priorityBadge} style={priStyle}>
                           {concern.priority || 'Medium'}
                         </span>
-
-                        <span style={{ color: 'var(--text-3)' }}>
-                          #{concern.id}
-                        </span>
                       </div>
                     </div>
                   </div>
