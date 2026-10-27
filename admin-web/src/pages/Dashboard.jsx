@@ -60,7 +60,7 @@ export default function Dashboard() {
   const [concerns, setConcerns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [recentPage, setRecentPage] = useState(1);
-  const RECENT_PER_PAGE = 5;
+  const RECENT_PER_PAGE = 20;
 
   const getLocalDate = () => {
     const d = new Date();
@@ -181,8 +181,7 @@ export default function Dashboard() {
   }));
 
   const urgent = filteredConcerns
-    .filter((c) => c.priority === 'High' && c.status === 'Pending')
-    .slice(0, 5);
+    .filter((c) => c.priority === 'High' && c.status === 'Pending');
   const allRecent = filteredConcerns;
   const recentTotalPages = Math.max(1, Math.ceil(allRecent.length / RECENT_PER_PAGE));
   const recent = allRecent.slice((recentPage - 1) * RECENT_PER_PAGE, recentPage * RECENT_PER_PAGE);
@@ -431,7 +430,7 @@ export default function Dashboard() {
               {urgent.length}
             </span>
           </div>
-          <div>
+          <div style={{ maxHeight: 340, overflowY: 'auto' }}>
             {loading ? (
               <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {[1, 2, 3].map((i) => (
@@ -466,21 +465,22 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className={s.card}>
+        <div className={s.card} style={{ display: 'flex', flexDirection: 'column' }}>
           <div className={s.cardHeader}>
             <span className={s.cardTitle}>Recent Submissions</span>
           </div>
-          <table className={s.table} style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead className={s.thead}>
-              <tr>
-                {['Concern', 'Category', 'Status', 'Filed'].map((h) => (
-                  <th key={h} className={s.th}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+          <div style={{ maxHeight: 340, overflowY: 'auto', overflowX: 'auto' }}>
+            <table className={s.table} style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead className={s.thead} style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                <tr>
+                  {['Concern', 'Category', 'Status', 'Filed'].map((h) => (
+                    <th key={h} className={s.th}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
               {loading
                 ? [1, 2, 3, 4, 5].map((i) => (
                     <tr key={i} className={s.tr}>
@@ -553,6 +553,7 @@ export default function Dashboard() {
                   ))}
             </tbody>
           </table>
+          </div>
           {/* Pagination Controls */}
           {allRecent.length > RECENT_PER_PAGE && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderTop: '1px solid var(--border)' }}>
