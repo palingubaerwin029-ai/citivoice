@@ -91,11 +91,8 @@ export default function ConcernDetail() {
   const [assignments, setAssignments] = useState([]);
   const [comments, setComments] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
-  const [departments, setDepartments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [addingComment, setAddingComment] = useState(false);
-
-  const [selDept, setSelDept] = useState('');
 
   // Auto-resize Official Response textarea so all text is visible
   const noteRef = useRef(null);
@@ -113,14 +110,12 @@ export default function ConcernDetail() {
       api.get(`/concerns/${id}/assignments`),
       api.get(`/concerns/${id}/comments`),
       api.get(`/concerns/${id}/audit`),
-      api.get('/departments')
     ])
-      .then(([cRes, aRes, comRes, audRes, deptRes]) => {
+      .then(([cRes, aRes, comRes, audRes]) => {
         const cData = cRes.status === 'fulfilled' ? cRes.value : null;
         const aData = aRes.status === 'fulfilled' ? aRes.value : [];
         const comData = comRes.status === 'fulfilled' ? comRes.value : [];
         const audData = audRes.status === 'fulfilled' ? audRes.value : [];
-        const deptList = deptRes.status === 'fulfilled' ? deptRes.value : [];
 
         if (!cData) {
           console.error('Failed to load concern:', cRes.reason);
@@ -146,8 +141,6 @@ export default function ConcernDetail() {
           : '';
         setNote(initialNote);
         setAuditLog((audData || []).filter(l => !['auto_assigned', 'reassigned', 'auto assigned', 're-assigned'].includes(l.action?.toLowerCase())));
-        setDepartments(deptList || []);
-        setSelDept(cData.department || (deptList[0]?.name || ''));
 
         // After loading concern, load similar ones
         if (cData.id) loadSimilarConcerns(cData.id);
@@ -201,7 +194,6 @@ export default function ConcernDetail() {
         body.append('status', selStatus);
         body.append('category', selCategory);
         body.append('priority', selPriority);
-        if (selDept) body.append('department', selDept);
         if (note.trim()) {
           body.append('admin_note', note.trim());
         }
@@ -211,7 +203,6 @@ export default function ConcernDetail() {
           status: selStatus,
           category: selCategory,
           priority: selPriority,
-          department: selDept || null,
           admin_note: note.trim() || null,
         };
         if (clearResolvedImage) {
@@ -309,7 +300,6 @@ export default function ConcernDetail() {
     selStatus !== concern.status ||
     selCategory !== concern.category ||
     selPriority !== concern.priority ||
-    selDept !== (concern.department || '') ||
     note !== (concern.admin_note || '') ||
     clearResolvedImage ||
     !!resolvedFile;

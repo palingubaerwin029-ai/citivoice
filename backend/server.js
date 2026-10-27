@@ -210,6 +210,9 @@ app.use('/api/barangays', require('./routes/barangays'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/backup', require('./routes/backup'));
 
+// ─── Stub for deprecated/removed departments endpoint ───────────────────────
+app.get('/api/departments', (req, res) => res.json([]));
+
 // ─── Health check (verifies the database, not just the process) ──────────────
 app.get('/api/health', async (req, res) => {
   try {
