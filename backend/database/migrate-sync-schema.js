@@ -88,6 +88,8 @@ const run = async () => {
       await pool.query('ALTER TABLE concerns ADD COLUMN admin_viewed_at DATETIME DEFAULT NULL AFTER admin_note');
       console.log('✅ Added concerns.admin_viewed_at');
     }
+    // Backfill concerns that were already processed before column creation
+    await pool.query("UPDATE concerns SET admin_viewed_at = COALESCE(updated_at, created_at, NOW()) WHERE admin_viewed_at IS NULL AND (status != 'Pending' OR admin_note IS NOT NULL)");
 
     // 5. Recommended performance indexes
     const indexes = [
