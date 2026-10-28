@@ -193,6 +193,7 @@ export default function LoginScreen({ navigation, route }) {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState(null);
   const errorBannerAnim = useRef(new Animated.Value(0)).current;
@@ -312,8 +313,6 @@ export default function LoginScreen({ navigation, route }) {
       setLoading(false);
     }
   };
-
-  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
