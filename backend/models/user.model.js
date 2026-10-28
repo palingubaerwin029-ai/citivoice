@@ -125,6 +125,14 @@ const updateUserDetails = async (
   submitted_at,
   address,
 ) => {
+  let formattedSubmittedAt = submitted_at;
+  if (submitted_at) {
+    const d = new Date(submitted_at);
+    if (!isNaN(d.getTime())) {
+      formattedSubmittedAt = d.toISOString().slice(0, 19).replace('T', ' ');
+    }
+  }
+
   await pool.query(
     `UPDATE users SET
       name                = COALESCE(?, name),
@@ -137,7 +145,7 @@ const updateUserDetails = async (
       submitted_at        = COALESCE(?, submitted_at),
       updated_at          = NOW()
      WHERE id = ?`,
-    [name, phone, barangay, address, id_type, id_number, id_image_url, submitted_at, id],
+    [name, phone, barangay, address, id_type, id_number, id_image_url, formattedSubmittedAt ?? null, id],
   );
 };
 

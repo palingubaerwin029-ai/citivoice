@@ -139,6 +139,8 @@ export function AuthProvider({ children }) {
 
   // ── Submit ID for verification ─────────────────────────────────────────
   const submitVerification = async (userId, { idType, idNumber, idImageUrl }) => {
+    const now = new Date();
+    const formattedDate = now.toISOString().slice(0, 19).replace('T', ' ');
     const updated = await apiRequest(`/users/${userId}`, {
       method: 'PUT',
       body: JSON.stringify({
@@ -146,7 +148,7 @@ export function AuthProvider({ children }) {
         id_number: idNumber,
         id_image_url: idImageUrl,
         verification_status: VERIFICATION_STATUS.PENDING,
-        submitted_at: new Date().toISOString(),
+        submitted_at: formattedDate,
       }),
     });
     await AsyncStorage.setItem('cv_user', JSON.stringify(updated));
