@@ -348,8 +348,11 @@ const register = async (req, res) => {
     }
 
     // Password complexity check
-    const complexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!complexityRegex.test(password)) {
+    const hasLower = /[a-z]/.test(password);
+    const hasUpper = /[A-Z]/.test(password);
+    const hasDigit = /\d/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+    if (!password || password.length < 8 || !hasLower || !hasUpper || !hasDigit || !hasSpecial) {
       return res.status(400).json({
         error:
           'Password must be at least 8 characters and include uppercase, lowercase, numbers, and symbols.',

@@ -250,7 +250,7 @@ export default function RegisterScreen({ navigation, route }) {
       hasUpper: /[A-Z]/.test(pw),
       hasLower: /[a-z]/.test(pw),
       hasNumber: /\d/.test(pw),
-      hasSpecial: /[@$!%*?&]/.test(pw),
+      hasSpecial: /[^A-Za-z0-9\s]/.test(pw),
     };
     const passed = Object.values(checks).filter(Boolean).length;
     let level, label, color;
@@ -305,10 +305,20 @@ export default function RegisterScreen({ navigation, route }) {
     else if (!emailVerified) e.email = t('verifyEmailBeforeRegister');
     if (!form.password) e.password = t('required');
     else if (form.password.length < 8) e.password = t('pwReqLength');
-    else if (
-      !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(form.password)
-    ) {
-      e.password = t('min8CharsComplexity');
+    else {
+      const hasLower = /[a-z]/.test(form.password);
+      const hasUpper = /[A-Z]/.test(form.password);
+      const hasDigit = /\d/.test(form.password);
+      const hasSpecial = /[^A-Za-z0-9\s]/.test(form.password);
+      if (!hasLower || !hasUpper || !hasDigit || !hasSpecial) {
+        e.password = t('min8CharsComplexity');
+      }
+    }
+    if (form.phone.trim()) {
+      const cleanPhone = form.phone.trim();
+      if (!/^(\+?\d{10,15}|09\d{9})$/.test(cleanPhone)) {
+        e.phone = 'Invalid phone number format (e.g., 09171234567)';
+      }
     }
     if (!form.barangay) e.barangay = t('selectBarangay');
     if (!agreeToTerms) e.agreeToTerms = t('agreeTermsRequired');
@@ -348,11 +358,12 @@ export default function RegisterScreen({ navigation, route }) {
         ]
       );
     } catch (err) {
+      const errCode = err?.code || err?.data?.error;
       const errField = err?.data?.field || (
-        err?.code === 'auth/email-already-in-use' || err?.code === 'auth/invalid-email' ? 'email' :
-        err?.code === 'auth/weak-password' ? 'password' :
-        err?.code === 'auth/name-already-in-use' ? 'name' :
-        err?.code === 'auth/phone-already-in-use' ? 'phone' : null
+        errCode === 'auth/email-already-in-use' || errCode === 'auth/invalid-email' ? 'email' :
+        errCode === 'auth/weak-password' ? 'password' :
+        errCode === 'auth/name-already-in-use' ? 'name' :
+        errCode === 'auth/phone-already-in-use' ? 'phone' : null
       );
       const map = {
         'auth/email-already-in-use': 'This email is already registered.',
@@ -360,8 +371,9 @@ export default function RegisterScreen({ navigation, route }) {
         'auth/weak-password': 'Password is too weak.',
         'auth/name-already-in-use': 'Name is already registered.',
         'auth/phone-already-in-use': 'Phone number is already registered.',
+        'auth/id-already-in-use': 'This ID number is already linked to another account.',
       };
-      const errorMsg = map[err?.code] || err?.data?.message || err?.message || t('error');
+      const errorMsg = err?.data?.message || map[errCode] || err?.message || t('error');
       if (errField) {
         setErrors((prev) => ({ ...prev, [errField]: errorMsg }));
       }

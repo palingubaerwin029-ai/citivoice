@@ -29,7 +29,7 @@ const validateLogin = [
     .withMessage('Email is required')
     .isEmail()
     .withMessage('Must be a valid email')
-    .normalizeEmail(),
+    .normalizeEmail({ gmail_remove_dots: false }),
   body('password').notEmpty().withMessage('Password is required'),
   handleValidationErrors,
 ];
@@ -41,17 +41,16 @@ const validateRegister = [
     .notEmpty()
     .withMessage('Name is required')
     .isLength({ min: 2, max: 100 })
-    .withMessage('Name must be 2–100 characters')
-    .escape(),
+    .withMessage('Name must be 2–100 characters'),
   body('email')
     .trim()
     .notEmpty()
     .withMessage('Email is required')
     .isEmail()
     .withMessage('Must be a valid email')
-    .normalizeEmail()
+    .normalizeEmail({ gmail_remove_dots: false })
     .custom((val) => {
-      if (!val.endsWith('@gmail.com')) {
+      if (!val.toLowerCase().endsWith('@gmail.com')) {
         throw new Error('Email must be a Gmail address (@gmail.com)');
       }
       return true;
