@@ -15,11 +15,19 @@ const autoMigrate = async () => {
       console.log('✅ [AutoMigrate] Added concerns.admin_viewed_at');
     }
 
-    // 2. Ensure users.reset_otp exists
+    // 2. Ensure users.address exists
+    const [addressCols] = await pool.query("SHOW COLUMNS FROM users LIKE 'address'");
+    if (addressCols.length === 0) {
+      console.log('➕ [AutoMigrate] Adding users.address...');
+      await pool.query('ALTER TABLE users ADD COLUMN address VARCHAR(255) DEFAULT NULL AFTER barangay');
+      console.log('✅ [AutoMigrate] Added users.address');
+    }
+
+    // 3. Ensure users.reset_otp exists
     const [otpCols] = await pool.query("SHOW COLUMNS FROM users LIKE 'reset_otp'");
     if (otpCols.length === 0) {
       console.log('➕ [AutoMigrate] Adding users.reset_otp columns...');
-      await pool.query('ALTER TABLE users ADD COLUMN reset_otp VARCHAR(10) DEFAULT NULL AFTER verification_id_image, ADD COLUMN reset_otp_expires DATETIME DEFAULT NULL AFTER reset_otp');
+      await pool.query('ALTER TABLE users ADD COLUMN reset_otp VARCHAR(255) DEFAULT NULL, ADD COLUMN reset_otp_expires DATETIME DEFAULT NULL');
       console.log('✅ [AutoMigrate] Added users.reset_otp');
     }
 
