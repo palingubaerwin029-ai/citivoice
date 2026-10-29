@@ -292,7 +292,7 @@ export const translations = {
     quickSignUpNotice: 'Create your account in seconds. You can update your phone number and submit your Government ID verification in your Profile after signing in.',
     idVerificationInProfile: 'ID Verification in Profile',
     idVerificationInProfileNotice: 'Government ID verification is not required right now. You will be prompted to verify your ID and phone number in your Profile settings after signing in.',
-    accountCreatedSuccess: 'Account Created Successfully! 🎉',
+    accountCreatedSuccess: 'Account Created Successfully!',
     accountCreatedMsg: 'Welcome to CitiVoice. Please sign in to access your dashboard. Note that you will need to update your phone number and submit your Government ID in your Profile settings to unlock all services.',
     signInNow: 'Sign In Now',
     phoneOptional: 'Phone Number (Optional)',
@@ -635,7 +635,7 @@ export const translations = {
     quickSignUpNotice: 'Gawin ang iyong account sa loob ng ilang segundo. Maaari mong i-update ang iyong numero ng telepono at magsumite ng Government ID sa iyong Profile pagkatapos mag-sign in.',
     idVerificationInProfile: 'Pagpapatunay ng ID sa Profile',
     idVerificationInProfileNotice: 'Hindi kinakailangan ang Government ID sa ngayon. Hihilingin sa iyo na i-verify ang iyong ID at numero ng telepono sa mga setting ng iyong Profile pagkatapos mag-sign in.',
-    accountCreatedSuccess: 'Matagumpay na Nagawa ang Account! 🎉',
+    accountCreatedSuccess: 'Matagumpay na Nagawa ang Account!',
     accountCreatedMsg: 'Maligayang pagdating sa CitiVoice. Mangyaring mag-sign in upang ma-access ang iyong dashboard. Tandaan na kailangan mong i-update ang iyong numero ng telepono at magsumite ng Government ID sa mga setting ng iyong Profile upang magamit ang lahat ng serbisyo.',
     signInNow: 'Mag-sign In Na',
     phoneOptional: 'Numero ng Telepono (Opsyonal)',
@@ -977,7 +977,7 @@ export const translations = {
     quickSignUpNotice: 'Himu-a ang imo account sa pila ka segundo. Pwede mo ma-update ang imo numero sang cellphone kag magsumite sang Government ID sa imo Profile pagkatapos mag-sign in.',
     idVerificationInProfile: 'Pag-verify sang ID sa Profile',
     idVerificationInProfileNotice: 'Wala kinahanglana ang Government ID sa subong. Pangayu-on sa imo ang pag-verify sang imo ID kag numero sang cellphone sa mga setting sang imo Profile pagkatapos mag-sign in.',
-    accountCreatedSuccess: 'Madinalag-on nga Nahimo ang Account! 🎉',
+    accountCreatedSuccess: 'Madinalag-on nga Nahimo ang Account!',
     accountCreatedMsg: 'Malipayon nga pag-abot sa CitiVoice. Palihog mag-sign in para ma-access ang imo dashboard. Dumduma nga kinahanglan mo i-update ang imo numero sang cellphone kag magsumite sang Government ID sa mga setting sang imo Profile para magamit ang tanan nga serbisyo.',
     signInNow: 'Mag-sign In Na',
     phoneOptional: 'Numero sang Cellphone (Opsyonal)',
@@ -1029,7 +1029,7 @@ export const translations = {
 };
 
 export const LANGUAGES = [
-  { code: 'en', label: 'English', flag: '🇵🇭' },
-  { code: 'fil', label: 'Filipino', flag: '🇵🇭' },
-  { code: 'hil', label: 'Hiligaynon', flag: '🇵🇭' },
+  { code: 'en', label: 'English' },
+  { code: 'fil', label: 'Filipino' },
+  { code: 'hil', label: 'Hiligaynon' },
 ];

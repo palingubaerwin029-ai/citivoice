@@ -167,14 +167,15 @@ export const DEFAULT_ID_CONFIG = {
 
 const ID_TYPES = Object.keys(ID_CONFIGS);
 
-export default function VerifyIdentityScreen() {
+export default function VerifyIdentityScreen({ navigation }) {
   const { colors } = useTheme();
   const { user, logout, submitVerification } = useAuth();
   const { t } = useLanguage();
 
   const currentStatus = user?.verification_status;
   const isRejected = currentStatus === VERIFICATION_STATUS.REJECTED;
-  const isUnverified = currentStatus === VERIFICATION_STATUS.UNVERIFIED || !currentStatus;
+  const isUnverified =
+    Boolean(user) && (currentStatus === VERIFICATION_STATUS.UNVERIFIED || !currentStatus);
 
   // Form State
   const [idType, setIdType] = useState('');
@@ -227,6 +228,12 @@ export default function VerifyIdentityScreen() {
   };
 
   const handleLogout = async () => {
+    if (navigation) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    }
     await logout();
   };
 
@@ -235,13 +242,14 @@ export default function VerifyIdentityScreen() {
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
+        keyboardVerticalOffset={0}
         style={{ flex: 1, backgroundColor: colors.bgDark }}
       >
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={S.formContainer}
-          keyboardShouldPersistTaps="always"
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
           {/* Header Description */}
@@ -585,8 +593,8 @@ export default function VerifyIdentityScreen() {
         )}
 
         <TouchableOpacity style={S.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={18} color={colors.textMuted} />
-          <Text style={[S.logoutText, { color: colors.textMuted }]}>{t('signOut')}</Text>
+          <Ionicons name="arrow-back-outline" size={18} color={colors.primaryLight} />
+          <Text style={[S.logoutText, { color: colors.primaryLight }]}>{t('backToLogin')}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -594,29 +602,39 @@ export default function VerifyIdentityScreen() {
 }
 
 function InfoRow({ icon, label, value, valueColor, colors }) {
+  const valStr = String(value || '');
+  const dynamicFontSize =
+    valStr.length > 26 ? rf(10.5) : valStr.length > 20 ? rf(11.5) : rf(13);
+
   return (
     <View
       style={{
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: scale(10),
         paddingVertical: verticalScale(10),
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(8) }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(7), flexShrink: 0 }}>
         <Ionicons name={icon} size={15} color={colors.textMuted} />
-        <Text style={{ color: colors.textSecondary, fontSize: rf(13) }}>{label}</Text>
+        <Text style={{ color: colors.textSecondary, fontSize: rf(12.5) }}>{label}</Text>
       </View>
       <Text
         style={{
+          flex: 1,
+          textAlign: 'right',
           color: valueColor || colors.textPrimary,
-          fontSize: rf(13),
+          fontSize: dynamicFontSize,
           fontWeight: '600',
         }}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.65}
       >
-        {value}
+        {valStr}
       </Text>
     </View>
   );

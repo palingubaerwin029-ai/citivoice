@@ -714,7 +714,8 @@ export default function ProfileScreen({ navigation }) {
                 borderBottomWidth: 1,
                 borderBottomColor: colors.border,
               }}
-              onPress={() => setShowLang(true)}
+              onPress={() => setShowLang((prev) => !prev)}
+              activeOpacity={0.7}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(10) }}>
                 <View
@@ -733,7 +734,19 @@ export default function ProfileScreen({ navigation }) {
                   {t('language')}
                 </Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6) }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: scale(6),
+                  backgroundColor: colors.bgCardAlt,
+                  paddingHorizontal: scale(10),
+                  paddingVertical: verticalScale(5),
+                  borderRadius: RADIUS.md,
+                  borderWidth: 1,
+                  borderColor: showLang ? colors.primary : colors.border,
+                }}
+              >
                 <Text
                   style={{
                     color: colors.primaryLight,
@@ -743,9 +756,64 @@ export default function ProfileScreen({ navigation }) {
                 >
                   {LANGUAGES.find((l) => l.code === language)?.label || 'English'}
                 </Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+                <Ionicons
+                  name={showLang ? 'chevron-up' : 'chevron-down'}
+                  size={14}
+                  color={showLang ? colors.primaryLight : colors.textMuted}
+                />
               </View>
             </TouchableOpacity>
+            {showLang && (
+              <View
+                style={{
+                  backgroundColor: colors.bgCardAlt,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                  paddingHorizontal: scale(12),
+                  paddingVertical: verticalScale(6),
+                }}
+              >
+                {LANGUAGES.map((lang) => {
+                  const isSelected = language === lang.code;
+                  return (
+                    <TouchableOpacity
+                      key={lang.code}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        paddingVertical: verticalScale(10),
+                        paddingHorizontal: scale(12),
+                        borderRadius: RADIUS.md,
+                        marginVertical: verticalScale(2),
+                        backgroundColor: isSelected ? colors.primary + '1A' : 'transparent',
+                      }}
+                      onPress={() => {
+                        changeLanguage(lang.code);
+                        setShowLang(false);
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: isSelected ? colors.primaryLight : colors.textPrimary,
+                          fontSize: rf(13.5),
+                          fontWeight: isSelected ? '700' : '500',
+                        }}
+                      >
+                        {lang.label}
+                      </Text>
+                      {isSelected && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={18}
+                          color={colors.primaryLight}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
             <TouchableOpacity
               style={{
                 flexDirection: 'row',
@@ -848,97 +916,6 @@ export default function ProfileScreen({ navigation }) {
           CitiVoice v2.0 · Kabankalan City
         </Text>
       </ScrollView>
-      <Modal
-        visible={showLang}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowLang(false)}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.65)',
-            justifyContent: 'flex-end',
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: colors.bgCard,
-              borderTopLeftRadius: moderateScale(24),
-              borderTopRightRadius: moderateScale(24),
-              padding: scale(20),
-              paddingBottom: verticalScale(40),
-              borderTopWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <View
-              style={{
-                width: scale(36),
-                height: verticalScale(4),
-                backgroundColor: colors.border,
-                borderRadius: scale(2),
-                alignSelf: 'center',
-                marginBottom: verticalScale(16),
-              }}
-            />
-            <Text
-              style={{
-                color: colors.textPrimary,
-                fontSize: rf(18),
-                fontWeight: '800',
-                textAlign: 'center',
-                marginBottom: verticalScale(16),
-              }}
-            >
-              {t('selectLanguage')}
-            </Text>
-            {LANGUAGES.map((lang) => (
-              <TouchableOpacity
-                key={lang.code}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: scale(14),
-                  padding: scale(14),
-                  borderRadius: RADIUS.lg,
-                  marginBottom: verticalScale(8),
-                  backgroundColor: language === lang.code ? colors.primary + '1A' : 'transparent',
-                }}
-                onPress={() => {
-                  changeLanguage(lang.code);
-                  setShowLang(false);
-                }}
-              >
-                <Text style={{ fontSize: rf(22) }}>{lang.flag}</Text>
-                <Text
-                  style={{
-                    color: language === lang.code ? colors.primaryLight : colors.textPrimary,
-                    fontSize: rf(16),
-                    fontWeight: '600',
-                  }}
-                >
-                  {lang.label}
-                </Text>
-                {language === lang.code && (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={20}
-                    color={colors.primaryLight}
-                    style={{ marginLeft: 'auto' }}
-                  />
-                )}
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={{ padding: scale(14), alignItems: 'center', marginTop: verticalScale(4) }}
-              onPress={() => setShowLang(false)}
-            >
-              <Text style={{ color: colors.textMuted, fontSize: rf(15) }}>{t('cancel')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
       {/* Edit Profile Modal */}
       <Modal
