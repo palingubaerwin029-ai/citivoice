@@ -11,6 +11,7 @@ import MapView from './pages/MapView';
 import Users from './pages/Users';
 import Reports from './pages/Reports';
 import Login from './pages/Login';
+import Landing from './pages/Landing';
 import Verification from './pages/Verification';
 import Barangays from './pages/Barangays';
 import Backup from './pages/Backup';
@@ -106,6 +107,30 @@ export default function App() {
       <NotificationProvider>
         <BrowserRouter>
           <Routes>
+            {/* Public Civic Landing Page & Mobile App Portal */}
+            <Route
+              path="/"
+              element={
+                isAdminUser ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
+                  <Landing
+                    theme={theme}
+                    onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  />
+                )
+              }
+            />
+            <Route
+              path="/welcome"
+              element={
+                <Landing
+                  theme={theme}
+                  onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                />
+              }
+            />
+
             {/* Legacy Mayor routes redirect to Admin */}
             <Route path="/mayor/*" element={<Navigate to="/login" replace />} />
             <Route path="/mayor" element={<Navigate to="/login" replace />} />
@@ -133,7 +158,7 @@ export default function App() {
                     onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                   />
                 ) : (
-                  <Navigate to="/login" replace />
+                  <Navigate to="/" replace />
                 )
               }
             />

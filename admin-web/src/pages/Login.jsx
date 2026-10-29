@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import {
   IoMailOutline,
@@ -313,6 +314,22 @@ export default function Login({ onLogin }) {
         </div>
 
         <div className={s.footer}>🔒 Protected with End-to-End Administrator 2FA</div>
+        <div style={{ textAlign: 'center', marginTop: 14 }}>
+          <Link
+            to="/welcome"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 12.5,
+              fontWeight: 600,
+              color: 'var(--blue)',
+            }}
+          >
+            <IoArrowBackOutline />
+            <span>Back to Public Portal & Mobile App Download</span>
+          </Link>
+        </div>
       </div>
     </div>
   );
