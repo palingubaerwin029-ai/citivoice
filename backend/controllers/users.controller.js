@@ -92,49 +92,8 @@ const updateUser = async (req, res) => {
 
     let updatedUser = await selectById(req.params.id);
 
-    // AI Auto-verification Logic (Post-Registration Submission)
-    if (id_image_url && submitted_at && updatedUser.verification_status !== 'verified') {
-      try {
-        const filename = id_image_url.split('/uploads/')[1] || id_image_url.replace(/^\/?(uploads\/)?/, '');
-        if (filename) {
-          const filePath = path.join(__dirname, '..', 'uploads', filename);
-          const verification = await verifyNameOnId(filePath, updatedUser.name);
-
-          console.log(`[Users Verify] Verification result for user ${req.params.id}:`, verification);
-
-          if (verification.match) {
-            // Match found! Auto-verify
-            await updateUserVerification(req.params.id, 'verified', 1, null, 'NOW()');
-            updatedUser = await selectById(req.params.id); // refresh user object
-
-            const contactInfo = await selectUserContactInfo(req.params.id);
-            if (contactInfo) {
-              await insertNotification(
-                req.params.id,
-                '✅ Account Auto-Verified!',
-                `Your ID was scanned and automatically verified by AI (${verification.confidence}% name match). You can now fully use CitiVoice!`,
-              );
-              notifyUser(
-                contactInfo,
-                'Account Auto-Verified!',
-                'Your ID was automatically verified by AI. You can now use all CitiVoice features.',
-                'The citizen just submitted their ID and our system automatically verified it. Welcome them to the app.',
-              );
-            }
-          } else {
-            // No high match found, ensure status is 'pending' for manual admin review
-            await updateUserVerification(req.params.id, 'pending', 0, null, 'NULL');
-            updatedUser = await selectById(req.params.id); // refresh user object
-          }
-        }
-      } catch (e) {
-        console.error('AI Auto-verification error:', e);
-        // Fallback to manual review if AI verification fails
-        await updateUserVerification(req.params.id, 'pending', 0, null, 'NULL');
-        updatedUser = await selectById(req.params.id); // refresh user object
-      }
-    } else if (submitted_at && updatedUser.verification_status === 'unverified') {
-      // If no image or something else, but they submitted, ensure it's pending
+    // When a citizen submits/updates their ID, mark status as 'pending' for manual admin review
+    if (submitted_at && updatedUser.verification_status !== 'verified') {
       await updateUserVerification(req.params.id, 'pending', 0, null, 'NULL');
       updatedUser = await selectById(req.params.id);
     }

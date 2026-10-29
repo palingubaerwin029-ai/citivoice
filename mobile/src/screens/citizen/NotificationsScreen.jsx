@@ -27,15 +27,20 @@ export default function NotificationsScreen({ navigation }) {
     AsyncStorage.setItem(cacheKey, JSON.stringify(list)).catch(() => {});
   };
 
-  const isLinkedNotification = (n) => {
+  const isExcludedNotification = (n) => {
     const text = `${n.title || ''} ${n.message || ''}`.toLowerCase();
-    return text.includes('linked') || text.includes('duplicate');
+    return (
+      text.includes('linked') ||
+      text.includes('duplicate') ||
+      text.includes('auto-verified') ||
+      text.includes('automatically verified by ai')
+    );
   };
 
   const loadNotifications = async () => {
     try {
       const res = await mobileApi.get('/notifications');
-      const filtered = (res || []).filter((n) => !isLinkedNotification(n));
+      const filtered = (res || []).filter((n) => !isExcludedNotification(n));
       setNotifications(filtered);
       saveNotificationsCache(filtered);
       // After loading, we update the app badge
@@ -51,7 +56,9 @@ export default function NotificationsScreen({ navigation }) {
       .then((cached) => {
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed)) setNotifications(parsed);
+          if (Array.isArray(parsed)) {
+            setNotifications(parsed.filter((n) => !isExcludedNotification(n)));
+          }
         }
       })
       .catch(() => {});

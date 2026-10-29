@@ -139,7 +139,14 @@ export const NotificationProvider = ({ children }) => {
     // Real-time socket updates
     const handleNewNotification = (data) => {
       const text = `${data?.title || ''} ${data?.message || ''}`.toLowerCase();
-      if (text.includes('linked') || text.includes('duplicate')) return;
+      if (
+        text.includes('linked') ||
+        text.includes('duplicate') ||
+        text.includes('auto-verified') ||
+        text.includes('automatically verified by ai')
+      ) {
+        return;
+      }
 
       setUnreadCount((prev) => prev + 1);
       

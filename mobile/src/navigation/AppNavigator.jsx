@@ -127,6 +127,24 @@ function HomeStack() {
   );
 }
 
+// ── Citizen Profile Stack ──────────────────────────────────────────────────
+function ProfileStack() {
+  const { colors, theme } = useTheme();
+  const headerOptions = getHeaderOptions(colors, theme);
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        ...headerOptions,
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="ProfileMain" component={ProfileScreen} />
+      <Stack.Screen name="TermsAndPolicy" component={TermsAndPolicyScreen} />
+    </Stack.Navigator>
+  );
+}
+
 // ── Citizen Tabs ───────────────────────────────────────────────────────────
 function CitizenTabs() {
   const { t } = useLanguage();
@@ -168,7 +186,7 @@ function CitizenTabs() {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileStack}
         options={{ headerShown: false, tabBarLabel: t('profile') }}
       />
     </Tab.Navigator>

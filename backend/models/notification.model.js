@@ -2,7 +2,11 @@ const db = require('../db');
 
 const selectNotificationsByUser = async (userId) => {
   const [rows] = await db.query(
-    'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50',
+    `SELECT * FROM notifications
+     WHERE user_id = ?
+       AND LOWER(title) NOT LIKE '%auto-verified%'
+       AND LOWER(message) NOT LIKE '%automatically verified by ai%'
+     ORDER BY created_at DESC LIMIT 50`,
     [userId],
   );
   return rows;
@@ -10,7 +14,11 @@ const selectNotificationsByUser = async (userId) => {
 
 const selectUnreadCount = async (userId) => {
   const [rows] = await db.query(
-    'SELECT COUNT(*) as unreadCount FROM notifications WHERE user_id = ? AND is_read = false',
+    `SELECT COUNT(*) as unreadCount FROM notifications
+     WHERE user_id = ?
+       AND is_read = false
+       AND LOWER(title) NOT LIKE '%auto-verified%'
+       AND LOWER(message) NOT LIKE '%automatically verified by ai%'`,
     [userId],
   );
   return rows[0].unreadCount;
