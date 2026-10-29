@@ -188,12 +188,7 @@ export default function VerifyIdentityScreen({ navigation }) {
 
   const activeIdConfig = ID_CONFIGS[idType] || DEFAULT_ID_CONFIG;
 
-  const { pickImage: launchImagePicker, takePhoto: launchCamera } = useImagePicker();
-
-  const pickPhoto = async () => {
-    const uri = await launchImagePicker();
-    if (uri) setIdImage(uri);
-  };
+  const { takePhoto: launchCamera } = useImagePicker();
 
   const takePhoto = async () => {
     const uri = await launchCamera();
@@ -483,23 +478,10 @@ export default function VerifyIdentityScreen({ navigation }) {
                           borderColor: colors.primary + '44',
                         },
                       ]}
-                      onPress={pickPhoto}
-                    >
-                      <Ionicons name="images-outline" size={18} color={colors.primaryLight} />
-                      <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>{t('gallery')}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        S.photoBtn,
-                        {
-                          backgroundColor: colors.primary + '18',
-                          borderColor: colors.primary + '44',
-                        },
-                      ]}
                       onPress={takePhoto}
                     >
                       <Ionicons name="camera-outline" size={18} color={colors.primaryLight} />
-                      <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>{t('camera')}</Text>
+                      <Text style={[S.photoBtnText, { color: colors.primaryLight }]}>{t('takePhoto') || t('camera')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>

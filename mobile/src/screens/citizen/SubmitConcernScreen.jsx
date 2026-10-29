@@ -77,7 +77,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
   const [manualAddress, setManualAddress] = useState('');
 
   const { loadingLocation, getCurrentLocation, reverseGeocode } = useLocation();
-  const { pickImage: launchImagePicker, takePhoto: launchCamera } = useImagePicker();
+  const { takePhoto: launchCamera } = useImagePicker();
 
   const [reversingGeocode, setReversingGeocode] = useState(false);
   const [showMap, setShowMap] = useState(false);
@@ -163,24 +163,9 @@ export default function SubmitConcernScreen({ navigation, route }) {
     }
   };
 
-  const handleImagePicker = () => {
-    Alert.alert(t('attachPhoto'), t('attachPhotoPrompt'), [
-      {
-        text: t('takePhoto'),
-        onPress: async () => {
-          const uri = await launchCamera({ aspect: [4, 3], quality: 0.6 });
-          if (uri) handleSelectImage(uri);
-        },
-      },
-      {
-        text: t('chooseGallery'),
-        onPress: async () => {
-          const uri = await launchImagePicker({ aspect: [4, 3], quality: 0.6 });
-          if (uri) handleSelectImage(uri);
-        },
-      },
-      { text: t('cancel'), style: 'cancel' },
-    ]);
+  const handleImagePicker = async () => {
+    const uri = await launchCamera({ aspect: [4, 3], quality: 0.6 });
+    if (uri) handleSelectImage(uri);
   };
 
   const getLocation = async () => {
@@ -885,7 +870,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
                     <>
                       <Ionicons name="camera-outline" size={32} color={colors.textMuted} />
                       <Text style={[styles.photoBoxText, { color: colors.textMuted }]}>
-                        {t('tapToAddPhoto')}
+                        {t('takePhoto') || t('tapToAddPhoto')}
                       </Text>
                     </>
                   )}
