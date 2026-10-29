@@ -26,9 +26,18 @@ export const getGoogleIdToken = async () => {
     throw new Error('Google Client ID is not configured.');
   }
 
-  const returnUrl = AuthSession.makeRedirectUri({
+  let returnUrl = AuthSession.makeRedirectUri({
     scheme: 'citivoice',
+    path: 'expo-auth-session',
   });
+  if (
+    !returnUrl ||
+    returnUrl.endsWith('://') ||
+    returnUrl.endsWith(':///') ||
+    returnUrl.startsWith('exp:///')
+  ) {
+    returnUrl = 'citivoice://expo-auth-session';
+  }
   // Always use the HTTPS Expo proxy redirect for Google Web Client ID so Google never receives custom scheme (citivoice://) which Google blocks
   const redirectUri = EXPO_PROXY_REDIRECT;
 
