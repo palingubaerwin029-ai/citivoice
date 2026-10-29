@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Alert,
   StyleSheet,
@@ -60,8 +61,25 @@ export default function RegisterScreen({ navigation, route }) {
   const [errors, setErrors] = useState({});
   const [pwFocused, setPwFocused] = useState(false);
   const strengthAnim = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [availableBarangays, setAvailableBarangays] = useState(DEFAULT_BARANGAYS);
   const [barangaySearch, setBarangaySearch] = useState('');
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates?.height || 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // Email verification state
   const [emailVerified, setEmailVerified] = useState(isGooglePreVerified);
@@ -388,14 +406,20 @@ export default function RegisterScreen({ navigation, route }) {
       <View style={[S.glowBlob, { backgroundColor: colors.primary }]} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
         style={{ flex: 1 }}
       >
         <ScrollView
+          ref={scrollViewRef}
           style={{ flex: 1 }}
-          contentContainerStyle={S.scroll}
-          keyboardShouldPersistTaps="always"
+          contentContainerStyle={[
+            S.scroll,
+            Platform.OS === 'android' &&
+              keyboardHeight > 0 && { paddingBottom: keyboardHeight + verticalScale(40) },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
           {/* Language switcher */}
@@ -987,6 +1011,11 @@ export default function RegisterScreen({ navigation, route }) {
                       placeholderTextColor={colors.textMuted}
                       autoCapitalize="none"
                       autoCorrect={false}
+                      onFocus={() => {
+                        setTimeout(() => {
+                          scrollViewRef.current?.scrollToEnd({ animated: true });
+                        }, 150);
+                      }}
                       style={{ flex: 1, paddingVertical: 10, color: colors.textPrimary, fontSize: rf(13) }}
                     />
                     {barangaySearch.length > 0 && (
@@ -1013,6 +1042,7 @@ export default function RegisterScreen({ navigation, route }) {
                           set('barangay', b);
                           setShowPicker(false);
                           setBarangaySearch('');
+                          Keyboard.dismiss();
                         }}
                       >
                         <Text
