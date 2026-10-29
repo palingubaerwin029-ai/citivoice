@@ -23,7 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth, resolveImageUrl, BASE_URL, mobileApi } from '../../context/AuthContext';
 import { useConcerns } from '../../context/ConcernContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { RADIUS, SHADOWS, STATUS_CONFIG, getCategoryConfig } from '../../utils/theme';
+import { RADIUS, SHADOWS, getStatusConfig, getCategoryConfig } from '../../utils/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 import { LANGUAGES } from '../../i18n/translations';
@@ -238,7 +238,7 @@ export default function ProfileScreen({ navigation }) {
       let data = {};
       try {
         data = JSON.parse(uploadResult.body);
-      } catch (_) {}
+      } catch (_) { }
       if (uploadResult.status >= 400) throw new Error(data.error || 'Failed to upload avatar');
 
       await updateUserLocal(data);
@@ -320,7 +320,7 @@ export default function ProfileScreen({ navigation }) {
                 ) : (
                   <Text style={{ color: '#fff', fontSize: rf(30), fontWeight: '900' }}>{initials}</Text>
                 )}
-                
+
                 {uploadingAvatar && (
                   <View style={{ position: 'absolute', backgroundColor: 'rgba(0,0,0,0.5)', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                     <ActivityIndicator color="#fff" />
@@ -420,8 +420,8 @@ export default function ProfileScreen({ navigation }) {
                   {!user?.phone && user?.verification_status !== 'verified'
                     ? t('profileIncompleteNoticeBoth')
                     : !user?.phone
-                    ? t('profileIncompleteNoticePhone')
-                    : t('profileIncompleteNoticeId')}
+                      ? t('profileIncompleteNoticePhone')
+                      : t('profileIncompleteNoticeId')}
                 </Text>
                 <View style={{ flexDirection: 'row', gap: scale(8), flexWrap: 'wrap' }}>
                   {!user?.phone && (
@@ -481,7 +481,8 @@ export default function ProfileScreen({ navigation }) {
               {t('myRecentReports')}
             </Text>
             {myConcerns.slice(0, 3).map((c) => {
-              const cfg = STATUS_CONFIG[c.status] || STATUS_CONFIG['Pending'];
+              const statusConfigs = getStatusConfig(colors);
+              const cfg = statusConfigs[c.status] || statusConfigs['Pending'];
               return (
                 <View
                   key={c.id}
@@ -1025,7 +1026,7 @@ export default function ProfileScreen({ navigation }) {
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: scale(10),
-                    backgroundColor: colors.bgDark + '99',
+                    backgroundColor: colors.bgCardAlt,
                     borderRadius: RADIUS.lg,
                     borderWidth: 1,
                     borderColor: colors.border,

@@ -49,17 +49,17 @@ export const DARK_COLORS = {
 };
 
 export const LIGHT_COLORS = {
-  // Background layers (crisp clean canvas)
-  bgDeep: '#F4F6F9',
-  bgDark: '#FFFFFF',
+  // Background layers (soft slate canvas so pure white cards stand out cleanly)
+  bgDeep: '#E8EEF5',
+  bgDark: '#F1F5F9',
   bgCard: '#FFFFFF',
   bgCardAlt: '#F8FAFC',
-  bgElevated: '#FFFFFF',
+  bgElevated: '#F8FAFC',
 
   // Brand
   primary: '#D97706',
-  primaryLight: '#F59E0B',
-  primaryDark: '#B45309',
+  primaryLight: '#B45309',
+  primaryDark: '#92400E',
   primaryGlow: 'rgba(217, 119, 6, 0.14)',
 
   // Accents
@@ -77,13 +77,13 @@ export const LIGHT_COLORS = {
   // High-contrast text
   textPrimary: '#0F172A',
   textSecondary: '#475569',
-  textMuted: '#94A3B8',
-  textDisabled: '#CBD5E1',
+  textMuted: '#64748B',
+  textDisabled: '#94A3B8',
 
   // Crisp structure
-  border: 'rgba(15, 23, 42, 0.08)',
+  border: 'rgba(15, 23, 42, 0.09)',
   borderMd: 'rgba(15, 23, 42, 0.14)',
-  divider: 'rgba(15, 23, 42, 0.05)',
+  divider: 'rgba(15, 23, 42, 0.06)',
 
   // Semantic
   danger: '#DC2626',
@@ -132,9 +132,9 @@ export const SHADOWS = {
   card: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: moderateScale(4) },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.14,
     shadowRadius: moderateScale(12),
-    elevation: 5,
+    elevation: 4,
   },
   button: {
     shadowColor: '#EAB308',

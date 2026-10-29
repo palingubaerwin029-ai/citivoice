@@ -33,13 +33,15 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 // Dynamic style generators
-const getHeaderOptions = (colors) => ({
+const getHeaderOptions = (colors, theme) => ({
   headerStyle: { backgroundColor: colors.bgCard },
   headerTintColor: colors.textPrimary,
   headerTitleStyle: { fontWeight: '700', fontSize: 16 },
   headerTitleAlign: 'left',
   headerShadowVisible: false,
   contentStyle: { backgroundColor: colors.bgDark },
+  statusBarStyle: theme === 'dark' ? 'light' : 'dark',
+  statusBarBackgroundColor: colors.bgDark,
 });
 
 const getTabBarOptions = (colors) => ({
@@ -59,11 +61,17 @@ const getTabBarOptions = (colors) => ({
 
 // ── Auth Stack ─────────────────────────────────────────────────────────────
 function AuthStack() {
-  const { colors } = useTheme();
-  const headerOptions = getHeaderOptions(colors);
+  const { colors, theme } = useTheme();
+  const headerOptions = getHeaderOptions(colors, theme);
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        statusBarStyle: theme === 'dark' ? 'light' : 'dark',
+        statusBarBackgroundColor: colors.bgDark,
+      }}
+    >
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
@@ -84,8 +92,8 @@ function AuthStack() {
 
 // ── Citizen Home Stack ─────────────────────────────────────────────────────
 function HomeStack() {
-  const { colors } = useTheme();
-  const headerOptions = getHeaderOptions(colors);
+  const { colors, theme } = useTheme();
+  const headerOptions = getHeaderOptions(colors, theme);
 
   return (
     <Stack.Navigator screenOptions={headerOptions}>

@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { StatusBar, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getColors } from '../utils/theme';
 
@@ -13,7 +14,12 @@ export const ThemeProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    setColors(getColors(theme));
+    const nextColors = getColors(theme);
+    setColors(nextColors);
+    StatusBar.setBarStyle(theme === 'dark' ? 'light-content' : 'dark-content', true);
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor(nextColors.bgDark, true);
+    }
     AsyncStorage.setItem('app_theme', theme);
   }, [theme]);
 

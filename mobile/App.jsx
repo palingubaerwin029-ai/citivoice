@@ -1,3 +1,5 @@
+import React, { useEffect } from "react";
+import { StatusBar as RNStatusBar, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { LanguageProvider } from "./src/context/LanguageContext";
 import { AuthProvider } from "./src/context/AuthContext";
@@ -20,7 +22,15 @@ export default function App() {
 }
 
 function AppContent() {
-  const { theme } = useTheme();
+  const { theme, colors } = useTheme();
+  const isDark = theme === "dark";
+
+  useEffect(() => {
+    RNStatusBar.setBarStyle(isDark ? "light-content" : "dark-content", true);
+    if (Platform.OS === "android") {
+      RNStatusBar.setBackgroundColor(colors.bgDark, true);
+    }
+  }, [isDark, colors.bgDark]);
 
   return (
     <SafeAreaProvider>
@@ -28,8 +38,11 @@ function AppContent() {
         <AuthProvider>
           <NotificationProvider>
             <ConcernProvider>
-              <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
               <AppNavigator />
+              <StatusBar
+                style={isDark ? "light" : "dark"}
+                backgroundColor={colors.bgDark}
+              />
             </ConcernProvider>
           </NotificationProvider>
         </AuthProvider>

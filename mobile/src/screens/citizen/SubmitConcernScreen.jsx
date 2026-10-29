@@ -513,13 +513,13 @@ export default function SubmitConcernScreen({ navigation, route }) {
                 <View
                   style={[
                     styles.pulsingStatusDot,
-                    isAutoRejected && { backgroundColor: colors.danger },
+                    { backgroundColor: isAutoRejected ? colors.danger : colors.statusPending },
                   ]}
                 />
                 <Text
                   style={[
                     styles.receiptStatusText,
-                    isAutoRejected && { color: colors.danger },
+                    { color: isAutoRejected ? colors.danger : colors.statusPending },
                   ]}
                 >
                   {isAutoRejected ? 'Rejected (Outside Bounds)' : 'Pending Review'}
@@ -651,9 +651,9 @@ export default function SubmitConcernScreen({ navigation, route }) {
             </View>
 
             {/* Notification reassurance note */}
-            <View style={[styles.notificationHintRow, { backgroundColor: 'rgba(59, 130, 246, 0.08)' }]}>
-              <Ionicons name="notifications-outline" size={rf(15)} color="#60A5FA" />
-              <Text style={styles.notificationHintText}>
+            <View style={[styles.notificationHintRow, { backgroundColor: colors.info + '14', borderColor: colors.info + '33' }]}>
+              <Ionicons name="notifications-outline" size={rf(15)} color={colors.info} />
+              <Text style={[styles.notificationHintText, { color: colors.info }]}>
                 You will receive real-time updates as your report is processed.
               </Text>
             </View>
@@ -1017,7 +1017,7 @@ export default function SubmitConcernScreen({ navigation, route }) {
 
                 {showMap && (
                   <View style={styles.mapSection}>
-                    <View style={styles.mapContainer}>
+                    <View style={[styles.mapContainer, { borderColor: colors.border }]}>
                       <MapView
                         ref={mapRef}
                         provider={PROVIDER_GOOGLE}

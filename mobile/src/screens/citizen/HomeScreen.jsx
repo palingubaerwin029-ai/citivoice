@@ -22,7 +22,7 @@ import { useNotifications } from '../../context/NotificationContext';
 import * as Haptics from 'expo-haptics';
 import ConcernCard from '../../components/ConcernCard';
 import { EmptyState, StatCard, Skeleton } from '../../components/UI';
-import { RADIUS, SHADOWS, STATUS_CONFIG } from '../../utils/theme';
+import { RADIUS, SHADOWS } from '../../utils/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
 
@@ -147,10 +147,10 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: colors.bgDark }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <SafeAreaView style={S.container} edges={['top']}>
+      <SafeAreaView style={[S.container, { backgroundColor: colors.bgDark }]} edges={['top']}>
       <FlatList
         data={filtered}
         keyExtractor={(item) => String(item.id)}
