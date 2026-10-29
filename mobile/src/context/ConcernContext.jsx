@@ -7,6 +7,9 @@ import { useAuth } from './AuthContext';
 import { useNetwork } from './NetworkContext';
 
 const OFFLINE_QUEUE_KEY = 'cv_offline_concerns_queue';
+const getConcernsCacheKey = (userId) => `cv_cache_concerns_${userId}`;
+const getMyConcernsCacheKey = (userId) => `cv_cache_my_concerns_${userId}`;
+const getStatsCacheKey = (userId) => `cv_cache_stats_${userId}`;
 
 const ConcernContext = createContext(null);
 
@@ -38,7 +41,7 @@ export function ConcernProvider({ children }) {
     try {
       const queueStr = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
       const queue = queueStr ? JSON.parse(queueStr) : [];
-      return queue.map(q => ({
+      return queue.map((q) => ({
         ...q,
         id: 'offline-' + q._offlineId,
         status: 'Pending Sync',
@@ -51,30 +54,81 @@ export function ConcernProvider({ children }) {
     }
   };
 
-  const loadFeed = async (page = 1, limit = 10, refresh = false) => {
+  const getCachedConcerns = async (cacheKey) => {
+    try {
+      const raw = await AsyncStorage.getItem(cacheKey);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Hydrate cached concerns & stats immediately on login/app start
+  const hydrateFromCache = async (userId) => {
+    if (!userId) return false;
+    try {
+      const [offlineItems, cachedFeed, cachedMine, cachedStatsRaw] = await Promise.all([
+        getOptimisticOfflineItems(),
+        getCachedConcerns(getConcernsCacheKey(userId)),
+        getCachedConcerns(getMyConcernsCacheKey(userId)),
+        AsyncStorage.getItem(getStatsCacheKey(userId)),
+      ]);
+
+      let hasCachedData = false;
+      if (cachedFeed.length > 0 || offlineItems.length > 0) {
+        setConcerns([...offlineItems, ...cachedFeed]);
+        hasCachedData = true;
+      }
+      if (cachedMine.length > 0 || offlineItems.length > 0) {
+        setMyConcerns([...offlineItems, ...cachedMine]);
+        hasCachedData = true;
+      }
+      if (cachedStatsRaw) {
+        try {
+          const parsedStats = JSON.parse(cachedStatsRaw);
+          if (parsedStats?.city) setCityStats(parsedStats.city);
+          if (parsedStats?.mine) setMyStats(parsedStats.mine);
+        } catch (_) {}
+      }
+      return hasCachedData;
+    } catch {
+      return false;
+    }
+  };
+
+  const loadFeed = async (page = 1, limit = 10, refresh = false, silent = false) => {
     if (!user?.id) return null;
-    if (page === 1 && refresh) setLoading(true);
+    if (page === 1 && refresh && !silent) setLoading(true);
     try {
       const res = await ConcernService.getUserConcerns(user.id, { page, limit });
       if (res && res.data) {
         let finalData = res.data;
-        if (page === 1 && refresh) {
-          const offlineItems = await getOptimisticOfflineItems();
-          finalData = [...offlineItems, ...finalData];
+        if (page === 1) {
+          // Save fresh page 1 server items to local cache
+          AsyncStorage.setItem(getConcernsCacheKey(user.id), JSON.stringify(res.data)).catch(
+            () => {}
+          );
+          if (refresh) {
+            const offlineItems = await getOptimisticOfflineItems();
+            finalData = [...offlineItems, ...finalData];
+          }
         }
-        setConcerns(prev => refresh ? finalData : [...prev, ...res.data]);
+        setConcerns((prev) => (refresh ? finalData : [...prev, ...res.data]));
       }
       return res;
     } catch (err) {
       console.log('Failed to load concerns', err);
-      // If offline or network failed on first load, try to at least show offline queue
+      // Fall back to offline queue + cached server concerns
       if (page === 1 && refresh) {
-        const offlineItems = await getOptimisticOfflineItems();
-        setConcerns(offlineItems);
+        const [offlineItems, cachedFeed] = await Promise.all([
+          getOptimisticOfflineItems(),
+          getCachedConcerns(getConcernsCacheKey(user.id)),
+        ]);
+        setConcerns([...offlineItems, ...cachedFeed]);
       }
       return null;
     } finally {
-      if (page === 1 && refresh) setLoading(false);
+      if (page === 1 && refresh && !silent) setLoading(false);
     }
   };
 
@@ -84,18 +138,26 @@ export function ConcernProvider({ children }) {
       const res = await ConcernService.getUserConcerns(user.id, { page, limit });
       if (res && res.data) {
         let finalData = res.data;
-        if (page === 1 && refresh) {
-          const offlineItems = await getOptimisticOfflineItems();
-          finalData = [...offlineItems, ...finalData];
+        if (page === 1) {
+          AsyncStorage.setItem(getMyConcernsCacheKey(user.id), JSON.stringify(res.data)).catch(
+            () => {}
+          );
+          if (refresh) {
+            const offlineItems = await getOptimisticOfflineItems();
+            finalData = [...offlineItems, ...finalData];
+          }
         }
-        setMyConcerns(prev => refresh ? finalData : [...prev, ...res.data]);
+        setMyConcerns((prev) => (refresh ? finalData : [...prev, ...res.data]));
       }
       return res;
     } catch (err) {
       console.log('Failed to load my concerns', err);
       if (page === 1 && refresh) {
-        const offlineItems = await getOptimisticOfflineItems();
-        setMyConcerns(offlineItems);
+        const [offlineItems, cachedMine] = await Promise.all([
+          getOptimisticOfflineItems(),
+          getCachedConcerns(getMyConcernsCacheKey(user.id)),
+        ]);
+        setMyConcerns([...offlineItems, ...cachedMine]);
       }
       return null;
     }
@@ -115,26 +177,34 @@ export function ConcernProvider({ children }) {
     try {
       const res = await ConcernService.getStats();
       if (res) {
-        if (res.city) {
-          setCityStats({
-            total: Number(res.city.total || 0),
-            pending: Number(res.city.pending || 0),
-            inProgress: Number(res.city.inProgress || 0),
-            resolved: Number(res.city.resolved || 0),
-            rejected: Number(res.city.rejected || 0),
-            urgent: Number(res.city.urgent || 0),
-          });
-        }
-        if (res.mine) {
-          setMyStats({
-            total: Number(res.mine.total || 0),
-            pending: Number(res.mine.pending || 0),
-            inProgress: Number(res.mine.inProgress || 0),
-            resolved: Number(res.mine.resolved || 0),
-            rejected: Number(res.mine.rejected || 0),
-            urgent: Number(res.mine.urgent || 0),
-          });
-        }
+        const nextCity = res.city
+          ? {
+              total: Number(res.city.total || 0),
+              pending: Number(res.city.pending || 0),
+              inProgress: Number(res.city.inProgress || 0),
+              resolved: Number(res.city.resolved || 0),
+              rejected: Number(res.city.rejected || 0),
+              urgent: Number(res.city.urgent || 0),
+            }
+          : null;
+        const nextMine = res.mine
+          ? {
+              total: Number(res.mine.total || 0),
+              pending: Number(res.mine.pending || 0),
+              inProgress: Number(res.mine.inProgress || 0),
+              resolved: Number(res.mine.resolved || 0),
+              rejected: Number(res.mine.rejected || 0),
+              urgent: Number(res.mine.urgent || 0),
+            }
+          : null;
+
+        if (nextCity) setCityStats(nextCity);
+        if (nextMine) setMyStats(nextMine);
+
+        AsyncStorage.setItem(
+          getStatsCacheKey(user.id),
+          JSON.stringify({ city: nextCity, mine: nextMine })
+        ).catch(() => {});
       }
       return res;
     } catch (err) {
@@ -143,7 +213,7 @@ export function ConcernProvider({ children }) {
     }
   };
 
-  // ── Initial load ───────────────────────────────────────────────────────
+  // ── Initial load (Cache-first + Background Revalidate) ─────────────────
   useEffect(() => {
     if (!user?.id) {
       setConcerns([]);
@@ -153,9 +223,14 @@ export function ConcernProvider({ children }) {
       setLoading(false);
       return;
     }
-    loadFeed(1, 10, true);
-    loadMyConcerns(1, 10, true);
-    fetchStats();
+
+    (async () => {
+      const hadCache = await hydrateFromCache(user.id);
+      // If cache already populated the UI, revalidate silently in the background
+      loadFeed(1, 10, true, hadCache);
+      loadMyConcerns(1, 10, true);
+      fetchStats();
+    })();
   }, [user?.id]);
 
   // ── Real-time Socket Event Listeners for Live Accurate Stats ────────────
@@ -206,19 +281,19 @@ export function ConcernProvider({ children }) {
       console.log('[Auto-Sync] Sync already in progress, skipping duplicate call.');
       return;
     }
-    
+
     syncingRef.current = true;
     setIsSyncing(true);
 
     try {
       const queueStr = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
       if (!queueStr) return;
-      
+
       const queue = JSON.parse(queueStr);
       if (!Array.isArray(queue) || queue.length === 0) return;
 
       console.log(`[Auto-Sync] Syncing ${queue.length} offline concerns...`);
-      
+
       const remainingQueue = [];
       let syncedCount = 0;
 
@@ -234,7 +309,7 @@ export function ConcernProvider({ children }) {
       }
 
       await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remainingQueue));
-      
+
       if (syncedCount > 0) {
         refreshConcerns();
         if (Platform.OS === 'android') {
@@ -255,7 +330,7 @@ export function ConcernProvider({ children }) {
       syncOfflineConcerns();
     }
     await Promise.all([
-      loadFeed(1, 10, true),
+      loadFeed(1, 10, true, true),
       loadMyConcerns(1, 10, true),
       fetchStats(),
     ]);
@@ -281,19 +356,19 @@ export function ConcernProvider({ children }) {
       // Save to offline queue
       const queueStr = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
       const queue = queueStr ? JSON.parse(queueStr) : [];
-      
+
       queue.push({
         ...payload,
         _offlineId: Date.now().toString(),
         _queuedAt: new Date().toISOString(),
       });
-      
+
       await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-      
+
       // Optimistically add to UI state
-      setConcerns(prev => [optimisticOfflineItem, ...prev]);
-      setMyConcerns(prev => [optimisticOfflineItem, ...prev]);
-      
+      setConcerns((prev) => [optimisticOfflineItem, ...prev]);
+      setMyConcerns((prev) => [optimisticOfflineItem, ...prev]);
+
       return { offline: true };
     }
 
@@ -303,7 +378,12 @@ export function ConcernProvider({ children }) {
       return res;
     } catch (err) {
       // If network dropped mid-flight (e.g., Network request failed)
-      if (err.message && (err.message.includes('Network') || err.message.includes('Failed to fetch') || err.message.includes('timeout'))) {
+      if (
+        err.message &&
+        (err.message.includes('Network') ||
+          err.message.includes('Failed to fetch') ||
+          err.message.includes('timeout'))
+      ) {
         console.log('[ConcernContext] Network failed during addConcern, falling back to offline queue');
         const queueStr = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
         const queue = queueStr ? JSON.parse(queueStr) : [];
@@ -313,16 +393,17 @@ export function ConcernProvider({ children }) {
           _queuedAt: new Date().toISOString(),
         });
         await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-        
+
         // Optimistically add to UI state
-        setConcerns(prev => [optimisticOfflineItem, ...prev]);
+        setConcerns((prev) => [optimisticOfflineItem, ...prev]);
+        setMyConcerns((prev) => [optimisticOfflineItem, ...prev]);
         // If we are actually online (transient socket timeout), schedule an auto-sync retry
         if (!isOffline) {
           setTimeout(() => {
             syncOfflineConcerns();
           }, 2000);
         }
-        
+
         return { offline: true };
       }
       throw err;
@@ -353,7 +434,7 @@ export function ConcernProvider({ children }) {
         myStats,
         fetchStats,
         loading,
-        isOffline,    // forwarded from NetworkContext for convenience
+        isOffline, // forwarded from NetworkContext for convenience
         addConcern,
         updateConcern,
         deleteConcern,

@@ -50,25 +50,56 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Restore session from AsyncStorage on mount
+  // Restore session from AsyncStorage on mount (with offline cache fallback)
   useEffect(() => {
     (async () => {
+      let cachedUserObj = null;
       try {
-        const token = await AsyncStorage.getItem('cv_token');
-        if (token) {
-          const userData = await apiRequest('/auth/me');
-          if (userData.role === 'admin') {
-            await AsyncStorage.multiRemove(['cv_token', 'cv_user']);
-            setUser(null);
-            return;
-          }
-          const isBlocked = userData.verification_status !== VERIFICATION_STATUS.VERIFIED;
-          setUser({ ...userData, _blocked: isBlocked });
-          SocketService.connect();
+        const [token, cachedUserStr] = await Promise.all([
+          AsyncStorage.getItem('cv_token'),
+          AsyncStorage.getItem('cv_user'),
+        ]);
+
+        if (!token) {
+          setLoading(false);
+          return;
         }
-      } catch {
-        await AsyncStorage.multiRemove(['cv_token', 'cv_user']);
-        SocketService.disconnect();
+
+        // 1. Immediately hydrate from cached user so app opens fast & works offline
+        if (cachedUserStr) {
+          try {
+            const parsed = JSON.parse(cachedUserStr);
+            if (parsed && parsed.role !== 'admin') {
+              const isBlocked = parsed.verification_status !== VERIFICATION_STATUS.VERIFIED;
+              cachedUserObj = { ...parsed, _blocked: isBlocked };
+              setUser(cachedUserObj);
+              setLoading(false);
+            }
+          } catch (_) {}
+        }
+
+        // 2. Revalidate session with server in background
+        const userData = await apiRequest('/auth/me');
+        if (userData.role === 'admin') {
+          await AsyncStorage.multiRemove(['cv_token', 'cv_user']);
+          setUser(null);
+          return;
+        }
+        const isBlocked = userData.verification_status !== VERIFICATION_STATUS.VERIFIED;
+        const freshUser = { ...userData, _blocked: isBlocked };
+        await AsyncStorage.setItem('cv_user', JSON.stringify(userData));
+        setUser(freshUser);
+        SocketService.connect();
+      } catch (err) {
+        // Only clear session if token was explicitly rejected (401 / 403)
+        if (err?.status === 401 || err?.status === 403) {
+          await AsyncStorage.multiRemove(['cv_token', 'cv_user']);
+          setUser(null);
+          SocketService.disconnect();
+        } else if (!cachedUserObj) {
+          // No cached user and network failed
+          setUser(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -119,7 +150,7 @@ export function AuthProvider({ children }) {
     idImageUrl,
     verificationToken,
   }) => {
-    const { token, user: userData } = await apiRequest('/auth/register', {
+    const { user: userData } = await apiRequest('/auth/register', {
       method: 'POST',
       body: JSON.stringify({
         name,

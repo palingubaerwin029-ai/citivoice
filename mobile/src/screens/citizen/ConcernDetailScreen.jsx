@@ -99,10 +99,25 @@ export default function ConcernDetailScreen({ route, navigation }) {
   useEffect(() => {
     if (!isPositiveIntegerId) return;
     let isMounted = true;
+    const detailCacheKey = `cv_cache_concern_detail_${concernId}`;
 
     const fetchConcernData = async () => {
       try {
-        if (!contextConcern) setLoadingConcern(true);
+        // 1. Hydrate from local cache first so details & comments appear immediately (even offline)
+        const cachedRaw = await AsyncStorage.getItem(detailCacheKey);
+        if (cachedRaw && isMounted) {
+          try {
+            const cached = JSON.parse(cachedRaw);
+            if (cached?.concern) setFetchedConcern(cached.concern);
+            if (Array.isArray(cached?.assignments)) setAssignments(cached.assignments);
+            if (Array.isArray(cached?.comments)) setComments(cached.comments);
+            setLoadingConcern(false);
+          } catch (_) {}
+        } else if (!contextConcern && isMounted) {
+          setLoadingConcern(true);
+        }
+
+        // 2. Revalidate from server
         const [concernRes, aRes, cRes] = await Promise.allSettled([
           mobileApi.get(`/concerns/${concernId}`),
           mobileApi.get(`/concerns/${concernId}/assignments`),
@@ -110,14 +125,26 @@ export default function ConcernDetailScreen({ route, navigation }) {
         ]);
 
         if (isMounted) {
-          if (concernRes.status === 'fulfilled' && concernRes.value) {
-            setFetchedConcern(concernRes.value);
-          }
-          if (aRes.status === 'fulfilled') {
-            setAssignments(aRes.value?.data || aRes.value || []);
-          }
-          if (cRes.status === 'fulfilled') {
-            setComments(cRes.value?.data || cRes.value || []);
+          const nextConcern =
+            concernRes.status === 'fulfilled' && concernRes.value ? concernRes.value : null;
+          const nextAssignments =
+            aRes.status === 'fulfilled' ? aRes.value?.data || aRes.value || [] : null;
+          const nextComments =
+            cRes.status === 'fulfilled' ? cRes.value?.data || cRes.value || [] : null;
+
+          if (nextConcern) setFetchedConcern(nextConcern);
+          if (nextAssignments) setAssignments(nextAssignments);
+          if (nextComments) setComments(nextComments);
+
+          if (nextConcern || nextAssignments || nextComments) {
+            AsyncStorage.setItem(
+              detailCacheKey,
+              JSON.stringify({
+                concern: nextConcern || contextConcern,
+                assignments: nextAssignments || [],
+                comments: nextComments || [],
+              })
+            ).catch(() => {});
           }
         }
       } catch (err) {
@@ -166,7 +193,16 @@ export default function ConcernDetailScreen({ route, navigation }) {
       setNewComment('');
       setCommentImageUri(null);
       const cRes = await mobileApi.get(`/concerns/${concernId}/comments`);
-      setComments(cRes.data || cRes || []);
+      const nextComments = cRes.data || cRes || [];
+      setComments(nextComments);
+      AsyncStorage.setItem(
+        `cv_cache_concern_detail_${concernId}`,
+        JSON.stringify({
+          concern,
+          assignments,
+          comments: nextComments,
+        })
+      ).catch(() => {});
     } catch (err) {
       Alert.alert('Error', err?.message || 'Failed to post comment');
     }

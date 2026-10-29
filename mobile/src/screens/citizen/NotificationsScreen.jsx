@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { mobileApi } from '../../context/AuthContext';
+import { mobileApi, useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useConcerns } from '../../context/ConcernContext';
 import { EmptyState } from '../../components/UI';
@@ -13,11 +14,18 @@ import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive'
 
 export default function NotificationsScreen({ navigation }) {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const { fetchUnreadCount } = useNotifications();
   const { concerns } = useConcerns();
   const { t } = useLanguage();
+
+  const cacheKey = user?.id ? `cv_cache_notifications_${user.id}` : 'cv_cache_notifications';
+
+  const saveNotificationsCache = (list) => {
+    AsyncStorage.setItem(cacheKey, JSON.stringify(list)).catch(() => {});
+  };
 
   const isLinkedNotification = (n) => {
     const text = `${n.title || ''} ${n.message || ''}`.toLowerCase();
@@ -29,6 +37,7 @@ export default function NotificationsScreen({ navigation }) {
       const res = await mobileApi.get('/notifications');
       const filtered = (res || []).filter((n) => !isLinkedNotification(n));
       setNotifications(filtered);
+      saveNotificationsCache(filtered);
       // After loading, we update the app badge
       fetchUnreadCount();
     } catch (err) {
@@ -37,8 +46,19 @@ export default function NotificationsScreen({ navigation }) {
   };
 
   useEffect(() => {
+    // 1. Hydrate from cache immediately
+    AsyncStorage.getItem(cacheKey)
+      .then((cached) => {
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) setNotifications(parsed);
+        }
+      })
+      .catch(() => {});
+
+    // 2. Revalidate from server
     loadNotifications();
-  }, []);
+  }, [cacheKey]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -48,8 +68,12 @@ export default function NotificationsScreen({ navigation }) {
 
   const handleMarkAsRead = async (id) => {
     try {
+      setNotifications((prev) => {
+        const next = prev.map((n) => (n.id === id ? { ...n, is_read: 1 } : n));
+        saveNotificationsCache(next);
+        return next;
+      });
       await mobileApi.put(`/notifications/${id}/read`);
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: 1 } : n)));
       fetchUnreadCount();
     } catch (err) {
       console.log('Error marking as read', err);
@@ -58,8 +82,12 @@ export default function NotificationsScreen({ navigation }) {
 
   const handleMarkAllRead = async () => {
     try {
+      setNotifications((prev) => {
+        const next = prev.map((n) => ({ ...n, is_read: 1 }));
+        saveNotificationsCache(next);
+        return next;
+      });
       await mobileApi.put(`/notifications/read-all`);
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
       fetchUnreadCount();
     } catch (err) {
       console.log('Error marking all as read', err);
@@ -78,7 +106,11 @@ export default function NotificationsScreen({ navigation }) {
           onPress: async () => {
             try {
               await mobileApi.delete(`/notifications/${id}`);
-              setNotifications((prev) => prev.filter((n) => n.id !== id));
+              setNotifications((prev) => {
+                const next = prev.filter((n) => n.id !== id);
+                saveNotificationsCache(next);
+                return next;
+              });
               fetchUnreadCount();
             } catch (err) {
               console.log('Error deleting notification', err);
@@ -102,6 +134,7 @@ export default function NotificationsScreen({ navigation }) {
             try {
               await mobileApi.delete('/notifications');
               setNotifications([]);
+              saveNotificationsCache([]);
               fetchUnreadCount();
             } catch (err) {
               console.log('Error deleting all notifications', err);

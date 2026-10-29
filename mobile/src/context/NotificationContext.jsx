@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { mobileApi, useAuth } from './AuthContext';
@@ -98,19 +99,33 @@ export const NotificationProvider = ({ children }) => {
   }
 
   const fetchUnreadCount = async () => {
-    if (!user) {
+    if (!user?.id) {
       setUnreadCount(0);
       return;
     }
+    const cacheKey = `cv_cache_unread_${user.id}`;
     try {
       const res = await mobileApi.get('/notifications/unread-count');
-      setUnreadCount(res.unreadCount || 0);
+      const count = Number(res?.unreadCount || 0);
+      setUnreadCount(count);
+      AsyncStorage.setItem(cacheKey, String(count)).catch(() => {});
     } catch (err) {
       console.log('Failed to fetch unread notification count', err);
+      try {
+        const cached = await AsyncStorage.getItem(cacheKey);
+        if (cached != null) setUnreadCount(Number(cached) || 0);
+      } catch (_) {}
     }
   };
 
   useEffect(() => {
+    if (user?.id) {
+      AsyncStorage.getItem(`cv_cache_unread_${user.id}`)
+        .then((cached) => {
+          if (cached != null) setUnreadCount(Number(cached) || 0);
+        })
+        .catch(() => {});
+    }
     fetchUnreadCount();
 
     // Poll every 30 seconds for new notifications (fallback)
