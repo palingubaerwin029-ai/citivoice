@@ -20,17 +20,152 @@ import { useImagePicker } from '../../hooks/useImagePicker';
 import { ConcernService } from '../../services/concernService';
 import { useLanguage } from '../../context/LanguageContext';
 
-const ID_TYPES = [
-  'PhilSys (National ID)',
-  "Driver's License",
-  'Philippine Passport',
-  'SSS ID',
-  'GSIS ID',
-  'Postal ID',
-  "Voter's ID",
-  'PRC ID',
-  'Barangay ID',
-];
+export const ID_CONFIGS = {
+  'PhilSys (National ID)': {
+    placeholder: '1234-5678-9012-3456',
+    hint: '16 digits (e.g. 1234-5678-9012-3456)',
+    keyboardType: 'numeric',
+    maxLength: 19,
+    format: (v) => {
+      const clean = v.replace(/\D/g, '').slice(0, 16);
+      return clean.match(/.{1,4}/g)?.join('-') || clean;
+    },
+    isValid: (v) => v.replace(/\D/g, '').length === 16,
+  },
+  "Driver's License": {
+    placeholder: 'A01-23-456789',
+    hint: '1 letter + 10 digits (e.g. A01-23-456789)',
+    keyboardType: 'default',
+    maxLength: 13,
+    format: (v) => {
+      const clean = v.replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 11);
+      let res = '';
+      if (clean.length > 0) res += clean.slice(0, 3);
+      if (clean.length > 3) res += '-' + clean.slice(3, 5);
+      if (clean.length > 5) res += '-' + clean.slice(5, 11);
+      return res;
+    },
+    isValid: (v) => v.replace(/[^A-Z0-9]/gi, '').length >= 9,
+  },
+  'Philippine Passport': {
+    placeholder: 'P1234567A',
+    hint: '1-2 letters + 7 digits (e.g. P1234567A)',
+    keyboardType: 'default',
+    maxLength: 9,
+    format: (v) => v.replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 9),
+    isValid: (v) => v.replace(/[^A-Z0-9]/gi, '').length >= 8,
+  },
+  'SSS ID': {
+    placeholder: '01-2345678-9',
+    hint: '10 digits (e.g. 01-2345678-9)',
+    keyboardType: 'numeric',
+    maxLength: 12,
+    format: (v) => {
+      const clean = v.replace(/\D/g, '').slice(0, 10);
+      let res = '';
+      if (clean.length > 0) res += clean.slice(0, 2);
+      if (clean.length > 2) res += '-' + clean.slice(2, 9);
+      if (clean.length > 9) res += '-' + clean.slice(9, 10);
+      return res;
+    },
+    isValid: (v) => v.replace(/\D/g, '').length === 10,
+  },
+  'GSIS ID': {
+    placeholder: '0111-1234567-8',
+    hint: 'CRN or 11-12 digits (e.g. 0111-1234567-8)',
+    keyboardType: 'numeric',
+    maxLength: 14,
+    format: (v) => {
+      const clean = v.replace(/\D/g, '').slice(0, 12);
+      let res = '';
+      if (clean.length > 0) res += clean.slice(0, 4);
+      if (clean.length > 4) res += '-' + clean.slice(4, 11);
+      if (clean.length > 11) res += '-' + clean.slice(11, 12);
+      return res;
+    },
+    isValid: (v) => v.replace(/\D/g, '').length >= 10,
+  },
+  'PhilHealth ID': {
+    placeholder: '12-345678901-2',
+    hint: '12 digits (e.g. 12-345678901-2)',
+    keyboardType: 'numeric',
+    maxLength: 14,
+    format: (v) => {
+      const clean = v.replace(/\D/g, '').slice(0, 12);
+      let res = '';
+      if (clean.length > 0) res += clean.slice(0, 2);
+      if (clean.length > 2) res += '-' + clean.slice(2, 11);
+      if (clean.length > 11) res += '-' + clean.slice(11, 12);
+      return res;
+    },
+    isValid: (v) => v.replace(/\D/g, '').length === 12,
+  },
+  'TIN ID': {
+    placeholder: '123-456-789-000',
+    hint: '9 to 12 digits (e.g. 123-456-789-000)',
+    keyboardType: 'numeric',
+    maxLength: 15,
+    format: (v) => {
+      const clean = v.replace(/\D/g, '').slice(0, 12);
+      return clean.match(/.{1,3}/g)?.join('-') || clean;
+    },
+    isValid: (v) => v.replace(/\D/g, '').length >= 9,
+  },
+  'Postal ID': {
+    placeholder: '1234-5678-9012',
+    hint: '12 digits (e.g. 1234-5678-9012)',
+    keyboardType: 'numeric',
+    maxLength: 14,
+    format: (v) => {
+      const clean = v.replace(/\D/g, '').slice(0, 12);
+      return clean.match(/.{1,4}/g)?.join('-') || clean;
+    },
+    isValid: (v) => v.replace(/\D/g, '').length >= 10,
+  },
+  "Voter's ID": {
+    placeholder: '1234-5678A-B12345',
+    hint: 'Voter Identification Number (VIN)',
+    keyboardType: 'default',
+    maxLength: 20,
+    format: (v) => v.replace(/[^A-Z0-9-]/gi, '').toUpperCase().slice(0, 20),
+    isValid: (v) => v.replace(/[^A-Z0-9]/gi, '').length >= 10,
+  },
+  'PRC ID': {
+    placeholder: '1234567',
+    hint: '7 digits (e.g. 1234567)',
+    keyboardType: 'numeric',
+    maxLength: 7,
+    format: (v) => v.replace(/\D/g, '').slice(0, 7),
+    isValid: (v) => v.replace(/\D/g, '').length === 7,
+  },
+  'Barangay ID': {
+    placeholder: 'BRGY-12345',
+    hint: 'Barangay resident ID number',
+    keyboardType: 'default',
+    maxLength: 20,
+    format: (v) => v.toUpperCase().slice(0, 20),
+    isValid: (v) => v.trim().length >= 4,
+  },
+  'Senior Citizen / PWD ID': {
+    placeholder: 'OSCA-12345',
+    hint: 'Control/ID number',
+    keyboardType: 'default',
+    maxLength: 20,
+    format: (v) => v.toUpperCase().slice(0, 20),
+    isValid: (v) => v.trim().length >= 4,
+  },
+};
+
+export const DEFAULT_ID_CONFIG = {
+  placeholder: 'Enter ID Number',
+  hint: 'Select an ID type above to format your ID number',
+  keyboardType: 'default',
+  maxLength: 25,
+  format: (v) => v.toUpperCase().slice(0, 25),
+  isValid: (v) => v.trim().length >= 4,
+};
+
+const ID_TYPES = Object.keys(ID_CONFIGS);
 
 export default function VerifyIdentityScreen() {
   const { colors } = useTheme();
@@ -50,6 +185,8 @@ export default function VerifyIdentityScreen() {
   const [submitError, setSubmitError] = useState(null);
   const [formErrors, setFormErrors] = useState({});
 
+  const activeIdConfig = ID_CONFIGS[idType] || DEFAULT_ID_CONFIG;
+
   const { pickImage: launchImagePicker, takePhoto: launchCamera } = useImagePicker();
 
   const pickPhoto = async () => {
@@ -65,7 +202,11 @@ export default function VerifyIdentityScreen() {
   const validate = () => {
     const e = {};
     if (!idType) e.idType = 'Please select an ID type';
-    if (!idNumber.trim()) e.idNumber = 'Enter your ID number';
+    if (!idNumber.trim()) {
+      e.idNumber = 'Enter your ID number';
+    } else if (activeIdConfig.isValid && !activeIdConfig.isValid(idNumber)) {
+      e.idNumber = `Invalid format (${activeIdConfig.hint})`;
+    }
     if (!idImage) e.idImage = 'Please upload a photo of your ID';
     setFormErrors(e);
     return Object.keys(e).length === 0;
@@ -227,7 +368,15 @@ export default function VerifyIdentityScreen() {
                           idType === tItem && { backgroundColor: colors.primary + '18' },
                         ]}
                         onPress={() => {
+                          const cfg = ID_CONFIGS[tItem] || DEFAULT_ID_CONFIG;
                           setIdType(tItem);
+                          setIdNumber((prev) => (prev ? cfg.format(prev) : ''));
+                          setFormErrors((prev) => {
+                            const next = { ...prev };
+                            delete next.idType;
+                            delete next.idNumber;
+                            return next;
+                          });
                           setShowIdPicker(false);
                         }}
                       >
@@ -254,23 +403,33 @@ export default function VerifyIdentityScreen() {
             </View>
 
             {/* ID Number Input */}
-            <InputField
-              label={`${t('idNumber').toUpperCase()} *`}
-              value={idNumber}
-              onChangeText={(v) => {
-                const cleaned = v.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-                let formatted = '';
-                for (let i = 0; i < cleaned.length; i++) {
-                  if (i > 0 && i % 4 === 0) formatted += '-';
-                  formatted += cleaned[i];
-                }
-                setIdNumber(formatted);
-              }}
-              placeholder="XXXX-XXXX-XXXX"
-              maxLength={25}
-              leftIcon="key-outline"
-              error={formErrors.idNumber}
-            />
+            <View style={{ marginBottom: 14 }}>
+              <InputField
+                label={`${t('idNumber').toUpperCase()} *`}
+                value={idNumber}
+                onChangeText={(v) => {
+                  const formatted = activeIdConfig.format(v);
+                  setIdNumber(formatted);
+                  if (formErrors.idNumber) {
+                    setFormErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.idNumber;
+                      return next;
+                    });
+                  }
+                }}
+                placeholder={activeIdConfig.placeholder}
+                maxLength={activeIdConfig.maxLength}
+                keyboardType={activeIdConfig.keyboardType}
+                autoCapitalize="characters"
+                leftIcon="key-outline"
+                error={formErrors.idNumber}
+                style={{ marginBottom: 0 }}
+              />
+              <Text style={{ fontSize: rf(11), color: colors.textMuted, marginTop: 4, marginLeft: 4 }}>
+                {activeIdConfig.hint}
+              </Text>
+            </View>
 
             {/* ID Photo Picker */}
             <View style={{ marginBottom: 16 }}>
