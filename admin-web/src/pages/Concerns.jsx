@@ -295,6 +295,19 @@ export default function Concerns() {
                 setConcernPage(1);
               }}
             >
+              {status !== 'All' && (
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: STATUS_COLORS[status],
+                    marginRight: 6,
+                    verticalAlign: 'middle',
+                  }}
+                />
+              )}
               {status}
             </button>
           ))}
@@ -322,6 +335,68 @@ export default function Concerns() {
               {p}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* 🏷️ Status Legend */}
+      <div className={cStyles.statusLegendBar}>
+        <div className={cStyles.legendTitleGroup}>
+          <span>🏷️</span>
+          <span>Status Legend:</span>
+        </div>
+        <div className={cStyles.legendItems}>
+          <div
+            className={cStyles.legendItem}
+            style={{ cursor: 'pointer' }}
+            title="Click to filter by Pending"
+            onClick={() => {
+              setStatusFilter('Pending');
+              setConcernPage(1);
+            }}
+          >
+            <span className={cStyles.legendDot} style={{ background: '#FFB800' }} />
+            <span className={cStyles.legendName}>Pending</span>
+            <span className={cStyles.legendDesc}>— Awaiting review & dispatch</span>
+          </div>
+          <div
+            className={cStyles.legendItem}
+            style={{ cursor: 'pointer' }}
+            title="Click to filter by In Progress"
+            onClick={() => {
+              setStatusFilter('In Progress');
+              setConcernPage(1);
+            }}
+          >
+            <span className={cStyles.legendDot} style={{ background: '#1A6BFF' }} />
+            <span className={cStyles.legendName}>In Progress</span>
+            <span className={cStyles.legendDesc}>— Active field work & investigation</span>
+          </div>
+          <div
+            className={cStyles.legendItem}
+            style={{ cursor: 'pointer' }}
+            title="Click to filter by Resolved"
+            onClick={() => {
+              setStatusFilter('Resolved');
+              setConcernPage(1);
+            }}
+          >
+            <span className={cStyles.legendDot} style={{ background: '#00D4AA' }} />
+            <span className={cStyles.legendName}>Resolved</span>
+            <span className={cStyles.legendDesc}>— Remediated with verified proof</span>
+          </div>
+          <div
+            className={cStyles.legendItem}
+            style={{ cursor: 'pointer' }}
+            title="Click to filter by Rejected"
+            onClick={() => {
+              setStatusFilter('Rejected');
+              setConcernPage(1);
+            }}
+          >
+            <span className={cStyles.legendDot} style={{ background: '#FF4444' }} />
+            <span className={cStyles.legendName}>Rejected</span>
+            <span className={cStyles.legendDesc}>— Duplicate, invalid, or out of scope</span>
+          </div>
         </div>
       </div>
 
@@ -499,8 +574,19 @@ export default function Concerns() {
                             style={{
                               color: STATUS_COLORS[c.status],
                               backgroundColor: (STATUS_COLORS[c.status] || '#8899BB') + '22',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
                             }}
                           >
+                            <span
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                background: STATUS_COLORS[c.status] || '#8899BB',
+                              }}
+                            />
                             {c.status}
                           </span>
                         </td>

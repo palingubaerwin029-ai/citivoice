@@ -475,6 +475,53 @@ export function MapView() {
 
 
 
+        {/* 🗺️ Map Status Legend Overlay */}
+        <div className={s.mapStatusLegend}>
+          <div className={s.legendHeader}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#94A3B8' }}>
+              📍 Status Legend
+            </span>
+          </div>
+          <div className={s.legendGrid}>
+            <div
+              className={s.legendRow}
+              onClick={() => setFilter(filter === 'Pending' ? 'All' : 'Pending')}
+              style={{ cursor: 'pointer', opacity: filter !== 'All' && filter !== 'Pending' ? 0.4 : 1 }}
+              title="Click to filter Pending"
+            >
+              <span className={s.legendDot} style={{ background: '#FFB800' }} />
+              <span className={s.legendText}>Pending</span>
+            </div>
+            <div
+              className={s.legendRow}
+              onClick={() => setFilter(filter === 'In Progress' ? 'All' : 'In Progress')}
+              style={{ cursor: 'pointer', opacity: filter !== 'All' && filter !== 'In Progress' ? 0.4 : 1 }}
+              title="Click to filter In Progress"
+            >
+              <span className={s.legendDot} style={{ background: '#1A6BFF' }} />
+              <span className={s.legendText}>In Progress</span>
+            </div>
+            <div
+              className={s.legendRow}
+              onClick={() => setFilter(filter === 'Resolved' ? 'All' : 'Resolved')}
+              style={{ cursor: 'pointer', opacity: filter !== 'All' && filter !== 'Resolved' ? 0.4 : 1 }}
+              title="Click to filter Resolved"
+            >
+              <span className={s.legendDot} style={{ background: '#00D4AA' }} />
+              <span className={s.legendText}>Resolved</span>
+            </div>
+            <div
+              className={s.legendRow}
+              onClick={() => setFilter(filter === 'Rejected' ? 'All' : 'Rejected')}
+              style={{ cursor: 'pointer', opacity: filter !== 'All' && filter !== 'Rejected' ? 0.4 : 1 }}
+              title="Click to filter Rejected"
+            >
+              <span className={s.legendDot} style={{ background: '#FF4444' }} />
+              <span className={s.legendText}>Rejected</span>
+            </div>
+          </div>
+        </div>
+
         {/* 🎯 Controls Overlay */}
         <div className={s.recenterWrap} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button
