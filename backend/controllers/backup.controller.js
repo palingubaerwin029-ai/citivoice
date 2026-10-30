@@ -178,7 +178,7 @@ const importJsonBackup = async (req, res) => {
 
   try {
     const [adminUsers] = await pool.query(
-      'SELECT password_hash FROM users WHERE id = ? AND role = "admin" LIMIT 1',
+      "SELECT password_hash FROM users WHERE id = ? AND role = 'admin' LIMIT 1",
       [req.user.id]
     );
 
