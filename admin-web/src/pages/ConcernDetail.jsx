@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { api, fmtDate, fmtDateShort, resolveImageUrl, getPinBarangay, getCategoryConfig } from '../services/api';
+import { api, fmtDate, fmtDateShort, fmtTime, resolveImageUrl, getPinBarangay, getCategoryConfig } from '../services/api';
 import { socket } from '../services/socket';
 import { useParams, useNavigate } from 'react-router-dom';
 import s from '../styles/Admin.module.css';
@@ -305,7 +305,7 @@ export default function ConcernDetail() {
     !!resolvedFile;
 
   const buildTimeline = (c) => {
-    const steps = [{ event: 'Concern submitted', date: fmtDateShort(c.created_at) }];
+    const steps = [{ event: 'Concern submitted', date: fmtTime(c.created_at) ? `${fmtDateShort(c.created_at)} • ${fmtTime(c.created_at)}` : fmtDateShort(c.created_at) }];
     if (['In Progress', 'Resolved', 'Rejected'].includes(c.status))
       steps.push({ event: 'Assigned to team', date: fmtDateShort(c.updated_at) });
     if (c.status === 'Resolved') {
@@ -451,7 +451,12 @@ export default function ConcernDetail() {
                     `/map?concernId=${concern.id}&lat=${concern.location_lat || ''}&lng=${concern.location_lng || ''}`
                   ),
               },
-              { icon: '📅', label: 'Date Filed', value: fmtDate(concern.created_at) },
+              {
+                icon: '📅',
+                label: 'Date Submitted',
+                value: fmtDate(concern.created_at),
+                subtext: fmtTime(concern.created_at) ? `Submitted at ${fmtTime(concern.created_at)}` : null,
+              },
             ].map((m, i) => (
               <div
                 key={i}
@@ -997,6 +1002,56 @@ export default function ConcernDetail() {
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* 🏷️ Status Legend */}
+              <div className={cd.statusLegendBox}>
+                <div className={cd.legendTitleGroup}>
+                  <span>🏷️</span>
+                  <span>STATUS LEGEND:</span>
+                </div>
+                <div className={cd.legendItems}>
+                  <div
+                    className={cd.legendItem}
+                    onClick={() => !isStatusDisabled('Pending') && handleSelectStatus('Pending')}
+                    style={{ cursor: isStatusDisabled('Pending') ? 'default' : 'pointer' }}
+                    title={isStatusDisabled('Pending') ? undefined : 'Click to select Pending'}
+                  >
+                    <span className={cd.legendDot} style={{ background: '#FFB800' }} />
+                    <span className={cd.legendName}>Pending</span>
+                    <span className={cd.legendDesc}>— Awaiting review & dispatch</span>
+                  </div>
+                  <div
+                    className={cd.legendItem}
+                    onClick={() => !isStatusDisabled('In Progress') && handleSelectStatus('In Progress')}
+                    style={{ cursor: isStatusDisabled('In Progress') ? 'default' : 'pointer' }}
+                    title={isStatusDisabled('In Progress') ? undefined : 'Click to select In Progress'}
+                  >
+                    <span className={cd.legendDot} style={{ background: '#1A6BFF' }} />
+                    <span className={cd.legendName}>In Progress</span>
+                    <span className={cd.legendDesc}>— Active field work & investigation</span>
+                  </div>
+                  <div
+                    className={cd.legendItem}
+                    onClick={() => !isStatusDisabled('Resolved') && handleSelectStatus('Resolved')}
+                    style={{ cursor: isStatusDisabled('Resolved') ? 'default' : 'pointer' }}
+                    title={isStatusDisabled('Resolved') ? undefined : 'Click to select Resolved'}
+                  >
+                    <span className={cd.legendDot} style={{ background: '#00D4AA' }} />
+                    <span className={cd.legendName}>Resolved</span>
+                    <span className={cd.legendDesc}>— Remediated with verified proof</span>
+                  </div>
+                  <div
+                    className={cd.legendItem}
+                    onClick={() => !isStatusDisabled('Rejected') && handleSelectStatus('Rejected')}
+                    style={{ cursor: isStatusDisabled('Rejected') ? 'default' : 'pointer' }}
+                    title={isStatusDisabled('Rejected') ? undefined : 'Click to select Rejected'}
+                  >
+                    <span className={cd.legendDot} style={{ background: '#FF4444' }} />
+                    <span className={cd.legendName}>Rejected</span>
+                    <span className={cd.legendDesc}>— Duplicate, invalid, or out of scope</span>
+                  </div>
                 </div>
               </div>
 

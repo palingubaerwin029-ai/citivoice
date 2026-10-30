@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api, fmtDateShort, resolveImageUrl, getCategoryConfig } from '../services/api';
+import { api, fmtDateShort, fmtTime, resolveImageUrl, getCategoryConfig } from '../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { socket, connectSocket } from '../services/socket';
 
@@ -411,7 +411,7 @@ export default function Concerns() {
                     'Category',
                     'Priority',
                     'Status',
-                    'Date',
+                    'Date Submitted',
                     'Action',
                   ].map((h) => (
                     <th key={h} className={s.th}>
@@ -593,6 +593,11 @@ export default function Concerns() {
 
                         <td className={s.td} style={{ fontSize: 12 }}>
                           <div style={{ fontWeight: 500 }}>{fmtDateShort(c.created_at)}</div>
+                          {c.created_at && fmtTime(c.created_at) && (
+                            <div style={{ fontSize: 11, color: 'var(--text-3, #8899BB)', marginTop: 2 }}>
+                              {fmtTime(c.created_at)}
+                            </div>
+                          )}
                         </td>
                         <td className={s.td}>
                           <button

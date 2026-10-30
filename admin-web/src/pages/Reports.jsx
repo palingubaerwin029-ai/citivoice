@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, fmtDateShort, getPinBarangay, getCategoryConfig, KABANKALAN_BARANGAY_COORDS } from '../services/api';
+import { api, fmtDateShort, fmtTime, getPinBarangay, getCategoryConfig, KABANKALAN_BARANGAY_COORDS } from '../services/api';
 import s from '../styles/Admin.module.css';
 import r from '../styles/Reports.module.css';
 
@@ -624,7 +624,14 @@ export default function Reports() {
                     <td className={r.rowIndexCell}>
                       {pageSize === 'All' ? idx + 1 : (safeCurrentPage - 1) * effectivePageSize + idx + 1}
                     </td>
-                    <td className={r.dateCell}>{fmtDateShort(c.created_at)}</td>
+                    <td className={r.dateCell}>
+                      <div>{fmtDateShort(c.created_at)}</div>
+                      {c.created_at && fmtTime(c.created_at) && (
+                        <div style={{ fontSize: 11, color: 'var(--text-3, #8899BB)', marginTop: 2 }}>
+                          {fmtTime(c.created_at)}
+                        </div>
+                      )}
+                    </td>
                     <td className={r.titleCell}>
                       <span className={r.cellTextClamp}>{c.title || 'Untitled'}</span>
                     </td>

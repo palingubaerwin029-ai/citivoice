@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, fmtDateShort, getCategoryConfig } from '../services/api';
+import { api, fmtDateShort, fmtTime, getCategoryConfig } from '../services/api';
 import {
   BarChart,
   Bar,
@@ -473,7 +473,7 @@ export default function Dashboard() {
             <table className={s.table} style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead className={s.thead} style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                 <tr>
-                  {['Concern', 'Category', 'Status', 'Filed'].map((h) => (
+                  {['Concern', 'Category', 'Status', 'Date Submitted'].map((h) => (
                     <th key={h} className={s.th}>
                       {h}
                     </th>
@@ -547,7 +547,12 @@ export default function Dashboard() {
                         className={s.td}
                         style={{ fontSize: 12, color: 'var(--text-3)', whiteSpace: 'nowrap' }}
                       >
-                        {fmtDateShort(c.created_at)}
+                        <div style={{ fontWeight: 500, color: 'var(--text-2)' }}>{fmtDateShort(c.created_at)}</div>
+                        {c.created_at && fmtTime(c.created_at) && (
+                          <div style={{ fontSize: 11, color: 'var(--text-3, #8899BB)', marginTop: 2 }}>
+                            {fmtTime(c.created_at)}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

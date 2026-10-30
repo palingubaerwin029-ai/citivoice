@@ -65,6 +65,25 @@ export const fmtDate = (dateStr, opts = { year: 'numeric', month: 'long', day: '
 export const fmtDateShort = (dateStr) =>
   fmtDate(dateStr, { year: 'numeric', month: 'short', day: 'numeric' });
 
+// Utility: format time string (e.g. 10:45 AM)
+export const fmtTime = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('en-PH', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
+
+export const fmtDateTime = (dateStr) => {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '—';
+  return `${fmtDate(dateStr)} at ${fmtTime(dateStr)}`;
+};
+
 // Utility: mask an email for privacy (e.g. johndoe@gmail.com -> joh***@gmail.com)
 export const maskEmail = (email) => {
   if (!email || !email.includes('@')) return email;
