@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { api, fmtDate, fmtDateShort, fmtTime, resolveImageUrl, getPinBarangay, getCategoryConfig } from '../services/api';
+import { api, fmtDate, fmtDateShort, fmtTime, fmtDateTime, resolveImageUrl, getPinBarangay, getCategoryConfig } from '../services/api';
 import { socket } from '../services/socket';
 import { useParams, useNavigate } from 'react-router-dom';
 import s from '../styles/Admin.module.css';
@@ -52,6 +52,7 @@ export default function ConcernDetail() {
   const [clearResolvedImage, setClearResolvedImage] = useState(false);
 
   // Lightbox viewer state for attached pictures
+  const [editHistory, setEditHistory] = useState([]);
   const [lightboxImg, setLightboxImg] = useState(null);
   const [lightboxTitle, setLightboxTitle] = useState('');
   const [imgError, setImgError] = useState(false);
@@ -110,8 +111,11 @@ export default function ConcernDetail() {
       api.get(`/concerns/${id}/assignments`),
       api.get(`/concerns/${id}/comments`),
       api.get(`/concerns/${id}/audit`),
+      api.get(`/concerns/${id}/history`),
     ])
-      .then(([cRes, aRes, comRes, audRes]) => {
+      .then(([cRes, aRes, comRes, audRes, histRes]) => {
+        const histData = histRes.status === 'fulfilled' && histRes.value?.data ? histRes.value.data : (histRes.value || []);
+        setEditHistory(Array.isArray(histData) ? histData : []);
         const cData = cRes.status === 'fulfilled' ? cRes.value : null;
         const aData = aRes.status === 'fulfilled' ? aRes.value : [];
         const comData = comRes.status === 'fulfilled' ? comRes.value : [];
@@ -306,6 +310,15 @@ export default function ConcernDetail() {
 
   const buildTimeline = (c) => {
     const steps = [{ event: 'Concern submitted', date: fmtTime(c.created_at) ? `${fmtDateShort(c.created_at)} • ${fmtTime(c.created_at)}` : fmtDateShort(c.created_at) }];
+
+    if (Array.isArray(editHistory) && editHistory.length > 0) {
+      editHistory.forEach((h) => {
+        steps.push({
+          event: `✏️ ${h.edited_by_role === 'admin' ? 'Admin' : 'Citizen'} edit: ${h.change_summary || 'Details updated'}`,
+          date: fmtTime(h.created_at) ? `${fmtDateShort(h.created_at)} • ${fmtTime(h.created_at)}` : fmtDateShort(h.created_at),
+        });
+      });
+    }
     if (['In Progress', 'Resolved', 'Rejected'].includes(c.status))
       steps.push({ event: 'Assigned to team', date: fmtDateShort(c.updated_at) });
     if (c.status === 'Resolved') {
@@ -497,6 +510,92 @@ export default function ConcernDetail() {
               </p>
             </div>
           </div>
+
+          {/* Edit History (if citizen or admin edited details) */}
+          {editHistory.length > 0 && (
+            <div className={s.card}>
+              <div className={s.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 16 }}>✏️</span>
+                  <span className={s.cardTitle}>Edit History ({editHistory.length} revision{editHistory.length > 1 ? 's' : ''})</span>
+                </div>
+                <span className={s.badge} style={{ background: 'var(--surface-3)', color: 'var(--text-2)', fontSize: 11 }}>
+                  Last edited {fmtDateTime(editHistory[0].created_at)}
+                </span>
+              </div>
+              <div className={s.cardBody} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {editHistory.map((h, idx) => (
+                  <div
+                    key={h.id || idx}
+                    style={{
+                      padding: '12px 14px',
+                      background: 'var(--surface-2)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 10,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--text-1)' }}>
+                          {h.edited_by_role === 'admin' ? '🛡️ Administrator' : '👤 ' + (h.edited_by_name || 'Citizen')}
+                        </span>
+                        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                          • {fmtDateTime(h.created_at)}
+                        </span>
+                      </div>
+                      <span className={s.badge} style={{ background: 'rgba(59, 130, 246, 0.12)', color: 'var(--blue, #3b82f6)', fontSize: 11, fontWeight: 700 }}>
+                        {h.change_summary || 'Details updated'}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
+                      {h.old_title && h.new_title && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 8 }}>
+                          <span style={{ color: 'var(--text-3)', fontWeight: 600 }}>Title:</span>
+                          <div>
+                            <div style={{ color: 'var(--red, #ef4444)', textDecoration: 'line-through', opacity: 0.85 }}>{h.old_title}</div>
+                            <div style={{ color: 'var(--green, #10b981)', fontWeight: 500 }}>{h.new_title}</div>
+                          </div>
+                        </div>
+                      )}
+                      {h.old_category && h.new_category && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 8 }}>
+                          <span style={{ color: 'var(--text-3)', fontWeight: 600 }}>Category:</span>
+                          <div>
+                            <span style={{ color: 'var(--red, #ef4444)', textDecoration: 'line-through', marginRight: 8 }}>{h.old_category}</span>
+                            <span style={{ color: 'var(--green, #10b981)', fontWeight: 600 }}>→ {h.new_category}</span>
+                          </div>
+                        </div>
+                      )}
+                      {h.old_description && h.new_description && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 8 }}>
+                          <span style={{ color: 'var(--text-3)', fontWeight: 600 }}>Description:</span>
+                          <div>
+                            <details style={{ cursor: 'pointer' }}>
+                              <summary style={{ color: 'var(--blue, #3b82f6)', fontWeight: 500 }}>View description changes</summary>
+                              <div style={{ marginTop: 6, padding: 8, background: 'var(--surface-3)', borderRadius: 6 }}>
+                                <div style={{ color: 'var(--red, #ef4444)', textDecoration: 'line-through', marginBottom: 4, whiteSpace: 'pre-wrap' }}>{h.old_description}</div>
+                                <div style={{ color: 'var(--green, #10b981)', whiteSpace: 'pre-wrap' }}>{h.new_description}</div>
+                              </div>
+                            </details>
+                          </div>
+                        </div>
+                      )}
+                      {h.old_location_address && h.new_location_address && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 8 }}>
+                          <span style={{ color: 'var(--text-3)', fontWeight: 600 }}>Location:</span>
+                          <div>
+                            <span style={{ color: 'var(--red, #ef4444)', textDecoration: 'line-through', marginRight: 8 }}>{h.old_location_address}</span>
+                            <span style={{ color: 'var(--green, #10b981)' }}>→ {h.new_location_address}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Image */}
           {concern.image_url && (

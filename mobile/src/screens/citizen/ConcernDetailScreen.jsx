@@ -32,7 +32,7 @@ import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive'
 export default function ConcernDetailScreen({ route, navigation }) {
   const { colors } = useTheme();
   const { concernId } = route?.params || {};
-  const { concerns, deleteConcern } = useConcerns();
+  const { concerns, updateConcern, deleteConcern } = useConcerns();
   const { user } = useAuth();
   const { t } = useLanguage();
 
@@ -47,8 +47,18 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
   const concern = contextConcern || fetchedConcern;
   const isOwner = concern?.user_id === user?.id;
+  const canEdit = isOwner && (concern?.status === 'Pending' || concern?.status === 'In Progress');
   const canDelete = isOwner && concern?.status === 'Pending';
   const [modalImageUri, setModalImageUri] = useState(null);
+
+  // Edit Concern & Edit History State
+  const [editHistory, setEditHistory] = useState([]);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editCategory, setEditCategory] = useState('Road & Infrastructure');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   // Workflow state
   const [assignments, setAssignments] = useState([]);
@@ -118,10 +128,11 @@ export default function ConcernDetailScreen({ route, navigation }) {
         }
 
         // 2. Revalidate from server
-        const [concernRes, aRes, cRes] = await Promise.allSettled([
+        const [concernRes, aRes, cRes, hRes] = await Promise.allSettled([
           mobileApi.get(`/concerns/${concernId}`),
           mobileApi.get(`/concerns/${concernId}/assignments`),
           mobileApi.get(`/concerns/${concernId}/comments`),
+          mobileApi.get(`/concerns/${concernId}/history`),
         ]);
 
         if (isMounted) {
@@ -135,6 +146,9 @@ export default function ConcernDetailScreen({ route, navigation }) {
           if (nextConcern) setFetchedConcern(nextConcern);
           if (nextAssignments) setAssignments(nextAssignments);
           if (nextComments) setComments(nextComments);
+          if (hRes.status === 'fulfilled' && hRes.value?.data) {
+            setEditHistory(Array.isArray(hRes.value.data) ? hRes.value.data : []);
+          }
 
           if (nextConcern || nextAssignments || nextComments) {
             AsyncStorage.setItem(
@@ -211,6 +225,78 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
   // Custom header replaces navigation.setOptions
 
+  const CATEGORIES = [
+    'Road & Infrastructure',
+    'Electricity',
+    'Drainage',
+    'Waste & Sanitation',
+  ];
+
+  const handleOpenEdit = () => {
+    if (!concern) return;
+    setEditTitle(concern.title || '');
+    setEditDescription(concern.description || '');
+    setEditCategory(concern.category || 'Road & Infrastructure');
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    const cleanTitle = editTitle.trim();
+    const cleanDesc = editDescription.trim();
+
+    if (cleanTitle.length < 5) {
+      Alert.alert('Validation Error', 'Title must be at least 5 characters long.');
+      return;
+    }
+    if (cleanDesc.length < 10) {
+      Alert.alert('Validation Error', 'Description must be at least 10 characters long.');
+      return;
+    }
+
+    if (
+      cleanTitle === concern.title &&
+      cleanDesc === concern.description &&
+      editCategory === concern.category
+    ) {
+      setShowEditModal(false);
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const res = await updateConcern(concern.id, {
+        title: cleanTitle,
+        description: cleanDesc,
+        category: editCategory,
+      });
+
+      if (res?.concern) {
+        setFetchedConcern(res.concern);
+      } else {
+        setFetchedConcern((prev) => ({
+          ...prev,
+          title: cleanTitle,
+          description: cleanDesc,
+          category: editCategory,
+          last_edited_at: new Date().toISOString(),
+        }));
+      }
+
+      // Re-fetch edit history
+      try {
+        const histRes = await mobileApi.get(`/concerns/${concern.id}/history`);
+        if (histRes?.data) setEditHistory(histRes.data);
+      } catch (_) {}
+
+      setShowEditModal(false);
+      Alert.alert('Success', 'Your concern details have been updated.');
+    } catch (err) {
+      Alert.alert('Update Failed', err?.message || 'Could not update concern details.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const handleDelete = () => {
     Alert.alert(t('deleteConcern'), t('deleteConfirm'), [
       { text: 'Cancel', style: 'cancel' },
@@ -231,7 +317,7 @@ export default function ConcernDetailScreen({ route, navigation }) {
   };
 
 
-  const timelineSteps = concern ? buildTimeline(concern, t) : [];
+  const timelineSteps = concern ? buildTimeline(concern, t, editHistory) : [];
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -377,13 +463,27 @@ export default function ConcernDetailScreen({ route, navigation }) {
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
           {t('concernDetail')}
         </Text>
-        {canDelete ? (
-          <TouchableOpacity onPress={handleDelete} style={styles.headerBtn}>
-            <Ionicons name="trash-outline" size={20} color={colors.statusRejected} />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.headerBtn} />
-        )}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {canEdit ? (
+            <TouchableOpacity
+              onPress={handleOpenEdit}
+              style={[styles.headerBtn, { marginRight: scale(4) }]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="create-outline" size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ) : null}
+          {canDelete ? (
+            <TouchableOpacity
+              onPress={handleDelete}
+              style={styles.headerBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="trash-outline" size={20} color={colors.statusRejected} />
+            </TouchableOpacity>
+          ) : null}
+          {!canEdit && !canDelete && <View style={styles.headerBtn} />}
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -465,12 +565,32 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
           <Text style={[styles.title, { color: colors.textPrimary }]}>{concern.title}</Text>
 
-          {/* Date Filed */}
-          <View style={[styles.dateRow, { marginBottom: verticalScale(16) }]}>
+          {/* Date Filed & Edit Badge */}
+          <View style={[styles.dateRow, { marginBottom: verticalScale(16), alignItems: 'center', flexWrap: 'wrap' }]}>
             <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
             <Text style={{ fontSize: rf(12), color: colors.textMuted, marginLeft: scale(6), fontWeight: '500' }}>
               {t('dateFiled')}: {fmt(concern.created_at)}
             </Text>
+            {(concern.last_edited_at || editHistory.length > 0) && (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setShowHistoryModal(true)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: colors.primary + '18',
+                  paddingHorizontal: scale(8),
+                  paddingVertical: verticalScale(3),
+                  borderRadius: moderateScale(12),
+                  marginLeft: scale(8),
+                }}
+              >
+                <Ionicons name="pencil" size={11} color={colors.primary} />
+                <Text style={{ fontSize: rf(11), color: colors.primary, fontWeight: '700', marginLeft: scale(4) }}>
+                  Edited ({editHistory.length || concern.edit_count || 1})
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Description */}
@@ -941,6 +1061,303 @@ export default function ConcernDetailScreen({ route, navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* ── Citizen Edit Concern Modal ── */}
+      <Modal
+        visible={showEditModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => !savingEdit && setShowEditModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.bgCard,
+              borderTopLeftRadius: moderateScale(24),
+              borderTopRightRadius: moderateScale(24),
+              padding: scale(20),
+              maxHeight: '90%',
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: verticalScale(16) }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(8) }}>
+                <Ionicons name="create-outline" size={22} color={colors.primary} />
+                <Text style={{ fontSize: rf(18), fontWeight: '800', color: colors.textPrimary }}>
+                  Edit Concern Details
+                </Text>
+              </View>
+              <TouchableOpacity
+                disabled={savingEdit}
+                onPress={() => setShowEditModal(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: verticalScale(20) }}>
+              {/* Title Input */}
+              <Text style={{ fontSize: rf(12), fontWeight: '700', color: colors.textSecondary, marginBottom: verticalScale(6) }}>
+                Concern Title
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: colors.bgApp,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: moderateScale(12),
+                  padding: scale(12),
+                  fontSize: rf(14),
+                  color: colors.textPrimary,
+                  marginBottom: verticalScale(16),
+                }}
+                value={editTitle}
+                onChangeText={setEditTitle}
+                placeholder="Brief summary of the issue"
+                placeholderTextColor={colors.textMuted}
+                maxLength={200}
+              />
+
+              {/* Category Picker */}
+              <Text style={{ fontSize: rf(12), fontWeight: '700', color: colors.textSecondary, marginBottom: verticalScale(6) }}>
+                Category
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: scale(8), marginBottom: verticalScale(16) }}>
+                {CATEGORIES.map((cat) => {
+                  const isSelected = editCategory === cat;
+                  return (
+                    <TouchableOpacity
+                      key={cat}
+                      onPress={() => setEditCategory(cat)}
+                      style={{
+                        paddingHorizontal: scale(12),
+                        paddingVertical: verticalScale(8),
+                        borderRadius: moderateScale(16),
+                        backgroundColor: isSelected ? colors.primary + '22' : colors.bgApp,
+                        borderWidth: 1,
+                        borderColor: isSelected ? colors.primary : colors.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: rf(12),
+                          fontWeight: isSelected ? '700' : '500',
+                          color: isSelected ? colors.primary : colors.textSecondary,
+                        }}
+                      >
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Description Input */}
+              <Text style={{ fontSize: rf(12), fontWeight: '700', color: colors.textSecondary, marginBottom: verticalScale(6) }}>
+                Description
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: colors.bgApp,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: moderateScale(12),
+                  padding: scale(12),
+                  fontSize: rf(14),
+                  color: colors.textPrimary,
+                  minHeight: verticalScale(110),
+                  textAlignVertical: 'top',
+                  lineHeight: rf(20),
+                  marginBottom: verticalScale(20),
+                }}
+                value={editDescription}
+                onChangeText={setEditDescription}
+                placeholder="Provide detailed description of the incident"
+                placeholderTextColor={colors.textMuted}
+                multiline={true}
+                numberOfLines={5}
+              />
+
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: scale(12) }}>
+                <TouchableOpacity
+                  disabled={savingEdit}
+                  onPress={() => setShowEditModal(false)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: verticalScale(12),
+                    borderRadius: moderateScale(12),
+                    backgroundColor: colors.bgApp,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: rf(14), fontWeight: '600', color: colors.textSecondary }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  disabled={savingEdit}
+                  onPress={handleSaveEdit}
+                  style={{
+                    flex: 2,
+                    paddingVertical: verticalScale(12),
+                    borderRadius: moderateScale(12),
+                    backgroundColor: colors.primary,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {savingEdit ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={{ fontSize: rf(14), fontWeight: '700', color: '#fff' }}>
+                      Save Changes
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── Concern Edit History Modal ── */}
+      <Modal
+        visible={showHistoryModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowHistoryModal(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.bgCard,
+              borderTopLeftRadius: moderateScale(24),
+              borderTopRightRadius: moderateScale(24),
+              padding: scale(20),
+              maxHeight: '80%',
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: verticalScale(16) }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(8) }}>
+                <Ionicons name="time-outline" size={22} color={colors.primary} />
+                <Text style={{ fontSize: rf(18), fontWeight: '800', color: colors.textPrimary }}>
+                  Edit History ({editHistory.length})
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowHistoryModal(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {editHistory.length === 0 ? (
+              <View style={{ paddingVertical: verticalScale(30), alignItems: 'center' }}>
+                <Ionicons name="document-text-outline" size={36} color={colors.textMuted} />
+                <Text style={{ color: colors.textMuted, fontSize: rf(13), marginTop: verticalScale(8) }}>
+                  No revision records found for this concern.
+                </Text>
+              </View>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: verticalScale(20) }}>
+                {editHistory.map((h, idx) => (
+                  <View
+                    key={h.id || idx}
+                    style={{
+                      backgroundColor: colors.bgApp,
+                      borderRadius: moderateScale(14),
+                      padding: scale(14),
+                      marginBottom: verticalScale(12),
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: verticalScale(8) }}>
+                      <Text style={{ fontSize: rf(12), fontWeight: '700', color: colors.textPrimary }}>
+                        {h.edited_by_role === 'admin' ? '🛡️ Administrator' : '👤 Citizen Edit'}
+                      </Text>
+                      <Text style={{ fontSize: rf(11), color: colors.textMuted }}>
+                        {fmt(h.created_at)}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{
+                        backgroundColor: colors.primary + '14',
+                        paddingHorizontal: scale(8),
+                        paddingVertical: verticalScale(4),
+                        borderRadius: moderateScale(8),
+                        alignSelf: 'flex-start',
+                        marginBottom: verticalScale(8),
+                      }}
+                    >
+                      <Text style={{ fontSize: rf(11), fontWeight: '700', color: colors.primary }}>
+                        {h.change_summary || 'Details updated'}
+                      </Text>
+                    </View>
+
+                    {h.old_title && h.new_title && (
+                      <View style={{ marginBottom: verticalScale(6) }}>
+                        <Text style={{ fontSize: rf(11), fontWeight: '600', color: colors.textMuted }}>Title:</Text>
+                        <Text style={{ fontSize: rf(12), color: colors.statusRejected, textDecorationLine: 'line-through' }}>
+                          {h.old_title}
+                        </Text>
+                        <Text style={{ fontSize: rf(12), color: colors.statusResolved, fontWeight: '600' }}>
+                          {h.new_title}
+                        </Text>
+                      </View>
+                    )}
+
+                    {h.old_category && h.new_category && (
+                      <View style={{ marginBottom: verticalScale(6) }}>
+                        <Text style={{ fontSize: rf(11), fontWeight: '600', color: colors.textMuted }}>Category:</Text>
+                        <Text style={{ fontSize: rf(12), color: colors.textSecondary }}>
+                          <Text style={{ textDecorationLine: 'line-through', color: colors.statusRejected }}>{h.old_category}</Text>
+                          {' → '}
+                          <Text style={{ color: colors.statusResolved, fontWeight: '700' }}>{h.new_category}</Text>
+                        </Text>
+                      </View>
+                    )}
+
+                    {h.old_description && h.new_description && (
+                      <View style={{ marginTop: verticalScale(4) }}>
+                        <Text style={{ fontSize: rf(11), fontWeight: '600', color: colors.textMuted, marginBottom: verticalScale(2) }}>
+                          Description Updated:
+                        </Text>
+                        <Text style={{ fontSize: rf(12), color: colors.textPrimary, fontStyle: 'italic', lineHeight: rf(18) }}>
+                          "{h.new_description}"
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -958,12 +1375,22 @@ function MetaItem({ icon, label, value, colors }) {
   );
 }
 
-function buildTimeline(c, t) {
+function buildTimeline(c, t, history = []) {
   const fmt = (d) =>
     d
       ? new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
       : '—';
   const steps = [{ event: t('concernSubmitted'), date: fmt(c.created_at) }];
+
+  if (Array.isArray(history) && history.length > 0) {
+    history.forEach((h) => {
+      steps.push({
+        event: `✏️ ${h.change_summary || 'Details updated'}`,
+        date: fmt(h.created_at),
+      });
+    });
+  }
+
   if (c.status === 'In Progress' || c.status === 'Resolved' || c.status === 'Rejected') {
     steps.push({ event: t('assignedToTeam'), date: fmt(c.updated_at) });
   }

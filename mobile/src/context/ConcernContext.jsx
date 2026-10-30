@@ -410,7 +410,15 @@ export function ConcernProvider({ children }) {
     }
   };
 
-  const updateConcern = async (id, updates) => {};
+  const updateConcern = async (id, updates) => {
+    const res = await ConcernService.editConcern(id, updates);
+    refreshConcerns();
+    return res;
+  };
+
+  const getConcernHistory = async (id) => {
+    return await ConcernService.getConcernHistory(id);
+  };
 
   const deleteConcern = async (id) => {
     await ConcernService.deleteConcern(id);
@@ -437,6 +445,7 @@ export function ConcernProvider({ children }) {
         isOffline, // forwarded from NetworkContext for convenience
         addConcern,
         updateConcern,
+        getConcernHistory,
         deleteConcern,
         refreshConcerns,
         analyzeDraft,

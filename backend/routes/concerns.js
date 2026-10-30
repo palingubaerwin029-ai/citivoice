@@ -32,6 +32,8 @@ const {
   getComments,
   addComment,
   getAudit,
+  editConcernDetails,
+  getConcernHistory,
 } = require('../controllers/concerns.controller');
 
 // ─── List all concerns (auth required, cached 60s) ────────────────────────────
@@ -58,8 +60,19 @@ router.post('/analyze', auth, analyzeConcernDraft);
 // ─── AI Pre-submission Check (Image alignment) ───────────────────────────────
 router.post('/verify-image', auth, upload.single('image'), verifyConcernImage);
 
-// ─── Update concern (admin: status, admin_note) ───────────────────────────────
-router.put('/:id', auth, requireRole('admin'), upload.single('image'), validateIdParam, editConcern);
+// ─── Update concern (admin: status/response; citizen: title/description/category)
+router.put('/:id', auth, upload.single('image'), validateIdParam, (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    return editConcern(req, res, next);
+  }
+  return editConcernDetails(req, res, next);
+});
+
+// ─── Dedicated Citizen Edit Concern Details ──────────────────────────────────
+router.put('/:id/edit', auth, upload.single('image'), validateIdParam, editConcernDetails);
+
+// ─── Get Concern Edit History ─────────────────────────────────────────────────
+router.get('/:id/history', auth, validateIdParam, getConcernHistory);
 
 // ─── Delete concern (admin or owner) ──────────────────────────────────────────
 router.delete('/:id', auth, validateIdParam, removeConcern);

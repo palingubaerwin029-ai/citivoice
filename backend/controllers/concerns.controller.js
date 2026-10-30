@@ -22,6 +22,8 @@ const {
   insertNotification,
   insertConcernLink,
   selectLinkedConcerns,
+  insertConcernEditHistory,
+  selectConcernEditHistory,
 } = require('../models/concern.model');
 
 const resolveDepartment = (category, priority) => {
@@ -1177,6 +1179,192 @@ const addComment = async (req, res) => {
   }
 };
 
+// ─── Citizen Edit Concern Details ──────────────────────────────────────────────
+const editConcernDetails = async (req, res) => {
+  const { title, description, category, location_address, location_lat, location_lng } = req.body;
+  try {
+    const concern = await selectConcernById(req.params.id);
+    if (!concern) return res.status(404).json({ error: 'Concern not found' });
+
+    const isOwner = req.user && Number(concern.user_id) === Number(req.user.id);
+    const isAdmin = req.user && req.user.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: 'You do not have permission to edit this concern.' });
+    }
+
+    if (concern.status === 'Resolved' || concern.status === 'Rejected') {
+      return res.status(400).json({
+        error: `Cannot edit this concern because it is already ${concern.status.toLowerCase()}.`,
+      });
+    }
+
+    const newTitle = title !== undefined ? String(title).trim() : concern.title;
+    const newDescription = description !== undefined ? String(description).trim() : concern.description;
+    const newCategory = category !== undefined ? String(category).trim() : concern.category;
+    const newAddress = location_address !== undefined ? String(location_address).trim() : concern.location_address;
+    const newLat = location_lat !== undefined && location_lat !== '' ? parseFloat(location_lat) : concern.location_lat;
+    const newLng = location_lng !== undefined && location_lng !== '' ? parseFloat(location_lng) : concern.location_lng;
+
+    if (newTitle.length < 5) {
+      return res.status(400).json({ error: 'Title must be at least 5 characters long.' });
+    }
+    if (newDescription.length < 10) {
+      return res.status(400).json({ error: 'Description must be at least 10 characters long.' });
+    }
+
+    let newImageUrl = concern.image_url;
+    if (req.file) {
+      newImageUrl = `${BASE_URL()}/uploads/${req.file.filename}`;
+    }
+
+    const isTitleChanged = newTitle !== concern.title;
+    const isDescChanged = newDescription !== concern.description;
+    const isCatChanged = newCategory !== concern.category;
+    const isAddrChanged = newAddress !== concern.location_address;
+    const isImgChanged = req.file ? true : false;
+    const isGeoChanged = (newLat && newLat !== concern.location_lat) || (newLng && newLng !== concern.location_lng);
+
+    if (!isTitleChanged && !isDescChanged && !isCatChanged && !isAddrChanged && !isImgChanged && !isGeoChanged) {
+      return res.status(400).json({ error: 'No changes detected.' });
+    }
+
+    const changes = [];
+    if (isTitleChanged) changes.push('title');
+    if (isDescChanged) changes.push('description');
+    if (isCatChanged) changes.push('category');
+    if (isAddrChanged) changes.push('location address');
+    if (isImgChanged) changes.push('photo');
+    if (isGeoChanged) changes.push('map location');
+    const changeSummary = 'Updated ' + changes.join(', ');
+
+    // 1. Record in concern_edit_history
+    await insertConcernEditHistory({
+      concernId: concern.id,
+      editedBy: req.user.id,
+      editedByName: req.user.name || (isAdmin ? 'Administrator' : 'Citizen'),
+      editedByRole: isAdmin ? 'admin' : 'citizen',
+      oldTitle: isTitleChanged ? concern.title : null,
+      newTitle: isTitleChanged ? newTitle : null,
+      oldDescription: isDescChanged ? concern.description : null,
+      newDescription: isDescChanged ? newDescription : null,
+      oldCategory: isCatChanged ? concern.category : null,
+      newCategory: isCatChanged ? newCategory : null,
+      oldLocationAddress: isAddrChanged ? concern.location_address : null,
+      newLocationAddress: isAddrChanged ? newAddress : null,
+      oldImageUrl: isImgChanged ? concern.image_url : null,
+      newImageUrl: isImgChanged ? newImageUrl : null,
+      changeSummary,
+    });
+
+    // 2. Record in audit_log
+    await logAudit(
+      'concern',
+      concern.id,
+      'citizen_edit',
+      req.user.id,
+      req.user.name || (isAdmin ? 'Administrator' : 'Citizen'),
+      {
+        title: concern.title,
+        description: concern.description,
+        category: concern.category,
+        image_url: concern.image_url,
+      },
+      {
+        title: newTitle,
+        description: newDescription,
+        category: newCategory,
+        image_url: newImageUrl,
+      }
+    );
+
+    // 3. Prepare fields to update on concerns table
+    const fields = [
+      'title = ?',
+      'description = ?',
+      'category = ?',
+      'location_address = ?',
+      'image_url = ?',
+      'edit_count = COALESCE(edit_count, 0) + 1',
+      'last_edited_at = NOW()',
+      'updated_at = NOW()',
+    ];
+    const values = [newTitle, newDescription, newCategory, newAddress, newImageUrl];
+
+    if (newLat !== null && !isNaN(newLat)) {
+      fields.push('location_lat = ?');
+      values.push(newLat);
+    }
+    if (newLng !== null && !isNaN(newLng)) {
+      fields.push('location_lng = ?');
+      values.push(newLng);
+    }
+
+    // Auto-update department if category changed
+    if (isCatChanged) {
+      try {
+        const updatedDept = resolveDepartment(newCategory, concern.priority);
+        fields.push('department = ?');
+        values.push(updatedDept);
+      } catch (deptErr) {
+        console.error('Department resolve error:', deptErr);
+      }
+    }
+
+    await updateConcernFields(concern.id, fields, values);
+
+    // 4. Fetch refreshed concern
+    const updatedConcern = await selectConcernById(concern.id);
+
+    // Invalidate caches
+    invalidate('concerns');
+    invalidate('map_concerns');
+    invalidate('concern_detail:' + concern.id);
+
+    // 5. Emit real-time socket events
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('concern_updated', updatedConcern);
+      io.emit('update_concern', updatedConcern);
+      if (updatedConcern.user_id) {
+        io.to(`user:${updatedConcern.user_id}`).emit('concern_status_changed', updatedConcern);
+      }
+      io.emit('concern_stats_updated', { concernId: updatedConcern.id, userId: updatedConcern.user_id });
+    }
+
+    res.json({
+      success: true,
+      message: 'Concern details updated successfully.',
+      concern: updatedConcern,
+      changeSummary,
+    });
+  } catch (err) {
+    console.error('editConcernDetails error:', err);
+    res.status(500).json({ error: 'Failed to update concern details.' });
+  }
+};
+
+// ─── Get Concern Edit History ──────────────────────────────────────────────────
+const getConcernHistory = async (req, res) => {
+  try {
+    const concern = await selectConcernById(req.params.id);
+    if (!concern) return res.status(404).json({ error: 'Concern not found' });
+
+    const isOwner = req.user && Number(concern.user_id) === Number(req.user.id);
+    const isAdmin = req.user && req.user.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
+    const history = await selectConcernEditHistory(req.params.id);
+    res.json({ data: history });
+  } catch (err) {
+    console.error('getConcernHistory error:', err);
+    res.status(500).json({ error: 'Failed to fetch edit history.' });
+  }
+};
+
 const getAudit = async (req, res) => {
   try {
     const pool = require('../db');
@@ -1209,4 +1397,6 @@ module.exports = {
   getComments,
   addComment,
   getAudit,
+  editConcernDetails,
+  getConcernHistory,
 };

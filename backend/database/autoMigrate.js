@@ -61,6 +61,41 @@ const autoMigrate = async () => {
       await pool.query("UPDATE users SET is_super_admin = 1 WHERE role = 'admin' ORDER BY id ASC LIMIT 1");
       console.log('✅ [AutoMigrate] Designated primary super administrator');
     }
+
+    // 6. Ensure concern_edit_history table exists for citizen edits tracking
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS concern_edit_history (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        concern_id INT NOT NULL,
+        edited_by INT NOT NULL,
+        edited_by_name VARCHAR(255) DEFAULT NULL,
+        edited_by_role VARCHAR(50) DEFAULT 'citizen',
+        old_title VARCHAR(500) DEFAULT NULL,
+        new_title VARCHAR(500) DEFAULT NULL,
+        old_description TEXT DEFAULT NULL,
+        new_description TEXT DEFAULT NULL,
+        old_category VARCHAR(100) DEFAULT NULL,
+        new_category VARCHAR(100) DEFAULT NULL,
+        old_location_address TEXT DEFAULT NULL,
+        new_location_address TEXT DEFAULT NULL,
+        old_image_url TEXT DEFAULT NULL,
+        new_image_url TEXT DEFAULT NULL,
+        change_summary TEXT DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        KEY idx_edit_history_concern (concern_id, created_at),
+        KEY fk_edit_history_user (edited_by),
+        CONSTRAINT fk_edit_history_concern FOREIGN KEY (concern_id) REFERENCES concerns(id) ON DELETE CASCADE,
+        CONSTRAINT fk_edit_history_user FOREIGN KEY (edited_by) REFERENCES users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 7. Ensure concerns edit tracking columns exist
+    const [editCols] = await pool.query("SHOW COLUMNS FROM concerns LIKE 'edit_count'");
+    if (editCols.length === 0) {
+      console.log('➕ [AutoMigrate] Adding concerns.edit_count and last_edited_at...');
+      await pool.query('ALTER TABLE concerns ADD COLUMN edit_count INT NOT NULL DEFAULT 0 AFTER admin_viewed_at, ADD COLUMN last_edited_at DATETIME DEFAULT NULL AFTER edit_count');
+      console.log('✅ [AutoMigrate] Added concerns.edit_count and last_edited_at');
+    }
   } catch (err) {
     console.warn('⚠️ [AutoMigrate] Schema sync notice:', err.message);
   }

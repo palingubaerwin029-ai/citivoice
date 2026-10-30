@@ -154,7 +154,32 @@ CREATE TABLE IF NOT EXISTS concern_comments (
   CONSTRAINT fk_concern_comments_user    FOREIGN KEY (user_id)    REFERENCES users(id)    ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ─── 9. Audit Log (immutable chronological administrative activity) ───────────
+-- ─── 9. Concern Edit History (tracked changes by citizens and administrators) ─
+CREATE TABLE IF NOT EXISTS concern_edit_history (
+  id                   INT AUTO_INCREMENT PRIMARY KEY,
+  concern_id           INT NOT NULL,
+  edited_by            INT NOT NULL,
+  edited_by_name       VARCHAR(255) DEFAULT NULL,
+  edited_by_role       VARCHAR(50) DEFAULT 'citizen',
+  old_title            VARCHAR(500) DEFAULT NULL,
+  new_title            VARCHAR(500) DEFAULT NULL,
+  old_description      TEXT DEFAULT NULL,
+  new_description      TEXT DEFAULT NULL,
+  old_category         VARCHAR(100) DEFAULT NULL,
+  new_category         VARCHAR(100) DEFAULT NULL,
+  old_location_address TEXT DEFAULT NULL,
+  new_location_address TEXT DEFAULT NULL,
+  old_image_url        TEXT DEFAULT NULL,
+  new_image_url        TEXT DEFAULT NULL,
+  change_summary       TEXT DEFAULT NULL,
+  created_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_edit_history_concern (concern_id, created_at),
+  KEY fk_edit_history_user (edited_by),
+  CONSTRAINT fk_edit_history_concern FOREIGN KEY (concern_id) REFERENCES concerns(id) ON DELETE CASCADE,
+  CONSTRAINT fk_edit_history_user FOREIGN KEY (edited_by) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─── 10. Audit Log (immutable chronological administrative activity) ───────────
 CREATE TABLE IF NOT EXISTS audit_log (
   id              INT AUTO_INCREMENT PRIMARY KEY,
   entity_type     VARCHAR(50)  NOT NULL,
@@ -170,7 +195,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
   CONSTRAINT audit_log_ibfk_1 FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ─── 10. Persistent File & Image Storage (Survives Ephemeral Cloud Restarts) ────
+-- ─── 11. Persistent File & Image Storage (Survives Ephemeral Cloud Restarts) ────
 CREATE TABLE IF NOT EXISTS file_storage (
   id         INT AUTO_INCREMENT PRIMARY KEY,
   filename   VARCHAR(255) NOT NULL UNIQUE,

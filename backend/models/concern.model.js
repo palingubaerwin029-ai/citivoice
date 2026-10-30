@@ -251,6 +251,74 @@ const selectLinkedConcerns = async (concernId) => {
   }
 };
 
+// ─── Concern Edit History ────────────────────────────────────────────────────
+const insertConcernEditHistory = async ({
+  concernId,
+  editedBy,
+  editedByName,
+  editedByRole = 'citizen',
+  oldTitle,
+  newTitle,
+  oldDescription,
+  newDescription,
+  oldCategory,
+  newCategory,
+  oldLocationAddress,
+  newLocationAddress,
+  oldImageUrl,
+  newImageUrl,
+  changeSummary,
+}) => {
+  try {
+    const [result] = await pool.query(
+      `INSERT INTO concern_edit_history (
+        concern_id, edited_by, edited_by_name, edited_by_role,
+        old_title, new_title, old_description, new_description,
+        old_category, new_category, old_location_address, new_location_address,
+        old_image_url, new_image_url, change_summary
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        concernId,
+        editedBy,
+        editedByName || null,
+        editedByRole,
+        oldTitle || null,
+        newTitle || null,
+        oldDescription || null,
+        newDescription || null,
+        oldCategory || null,
+        newCategory || null,
+        oldLocationAddress || null,
+        newLocationAddress || null,
+        oldImageUrl || null,
+        newImageUrl || null,
+        changeSummary || null,
+      ]
+    );
+    return result.insertId;
+  } catch (err) {
+    console.error('Failed to record concern edit history:', err);
+    return null;
+  }
+};
+
+const selectConcernEditHistory = async (concernId) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT h.*, u.name as user_name, u.avatar_url, u.email as user_email
+       FROM concern_edit_history h
+       LEFT JOIN users u ON h.edited_by = u.id
+       WHERE h.concern_id = ?
+       ORDER BY h.created_at DESC`,
+      [concernId]
+    );
+    return rows;
+  } catch (err) {
+    if (err.code === 'ER_NO_SUCH_TABLE') return [];
+    throw err;
+  }
+};
+
 module.exports = {
   selectAllConcerns,
   countConcerns,
@@ -265,4 +333,6 @@ module.exports = {
   insertNotification,
   insertConcernLink,
   selectLinkedConcerns,
+  insertConcernEditHistory,
+  selectConcernEditHistory,
 };

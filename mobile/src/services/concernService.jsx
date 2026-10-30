@@ -157,6 +157,58 @@ export const ConcernService = {
     return apiRequest('/concerns', { params: { ...params, userId } });
   },
 
+  // ── Edit concern details (Citizen or Admin) ─────────────────────────────
+  async editConcern(id, { title, description, category, location, imageUri }) {
+    const token = await getToken();
+    const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+
+    if (imageUri && !imageUri.startsWith('http://') && !imageUri.startsWith('https://')) {
+      const uploadResult = await FileSystem.uploadAsync(
+        `${BASE_URL}/concerns/${id}/edit`,
+        imageUri,
+        {
+          httpMethod: 'PUT',
+          uploadType: 1,
+          fieldName: 'image',
+          headers,
+          parameters: {
+            title: String(title || ''),
+            description: String(description || ''),
+            category: String(category || ''),
+            location_address: String(location?.address || ''),
+            location_lat: location?.latitude ? String(location.latitude) : '',
+            location_lng: location?.longitude ? String(location.longitude) : '',
+          },
+        }
+      );
+      let data = {};
+      try {
+        data = JSON.parse(uploadResult.body);
+      } catch (_) {}
+      if (uploadResult.status >= 400) {
+        throw new Error(data.error || 'Failed to update concern');
+      }
+      return data;
+    }
+
+    return apiRequest(`/concerns/${id}/edit`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        title: String(title || ''),
+        description: String(description || ''),
+        category: String(category || ''),
+        location_address: String(location?.address || ''),
+        location_lat: location?.latitude ? location.latitude : null,
+        location_lng: location?.longitude ? location.longitude : null,
+      }),
+    });
+  },
+
+  // ── Get concern edit history ───────────────────────────────────────────
+  async getConcernHistory(id) {
+    return apiRequest(`/concerns/${id}/history`);
+  },
+
   // ── Delete a concern ────────────────────────────────────────────────────
   async deleteConcern(id) {
     return apiRequest(`/concerns/${id}`, { method: 'DELETE' });
