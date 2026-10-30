@@ -108,8 +108,9 @@
 /* Chrome View Transitions API animation */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 0.35s;
+  animation-duration: 0.45s;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  mix-blend-mode: normal;
 }
 
 /* Theme Icon Spring / Spin Animation */

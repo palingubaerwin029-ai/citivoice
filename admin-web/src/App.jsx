@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { api } from './services/api';
 import { connectSocket, disconnectSocket } from './services/socket';
@@ -45,20 +46,26 @@ export default function App() {
 
   const handleToggleTheme = () => {
     const root = document.documentElement;
-    root.classList.add('theme-transitioning');
-
     const next = theme === 'dark' ? 'light' : 'dark';
-    if (document.startViewTransition) {
-      document.startViewTransition(() => {
-        setTheme(next);
-      });
-    } else {
-      setTheme(next);
-    }
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-    setTimeout(() => {
-      root.classList.remove('theme-transitioning');
-    }, 450);
+    const apply = () => {
+      // Update DOM + React state synchronously so the browser captures the final frame
+      root.setAttribute('data-theme', next);
+      flushSync(() => setTheme(next));
+    };
+
+    if (document.startViewTransition && !reduceMotion) {
+      // Single GPU-composited cross-fade of the whole page (no per-element transitions)
+      document.startViewTransition(apply);
+    } else if (!reduceMotion) {
+      // Fallback: CSS color transitions for browsers without View Transitions
+      root.classList.add('theme-transitioning');
+      apply();
+      setTimeout(() => root.classList.remove('theme-transitioning'), 450);
+    } else {
+      apply();
+    }
   };
 
   useEffect(() => {
