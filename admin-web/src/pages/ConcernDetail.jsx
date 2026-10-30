@@ -410,26 +410,6 @@ export default function ConcernDetail() {
                     </span>
                   );
                 })()}
-
-                {concern.admin_viewed_at && (
-                  <span
-                    className={s.badge}
-                    style={{
-                      background: 'rgba(59, 130, 246, 0.15)',
-                      color: '#3B82F6',
-                      border: '1px solid rgba(59, 130, 246, 0.35)',
-                      fontSize: 12,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      fontWeight: 600,
-                    }}
-                    title={`Admin viewed on ${fmtDate(concern.admin_viewed_at)}`}
-                  >
-                    <span>👁️</span>
-                    <span>Viewed {fmtDateShort(concern.admin_viewed_at)}</span>
-                  </span>
-                )}
               </div>
               <h2
                 style={{

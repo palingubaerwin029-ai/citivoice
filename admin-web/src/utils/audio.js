@@ -1,39 +1,52 @@
 /**
  * Web Audio API synthesizer for the CitiVoice Admin Notification Bell.
  * Generates an authentic, harmonic dual-tone chime without external audio files.
+ * Complies with modern browser autoplay policies (no AudioContext creation before user gesture).
  */
 
 let audioCtx = null;
+let hasUserInteracted = false;
 
-const getAudioContext = () => {
+// Register passive listeners to record the first user gesture on the page
+if (typeof window !== 'undefined') {
+  const markInteracted = () => {
+    hasUserInteracted = true;
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+    ['pointerdown', 'mousedown', 'keydown', 'touchstart'].forEach((ev) => {
+      window.removeEventListener(ev, markInteracted, true);
+    });
+  };
+
+  ['pointerdown', 'mousedown', 'keydown', 'touchstart'].forEach((ev) => {
+    window.addEventListener(ev, markInteracted, { capture: true, once: true, passive: true });
+  });
+}
+
+const getAudioContext = (forceCreate = false) => {
   if (typeof window === 'undefined') return null;
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) return null;
 
+  // Never instantiate AudioContext before a user gesture to prevent Chrome console warnings
   if (!audioCtx) {
-    audioCtx = new AudioContextClass();
+    if (!hasUserInteracted && !forceCreate) {
+      return null;
+    }
+    try {
+      audioCtx = new AudioContextClass();
+    } catch {
+      return null;
+    }
   }
-  if (audioCtx.state === 'suspended') {
+
+  if (audioCtx && audioCtx.state === 'suspended' && (hasUserInteracted || forceCreate)) {
     audioCtx.resume().catch(() => {});
   }
+
   return audioCtx;
 };
-
-// Auto-unlock AudioContext on first user interaction in the admin portal
-if (typeof window !== 'undefined') {
-  const unlockEvents = ['click', 'keydown', 'touchstart'];
-  const unlock = () => {
-    try {
-      const ctx = getAudioContext();
-      if (ctx && ctx.state === 'running') {
-        unlockEvents.forEach((ev) => window.removeEventListener(ev, unlock));
-      }
-    } catch {
-      // ignore
-    }
-  };
-  unlockEvents.forEach((ev) => window.addEventListener(ev, unlock, { once: false, passive: true }));
-}
 
 /**
  * Check if notification sound is enabled (persisted in localStorage, default true)
@@ -60,8 +73,18 @@ export const setSoundEnabled = (enabled) => {
 export const playChimeSound = (volume = 0.6, force = false) => {
   if (!force && !isSoundEnabled()) return;
 
+  // Direct user button clicks (e.g. Test Ring, Sound toggle) count as active interaction
+  if (force) {
+    hasUserInteracted = true;
+  }
+
+  // Defer audio playback if page was just loaded and user hasn't interacted yet
+  if (!hasUserInteracted && !force) {
+    return;
+  }
+
   try {
-    const ctx = getAudioContext();
+    const ctx = getAudioContext(force);
     if (!ctx) return;
 
     if (ctx.state === 'suspended') {
@@ -70,31 +93,36 @@ export const playChimeSound = (volume = 0.6, force = false) => {
       playChimeSequence(ctx, volume);
     }
   } catch (err) {
-    console.warn('[Audio] Failed to play chime:', err);
+    // Silently handle autoplay constraints
   }
 };
 
 function playChimeSequence(ctx, volume) {
+  if (!ctx || ctx.state !== 'running') return;
   const now = ctx.currentTime;
 
   const playTone = (freq, startTime, duration, gainMax) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, startTime);
-    // Subtle physical bell resonance decay
-    osc.frequency.exponentialRampToValueAtTime(freq * 0.998, startTime + duration);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+      // Subtle physical bell resonance decay
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.998, startTime + duration);
 
-    gain.gain.setValueAtTime(0, startTime);
-    gain.gain.linearRampToValueAtTime(gainMax * volume, startTime + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(gainMax * volume, startTime + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
 
-    osc.start(startTime);
-    osc.stop(startTime + duration);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    } catch {
+      // ignore
+    }
   };
 
   // Tone 1: Crisp bell strike at 987.77 Hz (B5) + overtone 1975.5 Hz

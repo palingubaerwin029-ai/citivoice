@@ -57,7 +57,6 @@ export default function ConcernDetailScreen({ route, navigation }) {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [editCategory, setEditCategory] = useState('Road & Infrastructure');
   const [savingEdit, setSavingEdit] = useState(false);
 
   // Workflow state
@@ -225,18 +224,10 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
   // Custom header replaces navigation.setOptions
 
-  const CATEGORIES = [
-    'Road & Infrastructure',
-    'Electricity',
-    'Drainage',
-    'Waste & Sanitation',
-  ];
-
   const handleOpenEdit = () => {
     if (!concern) return;
     setEditTitle(concern.title || '');
     setEditDescription(concern.description || '');
-    setEditCategory(concern.category || 'Road & Infrastructure');
     setShowEditModal(true);
   };
 
@@ -255,8 +246,7 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
     if (
       cleanTitle === concern.title &&
-      cleanDesc === concern.description &&
-      editCategory === concern.category
+      cleanDesc === concern.description
     ) {
       setShowEditModal(false);
       return;
@@ -267,7 +257,6 @@ export default function ConcernDetailScreen({ route, navigation }) {
       const res = await updateConcern(concern.id, {
         title: cleanTitle,
         description: cleanDesc,
-        category: editCategory,
       });
 
       if (res?.concern) {
@@ -277,7 +266,6 @@ export default function ConcernDetailScreen({ route, navigation }) {
           ...prev,
           title: cleanTitle,
           description: cleanDesc,
-          category: editCategory,
           last_edited_at: new Date().toISOString(),
         }));
       }
@@ -1127,39 +1115,7 @@ export default function ConcernDetailScreen({ route, navigation }) {
                 maxLength={200}
               />
 
-              {/* Category Picker */}
-              <Text style={{ fontSize: rf(12), fontWeight: '700', color: colors.textSecondary, marginBottom: verticalScale(6) }}>
-                Category
-              </Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: scale(8), marginBottom: verticalScale(16) }}>
-                {CATEGORIES.map((cat) => {
-                  const isSelected = editCategory === cat;
-                  return (
-                    <TouchableOpacity
-                      key={cat}
-                      onPress={() => setEditCategory(cat)}
-                      style={{
-                        paddingHorizontal: scale(12),
-                        paddingVertical: verticalScale(8),
-                        borderRadius: moderateScale(16),
-                        backgroundColor: isSelected ? colors.primary + '22' : colors.bgApp,
-                        borderWidth: 1,
-                        borderColor: isSelected ? colors.primary : colors.border,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: rf(12),
-                          fontWeight: isSelected ? '700' : '500',
-                          color: isSelected ? colors.primary : colors.textSecondary,
-                        }}
-                      >
-                        {cat}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+
 
               {/* Description Input */}
               <Text style={{ fontSize: rf(12), fontWeight: '700', color: colors.textSecondary, marginBottom: verticalScale(6) }}>

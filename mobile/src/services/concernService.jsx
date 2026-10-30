@@ -162,7 +162,19 @@ export const ConcernService = {
     const token = await getToken();
     const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
+    const params = {};
+    if (title !== undefined) params.title = String(title || '');
+    if (description !== undefined) params.description = String(description || '');
+    if (category !== undefined) params.category = String(category || '');
+    if (location?.address !== undefined) params.location_address = String(location.address || '');
+    if (location?.latitude !== undefined) params.location_lat = location.latitude;
+    if (location?.longitude !== undefined) params.location_lng = location.longitude;
+
     if (imageUri && !imageUri.startsWith('http://') && !imageUri.startsWith('https://')) {
+      const uploadParams = {};
+      Object.keys(params).forEach((k) => {
+        uploadParams[k] = String(params[k] ?? '');
+      });
       const uploadResult = await FileSystem.uploadAsync(
         `${BASE_URL}/concerns/${id}/edit`,
         imageUri,
@@ -171,14 +183,7 @@ export const ConcernService = {
           uploadType: 1,
           fieldName: 'image',
           headers,
-          parameters: {
-            title: String(title || ''),
-            description: String(description || ''),
-            category: String(category || ''),
-            location_address: String(location?.address || ''),
-            location_lat: location?.latitude ? String(location.latitude) : '',
-            location_lng: location?.longitude ? String(location.longitude) : '',
-          },
+          parameters: uploadParams,
         }
       );
       let data = {};
@@ -193,14 +198,7 @@ export const ConcernService = {
 
     return apiRequest(`/concerns/${id}/edit`, {
       method: 'PUT',
-      body: JSON.stringify({
-        title: String(title || ''),
-        description: String(description || ''),
-        category: String(category || ''),
-        location_address: String(location?.address || ''),
-        location_lat: location?.latitude ? location.latitude : null,
-        location_lng: location?.longitude ? location.longitude : null,
-      }),
+      body: JSON.stringify(params),
     });
   },
 
