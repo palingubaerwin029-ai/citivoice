@@ -10,7 +10,7 @@ const path = require('path');
 const { fileToBase64Url } = require('./groqService');
 
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
-const DEFAULT_MODEL = 'gemini-2.0-flash';
+const DEFAULT_MODEL = 'gemini-flash-latest';
 
 const getApiKey = () => {
   const key = process.env.GEMINI_API_KEY;
@@ -76,6 +76,7 @@ const generateText = async (prompt, options = {}) =>
   callGemini([{ text: prompt }], {
     temperature: options.temperature ?? 0.7,
     maxTokens: options.maxTokens ?? 1024,
+    model: options.model,
   });
 
 const generateJSON = async (prompt, options = {}) => {
@@ -83,6 +84,7 @@ const generateJSON = async (prompt, options = {}) => {
     temperature: options.temperature ?? 0.3,
     maxTokens: options.maxTokens ?? 1024,
     json: true,
+    model: options.model,
   });
   return parseJsonObject(text);
 };
@@ -108,6 +110,7 @@ const generateJSONWithImage = async (prompt, imagePath, options = {}) => {
         temperature: options.temperature ?? 0.3,
         maxTokens: options.maxTokens ?? 1024,
         json: true,
+        model: options.model,
       }
     );
     return parseJsonObject(text);
