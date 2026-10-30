@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 
-const groqService = require('./groqService');
+const groqService = require('./aiClient'); // Groq primary with Gemini failover
 const { Expo } = require('expo-server-sdk');
 
 // ── Expo Setup ────────────────────────────────────────────────────────────────

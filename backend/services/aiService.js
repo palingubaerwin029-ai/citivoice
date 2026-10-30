@@ -12,7 +12,7 @@
  */
 
 const natural = require('natural');
-const groqService = require('./groqService');
+const groqService = require('./aiClient'); // Groq primary with Gemini failover
 
 const VALID_CATEGORIES = [
   'Road & Infrastructure',
@@ -262,7 +262,7 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
 
     CONTENT VALIDATION (MANDATORY & THOROUGH):
     Check the photo AND the text to decide if this is a genuine municipal concern that fits one of the 4 categories below.
-    - "imageMatchesConcern": boolean (true ONLY if the photo clearly or reasonably depicts the reported municipal problem or public infrastructure; false if the photo shows something else such as a selfie, person, animal/pet, food, bedroom/indoor personal item, fabric, document, meme, screenshot, or unrelated object).
+    - "imageMatchesConcern": boolean (true ONLY if the photo shows the SPECIFIC problem described in the title/description, e.g. a pothole report must show a damaged road, a garbage report must show waste, a flood report must show flooding, a streetlight report must show a lamp/pole/wires. false if the photo shows a different problem or unrelated public infrastructure, or something else such as a selfie, person, animal/pet, food, bedroom/indoor personal item, fabric, document, meme, screenshot, or unrelated object).
     - "contentFlag": "none" -> a real concern that clearly fits a category (photo and text agree).
     - "contentFlag": "off_topic" -> NOT a typical concern for this platform: selfies, people/pets/food/memes, screenshots, indoor/personal photos,
       random or blank images, product ads, spam/gibberish text, jokes/tests, personal disputes, or a photo that clearly does not match the text.
@@ -329,6 +329,13 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
         result = await groqService.generateJSON(prompt);
       }
 
+      // Accept the vision verdict even if the category is off-list, as long as the model
+      // explicitly judged the photo. Otherwise a mismatched photo would slip through.
+      const judgedPhoto = Boolean(imagePath) && result && typeof result.imageMatchesConcern === 'boolean';
+      if (result && !VALID_CATEGORIES.includes(result.category) && judgedPhoto) {
+        result.category = analyzeConcern(text, imageTags).category;
+      }
+
       if (result && VALID_CATEGORIES.includes(result.category)) {
         console.log('[AI Engine] Successfully analyzed via Groq AI:', result.category, result.priority);
         const mappedDept = routeToDepartment(result.category, result.priority || 'Medium').department;
@@ -389,6 +396,8 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
           alignmentReason,
           validityConfidence,
           imageMatchesConcern,
+          // True only when the vision model actually looked at the photo and gave a verdict
+          imageVerified: Boolean(imagePath) && typeof result.imageMatchesConcern === 'boolean',
         };
       }
     } catch (err) {
@@ -415,12 +424,13 @@ const analyzeFullConcern = async (text, imageTags = [], imagePath = null) => {
     aiSummary: `Citizen concern categorized under ${baseClassification.category} (${baseClassification.priority} Priority).`,
     recommendedDepartment: mappedDept,
     suggestedActionSteps: ['Conduct site inspection', 'Coordinate with department head', 'Resolve report'],
-    // Local fallback cannot judge photos; leave unflagged for admin review.
+    // Local fallback cannot judge photos; callers must run a dedicated photo check.
     contentFlag: 'none',
     validityReason: '',
     alignmentReason: '',
     validityConfidence: 0,
     imageMatchesConcern: true,
+    imageVerified: false,
   };
 };
 
@@ -437,9 +447,10 @@ const verifyImageAlignment = async (title, description, category, imagePath) => 
   if (!imagePath || !groqService.isAvailable() || !groqService.generateJSONWithImage) {
     return {
       isValid: true,
+      verified: false,
       imageMatchesConcern: true,
       contentFlag: 'none',
-      reason: 'Image accepted',
+      reason: 'Photo could not be verified by AI',
     };
   }
 
@@ -460,11 +471,12 @@ const verifyImageAlignment = async (title, description, category, imagePath) => 
   - The photo shows household pets, dogs, cats, or domestic animals (unless reported as dead animal carcass on public road).
   - The photo shows indoor bedrooms, personal belongings, fabric/textiles, clothes, shoes, electronics, or unrelated home items.
   - The photo is a screenshot of chat, social media, meme, text document, or wallpaper.
+  - The photo shows a different municipal problem than the one described (e.g. text says "pothole" but photo shows a streetlight or garbage; text says "flood" but the street is dry).
   - The photo clearly does not match what the user is reporting (e.g., reported "flood on street" but photo shows dry bedroom; reported "pothole" but photo is fabric/furniture).
   - The photo contains explicit, offensive, or inappropriate content.
 
   Output strictly valid JSON with these keys:
-  - "imageMatchesConcern": boolean (true ONLY if the photo depicts the reported problem or related public infrastructure; false if mismatched or off-topic).
+  - "imageMatchesConcern": boolean (true ONLY if the photo shows the specific reported problem; false if mismatched, a different problem, or off-topic).
   - "contentFlag": "none" (matches genuine concern), "off_topic" (does not match or not a municipal issue), or "inappropriate".
   - "reason": Clear 1-sentence explanation of what the photo actually shows and why it matches or fails to match the reported concern.
   `;
@@ -475,6 +487,7 @@ const verifyImageAlignment = async (title, description, category, imagePath) => 
       const matches = result.imageMatchesConcern === true && result.contentFlag === 'none';
       return {
         isValid: matches,
+        verified: true,
         imageMatchesConcern: matches,
         contentFlag: result.contentFlag || (matches ? 'none' : 'off_topic'),
         reason: result.reason || (matches ? 'Photo aligns with the reported issue.' : 'The attached photo does not match the reported concern.'),
@@ -486,9 +499,10 @@ const verifyImageAlignment = async (title, description, category, imagePath) => 
 
   return {
     isValid: true,
+    verified: false,
     imageMatchesConcern: true,
     contentFlag: 'none',
-    reason: 'Photo accepted',
+    reason: 'Photo could not be verified by AI',
   };
 };
 

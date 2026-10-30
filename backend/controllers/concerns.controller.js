@@ -4,7 +4,7 @@ const { notifyUser, dispatchSystemNotification } = require('../services/notifica
 const { analyzeFullConcern, verifyImageAlignment, routeToDepartment, NOT_TYPICAL_CATEGORY, raisePriority } = require('../services/aiService');
 const { analyzeImage } = require('../services/imageAnalyzer');
 const { findSimilarConcerns } = require('../services/similarityService');
-const { generateText, isAvailable: isGeminiAvailable } = require('../services/groqService');
+const { generateText, isAvailable: isGeminiAvailable } = require('../services/aiClient');
 const { cacheMiddleware, invalidate } = require('../middleware/cache');
 const { validateConcern, validateIdParam } = require('../middleware/validate');
 const { isInsideKabankalan } = require('../utils/barangayGeo');
@@ -296,7 +296,32 @@ const createConcern = async (req, res) => {
   }
 
   // ─── AI photo & content alignment validation ──────────────────────────────
-  // If a photo was attached, strictly check that it aligns with the reported concern
+  // If a photo was attached, strictly check that it aligns with the reported concern.
+  // If the first AI pass could not judge the photo (AI down, bad response, local fallback),
+  // run the dedicated photo check. A photo that cannot be verified is NOT accepted.
+  if (req.file && (!aiResult || aiResult.imageVerified !== true)) {
+    const uploadPath = path.join(__dirname, '..', 'uploads', req.file.filename);
+    const check = await verifyImageAlignment(title, description, finalCategory, uploadPath);
+    if (!check.verified) {
+      try {
+        if (fs.existsSync(uploadPath)) fs.unlinkSync(uploadPath);
+      } catch (e) {
+        console.error('[AI] Failed to remove unverified upload:', e.message);
+      }
+      console.warn('[AI] Photo rejected: AI verification unavailable');
+      return res.status(503).json({
+        error: 'We could not verify your photo right now. Please try again in a moment.',
+        code: 'IMAGE_VERIFICATION_UNAVAILABLE',
+      });
+    }
+    aiResult = {
+      ...(aiResult || {}),
+      imageMatchesConcern: check.imageMatchesConcern,
+      alignmentReason: check.reason,
+    };
+    contentFlag = check.contentFlag || contentFlag;
+  }
+
   if (req.file) {
     const isMismatched =
       aiResult &&
@@ -1270,6 +1295,52 @@ const editConcernDetails = async (req, res) => {
     let newImageUrl = concern.image_url;
     if (req.file) {
       newImageUrl = `${BASE_URL()}/uploads/${req.file.filename}`;
+    }
+
+    // ─── AI photo alignment check on edits (citizens only) ────────────────────
+    // A new photo must match the concern; edited text must still match the existing photo.
+    if (!isAdmin) {
+      const removeNewUpload = () => {
+        if (!req.file) return;
+        try {
+          const p = path.join(__dirname, '..', 'uploads', req.file.filename);
+          if (fs.existsSync(p)) fs.unlinkSync(p);
+        } catch (e) {
+          console.error('[AI] Failed to remove rejected edit upload:', e.message);
+        }
+      };
+
+      let photoPath = null;
+      if (req.file) {
+        photoPath = path.join(__dirname, '..', 'uploads', req.file.filename);
+      } else if (concern.image_url && (newTitle !== concern.title || newDescription !== concern.description || newCategory !== concern.category)) {
+        const existing = path.join(__dirname, '..', 'uploads', path.basename(String(concern.image_url)));
+        if (fs.existsSync(existing)) photoPath = existing;
+      }
+
+      if (photoPath) {
+        const check = await verifyImageAlignment(newTitle, newDescription, newCategory, photoPath);
+        if (!check.verified && req.file) {
+          removeNewUpload();
+          return res.status(503).json({
+            error: 'We could not verify your photo right now. Please try again in a moment.',
+            code: 'IMAGE_VERIFICATION_UNAVAILABLE',
+          });
+        }
+        if (check.verified && (check.imageMatchesConcern === false || check.contentFlag !== 'none')) {
+          removeNewUpload();
+          const reasonMsg = check.contentFlag === 'inappropriate'
+            ? 'The photo contains inappropriate content.'
+            : (check.reason || 'The photo does not align with the concern details.');
+          return res.status(422).json({
+            error: req.file
+              ? reasonMsg
+              : `Your updated details no longer match the attached photo. ${reasonMsg}`,
+            code: 'IMAGE_MISMATCH',
+            reason: reasonMsg,
+          });
+        }
+      }
     }
 
     const isTitleChanged = newTitle !== concern.title;

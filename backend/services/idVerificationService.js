@@ -7,7 +7,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const groqService = require('./groqService');
+const groqService = require('./aiClient'); // Groq primary with Gemini failover
 
 // ── In-Memory Extraction Cache (Instant 0ms on repeated checks/registration) ──
 const idExtractionCache = new Map();

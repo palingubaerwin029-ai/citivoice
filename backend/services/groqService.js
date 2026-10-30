@@ -238,4 +238,5 @@ module.exports = {
   generateText,
   generateJSON,
   generateJSONWithImage,
+  fileToBase64Url,
 };
