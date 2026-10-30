@@ -11,6 +11,8 @@ const {
   updateResetOtp,
   updatePasswordByEmail,
   checkExistingIdNumber,
+  checkExistingEmail,
+  updateAdminAccount,
   upsertRegistrationOtp,
   getRegistrationOtp,
   markRegistrationEmailVerified,
@@ -639,6 +641,102 @@ const resendAdmin2FA = async (req, res) => {
   }
 };
 
+// ── Update Admin Account (Name, Email, Password) ────────────────────────────
+const updateAdminProfile = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
+    }
+
+    const user = await selectById(req.user.id);
+    if (!user || user.role !== 'admin') {
+      return res.status(404).json({ error: 'Administrator account not found.' });
+    }
+
+    const rawName = req.body?.name !== undefined ? String(req.body.name).trim() : user.name;
+    const rawEmail =
+      req.body?.email !== undefined ? String(req.body.email).trim().toLowerCase() : user.email.toLowerCase();
+    const { currentPassword, newPassword } = req.body || {};
+
+    if (!rawName || rawName.length < 2 || rawName.length > 100) {
+      return res.status(400).json({
+        error: 'Name must be between 2 and 100 characters.',
+        field: 'name',
+      });
+    }
+
+    if (!rawEmail || !/^\S+@\S+\.\S+$/.test(rawEmail)) {
+      return res.status(400).json({
+        error: 'Please enter a valid email address.',
+        field: 'email',
+      });
+    }
+
+    const isEmailChanged = rawEmail !== user.email.toLowerCase();
+    const isPasswordChanged = Boolean(newPassword && String(newPassword).length > 0);
+
+    // Require current password verification when changing email or password
+    if (isEmailChanged || isPasswordChanged) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          error: 'Current password is required to change your email or password.',
+          field: 'currentPassword',
+        });
+      }
+
+      const validCurrent = await bcrypt.compare(String(currentPassword), user.password_hash);
+      if (!validCurrent) {
+        return res.status(401).json({
+          error: 'Current password is incorrect.',
+          field: 'currentPassword',
+        });
+      }
+    }
+
+    if (isEmailChanged) {
+      const emailTaken = await checkExistingEmail(rawEmail, user.id);
+      if (emailTaken) {
+        return res.status(400).json({
+          error: 'This email address is already in use by another account.',
+          field: 'email',
+        });
+      }
+    }
+
+    let passwordHash = null;
+    if (isPasswordChanged) {
+      if (String(newPassword).length < 8) {
+        return res.status(400).json({
+          error: 'New password must be at least 8 characters long.',
+          field: 'newPassword',
+        });
+      }
+      passwordHash = await bcrypt.hash(String(newPassword), 10);
+    }
+
+    await updateAdminAccount(user.id, {
+      name: rawName,
+      email: rawEmail,
+      passwordHash,
+    });
+
+    const updatedUser = await selectById(user.id);
+    const token = sign({ id: updatedUser.id, role: updatedUser.role, name: updatedUser.name });
+
+    res.json({
+      success: true,
+      message: isPasswordChanged
+        ? 'Password and account details updated successfully.'
+        : 'Account profile updated successfully.',
+      user: safe(updatedUser),
+      token,
+    });
+  } catch (err) {
+    console.error('Update admin profile error:', err);
+    res.status(500).json({ error: 'Internal server error while updating account.' });
+  }
+};
+
 module.exports = {
   login,
   verifyAdmin2FA,
@@ -648,6 +746,7 @@ module.exports = {
   verifyRegistrationOtp,
   register,
   getMe,
+  updateAdminProfile,
   forgotPassword,
   resetPassword,
   verifyIdName,

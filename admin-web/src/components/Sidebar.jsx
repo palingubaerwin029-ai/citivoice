@@ -11,6 +11,7 @@ import {
   IoSunnyOutline,
   IoMoonOutline,
   IoCloudUploadOutline,
+  IoPersonCircleOutline,
 } from 'react-icons/io5';
 import s from '../styles/Sidebar.module.css';
 import { resolveImageUrl } from '../services/api';
@@ -27,6 +28,7 @@ const ADMIN_NAV = [
   { path: '/reports', icon: <IoBarChartOutline />, label: 'Reports' },
   { section: 'System' },
   { path: '/backup', icon: <IoCloudUploadOutline />, label: 'Backup' },
+  { path: '/account', icon: <IoPersonCircleOutline />, label: 'Account' },
 ];
 
 export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
@@ -60,7 +62,12 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
 
       {/* User */}
       {!collapsed && (
-        <div className={s.userCard}>
+        <div
+          className={s.userCard}
+          onClick={() => navigate('/account')}
+          title="Manage Account"
+          style={{ cursor: 'pointer' }}
+        >
           <div className={s.avatar} style={{ overflow: 'hidden' }}>
             {user?.avatar_url && !avatarErr ? (
               <img
@@ -75,8 +82,13 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
               initials
             )}
           </div>
-          <div>
-            <div className={s.userName}>{user?.name || 'Admin'}</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div
+              className={s.userName}
+              style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            >
+              {user?.name || 'Admin'}
+            </div>
             <div className={s.userRole}>● Administrator</div>
           </div>
         </div>

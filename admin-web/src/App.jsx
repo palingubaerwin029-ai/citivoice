@@ -15,6 +15,7 @@ import Landing from './pages/Landing';
 import Verification from './pages/Verification';
 import Barangays from './pages/Barangays';
 import Backup from './pages/Backup';
+import Account from './pages/Account';
 import ToastProvider from './components/ToastProvider';
 import { NotificationProvider } from './context/NotificationContext';
 
@@ -90,6 +91,14 @@ export default function App() {
     connectSocket();
   };
 
+  const handleUserUpdate = (updatedUser, newToken) => {
+    if (newToken) {
+      localStorage.setItem('cv_token', newToken);
+    }
+    localStorage.setItem('cv_user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('cv_token');
     localStorage.removeItem('cv_user');
@@ -153,6 +162,7 @@ export default function App() {
                 isAdminUser ? (
                   <AdminLayout
                     user={user}
+                    onUserUpdate={handleUserUpdate}
                     onLogout={handleLogout}
                     theme={theme}
                     onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -169,7 +179,7 @@ export default function App() {
   );
 }
 
-function AdminLayout({ user, onLogout, theme, onThemeToggle }) {
+function AdminLayout({ user, onUserUpdate, onLogout, theme, onThemeToggle }) {
   return (
     <div style={styles.layout}>
       <Sidebar
@@ -190,6 +200,7 @@ function AdminLayout({ user, onLogout, theme, onThemeToggle }) {
           <Route path="/reports" element={<Reports />} />
           <Route path="/barangays" element={<Barangays />} />
           <Route path="/backup" element={<Backup />} />
+          <Route path="/account" element={<Account user={user} onUserUpdate={onUserUpdate} />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>

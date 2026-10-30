@@ -115,6 +115,28 @@ const checkExistingIdNumber = async (idNumber, excludeId) => {
   return rows.length > 0;
 };
 
+const checkExistingEmail = async (email, excludeId) => {
+  const [rows] = await pool.query('SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ?', [
+    email,
+    excludeId,
+  ]);
+  return rows.length > 0;
+};
+
+const updateAdminAccount = async (id, { name, email, passwordHash }) => {
+  if (passwordHash) {
+    await pool.query(
+      `UPDATE users SET name = ?, email = ?, password_hash = ?, updated_at = NOW() WHERE id = ?`,
+      [name, email, passwordHash, id],
+    );
+  } else {
+    await pool.query(
+      `UPDATE users SET name = ?, email = ?, updated_at = NOW() WHERE id = ?`,
+      [name, email, id],
+    );
+  }
+};
+
 const updateUserDetails = async (
   id,
   name,
@@ -314,6 +336,8 @@ module.exports = {
   selectAllCitizens,
   countCitizens,
   checkExistingIdNumber,
+  checkExistingEmail,
+  updateAdminAccount,
   updateUserDetails,
   updateUserVerification,
   selectUserContactInfo,

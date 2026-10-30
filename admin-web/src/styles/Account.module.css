@@ -1,0 +1,443 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   CitiVoice Admin Console — Account Management Styles
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 22px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Profile Summary Card (Left Column) ── */
+.profileCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  position: relative;
+}
+
+.profileBanner {
+  height: 92px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #0ea5e9 100%);
+  position: relative;
+}
+
+.profileBody {
+  padding: 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.avatarWrap {
+  position: relative;
+  margin-top: -42px;
+  margin-bottom: 14px;
+}
+
+.avatarCircle {
+  width: 84px;
+  height: 84px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, var(--blue) 0%, #6366f1 100%);
+  border: 4px solid var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarUploadBtn {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: var(--blue);
+  border: 2px solid var(--surface);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4);
+}
+
+.avatarUploadBtn:hover {
+  transform: scale(1.06);
+  background: #1d4ed8;
+}
+
+.profileName {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-1);
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+
+.profileEmail {
+  font-size: 13px;
+  color: var(--text-2);
+  word-break: break-all;
+  margin-bottom: 12px;
+}
+
+.rolePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  color: var(--blue);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.metaList {
+  width: 100%;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.metaLabel {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-2);
+}
+
+.metaValue {
+  font-weight: 600;
+  color: var(--text-1);
+  text-align: right;
+}
+
+.securityCallout {
+  margin-top: 18px;
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: var(--r-lg);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.24);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+}
+
+.securityCalloutIcon {
+  color: var(--green, #10b981);
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.securityCalloutTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 2px;
+}
+
+.securityCalloutText {
+  font-size: 11.5px;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+
+/* ── Forms Stack (Right Column) ── */
+.formsStack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sectionCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+}
+
+.sectionHeader {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sectionHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sectionIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.sectionSubtitle {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 2px;
+}
+
+.sectionBody {
+  padding: 22px 24px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 720px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.fieldLabel {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 13px;
+  color: var(--text-3);
+  font-size: 16px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text-1);
+  font-size: 13.5px;
+  padding: 10px 14px 10px 38px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+}
+
+.inputError {
+  border-color: var(--red, #ef4444) !important;
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.eyeBtn:hover {
+  color: var(--text-1);
+}
+
+.fieldHint {
+  font-size: 11.5px;
+  color: var(--text-3);
+  line-height: 1.4;
+}
+
+.fieldError {
+  font-size: 11.5px;
+  color: var(--red, #ef4444);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── Password Strength Meter ── */
+.strengthBox {
+  margin-top: 8px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.strengthBarHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.strengthTrack {
+  width: 100%;
+  height: 5px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.strengthFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease, background-color 0.25s ease;
+}
+
+.reqGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px;
+}
+
+.reqItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.reqMet {
+  color: var(--green, #10b981);
+  font-weight: 600;
+}
+
+/* ── Actions Row ── */
+.actionsRow {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  background: var(--blue);
+  color: #ffffff;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btnGhost {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text-2);
+}
+
+.btnGhost:hover:not(:disabled) {
+  color: var(--text-1);
+  border-color: var(--border-md);
+}
+

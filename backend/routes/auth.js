@@ -8,11 +8,13 @@ const {
   verifyRegistrationOtp,
   register,
   getMe,
+  updateAdminProfile,
   forgotPassword,
   resetPassword,
   verifyIdName,
 } = require('../controllers/auth.controller');
 const auth = require('../middleware/auth');
+const requireRole = require('../middleware/requireRole');
 const {
   validateLogin,
   validateRegister,
@@ -42,6 +44,9 @@ router.post('/verify-id-name', verifyIdName);
 
 // ─── Get current user from token ──────────────────────────────────────────────
 router.get('/me', auth, getMe);
+
+// ─── Update Admin Account (Name, Email, Password) ────────────────────────────
+router.put('/admin/account', auth, requireRole('admin'), updateAdminProfile);
 
 // ─── Forgot / Reset Password (public) ────────────────────────────────────────
 router.post('/forgot-password', validateForgotPassword, forgotPassword);
