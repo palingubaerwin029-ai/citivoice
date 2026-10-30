@@ -137,6 +137,25 @@ const updateAdminAccount = async (id, { name, email, passwordHash }) => {
   }
 };
 
+const insertAdminUser = async (name, email, passwordHash) => {
+  const [result] = await pool.query(
+    `INSERT INTO users (name, email, password_hash, role, verification_status, is_verified, verified_at, created_at, updated_at)
+     VALUES (?, ?, ?, 'admin', 'verified', 1, NOW(), NOW(), NOW())`,
+    [name, email.toLowerCase(), passwordHash],
+  );
+  return result.insertId;
+};
+
+const selectAllAdmins = async () => {
+  const [rows] = await pool.query(
+    `SELECT id, name, email, role, avatar_url, created_at, updated_at
+     FROM users
+     WHERE role = 'admin'
+     ORDER BY created_at ASC`,
+  );
+  return rows;
+};
+
 const updateUserDetails = async (
   id,
   name,
@@ -338,6 +357,8 @@ module.exports = {
   checkExistingIdNumber,
   checkExistingEmail,
   updateAdminAccount,
+  insertAdminUser,
+  selectAllAdmins,
   updateUserDetails,
   updateUserVerification,
   selectUserContactInfo,

@@ -9,6 +9,9 @@ const {
   register,
   getMe,
   updateAdminProfile,
+  listAdmins,
+  createAdmin,
+  deleteAdmin,
   forgotPassword,
   resetPassword,
   verifyIdName,
@@ -47,6 +50,11 @@ router.get('/me', auth, getMe);
 
 // ─── Update Admin Account (Name, Email, Password) ────────────────────────────
 router.put('/admin/account', auth, requireRole('admin'), updateAdminProfile);
+
+// ─── List, Register & Remove Administrators ──────────────────────────────────
+router.get('/admin/list', auth, requireRole('admin'), listAdmins);
+router.post('/admin/create', auth, requireRole('admin'), createAdmin);
+router.delete('/admin/:id', auth, requireRole('admin'), deleteAdmin);
 
 // ─── Forgot / Reset Password (public) ────────────────────────────────────────
 router.post('/forgot-password', validateForgotPassword, forgotPassword);

@@ -13,6 +13,9 @@ const {
   checkExistingIdNumber,
   checkExistingEmail,
   updateAdminAccount,
+  insertAdminUser,
+  selectAllAdmins,
+  deleteUser,
   upsertRegistrationOtp,
   getRegistrationOtp,
   markRegistrationEmailVerified,
@@ -737,6 +740,112 @@ const updateAdminProfile = async (req, res) => {
   }
 };
 
+// ── List All Administrator Accounts ─────────────────────────────────────────
+const listAdmins = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
+    }
+    const admins = await selectAllAdmins();
+    res.json({ data: admins });
+  } catch (err) {
+    console.error('List admins error:', err);
+    res.status(500).json({ error: 'Internal server error while fetching administrators.' });
+  }
+};
+
+// ── Register / Create New Administrator Account ─────────────────────────────
+const createAdmin = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
+    }
+
+    const rawName = String(req.body?.name || '').trim();
+    const rawEmail = String(req.body?.email || '').trim().toLowerCase();
+    const rawPassword = String(req.body?.password || '');
+
+    if (!rawName || rawName.length < 2 || rawName.length > 100) {
+      return res.status(400).json({
+        error: 'Name must be between 2 and 100 characters.',
+        field: 'name',
+      });
+    }
+
+    if (!rawEmail || !/^\S+@\S+\.\S+$/.test(rawEmail)) {
+      return res.status(400).json({
+        error: 'Please enter a valid email address.',
+        field: 'email',
+      });
+    }
+
+    if (!rawPassword || rawPassword.length < 8) {
+      return res.status(400).json({
+        error: 'Password must be at least 8 characters long.',
+        field: 'password',
+      });
+    }
+
+    const existingEmail = await selectByEmail(rawEmail);
+    if (existingEmail) {
+      return res.status(400).json({
+        error: 'This email address is already registered.',
+        field: 'email',
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
+    const newId = await insertAdminUser(rawName, rawEmail, passwordHash);
+    const createdAdmin = await selectById(newId);
+
+    res.status(201).json({
+      success: true,
+      message: `Administrator "${rawName}" registered successfully.`,
+      admin: safe(createdAdmin),
+    });
+  } catch (err) {
+    console.error('Create admin error:', err);
+    res.status(500).json({ error: 'Internal server error while registering administrator.' });
+  }
+};
+
+// ── Delete Another Administrator Account ────────────────────────────────────
+const deleteAdmin = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
+    }
+
+    const targetId = parseInt(req.params.id, 10);
+    if (!targetId || isNaN(targetId)) {
+      return res.status(400).json({ error: 'Invalid administrator ID.' });
+    }
+
+    if (targetId === req.user.id) {
+      return res.status(400).json({ error: 'You cannot delete your own active administrator account.' });
+    }
+
+    const targetUser = await selectById(targetId);
+    if (!targetUser || targetUser.role !== 'admin') {
+      return res.status(404).json({ error: 'Administrator account not found.' });
+    }
+
+    const admins = await selectAllAdmins();
+    if (admins.length <= 1) {
+      return res.status(400).json({ error: 'Cannot delete the only remaining administrator account.' });
+    }
+
+    await deleteUser(targetId);
+    res.json({
+      success: true,
+      message: `Administrator "${targetUser.name}" removed successfully.`,
+    });
+  } catch (err) {
+    console.error('Delete admin error:', err);
+    res.status(500).json({ error: 'Internal server error while removing administrator.' });
+  }
+};
+
 module.exports = {
   login,
   verifyAdmin2FA,
@@ -747,6 +856,9 @@ module.exports = {
   register,
   getMe,
   updateAdminProfile,
+  listAdmins,
+  createAdmin,
+  deleteAdmin,
   forgotPassword,
   resetPassword,
   verifyIdName,

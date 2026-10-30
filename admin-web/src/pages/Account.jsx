@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   IoPersonOutline,
   IoMailOutline,
@@ -14,6 +14,10 @@ import {
   IoCalendarOutline,
   IoAlertCircleOutline,
   IoRefreshOutline,
+  IoPersonAddOutline,
+  IoPeopleOutline,
+  IoTrashOutline,
+  IoCloseOutline,
 } from 'react-icons/io5';
 import s from '../styles/Admin.module.css';
 import a from '../styles/Account.module.css';
@@ -23,6 +27,7 @@ import { useToast } from '../components/ToastProvider';
 export default function Account({ user, onUserUpdate }) {
   const { addToast } = useToast();
   const fileInputRef = useRef(null);
+  const registerCardRef = useRef(null);
 
   // ── Profile Form State (Name & Email) ──────────────────────────────────────
   const [name, setName] = useState(user?.name || '');
@@ -46,6 +51,20 @@ export default function Account({ user, onUserUpdate }) {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarErr, setAvatarErr] = useState(false);
 
+  // ── Register New Admin & Admin Directory State ─────────────────────────────
+  const [adminsList, setAdminsList] = useState([]);
+  const [loadingAdmins, setLoadingAdmins] = useState(true);
+  const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [newAdminConfirmPw, setNewAdminConfirmPw] = useState('');
+  const [showNewAdminPw, setShowNewAdminPw] = useState(false);
+  const [showNewAdminConfirmPw, setShowNewAdminConfirmPw] = useState(false);
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
+  const [newAdminErrors, setNewAdminErrors] = useState({});
+  const [adminToDelete, setAdminToDelete] = useState(null);
+  const [deletingAdmin, setDeletingAdmin] = useState(false);
+
   // Sync local form when `user` prop updates
   useEffect(() => {
     if (user) {
@@ -54,6 +73,22 @@ export default function Account({ user, onUserUpdate }) {
       setAvatarErr(false);
     }
   }, [user]);
+
+  const fetchAdmins = useCallback(async () => {
+    setLoadingAdmins(true);
+    try {
+      const res = await api.get('/auth/admin/list');
+      setAdminsList(Array.isArray(res?.data) ? res.data : []);
+    } catch (err) {
+      console.error('Error loading administrators:', err);
+    } finally {
+      setLoadingAdmins(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAdmins();
+  }, [fetchAdmins]);
 
   const isEmailChanged =
     email.trim().toLowerCase() !== (user?.email || '').trim().toLowerCase();
@@ -79,9 +114,9 @@ export default function Account({ user, onUserUpdate }) {
     });
   }, [user?.created_at]);
 
-  // ── Password Strength Analysis ─────────────────────────────────────────────
-  const passwordStrength = useMemo(() => {
-    const pw = newPassword || '';
+  // ── Password Strength Helper ───────────────────────────────────────────────
+  const analyzePassword = (pwStr) => {
+    const pw = pwStr || '';
     const checks = {
       minLength: pw.length >= 8,
       hasUpper: /[A-Z]/.test(pw),
@@ -112,7 +147,13 @@ export default function Account({ user, onUserUpdate }) {
       label: pw.length === 0 ? '' : label,
       color,
     };
-  }, [newPassword]);
+  };
+
+  const passwordStrength = useMemo(() => analyzePassword(newPassword), [newPassword]);
+  const newAdminPwStrength = useMemo(
+    () => analyzePassword(newAdminPassword),
+    [newAdminPassword]
+  );
 
   // ── Handle Avatar Upload ───────────────────────────────────────────────────
   const handleAvatarChange = async (e) => {
@@ -140,6 +181,7 @@ export default function Account({ user, onUserUpdate }) {
       }
       if (onUserUpdate) onUserUpdate(data);
       setAvatarErr(false);
+      fetchAdmins();
       addToast('Administrator profile photo updated.', 'success');
     } catch (err) {
       addToast(err.message || 'Could not upload profile photo.', 'error');
@@ -186,6 +228,7 @@ export default function Account({ user, onUserUpdate }) {
       }
       setEmailCurrentPassword('');
       setProfileErrors({});
+      fetchAdmins();
       addToast(res?.message || 'Account profile updated successfully.', 'success');
     } catch (err) {
       const msg = err.message || 'Failed to update profile.';
@@ -257,6 +300,85 @@ export default function Account({ user, onUserUpdate }) {
     }
   };
 
+  // ── Handle Register New Administrator ──────────────────────────────────────
+  const handleCreateAdmin = async (e) => {
+    e.preventDefault();
+    const errs = {};
+    const cleanName = newAdminName.trim();
+    const cleanEmail = newAdminEmail.trim().toLowerCase();
+
+    if (!cleanName || cleanName.length < 2) {
+      errs.name = 'Name must be at least 2 characters.';
+    }
+    if (!cleanEmail || !/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+      errs.email = 'Please enter a valid email address.';
+    }
+    if (!newAdminPassword) {
+      errs.password = 'Password is required.';
+    } else if (newAdminPassword.length < 8) {
+      errs.password = 'Password must be at least 8 characters long.';
+    }
+    if (!newAdminConfirmPw) {
+      errs.confirmPassword = 'Please confirm the password.';
+    } else if (newAdminPassword !== newAdminConfirmPw) {
+      errs.confirmPassword = 'Passwords do not match.';
+    }
+
+    setNewAdminErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    setCreatingAdmin(true);
+    try {
+      const res = await api.post('/auth/admin/create', {
+        name: cleanName,
+        email: cleanEmail,
+        password: newAdminPassword,
+      });
+
+      setNewAdminName('');
+      setNewAdminEmail('');
+      setNewAdminPassword('');
+      setNewAdminConfirmPw('');
+      setNewAdminErrors({});
+      fetchAdmins();
+      addToast(
+        res?.message || `Administrator "${cleanName}" registered successfully.`,
+        'success'
+      );
+    } catch (err) {
+      const msg = err.message || 'Failed to register new administrator.';
+      if (msg.toLowerCase().includes('email')) {
+        setNewAdminErrors({ email: msg });
+      } else if (msg.toLowerCase().includes('name')) {
+        setNewAdminErrors({ name: msg });
+      } else {
+        setNewAdminErrors({ password: msg });
+      }
+      addToast(msg, 'error');
+    } finally {
+      setCreatingAdmin(false);
+    }
+  };
+
+  // ── Handle Delete Administrator ────────────────────────────────────────────
+  const handleConfirmDeleteAdmin = async () => {
+    if (!adminToDelete) return;
+    setDeletingAdmin(true);
+    try {
+      const res = await api.delete(`/auth/admin/${adminToDelete.id}`);
+      addToast(
+        res?.message || `Administrator "${adminToDelete.name}" removed.`,
+        'success'
+      );
+      setAdminToDelete(null);
+      fetchAdmins();
+    } catch (err) {
+      addToast(err.message || 'Failed to remove administrator.', 'error');
+    } finally {
+      setDeletingAdmin(false);
+    }
+  };
+
   return (
     <div className={s.page}>
       {/* Page Header */}
@@ -264,9 +386,19 @@ export default function Account({ user, onUserUpdate }) {
         <div className={s.pageTitleGroup}>
           <h1 className={s.pageTitle}>Account Management</h1>
           <p className={s.pageSubtitle}>
-            Update your administrator name, 2FA email address, and account password
+            Manage your administrator profile, password, and register new administrator accounts
           </p>
         </div>
+        <button
+          type="button"
+          className={`${a.btn} ${a.btnPrimary}`}
+          onClick={() =>
+            registerCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        >
+          <IoPersonAddOutline size={16} />
+          Register New Admin
+        </button>
       </div>
 
       <div className={a.grid}>
@@ -329,6 +461,13 @@ export default function Account({ user, onUserUpdate }) {
                 </span>
                 <span className={a.metaValue}>{memberSince}</span>
               </div>
+              <div className={a.metaItem}>
+                <span className={a.metaLabel}>
+                  <IoPeopleOutline size={15} />
+                  Total Admins
+                </span>
+                <span className={a.metaValue}>{adminsList.length || 1} Active</span>
+              </div>
             </div>
 
             <div className={a.securityCallout}>
@@ -344,7 +483,7 @@ export default function Account({ user, onUserUpdate }) {
           </div>
         </div>
 
-        {/* ── Right Column: Profile & Password Forms ── */}
+        {/* ── Right Column: Profile, Password & Admin Registration Forms ── */}
         <div className={a.formsStack}>
           {/* 1. Profile & Email Settings */}
           <form className={a.sectionCard} onSubmit={handleSaveProfile}>
@@ -753,9 +892,408 @@ export default function Account({ user, onUserUpdate }) {
               </div>
             </div>
           </form>
+
+          {/* 3. Register New Administrator & Administrator Directory */}
+          <div className={a.sectionCard} ref={registerCardRef}>
+            <div className={a.sectionHeader}>
+              <div className={a.sectionHeaderLeft}>
+                <div
+                  className={a.sectionIcon}
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.14)',
+                    color: 'var(--green, #10b981)',
+                  }}
+                >
+                  <IoPersonAddOutline />
+                </div>
+                <div>
+                  <div className={a.sectionTitle}>Register New Administrator</div>
+                  <div className={a.sectionSubtitle}>
+                    Create a new administrator account with full console access and 2FA email login
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={a.sectionBody}>
+              <form onSubmit={handleCreateAdmin}>
+                <div className={a.formGrid}>
+                  {/* New Admin Full Name */}
+                  <div className={a.fieldGroup}>
+                    <label className={a.fieldLabel} htmlFor="new-admin-name">
+                      <span>Administrator Full Name</span>
+                    </label>
+                    <div className={a.inputWrap}>
+                      <span className={a.inputIcon}>
+                        <IoPersonOutline />
+                      </span>
+                      <input
+                        id="new-admin-name"
+                        type="text"
+                        className={`${a.input} ${newAdminErrors.name ? a.inputError : ''}`}
+                        value={newAdminName}
+                        onChange={(e) => {
+                          setNewAdminName(e.target.value);
+                          if (newAdminErrors.name) {
+                            setNewAdminErrors((prev) => ({ ...prev, name: null }));
+                          }
+                        }}
+                        placeholder="e.g. Juan Dela Cruz"
+                      />
+                    </div>
+                    {newAdminErrors.name ? (
+                      <div className={a.fieldError}>
+                        <IoAlertCircleOutline size={14} />
+                        {newAdminErrors.name}
+                      </div>
+                    ) : (
+                      <div className={a.fieldHint}>
+                        Full name of the city official or system administrator.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* New Admin Email Address */}
+                  <div className={a.fieldGroup}>
+                    <label className={a.fieldLabel} htmlFor="new-admin-email">
+                      <span>Email Address (for Login & 2FA OTP)</span>
+                    </label>
+                    <div className={a.inputWrap}>
+                      <span className={a.inputIcon}>
+                        <IoMailOutline />
+                      </span>
+                      <input
+                        id="new-admin-email"
+                        type="email"
+                        className={`${a.input} ${newAdminErrors.email ? a.inputError : ''}`}
+                        value={newAdminEmail}
+                        onChange={(e) => {
+                          setNewAdminEmail(e.target.value);
+                          if (newAdminErrors.email) {
+                            setNewAdminErrors((prev) => ({ ...prev, email: null }));
+                          }
+                        }}
+                        placeholder="official@gmail.com"
+                      />
+                    </div>
+                    {newAdminErrors.email ? (
+                      <div className={a.fieldError}>
+                        <IoAlertCircleOutline size={14} />
+                        {newAdminErrors.email}
+                      </div>
+                    ) : (
+                      <div className={a.fieldHint}>
+                        Must be an active email inbox to receive 6-digit 2FA login codes.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className={a.formGrid}>
+                  {/* Initial Password */}
+                  <div className={a.fieldGroup}>
+                    <label className={a.fieldLabel} htmlFor="new-admin-pw">
+                      <span>Initial Password</span>
+                    </label>
+                    <div className={a.inputWrap}>
+                      <span className={a.inputIcon}>
+                        <IoLockClosedOutline />
+                      </span>
+                      <input
+                        id="new-admin-pw"
+                        type={showNewAdminPw ? 'text' : 'password'}
+                        className={`${a.input} ${newAdminErrors.password ? a.inputError : ''}`}
+                        value={newAdminPassword}
+                        onChange={(e) => {
+                          setNewAdminPassword(e.target.value);
+                          if (newAdminErrors.password) {
+                            setNewAdminErrors((prev) => ({ ...prev, password: null }));
+                          }
+                        }}
+                        placeholder="At least 8 characters"
+                      />
+                      <button
+                        type="button"
+                        className={a.eyeBtn}
+                        onClick={() => setShowNewAdminPw((v) => !v)}
+                      >
+                        {showNewAdminPw ? <IoEyeOffOutline /> : <IoEyeOutline />}
+                      </button>
+                    </div>
+                    {newAdminErrors.password && (
+                      <div className={a.fieldError}>
+                        <IoAlertCircleOutline size={14} />
+                        {newAdminErrors.password}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Confirm Initial Password */}
+                  <div className={a.fieldGroup}>
+                    <label className={a.fieldLabel} htmlFor="new-admin-confirm-pw">
+                      <span>Confirm Password</span>
+                    </label>
+                    <div className={a.inputWrap}>
+                      <span className={a.inputIcon}>
+                        <IoLockClosedOutline />
+                      </span>
+                      <input
+                        id="new-admin-confirm-pw"
+                        type={showNewAdminConfirmPw ? 'text' : 'password'}
+                        className={`${a.input} ${
+                          newAdminErrors.confirmPassword ? a.inputError : ''
+                        }`}
+                        value={newAdminConfirmPw}
+                        onChange={(e) => {
+                          setNewAdminConfirmPw(e.target.value);
+                          if (newAdminErrors.confirmPassword) {
+                            setNewAdminErrors((prev) => ({
+                              ...prev,
+                              confirmPassword: null,
+                            }));
+                          }
+                        }}
+                        placeholder="Re-enter password"
+                      />
+                      <button
+                        type="button"
+                        className={a.eyeBtn}
+                        onClick={() => setShowNewAdminConfirmPw((v) => !v)}
+                      >
+                        {showNewAdminConfirmPw ? <IoEyeOffOutline /> : <IoEyeOutline />}
+                      </button>
+                    </div>
+                    {newAdminErrors.confirmPassword ? (
+                      <div className={a.fieldError}>
+                        <IoAlertCircleOutline size={14} />
+                        {newAdminErrors.confirmPassword}
+                      </div>
+                    ) : (
+                      newAdminConfirmPw.length > 0 &&
+                      newAdminPassword === newAdminConfirmPw && (
+                        <div
+                          className={a.fieldHint}
+                          style={{
+                            color: 'var(--green, #10b981)',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                          }}
+                        >
+                          <IoCheckmarkCircle size={14} /> Passwords match
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                {newAdminPassword.length > 0 && (
+                  <div className={a.strengthBox} style={{ marginBottom: 14 }}>
+                    <div className={a.strengthBarHeader}>
+                      <span style={{ color: 'var(--text-2)' }}>Password Strength</span>
+                      <span style={{ color: newAdminPwStrength.color }}>
+                        {newAdminPwStrength.label}
+                      </span>
+                    </div>
+                    <div className={a.strengthTrack} style={{ marginBottom: 0 }}>
+                      <div
+                        className={a.strengthFill}
+                        style={{
+                          width: `${newAdminPwStrength.percent}%`,
+                          backgroundColor: newAdminPwStrength.color,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className={a.actionsRow}>
+                  {(newAdminName ||
+                    newAdminEmail ||
+                    newAdminPassword ||
+                    newAdminConfirmPw) && (
+                    <button
+                      type="button"
+                      className={`${a.btn} ${a.btnGhost}`}
+                      disabled={creatingAdmin}
+                      onClick={() => {
+                        setNewAdminName('');
+                        setNewAdminEmail('');
+                        setNewAdminPassword('');
+                        setNewAdminConfirmPw('');
+                        setNewAdminErrors({});
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className={`${a.btn} ${a.btnPrimary}`}
+                    disabled={
+                      !newAdminName.trim() ||
+                      !newAdminEmail.trim() ||
+                      !newAdminPassword ||
+                      !newAdminConfirmPw ||
+                      creatingAdmin
+                    }
+                  >
+                    <IoPersonAddOutline size={16} />
+                    {creatingAdmin ? 'Registering Admin...' : 'Register New Admin'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Active Administrator Accounts Directory */}
+              <div
+                style={{
+                  marginTop: 24,
+                  paddingTop: 20,
+                  borderTop: '1px solid var(--border)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 8,
+                  }}
+                >
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-1)' }}>
+                    Registered Administrators ({adminsList.length})
+                  </div>
+                </div>
+
+                {loadingAdmins ? (
+                  <div style={{ fontSize: 12.5, color: 'var(--text-3)', padding: '8px 0' }}>
+                    Loading administrators...
+                  </div>
+                ) : (
+                  <div className={a.adminList}>
+                    {adminsList.map((adm) => {
+                      const isSelf = Number(adm.id) === Number(user?.id);
+                      const admInitials =
+                        adm.name
+                          ?.split(' ')
+                          .map((n) => n[0])
+                          .join('')
+                          .toUpperCase()
+                          .slice(0, 2) || 'AD';
+                      return (
+                        <div key={adm.id} className={a.adminRow}>
+                          <div className={a.adminRowLeft}>
+                            <div className={a.adminAvatar}>
+                              {adm.avatar_url ? (
+                                <img
+                                  src={resolveImageUrl(adm.avatar_url)}
+                                  alt={adm.name}
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                  }}
+                                />
+                              ) : (
+                                admInitials
+                              )}
+                            </div>
+                            <div className={a.adminInfo}>
+                              <div className={a.adminNameRow}>
+                                <span className={a.adminName}>{adm.name}</span>
+                                {isSelf && <span className={a.youBadge}>You</span>}
+                              </div>
+                              <div className={a.adminEmail}>{adm.email}</div>
+                            </div>
+                          </div>
+
+                          <div className={a.adminRowRight}>
+                            <span className={a.mfaBadge}>
+                              <IoShieldCheckmarkOutline size={13} />
+                              2FA Enabled
+                            </span>
+                            {!isSelf && adminsList.length > 1 && (
+                              <button
+                                type="button"
+                                className={`${a.btn} ${a.btnDanger}`}
+                                style={{ padding: '6px 12px', fontSize: 12 }}
+                                onClick={() => setAdminToDelete(adm)}
+                                title="Remove Administrator"
+                              >
+                                <IoTrashOutline size={14} />
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Confirm Remove Administrator Modal */}
+      {adminToDelete && (
+        <div className={s.overlay} onClick={() => !deletingAdmin && setAdminToDelete(null)}>
+          <div
+            className={s.modal}
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: 420, maxWidth: '92vw' }}
+          >
+            <div
+              className={s.modalTitle}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            >
+              <span>Remove Administrator</span>
+              <button
+                type="button"
+                onClick={() => setAdminToDelete(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-3)',
+                  cursor: 'pointer',
+                  fontSize: 18,
+                }}
+              >
+                <IoCloseOutline />
+              </button>
+            </div>
+            <div className={s.modalBody}>
+              Are you sure you want to remove administrator access for{' '}
+              <strong style={{ color: 'var(--text-1)' }}>{adminToDelete.name}</strong> (
+              {adminToDelete.email})?
+              <p style={{ marginTop: 10, fontSize: 12, color: 'var(--text-3)' }}>
+                This account will no longer be able to sign in to the CitiVoice Admin Console.
+              </p>
+            </div>
+            <div className={s.modalActions}>
+              <button
+                type="button"
+                className={`${a.btn} ${a.btnGhost}`}
+                disabled={deletingAdmin}
+                onClick={() => setAdminToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`${a.btn} ${a.btnDanger}`}
+                disabled={deletingAdmin}
+                onClick={handleConfirmDeleteAdmin}
+              >
+                <IoTrashOutline size={14} />
+                {deletingAdmin ? 'Removing...' : 'Yes, Remove Admin'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
