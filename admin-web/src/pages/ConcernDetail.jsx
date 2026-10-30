@@ -191,9 +191,15 @@ export default function ConcernDetail() {
     setSaving(true);
     try {
       let body;
-      const isMultipart = !!resolvedFile;
-
-      if (isMultipart) {
+      if (selStatus === 'Rejected') {
+        body = {
+          status: 'Rejected',
+          category: selCategory,
+          priority: selPriority,
+          admin_note: note.trim() || null,
+          resolved_image_url: null,
+        };
+      } else if (resolvedFile) {
         body = new FormData();
         body.append('status', selStatus);
         body.append('category', selCategory);
@@ -253,10 +259,13 @@ export default function ConcernDetail() {
     return false;
   };
 
-  const handleAiGenerate = async (isAuto = false) => {
+  const handleAiGenerate = async (isAuto = false, targetStatusOverride = null) => {
+    const statusToDraft = targetStatusOverride || selStatus || concern?.status || 'In Progress';
     setAiGenerating(true);
     try {
-      const result = await api.post(`/concerns/${id}/ai-response`);
+      const result = await api.post(`/concerns/${id}/ai-response`, {
+        status: statusToDraft,
+      });
       if (result.response) {
         setNote(result.response);
       }
@@ -273,9 +282,18 @@ export default function ConcernDetail() {
     if (isStatusDisabled(statusKey)) return;
     setSelStatus(statusKey);
 
-    // Auto AI draft when clicking In Progress
-    if (statusKey === 'In Progress') {
-      await handleAiGenerate(true);
+    // When status is Rejected: immediately remove and clear attached status photo
+    if (statusKey === 'Rejected') {
+      setResolvedFile(null);
+      setResolvedPreview(null);
+      if (concern?.resolved_image_url) {
+        setClearResolvedImage(true);
+      }
+    }
+
+    // Auto-rewrite the official response for In Progress, Resolved, and Rejected
+    if (['In Progress', 'Resolved', 'Rejected'].includes(statusKey)) {
+      await handleAiGenerate(true, statusKey);
     }
   };
 
@@ -678,7 +696,7 @@ export default function ConcernDetail() {
           )}
 
           {/* Proof Photo — admin-attached work/resolution photo */}
-          {concern.resolved_image_url && (() => {
+          {concern.resolved_image_url && concern.status !== 'Rejected' && (() => {
             const isResolved = concern.status === 'Resolved';
             const proofIcon = isResolved ? '✅' : '📸';
             const proofLabel = isResolved ? 'Proof of Completion' : 'Work-in-Progress Photo';
@@ -1169,11 +1187,12 @@ export default function ConcernDetail() {
                 />
               </div>
 
-              {/* Proof of Work Image Upload */}
-              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginBottom: 14 }}>
-                <div className={s.sectionLabel} style={{ marginBottom: 4 }}>
-                  📸 {selStatus === 'Resolved' ? 'Proof of Completion Photo' : 'Attach Status Photo'}
-                </div>
+              {/* Proof of Work Image Upload (Hidden when concern is Rejected) */}
+              {selStatus !== 'Rejected' && (
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginBottom: 14 }}>
+                  <div className={s.sectionLabel} style={{ marginBottom: 4 }}>
+                    📸 {selStatus === 'Resolved' ? 'Proof of Completion Photo' : 'Attach Status Photo'}
+                  </div>
                 <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 8 }}>
                   Attach proof photo showing work progress or resolution.
                 </div>
@@ -1321,6 +1340,7 @@ export default function ConcernDetail() {
                   />
                 </label>
               </div>
+              )}
 
               {/* Single Primary Action Button */}
               {saved ? (

@@ -604,6 +604,18 @@ const editConcern = async (req, res) => {
       }
       fields.push('status = ?');
       values.push(status);
+
+      // If status is changed to Rejected, automatically strip any resolved/status photo
+      if (status === 'Rejected') {
+        fields.push('resolved_image_url = ?');
+        values.push(null);
+        try {
+          const existingConcern = await selectConcernById(req.params.id);
+          if (existingConcern && existingConcern.resolved_image_url) {
+            deleteImageFile(existingConcern.resolved_image_url);
+          }
+        } catch (e) {}
+      }
     }
     if (admin_note !== undefined) {
       fields.push('admin_note = ?');
@@ -800,7 +812,8 @@ const generateAiResponse = async (req, res) => {
     const concern = await selectConcernById(req.params.id);
     if (!concern) return res.status(404).json({ error: 'Concern not found' });
 
-    const isHighRisk = concern.priority === 'High';
+    const targetStatus = req.body?.status || req.query?.status || concern.status || 'In Progress';
+    const isHighRisk = concern.priority === 'High' && targetStatus !== 'Resolved' && targetStatus !== 'Rejected';
 
 const KABANKALAN_BARANGAY_COORDS = [
   { name: 'Barangay 1', lat: 9.998, lng: 122.814 },
@@ -887,6 +900,32 @@ const getIncidentBarangay = (concern) => {
     // Try Gemini first
     if (isGeminiAvailable()) {
       const incidentBrgy = getIncidentBarangay(concern);
+      let statusInstructions = '';
+      if (targetStatus === 'Resolved') {
+        statusInstructions = `Requirements for RESOLVED status:
+- State clearly that the reported concern has been inspected and remediation / repair work has been SUCCESSFULLY COMPLETED by our municipal team.
+- Confirm that the site on "${concern.location_address || incidentBrgy}" is now verified and cleared.
+- Thank the citizen sincerely for their report and civic partnership in keeping Kabankalan City safe.
+- Keep the tone proud, professional, and reassuring.`;
+      } else if (targetStatus === 'Rejected') {
+        statusInstructions = `Requirements for REJECTED status:
+- Respectfully and politely state that after careful assessment, this report has been declined / cannot be serviced by the city.
+- Provide a clear, polite explanation (e.g., duplicate submission, outside municipal jurisdiction / private property, or insufficient actionable details).
+- Advise the citizen on appropriate next steps if applicable (e.g. coordinating with their barangay hall or private utility).
+- Keep the tone respectful, objective, and polite.`;
+      } else if (isHighRisk) {
+        statusInstructions = `CRITICAL REQUIREMENT — HIGH RISK / IMMEDIATE EMERGENCY HAZARD:
+- This concern is marked HIGH PRIORITY / CRITICAL HAZARD.
+- State that an IMMEDIATE emergency response is actively underway on "${concern.location_address || incidentBrgy}".
+- Include safety precautions for citizens (maintain safe distance, exercise caution).`;
+      } else {
+        statusInstructions = `Requirements for IN PROGRESS status:
+- Acknowledge the issue and state field crews / department have been assigned.
+- Explain what action is underway.
+- Provide a realistic timeline (e.g., 2-3 business days).
+- Thank the citizen for reporting.`;
+      }
+
       const prompt = `You are a professional government administrator for Kabankalan City, Philippines (CitiVoice platform).
 Write a concise, empathetic official response to this citizen concern.
 
@@ -895,7 +934,7 @@ Concern Details:
 - Description: ${concern.description}
 - Category: ${concern.category}
 - Priority: ${concern.priority} ${isHighRisk ? '(CRITICAL / HIGH RISK EMERGENCY)' : ''}
-- Status: ${concern.status}
+- Official Status being set: ${targetStatus}
 - Department: ${concern.department || 'City Administration'}
 - Incident Barangay: ${incidentBrgy}
 - Location Address: ${concern.location_address || incidentBrgy}
@@ -903,28 +942,43 @@ Concern Details:
 
 GEOGRAPHIC ACCURACY INSTRUCTION:
 - The actual incident location is: "${concern.location_address || incidentBrgy}" located in "${incidentBrgy}".
-- The submitting citizen lives in ${concern.user_barangay || 'their home barangay'}, but the reported incident occurred at ${concern.location_address || incidentBrgy} in ${incidentBrgy}.
-- NEVER state that the street or incident is located in the citizen's residential barangay if the location is elsewhere (e.g. Aquiles-Zayco Avenue is in Barangay 1 / Poblacion, NOT in Bantayan). Always use "${concern.location_address || incidentBrgy}" when referencing the location.
+- Always reference "${concern.location_address || incidentBrgy}" as the incident site.
 
-${isHighRisk ? `CRITICAL REQUIREMENT — HIGH RISK / IMMEDIATE EMERGENCY HAZARD:
-- This concern is marked HIGH PRIORITY / CRITICAL HAZARD.
-- You MUST state that an IMMEDIATE emergency response is actively underway (e.g. "Our Emergency Response Unit has been dispatched immediately to inspect and clear the site on ${concern.location_address || incidentBrgy}").
-- DO NOT mention days or weeks. State immediate intervention (within hours/today).
-- Include safety precautions for citizens (e.g., maintain safe distance, exercise extreme caution).` : `Requirements:
-- Acknowledge the issue
-- Explain what action will be taken
-- Provide a realistic timeline (e.g., 2-3 business days)
-- Thank the citizen for reporting`}
+${statusInstructions}
 
-Write 2-4 sentences maximum. Be professional, reassuring, and emphasize immediate government action. Do not use markdown formatting.`;
+Write 2-4 sentences maximum. Be professional, reassuring, and direct. Do not use markdown formatting.`;
 
       const aiResponse = await generateText(prompt, { temperature: 0.5, maxTokens: 300 });
       if (aiResponse) {
-        return res.json({ response: aiResponse.trim(), source: 'gemini' });
+        return res.json({ response: aiResponse.trim(), source: 'gemini', status: targetStatus });
       }
     }
 
-    // Fallback: template-based response
+    // ── Fallbacks: Template-based responses tailored for Resolved, Rejected, and In Progress ──
+    if (targetStatus === 'Resolved') {
+      const resolvedTemplates = {
+        'Road & Infrastructure': `We are pleased to inform you that the reported road issue regarding "${concern.title}" has been successfully completed and resolved by the City Engineer's Office. Field repairs have been verified on-site. Thank you for your active civic participation in keeping our roads safe.`,
+        Electricity: `The electrical concern regarding "${concern.title}" has been inspected and resolved in coordination with local service crews. The site is now safe and verified cleared. Thank you for your report.`,
+        Drainage: `Field work on "${concern.title}" has been completed. The drainage line has been thoroughly cleared and checked for normal water flow by our maintenance crew. Thank you for helping keep our community safe.`,
+        'Waste & Sanitation': `The waste and sanitation report regarding "${concern.title}" has been resolved. The area has been collected and sanitized by CENRO crews. Thank you for helping keep Kabankalan clean and orderly.`,
+        Other: `We are pleased to inform you that your concern regarding "${concern.title}" has been verified and successfully resolved by the city government. Thank you for helping build a better Kabankalan City.`,
+      };
+      const template = resolvedTemplates[concern.category] || resolvedTemplates['Other'];
+      return res.json({ response: template, source: 'template', status: 'Resolved' });
+    }
+
+    if (targetStatus === 'Rejected') {
+      const rejectedTemplates = {
+        'Road & Infrastructure': `Thank you for your report regarding "${concern.title}". Following assessment by the City Engineer's Office, this report cannot be accommodated at this time (e.g. private roadway or duplicate submission). Please reach out to your barangay hall or provide additional coordinates if you require further assistance.`,
+        Electricity: `Thank you for reporting this concern. Upon inspection, this report has been declined as it pertains to internal private wiring or is a duplicate of an existing utility dispatch. For private household electrical issues, please consult a licensed electrician or contact your electric service provider directly.`,
+        Drainage: `Thank you for your report regarding "${concern.title}". Following review, this concern has been declined because the reported drainage section is situated within private property or is already covered under a comprehensive ongoing flood mitigation project.`,
+        'Waste & Sanitation': `Thank you for your report. Following assessment, this report cannot be accommodated as standard collection or is outside city collection routes. Please coordinate with your local barangay waste committee for local disposal scheduling.`,
+        Other: `Thank you for bringing this to our attention. Following administrative review, this report regarding "${concern.title}" has been declined because it does not fall under current municipal purview (e.g., private property matter, duplicate report, or requiring additional actionable details). If you believe this was evaluated in error, please submit an updated report with further details.`,
+      };
+      const template = rejectedTemplates[concern.category] || rejectedTemplates['Other'];
+      return res.json({ response: template, source: 'template', status: 'Rejected' });
+    }
+
     if (isHighRisk) {
       const highRiskTemplates = {
         'Road & Infrastructure': `[IMMEDIATE EMERGENCY RESPONSE] We have acknowledged this high-risk hazard regarding ${concern.title}. An Emergency Response Unit from the City Engineer's Office has been immediately dispatched to clear the obstruction and secure the roadway. Please exercise extreme caution and avoid the immediate area until cleared.`,
@@ -934,7 +988,7 @@ Write 2-4 sentences maximum. Be professional, reassuring, and emphasize immediat
         Other: `[IMMEDIATE EMERGENCY RESPONSE] We have received your high-priority report regarding ${concern.title}. Our Emergency Response Team has been mobilized immediately for on-site inspection and immediate corrective action. Please maintain a safe distance.`,
       };
       const template = highRiskTemplates[concern.category] || highRiskTemplates['Other'];
-      return res.json({ response: template, source: 'template' });
+      return res.json({ response: template, source: 'template', status: 'In Progress' });
     }
 
     const templates = {
@@ -945,7 +999,7 @@ Write 2-4 sentences maximum. Be professional, reassuring, and emphasize immediat
     };
 
     const template = templates[concern.category] || templates['Other'];
-    res.json({ response: template, source: 'template' });
+    res.json({ response: template, source: 'template', status: 'In Progress' });
   } catch (err) {
     console.error('AI Response generation error:', err);
     res.status(500).json({ error: 'Failed to generate response' });

@@ -709,8 +709,9 @@ export default function ConcernDetailScreen({ route, navigation }) {
             );
           })()}
 
-          {/* Proof Photo — attached by admin */}
+          {/* Proof Photo — attached by admin (hidden if rejected) */}
           {(() => {
+            if (concern?.status === 'Rejected') return null;
             const proofUri = resolveImageUrl(concern?.resolved_image_url);
             if (!proofUri) return null;
             const isResolved = concern?.status === 'Resolved';
