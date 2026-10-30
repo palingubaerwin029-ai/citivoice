@@ -36,7 +36,17 @@ export default function ToastProvider({ children }) {
     }, duration);
   }, [removeToast]);
 
-  const contextValue = useMemo(() => ({ addToast, removeToast }), [addToast, removeToast]);
+  const contextValue = useMemo(
+    () => ({
+      addToast,
+      removeToast,
+      success: (msg, dur) => addToast(msg, 'success', dur),
+      error: (msg, dur) => addToast(msg, 'error', dur),
+      warning: (msg, dur) => addToast(msg, 'warning', dur),
+      info: (msg, dur) => addToast(msg, 'info', dur),
+    }),
+    [addToast, removeToast]
+  );
 
   return (
     <ToastContext.Provider value={contextValue}>

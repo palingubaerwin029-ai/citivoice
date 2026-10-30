@@ -21,7 +21,7 @@ import { api, resolveImageUrl, getApiHost } from '../services/api';
 import { useToast } from '../components/ToastProvider';
 
 export default function Account({ user, onUserUpdate }) {
-  const toast = useToast();
+  const { addToast } = useToast();
   const fileInputRef = useRef(null);
 
   // ── Profile Form State (Name & Email) ──────────────────────────────────────
@@ -120,7 +120,7 @@ export default function Account({ user, onUserUpdate }) {
     if (!file || !user?.id) return;
 
     if (!file.type.startsWith('image/')) {
-      toast?.error('Please select a valid image file (JPG, PNG, WebP).');
+      addToast('Please select a valid image file (JPG, PNG, WebP).', 'error');
       return;
     }
 
@@ -140,9 +140,9 @@ export default function Account({ user, onUserUpdate }) {
       }
       if (onUserUpdate) onUserUpdate(data);
       setAvatarErr(false);
-      toast?.success('Administrator profile photo updated.');
+      addToast('Administrator profile photo updated.', 'success');
     } catch (err) {
-      toast?.error(err.message || 'Could not upload profile photo.');
+      addToast(err.message || 'Could not upload profile photo.', 'error');
     } finally {
       setUploadingAvatar(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -186,7 +186,7 @@ export default function Account({ user, onUserUpdate }) {
       }
       setEmailCurrentPassword('');
       setProfileErrors({});
-      toast?.success(res?.message || 'Account profile updated successfully.');
+      addToast(res?.message || 'Account profile updated successfully.', 'success');
     } catch (err) {
       const msg = err.message || 'Failed to update profile.';
       if (msg.toLowerCase().includes('password')) {
@@ -196,7 +196,7 @@ export default function Account({ user, onUserUpdate }) {
       } else {
         setProfileErrors({ general: msg });
       }
-      toast?.error(msg);
+      addToast(msg, 'error');
     } finally {
       setSavingProfile(false);
     }
@@ -243,7 +243,7 @@ export default function Account({ user, onUserUpdate }) {
       setNewPassword('');
       setConfirmPassword('');
       setPwErrors({});
-      toast?.success('Your administrator password has been updated.');
+      addToast('Your administrator password has been updated.', 'success');
     } catch (err) {
       const msg = err.message || 'Failed to update password.';
       if (msg.toLowerCase().includes('current password')) {
@@ -251,7 +251,7 @@ export default function Account({ user, onUserUpdate }) {
       } else {
         setPwErrors({ newPassword: msg });
       }
-      toast?.error(msg);
+      addToast(msg, 'error');
     } finally {
       setSavingPassword(false);
     }
