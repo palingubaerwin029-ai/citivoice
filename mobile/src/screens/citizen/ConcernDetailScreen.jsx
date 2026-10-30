@@ -675,7 +675,7 @@ export default function ConcernDetailScreen({ route, navigation }) {
 
 
 
-          {/* Official Response */}
+          {/* Official Response / Rejection Reason */}
           {(() => {
             const rawNote = concern.admin_note || '';
             const cleanedNote = rawNote
@@ -688,18 +688,26 @@ export default function ConcernDetailScreen({ route, navigation }) {
             ) {
               return null;
             }
+
+            const isRejected = concern?.status === 'Rejected';
+            const cardBg = isRejected ? '#EF444415' : colors.accent + '11';
+            const cardBorder = isRejected ? '#EF444444' : colors.accent + '44';
+            const headerColor = isRejected ? '#EF4444' : colors.accent;
+            const headerIcon = isRejected ? 'close-circle' : 'shield-checkmark';
+            const headerTitle = isRejected ? t('rejectionReason') : t('officialResponse');
+
             return (
               <View
                 style={[
                   styles.section,
                   styles.adminNoteCard,
-                  { backgroundColor: colors.accent + '11', borderColor: colors.accent + '44' },
+                  { backgroundColor: cardBg, borderColor: cardBorder },
                 ]}
               >
                 <View style={styles.adminNoteHeader}>
-                  <Ionicons name="shield-checkmark" size={16} color={colors.accent} />
-                  <Text style={[styles.adminNoteTitle, { color: colors.accent }]}>
-                    {t('officialResponse')}
+                  <Ionicons name={headerIcon} size={16} color={headerColor} />
+                  <Text style={[styles.adminNoteTitle, { color: headerColor }]}>
+                    {headerTitle}
                   </Text>
                 </View>
                 <Text style={[styles.adminNoteText, { color: colors.textPrimary }]}>

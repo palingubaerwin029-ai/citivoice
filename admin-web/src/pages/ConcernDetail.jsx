@@ -34,6 +34,51 @@ const CATEGORIES = [
 ];
 const PRIORITIES = ['High', 'Medium', 'Low'];
 
+const REJECTION_REASONS = [
+  {
+    id: 'duplicate',
+    label: 'Duplicate Report',
+    icon: '📑',
+    text: 'Duplicate Submission: This concern has already been received and is currently being addressed under an existing ticket. Thank you for your vigilance.',
+  },
+  {
+    id: 'private_property',
+    label: 'Private Property',
+    icon: '🏡',
+    text: 'Outside City Jurisdiction: The reported issue is situated on private property or within a private compound. City maintenance crews are not authorized to service private premises.',
+  },
+  {
+    id: 'utility_national',
+    label: 'Utility / National Scope',
+    icon: '⚡',
+    text: 'External Jurisdiction: This matter falls under the direct jurisdiction of an external utility provider or national agency (e.g., DPWH, Electric Cooperative, or Water District) and has been referred accordingly.',
+  },
+  {
+    id: 'insufficient_details',
+    label: 'Insufficient Details',
+    icon: '📍',
+    text: 'Insufficient Details: The report lacks specific landmark details, accurate coordinates, or clear photos required for field crews to locate and inspect the area. Please submit a new report with more details.',
+  },
+  {
+    id: 'not_hazard',
+    label: 'Not a Public Hazard',
+    icon: 'ℹ️',
+    text: 'Assessment Notice: Upon review and evaluation by city personnel, the reported condition does not violate municipal ordinances or constitute a public safety hazard under city regulations.',
+  },
+  {
+    id: 'already_resolved',
+    label: 'Already Cleared',
+    icon: '✅',
+    text: 'Already Cleared: Preliminary on-site verification confirmed that this condition has already been resolved or cleared prior to team dispatch.',
+  },
+  {
+    id: 'invalid_submission',
+    label: 'Invalid / Non-Civic',
+    icon: '🚫',
+    text: 'Invalid Submission: The submitted content does not pertain to a legitimate public concern or municipal service.',
+  },
+];
+
 export default function ConcernDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -188,6 +233,10 @@ export default function ConcernDetail() {
   };
 
   const handleSave = async () => {
+    if (selStatus === 'Rejected' && !note.trim()) {
+      alert('Please select or provide a valid reason for rejecting this concern.');
+      return;
+    }
     setSaving(true);
     try {
       let body;
@@ -289,10 +338,11 @@ export default function ConcernDetail() {
       if (concern?.resolved_image_url) {
         setClearResolvedImage(true);
       }
+      // Do not auto-generate AI response for Rejected; admin selects or enters a valid rejection reason
     }
 
-    // Auto-rewrite the official response for In Progress, Resolved, and Rejected
-    if (['In Progress', 'Resolved', 'Rejected'].includes(statusKey)) {
+    // Auto-rewrite the official response for In Progress and Resolved (not Rejected)
+    if (['In Progress', 'Resolved'].includes(statusKey)) {
       await handleAiGenerate(true, statusKey);
     }
   };
@@ -1152,18 +1202,104 @@ export default function ConcernDetail() {
                 </div>
               </div>
 
-              {/* Official Citizen Response */}
+              {/* Official Citizen Response / Rejection Reason */}
               <div style={{ marginBottom: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span className={s.sectionLabel}>Official Response (Visible to citizen)</span>
-                  <button
-                    onClick={() => handleAiGenerate(false)}
-                    disabled={aiGenerating}
-                    className={`${cd.aiDraftBtn} ${aiGenerating ? cd.aiDraftBtnGenerating : ''}`}
-                    style={{ fontSize: 11, padding: '3px 8px' }}
+                {/* Valid Rejection Reasons Selector (Shown when status is Rejected) */}
+                {selStatus === 'Rejected' && (
+                  <div
+                    style={{
+                      marginBottom: 10,
+                      padding: '12px 14px',
+                      borderRadius: 8,
+                      background: 'rgba(239, 68, 68, 0.05)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                    }}
                   >
-                    {aiGenerating ? '⚙️ Generating...' : '✨ AI Draft'}
-                  </button>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#EF4444' }}>
+                        <span>❌</span>
+                        <span>Valid Rejection Reasons (Click to apply):</span>
+                      </div>
+                      <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Visible to citizen</span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                        gap: 6,
+                      }}
+                    >
+                      {REJECTION_REASONS.map((r) => {
+                        const isSelected = note.startsWith(r.text.slice(0, 20)) || note.trim() === r.text.trim();
+                        return (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => {
+                              setNote(r.text);
+                              if (noteRef.current) {
+                                setTimeout(() => {
+                                  noteRef.current.style.height = 'auto';
+                                  noteRef.current.style.height = noteRef.current.scrollHeight + 'px';
+                                }, 50);
+                              }
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '7px 10px',
+                              borderRadius: 6,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                              border: isSelected ? '1px solid #EF4444' : '1px solid var(--border)',
+                              background: isSelected ? 'rgba(239, 68, 68, 0.18)' : 'var(--surface-3)',
+                              color: isSelected ? '#EF4444' : 'var(--text-1)',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <span style={{ fontSize: 13 }}>{r.icon}</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {r.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span className={s.sectionLabel}>
+                      {selStatus === 'Rejected' ? 'Reason for Rejection (Visible to citizen)' : 'Official Response (Visible to citizen)'}
+                    </span>
+                    {selStatus === 'Rejected' && (
+                      <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', fontWeight: 600 }}>
+                        Required
+                      </span>
+                    )}
+                  </div>
+                  {selStatus !== 'Rejected' && (
+                    <button
+                      onClick={() => handleAiGenerate(false)}
+                      disabled={aiGenerating}
+                      className={`${cd.aiDraftBtn} ${aiGenerating ? cd.aiDraftBtnGenerating : ''}`}
+                      style={{ fontSize: 11, padding: '3px 8px' }}
+                    >
+                      {aiGenerating ? '⚙️ Generating...' : '✨ AI Draft'}
+                    </button>
+                  )}
                 </div>
 
                 <textarea
@@ -1173,16 +1309,23 @@ export default function ConcernDetail() {
                   onChange={(e) => {
                     setNote(e.target.value);
                   }}
-                  placeholder={aiGenerating ? "✨ Generating official AI response draft..." : "e.g. Road crew dispatched. Expected completion: Dec 15. Thank you for your report."}
+                  placeholder={
+                    selStatus === 'Rejected'
+                      ? 'Select a valid rejection reason above or write a specific reason why this report is rejected...'
+                      : aiGenerating
+                      ? '✨ Generating official AI response draft...'
+                      : 'e.g. Road crew dispatched. Expected completion: Dec 15. Thank you for your report.'
+                  }
                   rows={5}
                   style={{
-                    minHeight: 130,
+                    minHeight: 120,
                     lineHeight: 1.6,
                     resize: 'vertical',
                     width: '100%',
                     boxSizing: 'border-box',
                     overflowY: 'hidden',
                     padding: '10px 14px',
+                    borderColor: selStatus === 'Rejected' ? 'rgba(239, 68, 68, 0.4)' : undefined,
                   }}
                 />
               </div>
