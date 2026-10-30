@@ -116,7 +116,12 @@ const login = async (req, res) => {
       });
     }
 
-    const token = sign({ id: user.id, role: user.role, name: user.name });
+    const token = sign({
+      id: user.id,
+      role: user.role,
+      name: user.name,
+      is_super_admin: Boolean(user.is_super_admin),
+    });
     res.json({ token, user: safe(user) });
   } catch (err) {
     console.error('Login error:', err);
@@ -171,7 +176,12 @@ const googleLogin = async (req, res) => {
       });
     }
 
-    const token = sign({ id: user.id, role: user.role, name: user.name });
+    const token = sign({
+      id: user.id,
+      role: user.role,
+      name: user.name,
+      is_super_admin: Boolean(user.is_super_admin),
+    });
     res.json({ token, user: safe(user) });
   } catch (err) {
     console.error('Google login error:', err);
@@ -560,7 +570,12 @@ const verifyAdmin2FA = async (req, res) => {
     await deleteAdmin2FA(user.id);
 
     // Issue standard admin JWT
-    const token = sign({ id: user.id, role: user.role, name: user.name });
+    const token = sign({
+      id: user.id,
+      role: user.role,
+      name: user.name,
+      is_super_admin: Boolean(user.is_super_admin),
+    });
     res.json({
       success: true,
       token,
@@ -724,7 +739,12 @@ const updateAdminProfile = async (req, res) => {
     });
 
     const updatedUser = await selectById(user.id);
-    const token = sign({ id: updatedUser.id, role: updatedUser.role, name: updatedUser.name });
+    const token = sign({
+      id: updatedUser.id,
+      role: updatedUser.role,
+      name: updatedUser.name,
+      is_super_admin: Boolean(updatedUser.is_super_admin),
+    });
 
     res.json({
       success: true,
@@ -759,6 +779,14 @@ const createAdmin = async (req, res) => {
   try {
     if (!req.user || req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
+    }
+
+    // Only Super Administrators can register new administrators
+    const currentAdmin = await selectById(req.user.id);
+    if (!currentAdmin || !currentAdmin.is_super_admin) {
+      return res.status(403).json({
+        error: 'Permission denied. Only Super Administrators can register new administrators.',
+      });
     }
 
     const rawName = String(req.body?.name || '').trim();
@@ -816,6 +844,14 @@ const deleteAdmin = async (req, res) => {
       return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
     }
 
+    // Only Super Administrators can remove administrator accounts
+    const currentAdmin = await selectById(req.user.id);
+    if (!currentAdmin || !currentAdmin.is_super_admin) {
+      return res.status(403).json({
+        error: 'Permission denied. Only Super Administrators can remove administrators.',
+      });
+    }
+
     const targetId = parseInt(req.params.id, 10);
     if (!targetId || isNaN(targetId)) {
       return res.status(400).json({ error: 'Invalid administrator ID.' });
@@ -828,6 +864,10 @@ const deleteAdmin = async (req, res) => {
     const targetUser = await selectById(targetId);
     if (!targetUser || targetUser.role !== 'admin') {
       return res.status(404).json({ error: 'Administrator account not found.' });
+    }
+
+    if (targetUser.is_super_admin) {
+      return res.status(400).json({ error: 'Cannot delete a Super Administrator account.' });
     }
 
     const admins = await selectAllAdmins();

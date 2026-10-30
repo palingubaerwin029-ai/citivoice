@@ -94,6 +94,7 @@ export default function Account({ user, onUserUpdate }) {
     email.trim().toLowerCase() !== (user?.email || '').trim().toLowerCase();
   const isNameChanged = name.trim() !== (user?.name || '').trim();
   const hasProfileChanges = isNameChanged || isEmailChanged;
+  const isSuperAdmin = Boolean(user?.is_super_admin);
 
   const initials =
     user?.name
@@ -389,16 +390,18 @@ export default function Account({ user, onUserUpdate }) {
             Manage your administrator profile, password, and register new administrator accounts
           </p>
         </div>
-        <button
-          type="button"
-          className={`${a.btn} ${a.btnPrimary}`}
-          onClick={() =>
-            registerCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
-        >
-          <IoPersonAddOutline size={16} />
-          Register New Admin
-        </button>
+        {isSuperAdmin && (
+          <button
+            type="button"
+            className={`${a.btn} ${a.btnPrimary}`}
+            onClick={() =>
+              registerCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }
+          >
+            <IoPersonAddOutline size={16} />
+            Register New Admin
+          </button>
+        )}
       </div>
 
       <div className={a.grid}>
@@ -439,9 +442,20 @@ export default function Account({ user, onUserUpdate }) {
 
             <div className={a.profileName}>{user?.name || 'Administrator'}</div>
             <div className={a.profileEmail}>{user?.email}</div>
-            <div className={a.rolePill}>
+            <div
+              className={a.rolePill}
+              style={
+                isSuperAdmin
+                  ? {
+                      background: 'rgba(245, 158, 11, 0.12)',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      color: 'var(--amber, #f59e0b)',
+                    }
+                  : undefined
+              }
+            >
               <IoShieldCheckmarkOutline size={14} />
-              System Administrator
+              {isSuperAdmin ? 'Super Administrator' : 'Administrator'}
             </div>
 
             <div className={a.metaList}>
@@ -900,23 +914,49 @@ export default function Account({ user, onUserUpdate }) {
                 <div
                   className={a.sectionIcon}
                   style={{
-                    background: 'rgba(16, 185, 129, 0.14)',
-                    color: 'var(--green, #10b981)',
+                    background: isSuperAdmin
+                      ? 'rgba(16, 185, 129, 0.14)'
+                      : 'rgba(59, 130, 246, 0.12)',
+                    color: isSuperAdmin ? 'var(--green, #10b981)' : 'var(--blue)',
                   }}
                 >
-                  <IoPersonAddOutline />
+                  {isSuperAdmin ? <IoPersonAddOutline /> : <IoPeopleOutline />}
                 </div>
                 <div>
-                  <div className={a.sectionTitle}>Register New Administrator</div>
+                  <div className={a.sectionTitle}>
+                    {isSuperAdmin ? 'Register New Administrator' : 'Administrator Directory'}
+                  </div>
                   <div className={a.sectionSubtitle}>
-                    Create a new administrator account with full console access and 2FA email login
+                    {isSuperAdmin
+                      ? 'Create a new administrator account with full console access and 2FA email login'
+                      : 'View active administrator accounts for the CitiVoice Municipal Console'}
                   </div>
                 </div>
               </div>
             </div>
 
             <div className={a.sectionBody}>
-              <form onSubmit={handleCreateAdmin}>
+              {!isSuperAdmin && (
+                <div className={a.restrictedNotice}>
+                  <IoShieldCheckmarkOutline
+                    size={22}
+                    style={{ color: 'var(--blue)', flexShrink: 0, marginTop: 1 }}
+                  />
+                  <div>
+                    <div className={a.restrictedNoticeTitle}>
+                      Administrator Registration Restricted
+                    </div>
+                    <div className={a.restrictedNoticeText}>
+                      Only the primary Super Administrator has authority to register or remove
+                      administrator accounts. As an administrator, you have full access to manage
+                      concerns, reports, barangays, backups, and your personal account credentials.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isSuperAdmin && (
+                <form onSubmit={handleCreateAdmin}>
                 <div className={a.formGrid}>
                   {/* New Admin Full Name */}
                   <div className={a.fieldGroup}>
@@ -1144,13 +1184,14 @@ export default function Account({ user, onUserUpdate }) {
                   </button>
                 </div>
               </form>
+              )}
 
               {/* Active Administrator Accounts Directory */}
               <div
                 style={{
-                  marginTop: 24,
-                  paddingTop: 20,
-                  borderTop: '1px solid var(--border)',
+                  marginTop: isSuperAdmin ? 24 : 8,
+                  paddingTop: isSuperAdmin ? 20 : 0,
+                  borderTop: isSuperAdmin ? '1px solid var(--border)' : 'none',
                 }}
               >
                 <div
@@ -1174,6 +1215,7 @@ export default function Account({ user, onUserUpdate }) {
                   <div className={a.adminList}>
                     {adminsList.map((adm) => {
                       const isSelf = Number(adm.id) === Number(user?.id);
+                      const isAdmSuper = Boolean(adm.is_super_admin);
                       const admInitials =
                         adm.name
                           ?.split(' ')
@@ -1202,6 +1244,11 @@ export default function Account({ user, onUserUpdate }) {
                             <div className={a.adminInfo}>
                               <div className={a.adminNameRow}>
                                 <span className={a.adminName}>{adm.name}</span>
+                                {isAdmSuper ? (
+                                  <span className={a.superBadge}>Super Admin</span>
+                                ) : (
+                                  <span className={a.adminBadge}>Admin</span>
+                                )}
                                 {isSelf && <span className={a.youBadge}>You</span>}
                               </div>
                               <div className={a.adminEmail}>{adm.email}</div>
@@ -1213,7 +1260,7 @@ export default function Account({ user, onUserUpdate }) {
                               <IoShieldCheckmarkOutline size={13} />
                               2FA Enabled
                             </span>
-                            {!isSelf && adminsList.length > 1 && (
+                            {isSuperAdmin && !isSelf && !isAdmSuper && adminsList.length > 1 && (
                               <button
                                 type="button"
                                 className={`${a.btn} ${a.btnDanger}`}

@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
   barangay            VARCHAR(255)  DEFAULT NULL,
   address             VARCHAR(255)  DEFAULT NULL,                 -- street / purok address
   role                ENUM('admin','citizen') NOT NULL DEFAULT 'citizen',
+  is_super_admin      TINYINT(1)    NOT NULL DEFAULT 0,
   verification_status ENUM('unverified','pending','verified','rejected') NOT NULL DEFAULT 'unverified',
   is_verified         TINYINT(1)    NOT NULL DEFAULT 0,
   id_type             VARCHAR(100)  DEFAULT NULL,

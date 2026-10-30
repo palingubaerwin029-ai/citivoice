@@ -89,7 +89,9 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
             >
               {user?.name || 'Admin'}
             </div>
-            <div className={s.userRole}>● Administrator</div>
+            <div className={s.userRole}>
+              ● {user?.is_super_admin ? 'Super Admin' : 'Administrator'}
+            </div>
           </div>
         </div>
       )}

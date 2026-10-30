@@ -46,6 +46,21 @@ const autoMigrate = async () => {
       await pool.query('ALTER TABLE concern_comments ADD COLUMN image_url VARCHAR(1000) DEFAULT NULL AFTER comment');
       console.log('✅ [AutoMigrate] Added concern_comments.image_url');
     }
+
+    // 5. Ensure users.is_super_admin exists
+    const [superAdminCols] = await pool.query("SHOW COLUMNS FROM users LIKE 'is_super_admin'");
+    if (superAdminCols.length === 0) {
+      console.log('➕ [AutoMigrate] Adding users.is_super_admin...');
+      await pool.query('ALTER TABLE users ADD COLUMN is_super_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER role');
+      console.log('✅ [AutoMigrate] Added users.is_super_admin');
+    }
+
+    // Ensure the primary/initial administrator has is_super_admin = 1
+    const [superAdmins] = await pool.query("SELECT id FROM users WHERE role = 'admin' AND is_super_admin = 1");
+    if (superAdmins.length === 0) {
+      await pool.query("UPDATE users SET is_super_admin = 1 WHERE role = 'admin' ORDER BY id ASC LIMIT 1");
+      console.log('✅ [AutoMigrate] Designated primary super administrator');
+    }
   } catch (err) {
     console.warn('⚠️ [AutoMigrate] Schema sync notice:', err.message);
   }

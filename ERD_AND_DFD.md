@@ -38,6 +38,7 @@ erDiagram
         varchar barangay "NULL (Home Barangay)"
         varchar address "NULL (Street / Purok)"
         enum role "admin | citizen"
+        tinyint is_super_admin "0 | 1 (Super Admin)"
         enum verification_status "unverified | pending | verified | rejected"
         tinyint is_verified "0 | 1"
         varchar id_type "NULL (PhilSys, LTO, UMID, etc.)"
