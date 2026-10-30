@@ -43,6 +43,24 @@ export default function App() {
 
   const [theme, setTheme] = useState(localStorage.getItem('cv_theme') || 'dark');
 
+  const handleToggleTheme = () => {
+    const root = document.documentElement;
+    root.classList.add('theme-transitioning');
+
+    const next = theme === 'dark' ? 'light' : 'dark';
+    if (document.startViewTransition) {
+      document.startViewTransition(() => {
+        setTheme(next);
+      });
+    } else {
+      setTheme(next);
+    }
+
+    setTimeout(() => {
+      root.classList.remove('theme-transitioning');
+    }, 450);
+  };
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('cv_theme', theme);
@@ -125,7 +143,7 @@ export default function App() {
                 ) : (
                   <Landing
                     theme={theme}
-                    onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    onThemeToggle={handleToggleTheme}
                   />
                 )
               }
@@ -135,7 +153,7 @@ export default function App() {
               element={
                 <Landing
                   theme={theme}
-                  onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  onThemeToggle={handleToggleTheme}
                 />
               }
             />
@@ -165,7 +183,7 @@ export default function App() {
                     onUserUpdate={handleUserUpdate}
                     onLogout={handleLogout}
                     theme={theme}
-                    onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    onThemeToggle={handleToggleTheme}
                   />
                 ) : (
                   <Navigate to="/" replace />

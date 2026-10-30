@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { StatusBar, Platform } from 'react-native';
+import { StatusBar, Platform, LayoutAnimation, UIManager } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getColors } from '../utils/theme';
 
@@ -33,6 +33,10 @@ export const ThemeProvider = ({ children }) => {
   };
 
   const toggleTheme = () => {
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 

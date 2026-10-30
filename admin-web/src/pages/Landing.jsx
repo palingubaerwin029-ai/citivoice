@@ -152,7 +152,9 @@ export default function Landing({ theme = 'dark', onThemeToggle }) {
                 onClick={onThemeToggle}
                 title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               >
-                {theme === 'dark' ? <IoSunnyOutline /> : <IoMoonOutline />}
+                <span key={theme} className="theme-icon-animate">
+                  {theme === 'dark' ? <IoSunnyOutline /> : <IoMoonOutline />}
+                </span>
               </button>
             )}
             <Link to="/login" className={s.adminBtn}>

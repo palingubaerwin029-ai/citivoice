@@ -129,8 +129,13 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
 
       {/* Footer */}
       <div className={s.navFooter}>
-        <button className={s.logoutBtn} style={{ marginBottom: 4 }} onClick={onThemeToggle}>
-          <span className={s.navIcon}>
+        <button
+          className={s.logoutBtn}
+          style={{ marginBottom: 4 }}
+          onClick={onThemeToggle}
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        >
+          <span key={theme} className={`${s.navIcon} theme-icon-animate`}>
             {theme === 'dark' ? <IoSunnyOutline /> : <IoMoonOutline />}
           </span>
           {!collapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
