@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { IoRefreshOutline } from 'react-icons/io5';
 import { api, fmtDateShort, fmtTime, getPinBarangay, getCategoryConfig, KABANKALAN_BARANGAY_COORDS } from '../services/api';
 import s from '../styles/Admin.module.css';
 import r from '../styles/Reports.module.css';
@@ -314,8 +315,8 @@ export default function Reports() {
             <span>Print Report</span>
           </button>
           <button className={r.btnRefresh} onClick={fetchReports} disabled={loading} title="Reload records">
-            <span className={`${r.btnIcon} ${loading ? r.spinningIcon : ''}`}>🔄</span>
-            <span>Refresh</span>
+            <span className={`${r.btnIcon} ${loading ? r.spinningIcon : ''}`}><IoRefreshOutline size={16} /></span>
+            <span>{loading ? 'Refreshing…' : 'Refresh'}</span>
           </button>
         </div>
       </div>
