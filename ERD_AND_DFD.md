@@ -170,44 +170,50 @@ erDiagram
     }
 
     %% Relationships
-    USERS ||--o| ADMIN_2FA_CODES : "has active 2FA code"
-    USERS ||--o{ CONCERNS : "submits"
-    USERS ||--o{ CONCERN_EDIT_HISTORY : "performs edit"
-    USERS ||--o{ CONCERN_COMMENTS : "authors"
-    USERS ||--o{ NOTIFICATIONS : "receives"
-    USERS ||--o{ AUDIT_LOG : "performs action"
-    USERS }o..|| EMAIL_VERIFICATIONS : "verifies email via"
-    BARANGAYS ||..o{ USERS : "resides in (by name)"
-    BARANGAYS ||..o{ CONCERNS : "located in (user/incident barangay)"
-    CONCERNS ||--o{ CONCERN_EDIT_HISTORY : "versioned in"
-    CONCERNS ||--o{ CONCERN_COMMENTS : "contains thread"
-    CONCERNS ||--o{ NOTIFICATIONS : "triggers alert"
-    CONCERNS ||--o{ CONCERN_LINKS : "source concern"
-    CONCERNS ||--o{ CONCERN_LINKS : "target concern"
-    CONCERNS ||..o{ AUDIT_LOG : "tracked by (entity_id)"
-    FILE_STORAGE ||..o{ USERS : "stores id_image_url / avatar_url"
-    FILE_STORAGE ||..o{ CONCERNS : "stores image_url / resolved_image_url"
+    USERS ||--o| ADMIN_2FA_CODES : "has active 2FA code (1:0..1)"
+    USERS ||--o{ CONCERNS : "submits (1:0..N)"
+    USERS ||--o{ CONCERN_EDIT_HISTORY : "performs edit (1:0..N)"
+    USERS ||--o{ CONCERN_COMMENTS : "authors (1:0..N)"
+    USERS ||--o{ NOTIFICATIONS : "receives (1:0..N)"
+    USERS ||--o{ AUDIT_LOG : "performs action (1:0..N)"
+    EMAIL_VERIFICATIONS ||..o| USERS : "pre-registers citizen (1:0..1 by email)"
+    BARANGAYS ||..o{ USERS : "resides in (1:0..N by name)"
+    BARANGAYS ||..o{ CONCERNS : "located in (1:0..N by incident_barangay)"
+    CONCERNS ||--o{ CONCERN_EDIT_HISTORY : "versioned in (1:0..N)"
+    CONCERNS ||--o{ CONCERN_COMMENTS : "contains thread (1:0..N)"
+    CONCERNS ||--o{ NOTIFICATIONS : "triggers alert (1:0..N)"
+    CONCERNS ||--o{ CONCERN_LINKS : "source concern (1:0..N)"
+    CONCERNS ||--o{ CONCERN_LINKS : "target concern (1:0..N)"
+    CONCERNS ||..o{ AUDIT_LOG : "tracked by (1:0..N polymorphic)"
+    USERS ||..o{ FILE_STORAGE : "stores id_image / avatar (1:0..2)"
+    CONCERNS ||..o{ FILE_STORAGE : "stores incident / resolved proof (1:0..2)"
+    CONCERN_COMMENTS ||..o{ FILE_STORAGE : "stores comment attachment (1:0..1)"
 ```
 
 ---
 
 ### 1.2 Database Relationships & Cardinality Summary
 
-| Parent Entity | Child Entity | Cardinality | Foreign Key / Join Column | Referential Action |
-|---------------|--------------|-------------|---------------------------|--------------------|
-| `users` | `admin_2fa_codes` | `1 : 0..1` | `admin_2fa_codes.user_id -> users.id` | `ON DELETE CASCADE` |
-| `users` | `concerns` | `1 : N` | `concerns.user_id -> users.id` | `ON DELETE SET NULL` |
-| `users` | `concern_edit_history` | `1 : N` | `concern_edit_history.edited_by -> users.id` | `ON DELETE CASCADE` |
-| `users` | `concern_comments` | `1 : N` | `concern_comments.user_id -> users.id` | `ON DELETE CASCADE` |
-| `users` | `notifications` | `1 : N` | `notifications.user_id -> users.id` | `ON DELETE CASCADE` |
-| `users` | `audit_log` | `1 : N` | `audit_log.changed_by -> users.id` | `ON DELETE SET NULL` |
-| `concerns` | `concern_edit_history` | `1 : N` | `concern_edit_history.concern_id -> concerns.id` | `ON DELETE CASCADE` |
-| `concerns` | `concern_comments` | `1 : N` | `concern_comments.concern_id -> concerns.id` | `ON DELETE CASCADE` |
-| `concerns` | `notifications` | `1 : N` | `notifications.concern_id -> concerns.id` | `ON DELETE CASCADE` |
-| `concerns` | `concern_links` (Source) | `1 : N` | `concern_links.source_concern_id -> concerns.id` | `ON DELETE CASCADE` |
-| `concerns` | `concern_links` (Target) | `1 : N` | `concern_links.target_concern_id -> concerns.id` | `ON DELETE CASCADE` |
-| `barangays` | `users` / `concerns` | `1 : N` (Logical) | `barangays.name = users.barangay / concerns.incident_barangay` | Logical Reference |
-| `file_storage` | `users` / `concerns` | `1 : 1` (Logical) | `file_storage.filename` referenced in media URLs | Persistent Binary Store |
+| Parent Entity | Child Entity | Cardinality | Foreign Key / Join Column | Referential Action | Description |
+|---------------|--------------|:-----------:|---------------------------|--------------------|-------------|
+| `users` | `admin_2fa_codes` | `1 : 0..1` | `admin_2fa_codes.user_id -> users.id` | `ON DELETE CASCADE` | Administrator 2FA OTP code (at most 1 active code per user). |
+| `users` | `concerns` | `0..1 : 0..N` | `concerns.user_id -> users.id` | `ON DELETE SET NULL` | Citizen submits reports (preserved if user is deleted). |
+| `users` | `concern_edit_history` | `1 : 0..N` | `concern_edit_history.edited_by -> users.id` | `ON DELETE CASCADE` | Citizen or admin edits to active concern title/description. |
+| `users` | `concern_comments` | `1 : 0..N` | `concern_comments.user_id -> users.id` | `ON DELETE CASCADE` | Citizen discussions and administrative responses. |
+| `users` | `notifications` | `1 : 0..N` | `notifications.user_id -> users.id` | `ON DELETE CASCADE` | In-app alerts and push notifications delivered to user. |
+| `users` | `audit_log` | `0..1 : 0..N` | `audit_log.changed_by -> users.id` | `ON DELETE SET NULL` | Administrative audit trail (`NULL` for automated system tasks). |
+| `email_verifications` | `users` | `1 : 0..1` | `users.email = email_verifications.email` (Logical) | Logical Reference | Pre-registration Gmail OTP verification prior to account creation. |
+| `barangays` | `users` | `1 : 0..N` | `users.barangay = barangays.name` (Logical) | Logical Reference | Resident citizen mapping to one of 32 official barangays. |
+| `barangays` | `concerns` | `1 : 0..N` | `concerns.incident_barangay = barangays.name` (Logical) | Logical Reference | Geographic mapping of incident coordinates to nearest barangay. |
+| `concerns` | `concern_edit_history` | `1 : 0..N` | `concern_edit_history.concern_id -> concerns.id` | `ON DELETE CASCADE` | Historical record of title and description changes per report. |
+| `concerns` | `concern_comments` | `1 : 0..N` | `concern_comments.concern_id -> concerns.id` | `ON DELETE CASCADE` | Live chronological conversation thread on a concern report. |
+| `concerns` | `notifications` | `0..1 : 0..N` | `notifications.concern_id -> concerns.id` | `ON DELETE CASCADE` | Concern-linked alerts triggered by status updates or priority changes. |
+| `concerns` | `concern_links` (Source) | `1 : 0..N` | `concern_links.source_concern_id -> concerns.id` | `ON DELETE CASCADE` | Originating concern in duplicate or related link relationship. |
+| `concerns` | `concern_links` (Target) | `1 : 0..N` | `concern_links.target_concern_id -> concerns.id` | `ON DELETE CASCADE` | Matched target concern in duplicate or recurring link relationship. |
+| `concerns` | `audit_log` | `1 : 0..N` | `audit_log.entity_id = concerns.id` (Logical) | Logical Reference | Polymorphic audit ledger entries where `entity_type = 'concern'`. |
+| `users` | `file_storage` | `1 : 0..2` | `users.id_image_url`, `users.avatar_url` (Logical) | Persistent Binary Store | Unique binary image files stored for government ID photo and user avatar. |
+| `concerns` | `file_storage` | `1 : 0..2` | `concerns.image_url`, `concerns.resolved_image_url` (Logical) | Persistent Binary Store | Unique binary image files stored for incident camera photo and resolution proof. |
+| `concern_comments` | `file_storage` | `1 : 0..1` | `concern_comments.image_url` (Logical) | Persistent Binary Store | Optional image attachment uploaded within a discussion thread comment. |
 
 ---
 
