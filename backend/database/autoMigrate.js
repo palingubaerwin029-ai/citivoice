@@ -62,7 +62,7 @@ const autoMigrate = async () => {
       console.log('✅ [AutoMigrate] Designated primary super administrator');
     }
 
-    // 6. Ensure concern_edit_history table exists for citizen edits tracking
+    // 6. Ensure concern_edit_history table exists for citizen edits tracking (only title & description are editable)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS concern_edit_history (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,12 +74,6 @@ const autoMigrate = async () => {
         new_title VARCHAR(500) DEFAULT NULL,
         old_description TEXT DEFAULT NULL,
         new_description TEXT DEFAULT NULL,
-        old_category VARCHAR(100) DEFAULT NULL,
-        new_category VARCHAR(100) DEFAULT NULL,
-        old_location_address TEXT DEFAULT NULL,
-        new_location_address TEXT DEFAULT NULL,
-        old_image_url TEXT DEFAULT NULL,
-        new_image_url TEXT DEFAULT NULL,
         change_summary TEXT DEFAULT NULL,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         KEY idx_edit_history_concern (concern_id, created_at),
@@ -88,6 +82,23 @@ const autoMigrate = async () => {
         CONSTRAINT fk_edit_history_user FOREIGN KEY (edited_by) REFERENCES users(id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // Drop legacy non-editable columns from concern_edit_history if present
+    const legacyEditCols = [
+      'old_category',
+      'new_category',
+      'old_location_address',
+      'new_location_address',
+      'old_image_url',
+      'new_image_url',
+    ];
+    for (const col of legacyEditCols) {
+      const [found] = await pool.query(`SHOW COLUMNS FROM concern_edit_history LIKE '${col}'`);
+      if (found.length > 0) {
+        await pool.query(`ALTER TABLE concern_edit_history DROP COLUMN ${col}`);
+        console.log(`🧹 [AutoMigrate] Dropped unused column concern_edit_history.${col}`);
+      }
+    }
 
     // 7. Ensure concerns edit tracking columns exist
     const [editCols] = await pool.query("SHOW COLUMNS FROM concerns LIKE 'edit_count'");

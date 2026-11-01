@@ -9,7 +9,7 @@
 --
 --  Table Architecture
 --    Authentication & Security : users, admin_2fa_codes, email_verifications
---    Civic Incident Tracking   : concerns, concern_links
+--    Civic Incident Tracking   : concerns, concern_links, concern_comments, concern_edit_history
 --    Activity & Traceability   : notifications, audit_log
 --    Geographic Reference      : barangays
 --    Persistent Cloud Media    : file_storage
@@ -96,7 +96,12 @@ CREATE TABLE IF NOT EXISTS concerns (
   user_barangay      VARCHAR(255)  DEFAULT NULL,                  -- citizen home barangay snapshot
   incident_barangay  VARCHAR(255)  DEFAULT NULL,                  -- matched barangay of actual incident coordinates
   admin_note         TEXT          DEFAULT NULL,                  -- official response shown to the citizen
+  is_validated       TINYINT(1)    NOT NULL DEFAULT 0,
+  validated_at       DATETIME      DEFAULT NULL,
+  validated_by_name  VARCHAR(255)  DEFAULT NULL,
   admin_viewed_at    DATETIME      DEFAULT NULL,                  -- timestamp when administrator first opened/viewed concern
+  edit_count         INT           NOT NULL DEFAULT 0,
+  last_edited_at     DATETIME      DEFAULT NULL,
   created_at         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_concerns_user_created     (user_id, created_at),
@@ -154,25 +159,19 @@ CREATE TABLE IF NOT EXISTS concern_comments (
   CONSTRAINT fk_concern_comments_user    FOREIGN KEY (user_id)    REFERENCES users(id)    ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ─── 9. Concern Edit History (tracked changes by citizens and administrators) ─
+-- ─── 9. Concern Edit History (tracked title & description edits by citizens) ──
 CREATE TABLE IF NOT EXISTS concern_edit_history (
-  id                   INT AUTO_INCREMENT PRIMARY KEY,
-  concern_id           INT NOT NULL,
-  edited_by            INT NOT NULL,
-  edited_by_name       VARCHAR(255) DEFAULT NULL,
-  edited_by_role       VARCHAR(50) DEFAULT 'citizen',
-  old_title            VARCHAR(500) DEFAULT NULL,
-  new_title            VARCHAR(500) DEFAULT NULL,
-  old_description      TEXT DEFAULT NULL,
-  new_description      TEXT DEFAULT NULL,
-  old_category         VARCHAR(100) DEFAULT NULL,
-  new_category         VARCHAR(100) DEFAULT NULL,
-  old_location_address TEXT DEFAULT NULL,
-  new_location_address TEXT DEFAULT NULL,
-  old_image_url        TEXT DEFAULT NULL,
-  new_image_url        TEXT DEFAULT NULL,
-  change_summary       TEXT DEFAULT NULL,
-  created_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  concern_id      INT NOT NULL,
+  edited_by       INT NOT NULL,
+  edited_by_name  VARCHAR(255) DEFAULT NULL,
+  edited_by_role  VARCHAR(50) DEFAULT 'citizen',
+  old_title       VARCHAR(500) DEFAULT NULL,
+  new_title       VARCHAR(500) DEFAULT NULL,
+  old_description TEXT DEFAULT NULL,
+  new_description TEXT DEFAULT NULL,
+  change_summary  TEXT DEFAULT NULL,
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_edit_history_concern (concern_id, created_at),
   KEY fk_edit_history_user (edited_by),
   CONSTRAINT fk_edit_history_concern FOREIGN KEY (concern_id) REFERENCES concerns(id) ON DELETE CASCADE,

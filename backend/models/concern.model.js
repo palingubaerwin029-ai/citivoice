@@ -261,12 +261,6 @@ const insertConcernEditHistory = async ({
   newTitle,
   oldDescription,
   newDescription,
-  oldCategory,
-  newCategory,
-  oldLocationAddress,
-  newLocationAddress,
-  oldImageUrl,
-  newImageUrl,
   changeSummary,
 }) => {
   try {
@@ -274,9 +268,8 @@ const insertConcernEditHistory = async ({
       `INSERT INTO concern_edit_history (
         concern_id, edited_by, edited_by_name, edited_by_role,
         old_title, new_title, old_description, new_description,
-        old_category, new_category, old_location_address, new_location_address,
-        old_image_url, new_image_url, change_summary
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        change_summary
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         concernId,
         editedBy,
@@ -286,12 +279,6 @@ const insertConcernEditHistory = async ({
         newTitle || null,
         oldDescription || null,
         newDescription || null,
-        oldCategory || null,
-        newCategory || null,
-        oldLocationAddress || null,
-        newLocationAddress || null,
-        oldImageUrl || null,
-        newImageUrl || null,
         changeSummary || null,
       ]
     );

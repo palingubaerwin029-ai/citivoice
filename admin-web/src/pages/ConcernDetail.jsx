@@ -606,15 +606,6 @@ export default function ConcernDetail() {
                           </div>
                         </div>
                       )}
-                      {h.old_category && h.new_category && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 8 }}>
-                          <span style={{ color: 'var(--text-3)', fontWeight: 600 }}>Category:</span>
-                          <div>
-                            <span style={{ color: 'var(--red, #ef4444)', textDecoration: 'line-through', marginRight: 8 }}>{h.old_category}</span>
-                            <span style={{ color: 'var(--green, #10b981)', fontWeight: 600 }}>→ {h.new_category}</span>
-                          </div>
-                        </div>
-                      )}
                       {h.old_description && h.new_description && (
                         <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 8 }}>
                           <span style={{ color: 'var(--text-3)', fontWeight: 600 }}>Description:</span>
@@ -626,15 +617,6 @@ export default function ConcernDetail() {
                                 <div style={{ color: 'var(--green, #10b981)', whiteSpace: 'pre-wrap' }}>{h.new_description}</div>
                               </div>
                             </details>
-                          </div>
-                        </div>
-                      )}
-                      {h.old_location_address && h.new_location_address && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 8 }}>
-                          <span style={{ color: 'var(--text-3)', fontWeight: 600 }}>Location:</span>
-                          <div>
-                            <span style={{ color: 'var(--red, #ef4444)', textDecoration: 'line-through', marginRight: 8 }}>{h.old_location_address}</span>
-                            <span style={{ color: 'var(--green, #10b981)' }}>→ {h.new_location_address}</span>
                           </div>
                         </div>
                       )}

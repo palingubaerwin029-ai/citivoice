@@ -149,8 +149,8 @@ Detailed technical diagrams, full table relationship mappings, and data flow bre
 - **Zero-Bypass Policy** — Uploads that cannot be verified by either AI provider are temporarily blocked with a retry recommendation rather than accepted unverified.
 
 ### ✏️ Citizen Concern Editing & Complete Version History
-- **Full Citizen Editing Capabilities** — Citizens can modify the **Title**, **Description**, **Location Address**, and **Photo** of their submitted reports while the concern remains active (`Pending` or `In Progress`).
-- **Complete Audit & Version History (`concern_edit_history`)** — Every edit automatically records previous and updated values in the database, increments the report's `edit_count`, logs `last_edited_at`, and surfaces the full version history in both the mobile app and admin console.
+- **Title & Description Editing** — Citizens can modify the **Title** and **Description** of their submitted reports while the concern remains active (`Pending` or `In Progress`). Category, location, and live camera evidence remain locked after submission.
+- **Complete Audit & Version History (`concern_edit_history`)** — Every edit automatically records `old_title`, `new_title`, `old_description`, `new_description`, and `change_summary` in the database, increments the report's `edit_count`, logs `last_edited_at`, and surfaces the full version history in both the mobile app and admin console.
 
 ### ❌ Standardized Municipal Rejection Lifecycle
 - **Standard Valid Rejection Reasons** — Administrators can select from 7 standardized municipal grounds when a concern cannot be serviced:
@@ -268,7 +268,7 @@ CitiVoice runs on **MySQL 8.0** (`InnoDB`, `utf8mb4_unicode_ci`) initialized via
 2. **`admin_2fa_codes`** — Ephemeral 6-digit OTP records for Administrator 2FA sign-in.
 3. **`email_verifications`** — Pre-registration 6-digit Email OTP verification records.
 4. **`concerns`** — Submitted civic concerns with category, priority, status (`Pending`, `In Progress`, `Resolved`, `Rejected`), GPS coordinates, incident barangay, media URLs, official `admin_note`, `edit_count`, and `last_edited_at`.
-5. **`concern_edit_history`** — Audit trail tracking citizen edits to active reports (captures old vs new title, description, address, and photo).
+5. **`concern_edit_history`** — Audit trail tracking citizen edits to active reports (captures `old_title`, `new_title`, `old_description`, `new_description`, and `change_summary`).
 6. **`concern_comments`** — Two-way citizen and administrator conversation messages and image attachments per concern.
 7. **`concern_links`** — AI-detected duplicate and related concern associations.
 8. **`audit_log`** — Immutable chronological trail of administrative actions, citizen edits, and status transitions.
@@ -374,8 +374,8 @@ All endpoints are prefixed with `/api`.
 | `POST` | `/api/concerns/analyze` · `/verify-image` | Authenticated | AI draft categorization and image-to-text alignment check |
 | `GET`  | `/api/concerns/:id` | Authenticated | Get full concern details, media, and metadata |
 | `PUT`  | `/api/concerns/:id` | Admin | Update status, priority, category, or resolution photo/note |
-| `PUT`  | `/api/concerns/:id/details` | Citizen / Admin | Edit concern details (Title, Description, Address, Photo) |
-| `GET`  | `/api/concerns/:id/edit-history` | Authenticated | Retrieve version history of changes for a concern |
+| `PUT`  | `/api/concerns/:id/edit` | Citizen / Admin | Edit concern Title and Description (while Pending or In Progress) |
+| `GET`  | `/api/concerns/:id/history` | Authenticated | Retrieve version history of Title & Description changes |
 | `DELETE`| `/api/concerns/:id` | Owner / Admin | Delete a concern |
 | `POST` | `/api/concerns/:id/ai-response` | Admin | Generate an AI-drafted official response for Progress / Resolved |
 | `GET`  | `/api/concerns/:id/similar` · `POST /:id/link` | Admin | Detect and link duplicate or recurring concerns |

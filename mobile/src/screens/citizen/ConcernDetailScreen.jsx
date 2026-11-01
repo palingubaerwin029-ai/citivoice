@@ -1295,17 +1295,6 @@ export default function ConcernDetailScreen({ route, navigation }) {
                       </View>
                     )}
 
-                    {h.old_category && h.new_category && (
-                      <View style={{ marginBottom: verticalScale(6) }}>
-                        <Text style={{ fontSize: rf(11), fontWeight: '600', color: colors.textMuted }}>Category:</Text>
-                        <Text style={{ fontSize: rf(12), color: colors.textSecondary }}>
-                          <Text style={{ textDecorationLine: 'line-through', color: colors.statusRejected }}>{h.old_category}</Text>
-                          {' → '}
-                          <Text style={{ color: colors.statusResolved, fontWeight: '700' }}>{h.new_category}</Text>
-                        </Text>
-                      </View>
-                    )}
-
                     {h.old_description && h.new_description && (
                       <View style={{ marginTop: verticalScale(4) }}>
                         <Text style={{ fontSize: rf(11), fontWeight: '600', color: colors.textMuted, marginBottom: verticalScale(2) }}>

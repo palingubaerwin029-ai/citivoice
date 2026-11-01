@@ -60,7 +60,7 @@ router.post('/analyze', auth, analyzeConcernDraft);
 // ─── AI Pre-submission Check (Image alignment) ───────────────────────────────
 router.post('/verify-image', auth, upload.single('image'), verifyConcernImage);
 
-// ─── Update concern (admin: status/response; citizen: title/description/category)
+// ─── Update concern (admin: status/response; citizen: title/description)
 router.put('/:id', auth, upload.single('image'), validateIdParam, (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
     return editConcern(req, res, next);
@@ -68,8 +68,8 @@ router.put('/:id', auth, upload.single('image'), validateIdParam, (req, res, nex
   return editConcernDetails(req, res, next);
 });
 
-// ─── Dedicated Citizen Edit Concern Details ──────────────────────────────────
-router.put('/:id/edit', auth, upload.single('image'), validateIdParam, editConcernDetails);
+// ─── Dedicated Citizen Edit Concern Details (Title & Description only) ────────
+router.put('/:id/edit', auth, validateIdParam, editConcernDetails);
 
 // ─── Get Concern Edit History ─────────────────────────────────────────────────
 router.get('/:id/history', auth, validateIdParam, getConcernHistory);

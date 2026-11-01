@@ -116,12 +116,6 @@ erDiagram
         varchar new_title "Updated Title"
         text old_description "Previous Description"
         text new_description "Updated Description"
-        varchar old_category "Previous Category"
-        varchar new_category "Updated Category"
-        text old_location_address "Previous Address"
-        text new_location_address "Updated Address"
-        text old_image_url "Previous Photo URL"
-        text new_image_url "Updated Photo URL"
         text change_summary "Human-readable changes summary"
         datetime created_at "DEFAULT CURRENT_TIMESTAMP"
     }
@@ -193,7 +187,6 @@ erDiagram
     CONCERNS ||..o{ AUDIT_LOG : "tracked by (entity_id)"
     FILE_STORAGE ||..o{ USERS : "stores id_image_url / avatar_url"
     FILE_STORAGE ||..o{ CONCERNS : "stores image_url / resolved_image_url"
-    FILE_STORAGE ||..o{ CONCERN_EDIT_HISTORY : "stores old/new image blobs"
 ```
 
 ---
@@ -214,7 +207,7 @@ erDiagram
 | `concerns` | `concern_links` (Source) | `1 : N` | `concern_links.source_concern_id -> concerns.id` | `ON DELETE CASCADE` |
 | `concerns` | `concern_links` (Target) | `1 : N` | `concern_links.target_concern_id -> concerns.id` | `ON DELETE CASCADE` |
 | `barangays` | `users` / `concerns` | `1 : N` (Logical) | `barangays.name = users.barangay / concerns.incident_barangay` | Logical Reference |
-| `file_storage` | `users` / `concerns` / `edit_history` | `1 : 1` (Logical) | `file_storage.filename` referenced in media URLs | Persistent Binary Store |
+| `file_storage` | `users` / `concerns` | `1 : 1` (Logical) | `file_storage.filename` referenced in media URLs | Persistent Binary Store |
 
 ---
 
@@ -225,7 +218,7 @@ erDiagram
 3. **`email_verifications`**: Tracks pre-registration 6-digit OTP codes sent to citizen `@gmail.com` addresses prior to account creation.
 4. **`barangays`**: Master reference list of the **32 official barangays** of Kabankalan City for resident assignment and geographic GPS centroid distance matching.
 5. **`concerns`**: Core civic incident table storing report title, description, category, priority (`Low`, `Medium`, `High`), lifecycle status (`Pending`, `In Progress`, `Resolved`, `Rejected`), GPS coordinates (`location_lat`, `location_lng`), citizen barangay vs. nearest pinned `incident_barangay`, camera evidence (`image_url`), resolution proof (`resolved_image_url`, automatically cleared if `Rejected`), official `admin_note`, `edit_count`, and `last_edited_at`.
-6. **`concern_edit_history`**: Comprehensive version history tracking citizen modifications to concerns prior to resolution (records previous/new title, description, category, address, photo, and audit timestamps).
+6. **`concern_edit_history`**: Comprehensive version history tracking citizen modifications to active concerns prior to resolution (records `old_title`, `new_title`, `old_description`, `new_description`, `change_summary`, and audit timestamps).
 7. **`concern_links`**: Self-referencing join table linking duplicate and recurring reports with a `similarity_score` (`duplicate` for active tickets, `related` for resolved incidents).
 8. **`concern_comments`**: Stores real-time two-way conversation messages and optional image attachments between the reporting citizen and municipal administrators.
 9. **`notifications`**: Stores citizen in-app notification records (status updates, admin replies, priority escalations, ID verification results) with read/unread tracking.
@@ -347,9 +340,8 @@ flowchart TB
     P3 -->|"Trigger Status Notification"| P7
 
     %% Process 4 Flows
-    Citizen -->|"Edit Title, Description, Address or Photo"| P4
-    P4 <-->|"Verify Edited Details against Photo"| AI
-    P4 -->|"Store New Photo (if changed)"| D7
+    Citizen -->|"Edit Title & Description"| P4
+    P4 <-->|"Verify Edited Text against Attached Photo"| AI
     P4 -->|"Update Concern (edit_count, last_edited_at)"| D2
     P4 -->|"Insert Version History Record"| D8
     P4 -->|"Record Edit Audit Entry"| D5
@@ -527,7 +519,7 @@ flowchart TD
     Socket["⚡ Socket.io Server"]
 
     P4_1(["4.1 Validate Concern Status (Only Pending / In Progress Allowed)"])
-    P4_2(["4.2 Strict Visual Alignment Check on Edited Content"])
+    P4_2(["4.2 Strict Visual Alignment Check on Edited Title & Description"])
     P4_3(["4.3 Record Edit Version Snapshot in History"])
     P4_4(["4.4 Update Concern Record & Increment Edit Counter"])
     P4_5(["4.5 Broadcast Update & Log Audit Entry"])
@@ -535,17 +527,15 @@ flowchart TD
     D_Concerns[("D2: concerns")]
     D_History[("D8: concern_edit_history")]
     D_Audit[("D5: audit_log")]
-    D_Files[("D7: file_storage")]
 
-    Citizen -->|"Submit Edited Title, Description, Address or Photo"| P4_1
+    Citizen -->|"Submit Edited Title & Description"| P4_1
     P4_1 <-->|"Verify status is NOT Resolved or Rejected"| D_Concerns
 
-    P4_1 -->|"Forward Changes for AI Inspection"| P4_2
+    P4_1 -->|"Forward Edited Text for AI Inspection"| P4_2
     P4_2 <-->|"Check that Edited Text Still Matches Attached Photo"| AI
     P4_2 -->|"If Mismatched: Reject with Alignment Reason"| Citizen
 
-    P4_2 -->|"If Valid: Store New Photo Blob (if changed)"| D_Files
-    P4_2 -->|"Old vs New Field Values"| P4_3
+    P4_2 -->|"Old vs New Title & Description"| P4_3
     P4_3 -->|"Insert Row with change_summary"| D_History
 
     P4_3 -->|"Update Concern Fields (edit_count++, last_edited_at)"| P4_4
@@ -570,5 +560,5 @@ flowchart TD
 | **`D5`** | MySQL: `audit_log` | Immutable JSON-backed administrative change history (`old_value`, `new_value`, `changed_by`) for full institutional accountability. |
 | **`D6`** | MySQL: `barangays` | Master reference table of the **32 official barangays** of Kabankalan City with centroid coordinates. |
 | **`D7`** | MySQL: `file_storage` + Disk `/uploads` | Hybrid binary image store (`LONGBLOB`) ensuring ID photos, avatars, incident photos, and resolution proof survive cloud container restarts. |
-| **`D8`** | MySQL: `concern_edit_history` | Dedicated version history tracking citizen modifications to concerns prior to resolution (old vs new title, description, address, and photo). |
+| **`D8`** | MySQL: `concern_edit_history` | Dedicated version history tracking citizen modifications to active concerns prior to resolution (`old_title`, `new_title`, `old_description`, `new_description`, `change_summary`). |
 | **`Mobile Cache`** | Mobile `AsyncStorage` | Offline-first Stale-While-Revalidate (SWR) cache (`cv_user`, `cv_my_concerns_*`, `cv_concern_detail_*`, `cv_notifications_*`, `offline_concerns_queue`). |

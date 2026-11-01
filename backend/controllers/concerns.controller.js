@@ -1258,9 +1258,9 @@ const addComment = async (req, res) => {
   }
 };
 
-// ─── Citizen Edit Concern Details ──────────────────────────────────────────────
+// ─── Citizen Edit Concern Details (Only Title & Description Allowed) ──────────
 const editConcernDetails = async (req, res) => {
-  const { title, description, category, location_address, location_lat, location_lng } = req.body;
+  const { title, description } = req.body;
   try {
     const concern = await selectConcernById(req.params.id);
     if (!concern) return res.status(404).json({ error: 'Concern not found' });
@@ -1280,10 +1280,6 @@ const editConcernDetails = async (req, res) => {
 
     const newTitle = title !== undefined ? String(title).trim() : concern.title;
     const newDescription = description !== undefined ? String(description).trim() : concern.description;
-    const newCategory = category !== undefined ? String(category).trim() : concern.category;
-    const newAddress = location_address !== undefined ? String(location_address).trim() : concern.location_address;
-    const newLat = location_lat !== undefined && location_lat !== '' ? parseFloat(location_lat) : concern.location_lat;
-    const newLng = location_lng !== undefined && location_lng !== '' ? parseFloat(location_lng) : concern.location_lng;
 
     if (newTitle.length < 5) {
       return res.status(400).json({ error: 'Title must be at least 5 characters long.' });
@@ -1292,50 +1288,25 @@ const editConcernDetails = async (req, res) => {
       return res.status(400).json({ error: 'Description must be at least 10 characters long.' });
     }
 
-    let newImageUrl = concern.image_url;
-    if (req.file) {
-      newImageUrl = `${BASE_URL()}/uploads/${req.file.filename}`;
+    const isTitleChanged = newTitle !== concern.title;
+    const isDescChanged = newDescription !== concern.description;
+
+    if (!isTitleChanged && !isDescChanged) {
+      return res.status(400).json({ error: 'No changes detected.' });
     }
 
     // ─── AI photo alignment check on edits (citizens only) ────────────────────
-    // A new photo must match the concern; edited text must still match the existing photo.
-    if (!isAdmin) {
-      const removeNewUpload = () => {
-        if (!req.file) return;
-        try {
-          const p = path.join(__dirname, '..', 'uploads', req.file.filename);
-          if (fs.existsSync(p)) fs.unlinkSync(p);
-        } catch (e) {
-          console.error('[AI] Failed to remove rejected edit upload:', e.message);
-        }
-      };
-
-      let photoPath = null;
-      if (req.file) {
-        photoPath = path.join(__dirname, '..', 'uploads', req.file.filename);
-      } else if (concern.image_url && (newTitle !== concern.title || newDescription !== concern.description || newCategory !== concern.category)) {
-        const existing = path.join(__dirname, '..', 'uploads', path.basename(String(concern.image_url)));
-        if (fs.existsSync(existing)) photoPath = existing;
-      }
-
-      if (photoPath) {
-        const check = await verifyImageAlignment(newTitle, newDescription, newCategory, photoPath);
-        if (!check.verified && req.file) {
-          removeNewUpload();
-          return res.status(503).json({
-            error: 'We could not verify your photo right now. Please try again in a moment.',
-            code: 'IMAGE_VERIFICATION_UNAVAILABLE',
-          });
-        }
+    // Edited title/description must still match the attached photo.
+    if (!isAdmin && concern.image_url) {
+      const existing = path.join(__dirname, '..', 'uploads', path.basename(String(concern.image_url)));
+      if (fs.existsSync(existing)) {
+        const check = await verifyImageAlignment(newTitle, newDescription, concern.category, existing);
         if (check.verified && (check.imageMatchesConcern === false || check.contentFlag !== 'none')) {
-          removeNewUpload();
           const reasonMsg = check.contentFlag === 'inappropriate'
-            ? 'The photo contains inappropriate content.'
-            : (check.reason || 'The photo does not align with the concern details.');
+            ? 'The updated text contains inappropriate content.'
+            : (check.reason || 'The updated details no longer align with the attached photo.');
           return res.status(422).json({
-            error: req.file
-              ? reasonMsg
-              : `Your updated details no longer match the attached photo. ${reasonMsg}`,
+            error: `Your updated details no longer match the attached photo. ${reasonMsg}`,
             code: 'IMAGE_MISMATCH',
             reason: reasonMsg,
           });
@@ -1343,27 +1314,12 @@ const editConcernDetails = async (req, res) => {
       }
     }
 
-    const isTitleChanged = newTitle !== concern.title;
-    const isDescChanged = newDescription !== concern.description;
-    const isCatChanged = newCategory !== concern.category;
-    const isAddrChanged = newAddress !== concern.location_address;
-    const isImgChanged = req.file ? true : false;
-    const isGeoChanged = (newLat && newLat !== concern.location_lat) || (newLng && newLng !== concern.location_lng);
-
-    if (!isTitleChanged && !isDescChanged && !isCatChanged && !isAddrChanged && !isImgChanged && !isGeoChanged) {
-      return res.status(400).json({ error: 'No changes detected.' });
-    }
-
     const changes = [];
     if (isTitleChanged) changes.push('title');
     if (isDescChanged) changes.push('description');
-    if (isCatChanged) changes.push('category');
-    if (isAddrChanged) changes.push('location address');
-    if (isImgChanged) changes.push('photo');
-    if (isGeoChanged) changes.push('map location');
-    const changeSummary = 'Updated ' + changes.join(', ');
+    const changeSummary = 'Updated ' + changes.join(' and ');
 
-    // 1. Record in concern_edit_history
+    // 1. Record in concern_edit_history (only title and description)
     await insertConcernEditHistory({
       concernId: concern.id,
       editedBy: req.user.id,
@@ -1373,12 +1329,6 @@ const editConcernDetails = async (req, res) => {
       newTitle: isTitleChanged ? newTitle : null,
       oldDescription: isDescChanged ? concern.description : null,
       newDescription: isDescChanged ? newDescription : null,
-      oldCategory: isCatChanged ? concern.category : null,
-      newCategory: isCatChanged ? newCategory : null,
-      oldLocationAddress: isAddrChanged ? concern.location_address : null,
-      newLocationAddress: isAddrChanged ? newAddress : null,
-      oldImageUrl: isImgChanged ? concern.image_url : null,
-      newImageUrl: isImgChanged ? newImageUrl : null,
       changeSummary,
     });
 
@@ -1392,14 +1342,10 @@ const editConcernDetails = async (req, res) => {
       {
         title: concern.title,
         description: concern.description,
-        category: concern.category,
-        image_url: concern.image_url,
       },
       {
         title: newTitle,
         description: newDescription,
-        category: newCategory,
-        image_url: newImageUrl,
       }
     );
 
@@ -1407,34 +1353,11 @@ const editConcernDetails = async (req, res) => {
     const fields = [
       'title = ?',
       'description = ?',
-      'category = ?',
-      'location_address = ?',
-      'image_url = ?',
       'edit_count = COALESCE(edit_count, 0) + 1',
       'last_edited_at = NOW()',
       'updated_at = NOW()',
     ];
-    const values = [newTitle, newDescription, newCategory, newAddress, newImageUrl];
-
-    if (newLat !== null && !isNaN(newLat)) {
-      fields.push('location_lat = ?');
-      values.push(newLat);
-    }
-    if (newLng !== null && !isNaN(newLng)) {
-      fields.push('location_lng = ?');
-      values.push(newLng);
-    }
-
-    // Auto-update department if category changed
-    if (isCatChanged) {
-      try {
-        const updatedDept = resolveDepartment(newCategory, concern.priority);
-        fields.push('department = ?');
-        values.push(updatedDept);
-      } catch (deptErr) {
-        console.error('Department resolve error:', deptErr);
-      }
-    }
+    const values = [newTitle, newDescription];
 
     await updateConcernFields(concern.id, fields, values);
 
