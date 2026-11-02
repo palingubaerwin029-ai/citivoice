@@ -28,6 +28,7 @@
 - [Overview](#-overview)
 - [System Architecture](#-system-architecture)
 - [Entity-Relationship & Data Flow Diagrams](#-entity-relationship--data-flow-diagrams)
+- [System Flowcharts](#-system-flowcharts)
 - [Key Features](#-key-features)
   - [Public Landing Portal & Mobile APK Distribution](#-public-landing-portal--mobile-apk-distribution)
   - [Dual-AI Failover Engine (Groq Llama 3.3 & Google Gemini Flash)](#-dual-ai-failover-engine-groq-llama-33--google-gemini-flash)
@@ -128,6 +129,19 @@ Detailed technical diagrams, full table relationship mappings, and data flow bre
 - **DFD Level 2.2** — Concern Intake, Dual-AI Visual Triage & Status-Aware Duplicate Linking.
 - **DFD Level 2.3** — Admin 2FA, Resolution Lifecycle & Rejection Workflow.
 - **DFD Level 2.4** — Citizen Concern Editing & Version History Tracking.
+
+---
+
+## 🧭 System Flowcharts
+
+Comprehensive step-by-step operational flowcharts, decision diamonds, and background subroutines are documented in [`SYSTEM_FLOWCHART.md`](SYSTEM_FLOWCHART.md):
+
+- **Master End-to-End Flowchart** — Complete journey from mobile report submission to municipal field dispatch, resolution with proof, or standardized rejection.
+- **Citizen Onboarding & Camera-Only ID Verification** — Pre-registration OTP/Google OAuth, input mask enforcement, live camera capture, and dual-AI OCR matching.
+- **Concern Intake & Dual-AI Visual Alignment** — Live camera intake, offline SWR queuing, Groq/Gemini concept verification, 32-barangay matching, and duplicate linking.
+- **Administrator 2FA & Incident Lifecycle** — 6-digit email 2FA, GIS review, AI draft generation for Progress/Resolved, and strict resolution photo stripping on rejection.
+- **Citizen Concern Editing & Version History** — Real-time editing constraints (Title & Description only), AI re-alignment checks, and immutable version snapshots.
+- **SLA Escalation & Backup Routines** — Hourly priority escalations (Low ➔ Medium ➔ High) and change-detected database backups.
 
 ---
 
@@ -340,6 +354,7 @@ citivoice/
 │
 ├── backups/                        # Automated SQL & JSON database snapshots
 ├── ERD_AND_DFD.md                  # Comprehensive ERD & Multi-Level DFD Documentation
+├── SYSTEM_FLOWCHART.md             # Operational System Flowcharts & Subsystem Logic
 ├── docker-compose.yml              # Multi-container production stack
 └── package.json                    # Monorepo root scripts
 ```
