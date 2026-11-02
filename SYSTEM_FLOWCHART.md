@@ -39,47 +39,47 @@ The high-level lifecycle of a civic concern from citizen camera capture to admin
 
 ```mermaid
 flowchart TD
-    Start([Citizen Opens CitiVoice App]) --> AuthCheck{"Is Citizen Authenticated & Verified?"}
+    Start(["Citizen Opens CitiVoice App"]) --> AuthCheck{"Is Citizen Authenticated & Verified?"}
     
     AuthCheck -- "No" --> Onboarding[["3.0 Onboarding & ID Verification Flow"]]
     Onboarding --> AuthCheck
     
-    AuthCheck -- "Yes" --> CaptureInput[/Citizen Takes Live Camera Photo & Pins GPS Hazard Location/]
+    AuthCheck -- "Yes" --> CaptureInput[/"Citizen Takes Live Camera Photo & Pins GPS Hazard Location"/]
     CaptureInput --> IntakeFlow[["4.0 Concern Intake & Dual-AI Alignment"]]
     
     IntakeFlow --> AIValid{"AI Visual Alignment & Concept Check Passed?"}
-    AIValid -- "No" --> ShowErr[/Display Specific Alignment Rejection Reason to Citizen/]
+    AIValid -- "No" --> ShowErr[/"Display Specific Alignment Rejection Reason to Citizen"/]
     ShowErr --> CaptureInput
     
-    AIValid -- "Yes" --> SaveReport[(concerns & file_storage)]
-    SaveReport --> EmitSocket[[Socket.io Broadcast: new_concern]]
-    EmitSocket --> Docket[/Issue Official Municipal Docket Number to Citizen/]
+    AIValid -- "Yes" --> SaveReport[("concerns & file_storage")]
+    SaveReport --> EmitSocket[["Socket.io Broadcast: new_concern"]]
+    EmitSocket --> Docket[/"Issue Official Municipal Docket Number to Citizen"/]
     
-    EmitSocket --> AdminNotice[/Admin Real-Time Dashboard Notification/]
+    EmitSocket --> AdminNotice[/"Admin Real-Time Dashboard Notification"/]
     AdminNotice --> AdminLogin[["5.0 Admin 2FA Email Login Flow"]]
     
-    AdminLogin --> ReviewDashboard[/Administrator Reviews Concern, GIS Map & AI Urgency/]
+    AdminLogin --> ReviewDashboard[/"Administrator Reviews Concern, GIS Map & AI Urgency"/]
     ReviewDashboard --> StatusChoice{"Select Municipal Action"}
     
     %% Branch 1: In Progress
-    StatusChoice -- "Set In Progress" --> Dispatch[Field Department Dispatched]
+    StatusChoice -- "Set In Progress" --> Dispatch["Field Department Dispatched"]
     Dispatch --> AIDraft1[["Generate AI Status Update Note"]]
-    AIDraft1 --> UpdateDB1[(concerns: status = 'In Progress')]
-    UpdateDB1 --> NotifyCitizen1[[Send Push & In-App Notification]]
+    AIDraft1 --> UpdateDB1[("concerns: status = 'In Progress'")]
+    UpdateDB1 --> NotifyCitizen1[["Send Push & In-App Notification"]]
     
     %% Branch 2: Resolved
-    StatusChoice -- "Set Resolved" --> AttachProof[/Admin Attaches Resolution Proof Photo/]
+    StatusChoice -- "Set Resolved" --> AttachProof[/"Admin Attaches Resolution Proof Photo"/]
     AttachProof --> AIDraft2[["Generate Official Resolution Response (AI Draft)"]]
-    AIDraft2 --> UpdateDB2[(concerns: status = 'Resolved', resolved_image_url)]
-    UpdateDB2 --> NotifyCitizen2[[Send Push & In-App Notification]]
+    AIDraft2 --> UpdateDB2[("concerns: status = 'Resolved', resolved_image_url")]
+    UpdateDB2 --> NotifyCitizen2[["Send Push & In-App Notification"]]
     
     %% Branch 3: Rejected
-    StatusChoice -- "Set Rejected" --> StripPhoto[Auto-Strip & Clear Any Staged Resolution Photo]
-    StripPhoto --> PickReason[/Select 1 of 7 Standard Municipal Rejection Reasons/]
-    PickReason --> UpdateDB3[(concerns: status = 'Rejected', resolved_image_url = NULL)]
-    UpdateDB3 --> NotifyCitizen3[[Send High-Visibility Rejection Alert]]
+    StatusChoice -- "Set Rejected" --> StripPhoto["Auto-Strip & Clear Any Staged Resolution Photo"]
+    StripPhoto --> PickReason[/"Select 1 of 7 Standard Municipal Rejection Reasons"/]
+    PickReason --> UpdateDB3[("concerns: status = 'Rejected', resolved_image_url = NULL")]
+    UpdateDB3 --> NotifyCitizen3[["Send High-Visibility Rejection Alert"]]
     
-    NotifyCitizen1 --> End([Concern Lifecycle Updated / Completed])
+    NotifyCitizen1 --> End(["Concern Lifecycle Updated / Completed"])
     NotifyCitizen2 --> End
     NotifyCitizen3 --> End
 ```
@@ -92,39 +92,39 @@ Illustrates pre-registration email authentication, anti-spoofing live camera cap
 
 ```mermaid
 flowchart TD
-    Start([Citizen Begins Registration]) --> AuthMethod{"Choose Verification Method"}
+    Start(["Citizen Begins Registration"]) --> AuthMethod{"Choose Verification Method"}
     
     %% Google OAuth Flow
     AuthMethod -- "Google Sign-In" --> GoogleOAuth[["Google OAuth 2.0 (expo-auth-session)"]]
     GoogleOAuth --> TokenVerify{"Google ID Token Valid?"}
-    TokenVerify -- "No" --> GoogleFail[/Display OAuth Error Notice/]
+    TokenVerify -- "No" --> GoogleFail[/"Display OAuth Error Notice"/]
     GoogleFail --> Start
-    TokenVerify -- "Yes" --> IssueToken1[Issue Pre-Registration verificationToken]
+    TokenVerify -- "Yes" --> IssueToken1["Issue Pre-Registration verificationToken"]
     
     %% Email OTP Flow
-    AuthMethod -- "Gmail OTP" --> EnterEmail[/Enter @gmail.com Address/]
+    AuthMethod -- "Gmail OTP" --> EnterEmail[/"Enter @gmail.com Address"/]
     EnterEmail --> SendOTP[["Nodemailer: Send 6-Digit Verification Code"]]
-    SendOTP --> SaveOTP[(email_verifications)]
-    SaveOTP --> PromptOTP[/Input 6-Digit Code in App/]
+    SendOTP --> SaveOTP[("email_verifications")]
+    SaveOTP --> PromptOTP[/"Input 6-Digit Code in App"/]
     PromptOTP --> CheckOTP{"OTP Matches & Not Expired?"}
-    CheckOTP -- "No (or Expired)" --> PromptRetry[/Display Invalid Code Alert (Cooldown 45s)/]
+    CheckOTP -- "No (or Expired)" --> PromptRetry[/"Display Invalid Code Alert (Cooldown 45s)"/]
     PromptRetry --> PromptOTP
-    CheckOTP -- "Yes" --> IssueToken2[Issue Pre-Registration verificationToken]
+    CheckOTP -- "Yes" --> IssueToken2["Issue Pre-Registration verificationToken"]
     
-    IssueToken1 --> ProfileForm[/Complete Profile: Name, Password, Phone, Barangay, Address/]
+    IssueToken1 --> ProfileForm[/"Complete Profile: Name, Password, Phone, Barangay, Address"/]
     IssueToken2 --> ProfileForm
     
-    ProfileForm --> CreateUser[(Insert users: role='citizen', verification_status='unverified')]
-    CreateUser --> PromptID[/Open Smart ID Verification Modal/]
+    ProfileForm --> CreateUser[("Insert users: role='citizen', verification_status='unverified'")]
+    CreateUser --> PromptID[/"Open Smart ID Verification Modal"/]
     
-    PromptID --> SelectIDType[/Select 1 of 10 Valid Philippine Government ID Types/]
+    PromptID --> SelectIDType[/"Select 1 of 10 Valid Philippine Government ID Types"/]
     SelectIDType --> FormatCheck{"Matches ID Format Pattern?"}
-    FormatCheck -- "No" --> FormatErr[/Display Input Mask Requirement Alert/]
+    FormatCheck -- "No" --> FormatErr[/"Display Input Mask Requirement Alert"/]
     FormatErr --> SelectIDType
     
     FormatCheck -- "Yes" --> LiveCamera[["Hardware Camera: launchCamera (Gallery Blocked)"]]
-    LiveCamera --> SnapID[/Citizen Captures Clear ID Photo/]
-    SnapID --> PersistID[(file_storage: id_image_url)]
+    LiveCamera --> SnapID[/"Citizen Captures Clear ID Photo"/]
+    SnapID --> PersistID[("file_storage: id_image_url")]
     
     PersistID --> TriggerOCR[["AI OCR Name Matching (Groq Llama 3.3 Vision)"]]
     TriggerOCR --> OCRStatus{"Groq OCR Successful?"}
@@ -132,27 +132,27 @@ flowchart TD
     OCRStatus -- "Success" --> EvaluateMatch
     GeminiOCR --> EvaluateMatch{"Extracted Name Matches Registered Legal Name?"}
     
-    EvaluateMatch -- ">= 80% Match Score" --> AutoVerify[Set verification_status = 'verified']
-    AutoVerify --> UpdateVerified[(users: is_verified = 1)]
-    UpdateVerified --> NotifVerified[/Notify Citizen: ID Instantly Approved/]
-    NotifVerified --> FinishVerified([Citizen Ready to Report Concerns])
+    EvaluateMatch -- ">= 80% Match Score" --> AutoVerify["Set verification_status = 'verified'"]
+    AutoVerify --> UpdateVerified[("users: is_verified = 1")]
+    UpdateVerified --> NotifVerified[/"Notify Citizen: ID Instantly Approved"/]
+    NotifVerified --> FinishVerified(["Citizen Ready to Report Concerns"])
     
-    EvaluateMatch -- "< 80% Match Score" --> FlagPending[Set verification_status = 'pending']
-    FlagPending --> UpdatePending[(users: is_verified = 0)]
-    UpdatePending --> QueueAdmin[/Place in Administrator Verification Queue/]
+    EvaluateMatch -- "< 80% Match Score" --> FlagPending["Set verification_status = 'pending'"]
+    FlagPending --> UpdatePending[("users: is_verified = 0")]
+    UpdatePending --> QueueAdmin[/"Place in Administrator Verification Queue"/]
     
-    QueueAdmin --> AdminInspect[/Administrator Compares ID Photo vs Registered Name/]
+    QueueAdmin --> AdminInspect[/"Administrator Compares ID Photo vs Registered Name"/]
     AdminInspect --> AdminDecision{"Admin Verification Decision"}
     
-    AdminDecision -- "Approve" --> SetApproved[(users: verification_status = 'verified')]
-    SetApproved --> Audit1[(audit_log)]
+    AdminDecision -- "Approve" --> SetApproved[("users: verification_status = 'verified'")]
+    SetApproved --> Audit1[("audit_log")]
     Audit1 --> FinishVerified
     
-    AdminDecision -- "Reject" --> EnterRejectionReason[/Select / Type Rejection Reason/]
-    EnterRejectionReason --> SetRejected[(users: verification_status = 'rejected')]
-    SetRejected --> Audit2[(audit_log)]
-    Audit2 --> NotifyRejection[/Citizen Notified to Re-submit Valid ID Photo/]
-    NotifyRejection --> FinishRejected([ID Rejected — Re-attempt Available])
+    AdminDecision -- "Reject" --> EnterRejectionReason[/"Select or Type Rejection Reason"/]
+    EnterRejectionReason --> SetRejected[("users: verification_status = 'rejected'")]
+    SetRejected --> Audit2[("audit_log")]
+    Audit2 --> NotifyRejection[/"Citizen Notified to Re-submit Valid ID Photo"/]
+    NotifyRejection --> FinishRejected(["ID Rejected: Re-attempt Available"])
 ```
 
 ---
@@ -163,21 +163,21 @@ Demonstrates live camera intake, offline local queue caching, dual-AI semantic a
 
 ```mermaid
 flowchart TD
-    Start([Citizen Initiates Concern Submission]) --> LaunchCam[["Launch Camera: launchCamera (Anti-Spoofing, Gallery Disabled)"]]
-    LaunchCam --> CapturePhoto[/Citizen Captures Real-Time Hazard Photo/]
-    CapturePhoto --> FillDetails[/Input Report Title & Description/]
+    Start(["Citizen Initiates Concern Submission"]) --> LaunchCam[["Launch Camera: launchCamera (Anti-Spoofing, Gallery Disabled)"]]
+    LaunchCam --> CapturePhoto[/"Citizen Captures Real-Time Hazard Photo"/]
+    CapturePhoto --> FillDetails[/"Input Report Title & Description"/]
     
     FillDetails --> FetchGPS[["Fetch Hardware GPS Coordinates (Expo Location)"]]
-    FetchGPS --> MapPin[/Citizen Confirms Pinned Location on Interactive Map/]
+    FetchGPS --> MapPin[/"Citizen Confirms Pinned Location on Interactive Map"/]
     
     MapPin --> CheckNetwork{"Is Mobile Device Online?"}
     
     %% Offline Branch
-    CheckNetwork -- "No (Offline)" --> StoreLocal[(AsyncStorage: offline_concerns_queue)]
-    StoreLocal --> AlertQueued[/Display 'Saved to Offline Queue' Notice/]
+    CheckNetwork -- "No (Offline)" --> StoreLocal[("AsyncStorage: offline_concerns_queue")]
+    StoreLocal --> AlertQueued[/"Display 'Saved to Offline Queue' Notice"/]
     AlertQueued --> NetworkListener[["NetInfo: Listen for Network Reconnection"]]
     NetworkListener --> WhenOnline{"Connection Restored?"}
-    WhenOnline -- "Yes" --> FlushQueue[Automatically Dequeue & Submit]
+    WhenOnline -- "Yes" --> FlushQueue["Automatically Dequeue & Submit"]
     FlushQueue --> CheckNetwork
     
     %% Online Branch
@@ -189,28 +189,28 @@ flowchart TD
     GroqCheck -- "Yes" --> EvaluateVision
     GeminiFailover --> EvaluateVision{"Does Image Semantically Match Written Concern?"}
     
-    EvaluateVision -- "No (Mismatched / Selfie / Inappropriate)" --> RejectSubmission[/Reject Submission & Show Specific Mismatch Explanation/]
+    EvaluateVision -- "No (Mismatched / Selfie / Inappropriate)" --> RejectSubmission[/"Reject Submission & Show Specific Mismatch Explanation"/]
     RejectSubmission --> CapturePhoto
     
-    EvaluateVision -- "Yes (Concept Aligned)" --> CalcCategory[Extract Valid Category & Urgency Score]
+    EvaluateVision -- "Yes (Concept Aligned)" --> CalcCategory["Extract Valid Category & Urgency Score"]
     CalcCategory --> CentroidCalc[["Haversine Distance vs 32 Kabankalan Barangay Centroids"]]
-    CentroidCalc --> SetIncidentBarangay[Assign Exact Nearest incident_barangay]
+    CentroidCalc --> SetIncidentBarangay["Assign Exact Nearest incident_barangay"]
     
     SetIncidentBarangay --> SimilarityEngine[["Similarity Check: Query Open & Resolved Concerns"]]
     SimilarityEngine --> CheckMatch{"Matching Hazard Found in Same Barangay & Category?"}
     
-    CheckMatch -- "Active Match (Pending / In Progress)" --> LinkDup[(concern_links: link_type = 'duplicate')]
-    LinkDup --> SaveConcern[(concerns: status = 'Pending' / sync In-Progress)]
+    CheckMatch -- "Active Match (Pending / In Progress)" --> LinkDup[("concern_links: link_type = 'duplicate'")]
+    LinkDup --> SaveConcern[("concerns: status = 'Pending' / sync In-Progress")]
     
-    CheckMatch -- "Historical Match (Resolved)" --> LinkRel[(concern_links: link_type = 'related')]
+    CheckMatch -- "Historical Match (Resolved)" --> LinkRel[("concern_links: link_type = 'related'")]
     LinkRel --> SaveConcern
     
     CheckMatch -- "No Match Found" --> SaveConcern
     
-    SaveConcern --> PersistBinary[(file_storage: incident photo LONGBLOB)]
-    PersistBinary --> EmitEvent[[Socket.io: emit 'new_concern']]
-    EmitEvent --> OutputDocket[/Display Official Municipal Docket Receipt & Timeline/]
-    OutputDocket --> End([Submission Successfully Recorded])
+    SaveConcern --> PersistBinary[("file_storage: incident photo LONGBLOB")]
+    PersistBinary --> EmitEvent[["Socket.io: emit 'new_concern'"]]
+    EmitEvent --> OutputDocket[/"Display Official Municipal Docket Receipt & Timeline"/]
+    OutputDocket --> End(["Submission Successfully Recorded"])
 ```
 
 ---
@@ -221,64 +221,57 @@ Illustrates two-factor email OTP administrator authentication, GIS dashboard tri
 
 ```mermaid
 flowchart TD
-    Start([Administrator Navigates to /login]) --> EnterCredentials[/Enter Email & Password/]
+    Start(["Administrator Navigates to /login"]) --> EnterCredentials[/"Enter Email & Password"/]
     EnterCredentials --> CheckCreds{"Password Hash Matches (bcrypt) & Role = 'admin'?"}
     
-    CheckCreds -- "No" --> CredsError[/Display 'Invalid Credentials' Error/]
+    CheckCreds -- "No" --> CredsError[/"Display 'Invalid Credentials' Error"/]
     CredsError --> EnterCredentials
     
-    CheckCreds -- "Yes" --> GenOTP[Generate Secure 6-Digit OTP]
-    GenOTP --> Save2FA[(admin_2fa_codes: otp_hash, expires_at = NOW + 10m)]
+    CheckCreds -- "Yes" --> GenOTP["Generate Secure 6-Digit OTP"]
+    GenOTP --> Save2FA[("admin_2fa_codes: otp_hash, expires_at = NOW + 10m")]
     Save2FA --> SendAdminEmail[["Nodemailer: Deliver 2FA Code to Admin Official Email"]]
-    SendAdminEmail --> IssueMFAToken[Issue Ephemeral mfaToken]
+    SendAdminEmail --> IssueMFAToken["Issue Ephemeral mfaToken"]
     
-    IssueMFAToken --> Prompt2FA[/Enter 6-Digit 2FA Code (45s Resend Cooldown)/]
+    IssueMFAToken --> Prompt2FA[/"Enter 6-Digit 2FA Code (45s Resend Cooldown)"/]
     Prompt2FA --> Verify2FA{"OTP Valid & Not Expired?"}
     
-    Verify2FA -- "No" --> OTPError[/Display 'Invalid Code' Notice/]
+    Verify2FA -- "No" --> OTPError[/"Display 'Invalid Code' Notice"/]
     OTPError --> Prompt2FA
     
-    Verify2FA -- "Yes" --> Delete2FA[(Delete admin_2fa_codes Entry)]
-    Delete2FA --> IssueAdminJWT[Issue Full Admin JWT Session Cookie]
+    Verify2FA -- "Yes" --> Delete2FA[("Delete admin_2fa_codes Entry")]
+    Delete2FA --> IssueAdminJWT["Issue Full Admin JWT Session Cookie"]
     
-    IssueAdminJWT --> AdminDashboard[/Admin Dashboard: GIS Heatmap, Status Lists, KPI Cards/]
-    AdminDashboard --> SelectTicket[/Open Specific Concern Detail Drawer/]
+    IssueAdminJWT --> AdminDashboard[/"Admin Dashboard: GIS Heatmap, Status Lists, KPI Cards"/]
+    AdminDashboard --> SelectTicket[/"Open Specific Concern Detail Drawer"/]
     
     SelectTicket --> DecideStatus{"Target Status Selection"}
     
     %% Branch: In Progress
-    DecideStatus -- "In Progress" --> DraftProgressNote[/Optional Admin Dispatch Note/]
-    DraftProgressNote --> SaveProgress[(Update concerns: status = 'In Progress')]
-    SaveProgress --> LogAudit1[(audit_log: action = 'status_change')]
-    LogAudit1 --> NotifyProgress[[Push Alert & In-App Notification: Crew Dispatched]]
+    DecideStatus -- "In Progress" --> DraftProgressNote[/"Optional Admin Dispatch Note"/]
+    DraftProgressNote --> SaveProgress[("Update concerns: status = 'In Progress'")]
+    SaveProgress --> LogAudit1[("audit_log: action = 'status_change'")]
+    LogAudit1 --> NotifyProgress[["Push Alert & In-App Notification: Crew Dispatched"]]
     
     %% Branch: Resolved
-    DecideStatus -- "Resolved" --> AttachResolvedPhoto[/Attach Resolution Proof Photo (Required/Optional)/]
-    AttachResolvedPhoto --> ClickAIDraft[/Click '✨ AI Draft' or Write Official Response/]
+    DecideStatus -- "Resolved" --> AttachResolvedPhoto[/"Attach Resolution Proof Photo (Required/Optional)"/]
+    AttachResolvedPhoto --> ClickAIDraft[/"Click '✨ AI Draft' or Write Official Response"/]
     ClickAIDraft --> GenResolvedAI[["AI Engine: Draft Formal Municipal Resolution Notice"]]
-    GenResolvedAI --> SaveResolved[(Update concerns: status = 'Resolved', resolved_image_url)]
-    SaveResolved --> LogAudit2[(audit_log: action = 'status_change')]
-    LogAudit2 --> NotifyResolved[[Push Alert: Hazard Resolved with Proof]]
+    GenResolvedAI --> SaveResolved[("Update concerns: status = 'Resolved', resolved_image_url")]
+    SaveResolved --> LogAudit2[("audit_log: action = 'status_change'")]
+    LogAudit2 --> NotifyResolved[["Push Alert: Hazard Resolved with Proof"]]
     
     %% Branch: Rejected
-    DecideStatus -- "Rejected" --> ClearPhoto[Strip & Clear Resolution Photo: resolved_image_url = NULL]
-    ClearPhoto --> DisableAIDraft[Disable Auto-Generated AI Text Response]
-    DisableAIDraft --> SelectReason[/Select 1 of 7 Standardized Municipal Grounds:
-    1. Duplicate Report
-    2. Private Property (Outside Jurisdiction)
-    3. Utility / National Scope (DPWH / CENECO)
-    4. Insufficient Details (Lacks Landmark)
-    5. Not a Public Safety Hazard
-    6. Already Cleared Upon Inspection
-    7. Invalid / Non-Civic Submission/]
-    SelectReason --> SaveRejected[(Update concerns: status = 'Rejected', admin_note = Reason)]
-    SaveRejected --> LogAudit3[(audit_log: action = 'status_change')]
-    LogAudit3 --> NotifyRejected[[Push Alert: High-Visibility Rejection Card Displayed]]
+    DecideStatus -- "Rejected" --> ClearPhoto["Strip & Clear Resolution Photo: resolved_image_url = NULL"]
+    ClearPhoto --> DisableAIDraft["Disable Auto-Generated AI Text Response"]
+    DisableAIDraft --> SelectReason[/"Select 1 of 7 Standardized Municipal Grounds:<br/>1. Duplicate Report<br/>2. Private Property (Outside Jurisdiction)<br/>3. Utility / National Scope (DPWH / CENECO)<br/>4. Insufficient Details (Lacks Landmark)<br/>5. Not a Public Safety Hazard<br/>6. Already Cleared Upon Inspection<br/>7. Invalid / Non-Civic Submission"/]
+    SelectReason --> SaveRejected[("Update concerns: status = 'Rejected', admin_note = Reason")]
+    SaveRejected --> LogAudit3[("audit_log: action = 'status_change'")]
+    LogAudit3 --> NotifyRejected[["Push Alert: High-Visibility Rejection Card Displayed"]]
     
-    NotifyProgress --> RealtimeSync[[Socket.io: emit 'status_updated']]
+    NotifyProgress --> RealtimeSync[["Socket.io: emit 'status_updated'"]]
     NotifyResolved --> RealtimeSync
     NotifyRejected --> RealtimeSync
-    RealtimeSync --> End([Concern Lifecycle Updated])
+    RealtimeSync --> End(["Concern Lifecycle Updated"])
 ```
 
 ---
@@ -289,43 +282,35 @@ Details the operational constraints governing citizen modifications to active re
 
 ```mermaid
 flowchart TD
-    Start([Citizen Opens Submitted Concern in App]) --> EditBtnClicked[/Tap 'Edit Concern' Button/]
+    Start(["Citizen Opens Submitted Concern in App"]) --> EditBtnClicked[/"Tap 'Edit Concern' Button"/]
     EditBtnClicked --> CheckStatus{"Is Status 'Pending' or 'In Progress'?"}
     
-    CheckStatus -- "No (Resolved or Rejected)" --> BlockEdit[/Display Notice: Locked — Completed/Closed Reports Cannot Be Modified/]
-    BlockEdit --> End([Edit Aborted])
+    CheckStatus -- "No (Resolved or Rejected)" --> BlockEdit[/"Display Notice: Locked — Completed/Closed Reports Cannot Be Modified"/]
+    BlockEdit --> End(["Edit Aborted"])
     
-    CheckStatus -- "Yes" --> PresentForm[/Display Edit Modal: Title & Description Editable
-    (Category, Pinned Location & Live Photo are Permanently Locked)/]
+    CheckStatus -- "Yes" --> PresentForm[/"Display Edit Modal: Title & Description Editable<br/>(Category, Pinned Location & Live Photo are Permanently Locked)"/]
     
-    PresentForm --> SubmitChanges[/Submit Updated Title & Description/]
+    PresentForm --> SubmitChanges[/"Submit Updated Title & Description"/]
     SubmitChanges --> HasImage{"Does Concern Have an Attached Incident Photo?"}
     
     HasImage -- "Yes" --> ReVerifyAI[["Dual-AI Vision: Verify New Title & Description Against Photo"]]
     ReVerifyAI --> CheckAlignment{"Does Updated Text Still Align with Photo?"}
     
-    CheckAlignment -- "No" --> ShowMismatch[/Reject Edit: Updated text contradicts original photo evidence/]
+    CheckAlignment -- "No" --> ShowMismatch[/"Reject Edit: Updated text contradicts original photo evidence"/]
     ShowMismatch --> PresentForm
     
     CheckAlignment -- "Yes" --> PrepareSnapshot
     HasImage -- "No" --> PrepareSnapshot
     
-    PrepareSnapshot[Assemble Old Values vs New Values]
-    PrepareSnapshot --> InsertHistory[(Insert concern_edit_history:
-    old_title, new_title,
-    old_description, new_description,
-    change_summary, edited_by, edited_at)]
+    PrepareSnapshot["Assemble Old Values vs New Values"]
+    PrepareSnapshot --> InsertHistory[("Insert concern_edit_history:<br/>old_title, new_title,<br/>old_description, new_description,<br/>change_summary, edited_by, edited_at")]
     
-    InsertHistory --> UpdateConcern[(Update concerns:
-    title = new_title,
-    description = new_description,
-    edit_count = edit_count + 1,
-    last_edited_at = NOW())]
+    InsertHistory --> UpdateConcern[("Update concerns:<br/>title = new_title,<br/>description = new_description,<br/>edit_count = edit_count + 1,<br/>last_edited_at = NOW()")]
     
-    UpdateConcern --> RecordAudit[(Insert audit_log: action = 'citizen_edit')]
-    RecordAudit --> EmitEdit[[Socket.io: emit 'concern_updated']]
-    EmitEdit --> UpdateUI[/Instant Refresh on Mobile App & Admin Web Drawer/]
-    UpdateUI --> EndSuccess([Edit Recorded & Audit History Appended])
+    UpdateConcern --> RecordAudit[("Insert audit_log: action = 'citizen_edit'")]
+    RecordAudit --> EmitEdit[["Socket.io: emit 'concern_updated'"]]
+    EmitEdit --> UpdateUI[/"Instant Refresh on Mobile App & Admin Web Drawer"/]
+    UpdateUI --> EndSuccess(["Edit Recorded & Audit History Appended"])
 ```
 
 ---
@@ -336,15 +321,15 @@ Illustrates the background cron jobs and automated backup daemons maintaining di
 
 ```mermaid
 flowchart TD
-    StartBackup([Daily / On-Demand Backup Triggered]) --> CheckDataChange{"Has Database Changed Since Last Snapshot?"}
-    CheckDataChange -- "No" --> SkipBackup[Log: No Changes Detected — Snapshot Skipped]
-    SkipBackup --> EndBackup([Backup Routine Complete])
+    StartBackup(["Daily / On-Demand Backup Triggered"]) --> CheckDataChange{"Has Database Changed Since Last Snapshot?"}
+    CheckDataChange -- "No" --> SkipBackup["Log: No Changes Detected — Snapshot Skipped"]
+    SkipBackup --> EndBackup(["Backup Routine Complete"])
     
     CheckDataChange -- "Yes" --> DumpEngine[["Run mysqldump or Portable JSON Exporter"]]
-    DumpEngine --> WriteFile[(Write to /backups/citivoice_dump_*.sql)]
+    DumpEngine --> WriteFile[("Write to /backups/citivoice_dump_*.sql")]
     WriteFile --> RotateBackups{"Backup Count > BACKUP_MAX_FILES?"}
     
-    RotateBackups -- "Yes" --> PurgeOld[Purge Oldest Archive File]
+    RotateBackups -- "Yes" --> PurgeOld["Purge Oldest Archive File"]
     PurgeOld --> MirrorCloud[["Off-PC Mirroring to OneDrive / Secondary Storage"]]
     
     RotateBackups -- "No" --> MirrorCloud
