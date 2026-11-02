@@ -14,7 +14,7 @@ Unlike Data Flow Diagrams (which map data movements), these system flowcharts ma
 4. [Concern Intake, Dual-AI Visual Alignment & Duplicate Detection Flowchart](#-4-concern-intake-dual-ai-visual-alignment--duplicate-detection-flowchart)
 5. [Administrator 2FA Authentication & Incident Resolution Lifecycle Flowchart](#-5-administrator-2fa-authentication--incident-resolution-lifecycle-flowchart)
 6. [Citizen Concern Editing & Version History Flowchart](#-6-citizen-concern-editing--version-history-flowchart)
-7. [Automated Priority Escalation & Database Backup Routine Flowchart](#-7-automated-priority-escalation--database-backup-routine-flowchart)
+7. [Automated Database Backup Routine Flowchart](#-7-automated-database-backup-routine-flowchart)
 
 ---
 
@@ -330,31 +330,12 @@ flowchart TD
 
 ---
 
-## ⏱️ 7. Automated Priority Escalation & Database Backup Routine Flowchart
+## 💾 7. Automated Database Backup Routine Flowchart
 
-Illustrates the background cron jobs and automated system daemons maintaining service-level agreements (SLAs) and database disaster recovery.
+Illustrates the background cron jobs and automated backup daemons maintaining disaster recovery, change detection, and file rotation.
 
 ```mermaid
 flowchart TD
-    StartEscalation([Hourly SLA Escalation Cron Triggered]) --> QueryOpen[(Query Open Concerns: status IN 'Pending', 'In Progress')]
-    QueryOpen --> LoopConcerns{For Each Open Concern}
-    
-    LoopConcerns -- "Age > 7 Days & Priority != 'High'" --> EscalateHigh[Escalate Priority to 'High']
-    EscalateHigh --> UpdateHigh[(Update concerns: priority = 'High')]
-    UpdateHigh --> NotifyHigh[(Insert notifications: Urgency Escalated to High)]
-    NotifyHigh --> LoopConcerns
-    
-    LoopConcerns -- "Age > 3 Days & Priority == 'Low'" --> EscalateMed[Escalate Priority to 'Medium']
-    EscalateMed --> UpdateMed[(Update concerns: priority = 'Medium')]
-    UpdateMed --> NotifyMed[(Insert notifications: Urgency Escalated to Medium)]
-    NotifyMed --> LoopConcerns
-    
-    LoopConcerns -- "No SLA Threshold Breached" --> NextConcern[Check Next Concern]
-    NextConcern --> LoopConcerns
-    
-    LoopConcerns -- "All Concerns Evaluated" --> EndSLA([SLA Escalation Cycle Complete])
-    
-    %% Backup Subsystem
     StartBackup([Daily / On-Demand Backup Triggered]) --> CheckDataChange{"Has Database Changed Since Last Snapshot?"}
     CheckDataChange -- "No" --> SkipBackup[Log: No Changes Detected — Snapshot Skipped]
     SkipBackup --> EndBackup([Backup Routine Complete])
@@ -382,6 +363,5 @@ flowchart TD
 | **Admin Login (2FA)** | Admin (`/login`) | 6-digit email OTP expiry & hash match | `admin_2fa_codes`, `users` | REST API |
 | **Resolution Lifecycle** | Admin (`/concerns/:id`) | Target status (`In Progress`, `Resolved`, `Rejected`) | `concerns`, `audit_log`, `notifications` | Socket.io (`status_updated`) |
 | **Concern Editing** | Citizen (`/edit`) | Status is editable (`Pending` / `In Progress`) | `concerns`, `concern_edit_history`, `audit_log` | Socket.io (`concern_updated`) |
-| **SLA Escalation** | Background Daemon | Concern elapsed age (`> 3d` ➔ Med, `> 7d` ➔ High) | `concerns`, `notifications` | Socket.io / Push |
 | **Database Backup** | Scheduled Cron / Admin | Change detection since last snapshot | `/backups/*.sql`, `/backups/*.json` | Admin Console |
 

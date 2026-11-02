@@ -41,7 +41,7 @@
   - [Email OTP & Google OAuth Citizen Verification](#-email-otp--google-oauth-citizen-verification)
   - [GPS Pinned Coordinate Analytics & 32-Barangay Matching](#-gps-pinned-coordinate-analytics--32-barangay-matching)
   - [Direct Citizen-Admin Conversation Thread & Live Comments](#-direct-citizen-admin-conversation-thread--live-comments)
-  - [Priority Escalation & Smart Duplicate Detection](#-priority-escalation--smart-duplicate-detection)
+  - [Smart Duplicate & Related Incident Detection](#-smart-duplicate--related-incident-detection)
   - [Official Tabular Municipal Print Reports](#-official-tabular-municipal-print-reports)
   - [GIS Mapping & Spatial Visualization](#-gis-mapping--spatial-visualization)
   - [Automated Database Backups & Cloud Sync](#-automated-database-backups--cloud-sync)
@@ -69,7 +69,7 @@
 2. **Public Landing Page & Executive Web Admin Portal** (*React 19*):
    Provides a public civic portal (`/`) with direct Android APK downloads, QR code scanning, and step-by-step installation instructions alongside a protected Executive Admin Console (`/login`) for managing concerns, viewing GIS heatmaps, verifying citizen identities, and printing official municipal reports.
 3. **High-Performance MVC REST & WebSocket Backend** (*Node.js 22, Express.js, Socket.io, MySQL 8.0 / Aiven Cloud*):
-   Powers stateless JWT authentication, Admin 2FA, dual-AI zero-downtime failover (Groq + Google Gemini), automated priority escalation, real-time bi-directional WebSocket updates, and scheduled database backups.
+   Powers stateless JWT authentication, Admin 2FA, dual-AI zero-downtime failover (Groq + Google Gemini), real-time bi-directional WebSocket updates, and scheduled database backups.
 
 ---
 
@@ -104,7 +104,7 @@ citivoice/
                         │  • Express.js + Socket.io   │
                         │  • Groq Llama 3.3 (Primary) │
                         │  • Google Gemini (Backup)   │
-                        │  • Priority Escalation Cron │
+                        │  • Automated DB Backups     │
                         │  • Hybrid Disk/DB File Store│
                         └──────────────┬──────────────┘
                                        │
@@ -141,7 +141,7 @@ Comprehensive step-by-step operational flowcharts, decision diamonds, and backgr
 - **Concern Intake & Dual-AI Visual Alignment** — Live camera intake, offline SWR queuing, Groq/Gemini concept verification, 32-barangay matching, and duplicate linking.
 - **Administrator 2FA & Incident Lifecycle** — 6-digit email 2FA, GIS review, AI draft generation for Progress/Resolved, and strict resolution photo stripping on rejection.
 - **Citizen Concern Editing & Version History** — Real-time editing constraints (Title & Description only), AI re-alignment checks, and immutable version snapshots.
-- **SLA Escalation & Backup Routines** — Hourly priority escalations (Low ➔ Medium ➔ High) and change-detected database backups.
+- **Automated Backup Routines** — Change-detected database backups, rotation, and disaster recovery.
 
 ---
 
@@ -207,10 +207,7 @@ Comprehensive step-by-step operational flowcharts, decision diamonds, and backgr
 - **Real-Time Two-Way Thread** — Every concern includes a live conversation thread between the reporting citizen (`👤 Citizen`) and city administrators (`🛡️ Admin Reply`).
 - **Instant Socket.io Synchronization** — Powered by `Socket.io` rooms, status updates, new concerns, and chat messages appear immediately on both web and mobile without manual refreshing.
 
-### 📈 Priority Escalation & Smart Duplicate Detection
-- **Automated Elapsed-Time Escalation** — Runs hourly to ensure unaddressed reports are prioritized:
-  - Open (`Pending` / `In Progress`) for **> 3 days**: Escalated from `Low` to `Medium`.
-  - Open for **> 7 days**: Escalated from `Medium` to `High`.
+### 🔍 Smart Duplicate & Related Incident Detection
 - **Status-Aware Similarity Engine** — Links duplicate reports against active tickets (`Pending` / `In Progress`) and automatically syncs duplicate submissions to `In Progress` when field crews are already dispatched, while treating matches against previously `Resolved` issues as recurring incidents.
 
 ### 📄 Official Tabular Municipal Print Reports

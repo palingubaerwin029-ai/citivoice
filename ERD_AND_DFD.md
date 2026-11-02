@@ -227,8 +227,8 @@ erDiagram
 6. **`concern_edit_history`**: Comprehensive version history tracking citizen modifications to active concerns prior to resolution (records `old_title`, `new_title`, `old_description`, `new_description`, `change_summary`, and audit timestamps).
 7. **`concern_links`**: Self-referencing join table linking duplicate and recurring reports with a `similarity_score` (`duplicate` for active tickets, `related` for resolved incidents).
 8. **`concern_comments`**: Stores real-time two-way conversation messages and optional image attachments between the reporting citizen and municipal administrators.
-9. **`notifications`**: Stores citizen in-app notification records (status updates, admin replies, priority escalations, ID verification results) with read/unread tracking.
-10. **`audit_log`**: Immutable JSON-backed ledger recording every administrative status transition, citizen edit, priority escalation, and ID verification decision.
+9. **`notifications`**: Stores citizen in-app notification records (status updates, admin replies, ID verification results) with read/unread tracking.
+10. **`audit_log`**: Immutable JSON-backed ledger recording every administrative status transition, citizen edit, and ID verification decision.
 11. **`file_storage`**: Stores binary image payloads (`LONGBLOB`) alongside disk storage, ensuring uploaded ID photos, avatars, and concern images persist across ephemeral cloud container restarts.
 
 ---
@@ -308,7 +308,7 @@ flowchart TB
     P4(["4.0 Citizen Concern Editing & Version History"])
     P5(["5.0 Two-Way Live Chat & Comment Thread"])
     P6(["6.0 GIS Spatial Analytics & Official Print Reports"])
-    P7(["7.0 Priority Escalation, Alerts & Database Backups"])
+    P7(["7.0 Automated Backups & System Notifications"])
 
     %% Data Stores
     D1[("D1: users / admin_2fa / email_verifications")]
@@ -363,8 +363,6 @@ flowchart TB
     P6 -->|"Heatmaps, Clusters & Official Print Report"| Admin
 
     %% Process 7 Flows
-    D2 -->|"Hourly Check Open Reports (>3d / >7d)"| P7
-    P7 -->|"Escalate Priority (Low->Med->High)"| D2
     P7 -->|"Save Notification"| D4
     D4 -->|"Deliver Notification & Push Alert"| MailPush
     D1 & D2 & D3 & D4 & D5 & D6 & D8 -->|"Execute Scheduled / Manual DB Dump"| P7

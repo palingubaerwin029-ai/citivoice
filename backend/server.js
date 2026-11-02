@@ -14,7 +14,6 @@ const jwt = require('jsonwebtoken');
 // UNCONNECTED: workflowService is handled directly by concerns and workflow controllers
 // const workflowService = require('./services/workflowService');
 const backupService = require('./services/backupService');
-const priorityService = require('./services/priorityService');
 const redisService = require('./services/redisService');
 const pool = require('./db');
 const compression = require('compression');
@@ -262,8 +261,6 @@ server.listen(PORT, async () => {
     console.warn('[Server] Auto-migrate warning:', mErr.message);
   }
 
-  priorityService.startScheduler();
-
   // ─── Start automatic database backup scheduler ───────────────────────────
   if (process.env.BACKUP_ENABLED !== 'false') {
     backupService.startScheduler();
@@ -274,7 +271,6 @@ server.listen(PORT, async () => {
 const shutdown = (signal) => {
   console.log(`[Server] ${signal} received — shutting down gracefully...`);
   backupService.stopScheduler();
-  priorityService.stopScheduler();
   io.close();
   if (redisService.client) {
     try {
