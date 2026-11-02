@@ -23,7 +23,7 @@ import s from '../styles/Landing.module.css';
 // Configurable APK download link via environment variable (falls back to /citivoice.apk or EAS build portal)
 const DEFAULT_APK_URL =
   process.env.REACT_APP_APK_URL ||
-  'https://expo.dev/accounts/erwin1229/projects/citivoice/builds/8245dfa8-1d7b-47b9-88c0-3700acd0d7e6';
+  'https://expo.dev/accounts/erwin1229/projects/citivoice/builds/dabe571f-5e47-4307-a08e-a24460222bcc';
 
 const FEATURES = [
   {
