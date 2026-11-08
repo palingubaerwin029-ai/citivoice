@@ -13,34 +13,81 @@ export const VERIFICATION_STATUS = {
 import { BASE_URL, resolveImageUrl } from '../config/api';
 export { BASE_URL, resolveImageUrl };
 
+let onUnauthorizedHandler = null;
+export const setUnauthorizedHandler = (fn) => {
+  onUnauthorizedHandler = fn;
+};
+
 const apiRequest = async (path, options = {}) => {
   const token = await AsyncStorage.getItem('cv_token');
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
-  const rawText = await res.text();
-  let data = {};
+
+  let finalPath = path;
+  if (options.params) {
+    const qs = new URLSearchParams(options.params).toString();
+    if (qs) finalPath = `${path}?${qs}`;
+  }
+
+  let res;
   try {
-    data = rawText ? JSON.parse(rawText) : {};
-  } catch (_) {
-    if (!res.ok) {
+    res = await fetch(`${BASE_URL}${finalPath}`, { ...options, headers });
+  } catch (netErr) {
+    const error = new Error('Unable to connect to the CitiVoice server. Please check your internet connection.');
+    error.status = 0;
+    error.isNetworkError = true;
+    error.originalError = netErr;
+    throw error;
+  }
+
+  if (!res.ok) {
+    if (res.status === 401 && token) {
+      const isAuthEndpoint =
+        path.startsWith('/auth/login') ||
+        path.startsWith('/auth/register') ||
+        path.startsWith('/auth/google') ||
+        path.startsWith('/auth/verify-registration-otp') ||
+        path.startsWith('/auth/send-registration-otp');
+
+      if (!isAuthEndpoint) {
+        await AsyncStorage.multiRemove(['cv_token', 'cv_user']);
+        SocketService.disconnect();
+        if (onUnauthorizedHandler) {
+          onUnauthorizedHandler();
+        }
+      }
+    }
+
+    const rawText = await res.text().catch(() => '');
+    let data = {};
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch (_) {
       const error = new Error(`Server temporarily unavailable (${res.status})`);
       error.status = res.status;
       throw error;
     }
-    throw new Error('Invalid server response format');
-  }
-  if (!res.ok) {
-    const error = new Error(data.error || 'Request failed');
+
+    const msg = data.message || data.error || `Request failed (${res.status})`;
+    const error = new Error(msg);
     error.code = data.error;
+    error.field = data.field;
     error.status = res.status;
     error.data = data;
     throw error;
   }
-  return data;
+
+  if (res.status === 204) return null;
+  const rawText = await res.text().catch(() => '');
+  try {
+    return rawText ? JSON.parse(rawText) : null;
+  } catch (_) {
+    return rawText;
+  }
 };
 
 // ── Auth Context ───────────────────────────────────────────────────────────
@@ -49,6 +96,14 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Auto-logout handler for 401s
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setUser(null);
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   // Restore session from AsyncStorage on mount (with offline cache fallback)
   useEffect(() => {
@@ -226,9 +281,24 @@ export const useAuth = () => useContext(AuthContext);
 // (services import this instead of Firebase)
 export const mobileApi = {
   request: apiRequest,
-  get: (path) => apiRequest(path),
-  post: (path, body) => apiRequest(path, { method: 'POST', body: JSON.stringify(body) }),
-  put: (path, body) => apiRequest(path, { method: 'PUT', body: JSON.stringify(body) }),
-  patch: (path, body) => apiRequest(path, { method: 'PATCH', body: JSON.stringify(body) }),
-  delete: (path) => apiRequest(path, { method: 'DELETE' }),
+  get: (path, options = {}) => apiRequest(path, { ...options, method: 'GET' }),
+  post: (path, body, options = {}) =>
+    apiRequest(path, {
+      ...options,
+      method: 'POST',
+      body: typeof FormData !== 'undefined' && body instanceof FormData ? body : JSON.stringify(body),
+    }),
+  put: (path, body, options = {}) =>
+    apiRequest(path, {
+      ...options,
+      method: 'PUT',
+      body: typeof FormData !== 'undefined' && body instanceof FormData ? body : JSON.stringify(body),
+    }),
+  patch: (path, body, options = {}) =>
+    apiRequest(path, {
+      ...options,
+      method: 'PATCH',
+      body: typeof FormData !== 'undefined' && body instanceof FormData ? body : JSON.stringify(body),
+    }),
+  delete: (path, options = {}) => apiRequest(path, { ...options, method: 'DELETE' }),
 };

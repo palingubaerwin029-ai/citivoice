@@ -9,15 +9,18 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import { NetworkProvider } from "./src/context/NetworkContext";
+import ErrorBoundary from "./src/components/ErrorBoundary";
 
 // ── Root component ─────────────────────────────────────────────────────────
 export default function App() {
   return (
-    <ThemeProvider>
-      <NetworkProvider>
-        <AppContent />
-      </NetworkProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <NetworkProvider>
+          <AppContent />
+        </NetworkProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

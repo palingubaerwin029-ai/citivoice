@@ -46,6 +46,7 @@ export default function HomeScreen({ navigation }) {
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
   // Refresh exact concern stats whenever HomeScreen comes into focus
   useFocusEffect(
@@ -84,13 +85,27 @@ export default function HomeScreen({ navigation }) {
       setLoadingMore(true);
     }
     
-    const res = await loadFeed(p, 10, isRefresh);
-    
-    // Stop pagination when we've reached the last page or got no data
-    if (res && res.totalPages) {
-      setHasMore(p < res.totalPages);
-    } else if (!res || !res.data || res.data.length === 0) {
-      setHasMore(false);
+    try {
+      const res = await loadFeed(p, 10, isRefresh);
+      
+      // Stop pagination when we've reached the last page or got no data
+      if (res && res.totalPages) {
+        setLoadError(null);
+        setHasMore(p < res.totalPages);
+      } else if (!res || !res.data || res.data.length === 0) {
+        setHasMore(false);
+        if (!res && safeConcerns.length === 0) {
+          setLoadError(t('unableToConnect') || 'Unable to connect to CitiVoice server. Check your connection.');
+        } else {
+          setLoadError(null);
+        }
+      } else {
+        setLoadError(null);
+      }
+    } catch (err) {
+      if (safeConcerns.length === 0) {
+        setLoadError(err?.message || 'Unable to connect to CitiVoice server.');
+      }
     }
 
     if (isRefresh) setRefreshing(false);
@@ -319,6 +334,14 @@ export default function HomeScreen({ navigation }) {
         ListEmptyComponent={
           loading && concerns.length === 0 ? (
             renderSkeletons()
+          ) : loadError && safeConcerns.length === 0 ? (
+            <EmptyState
+              icon="⚠️"
+              title={t('failedToLoad') || 'Unable to Load Concerns'}
+              subtitle={loadError}
+              action={onRefresh}
+              actionLabel={t('retry') || 'Retry Connection'}
+            />
           ) : (
             <EmptyState
               icon={safeConcerns.length === 0 ? '📝' : '🔍'}

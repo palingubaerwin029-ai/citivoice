@@ -2,38 +2,34 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 
-import { BASE_URL } from '../context/AuthContext';
+import { BASE_URL, mobileApi } from '../context/AuthContext';
 
 const getToken = async () => AsyncStorage.getItem('cv_token');
 
-const apiRequest = async (path, options = {}) => {
-  const token = await getToken();
-  const isFormData = options.body instanceof FormData;
-  const headers = {
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    ...options.headers,
-  };
-  
-  let finalPath = path;
-  if (options.params) {
-    const qs = new URLSearchParams(options.params).toString();
-    if (qs) finalPath = `${path}?${qs}`;
-  }
+const apiRequest = (path, options = {}) => mobileApi.request(path, options);
 
-  const res = await fetch(`${BASE_URL}${finalPath}`, { ...options, headers });
-  const rawText = await res.text();
-  let data = {};
+const uploadWithCatch = async (url, fileUri, options) => {
   try {
-    data = rawText ? JSON.parse(rawText) : {};
-  } catch (_) {
-    if (!res.ok) {
-      throw new Error(`Server temporarily unavailable (${res.status})`);
+    const uploadResult = await FileSystem.uploadAsync(url, fileUri, options);
+    let data = {};
+    try {
+      data = JSON.parse(uploadResult.body);
+    } catch (_) {}
+    if (uploadResult.status >= 400) {
+      const err = new Error(data.message || data.error || `Upload failed (${uploadResult.status})`);
+      err.status = uploadResult.status;
+      err.data = data;
+      throw err;
     }
-    throw new Error('Invalid server response format');
+    return data;
+  } catch (err) {
+    if (err.status) throw err;
+    const netError = new Error('Unable to connect to the CitiVoice server. Please check your internet connection.');
+    netError.status = 0;
+    netError.isNetworkError = true;
+    netError.originalError = err;
+    throw netError;
   }
-  if (!res.ok) throw new Error(data.error || 'Request failed');
-  return data;
 };
 
 export const ConcernService = {
@@ -52,7 +48,7 @@ export const ConcernService = {
       // Fallback to original imageUri if manipulation fails
     }
 
-    const uploadResult = await FileSystem.uploadAsync(
+    const data = await uploadWithCatch(
       `${BASE_URL}/concerns/upload/id-image`,
       uploadUri,
       {
@@ -62,11 +58,6 @@ export const ConcernService = {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       }
     );
-    let data = {};
-    try {
-      data = JSON.parse(uploadResult.body);
-    } catch (_) {}
-    if (uploadResult.status >= 400) throw new Error(data.error || 'Upload failed');
     return data.url; // returns the hosted image URL
   },
 
@@ -85,7 +76,7 @@ export const ConcernService = {
     const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
     if (imageUri) {
-      const uploadResult = await FileSystem.uploadAsync(
+      return await uploadWithCatch(
         `${BASE_URL}/concerns`,
         imageUri,
         {
@@ -106,35 +97,19 @@ export const ConcernService = {
           },
         }
       );
-      let data = {};
-      try {
-        data = JSON.parse(uploadResult.body);
-      } catch (_) {}
-      if (uploadResult.status >= 400) {
-        throw new Error(data.error || 'Failed to submit concern');
-      }
-      return data;
     }
 
-    // Text-only submission without image
-    const res = await fetch(`${BASE_URL}/concerns`, {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: String(title || ''),
-        description: String(description || ''),
-        category: String(category || ''),
-        priority: String(priority || 'Medium'),
-        user_name: String(userName || ''),
-        user_barangay: String(userBarangay || ''),
-        location_address: String(location?.address || ''),
-        location_lat: location?.latitude ? location.latitude : null,
-        location_lng: location?.longitude ? location.longitude : null,
-      }),
+    return await mobileApi.post('/concerns', {
+      title: String(title || ''),
+      description: String(description || ''),
+      category: String(category || ''),
+      priority: String(priority || 'Medium'),
+      user_name: String(userName || ''),
+      user_barangay: String(userBarangay || ''),
+      location_address: String(location?.address || ''),
+      location_lat: location?.latitude ? location.latitude : null,
+      location_lng: location?.longitude ? location.longitude : null,
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to submit concern');
-    return data;
   },
 
   // ── Get concerns (paginated) ─────────────────────────────────────────────
@@ -175,7 +150,7 @@ export const ConcernService = {
       Object.keys(params).forEach((k) => {
         uploadParams[k] = String(params[k] ?? '');
       });
-      const uploadResult = await FileSystem.uploadAsync(
+      return await uploadWithCatch(
         `${BASE_URL}/concerns/${id}/edit`,
         imageUri,
         {
@@ -186,14 +161,6 @@ export const ConcernService = {
           parameters: uploadParams,
         }
       );
-      let data = {};
-      try {
-        data = JSON.parse(uploadResult.body);
-      } catch (_) {}
-      if (uploadResult.status >= 400) {
-        throw new Error(data.error || 'Failed to update concern');
-      }
-      return data;
     }
 
     return apiRequest(`/concerns/${id}/edit`, {
@@ -231,7 +198,7 @@ export const ConcernService = {
     const token = await getToken();
     const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
-    const uploadResult = await FileSystem.uploadAsync(
+    return await uploadWithCatch(
       `${BASE_URL}/concerns/verify-image`,
       imageUri,
       {
@@ -246,14 +213,6 @@ export const ConcernService = {
         },
       }
     );
-    let data = {};
-    try {
-      data = JSON.parse(uploadResult.body);
-    } catch (_) {}
-    if (uploadResult.status >= 400) {
-      throw new Error(data.error || 'Failed to verify image');
-    }
-    return data;
   },
 
   // ── AI ID Details Verification Check (Name & ID Number) ────────────────

@@ -37,6 +37,7 @@ export default function MyConcernsScreen({ navigation }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
   // Refresh exact concern stats whenever MyConcernsScreen comes into focus
   useFocusEffect(
@@ -53,12 +54,26 @@ export default function MyConcernsScreen({ navigation }) {
       setLoadingMore(true);
     }
     
-    const res = await loadMyConcerns(p, 10, isRefresh);
-    
-    if (res && res.totalPages) {
-      setHasMore(p < res.totalPages);
-    } else if (!res || !res.data || res.data.length === 0) {
-      setHasMore(false);
+    try {
+      const res = await loadMyConcerns(p, 10, isRefresh);
+      
+      if (res && res.totalPages) {
+        setLoadError(null);
+        setHasMore(p < res.totalPages);
+      } else if (!res || !res.data || res.data.length === 0) {
+        setHasMore(false);
+        if (!res && safeMyConcerns.length === 0) {
+          setLoadError(t('unableToConnect') || 'Unable to connect to CitiVoice server. Check your connection.');
+        } else {
+          setLoadError(null);
+        }
+      } else {
+        setLoadError(null);
+      }
+    } catch (err) {
+      if (safeMyConcerns.length === 0) {
+        setLoadError(err?.message || 'Unable to connect to CitiVoice server.');
+      }
     }
 
     if (isRefresh) setRefreshing(false);
@@ -207,17 +222,27 @@ export default function MyConcernsScreen({ navigation }) {
           </>
         )}
         ListEmptyComponent={
-          <EmptyState
-            icon={myConcerns.length === 0 ? '📝' : '🔍'}
-            title={myConcerns.length === 0 ? t('noConcernsFound') : t('noConcernsFound')}
-            subtitle={myConcerns.length === 0 ? t('beFirstToReport') : t('tryAdjusting')}
-            action={
-              myConcerns.length === 0
-                ? () => navigation.navigate('Home', { screen: 'SubmitConcern' })
-                : null
-            }
-            actionLabel={t('reportConcern')}
-          />
+          loadError && safeMyConcerns.length === 0 ? (
+            <EmptyState
+              icon="⚠️"
+              title={t('failedToLoad') || 'Unable to Load Concerns'}
+              subtitle={loadError}
+              action={onRefresh}
+              actionLabel={t('retry') || 'Retry Connection'}
+            />
+          ) : (
+            <EmptyState
+              icon={safeMyConcerns.length === 0 ? '📝' : '🔍'}
+              title={safeMyConcerns.length === 0 ? t('noConcernsFound') : t('noConcernsFound')}
+              subtitle={safeMyConcerns.length === 0 ? t('beFirstToReport') : t('tryAdjusting')}
+              action={
+                safeMyConcerns.length === 0
+                  ? () => navigation.navigate('Home', { screen: 'SubmitConcern' })
+                  : null
+              }
+              actionLabel={t('reportConcern')}
+            />
+          )
         }
         renderItem={({ item }) => (
           <ConcernCard
