@@ -18,7 +18,15 @@ export default function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => {
+    if (typeof window !== 'undefined' && window.location) {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('expired') === '1') {
+        return 'Your session has expired. Please sign in again.';
+      }
+    }
+    return '';
+  });
   const [fieldErrors, setFieldErrors] = useState({});
 
   // 2FA state

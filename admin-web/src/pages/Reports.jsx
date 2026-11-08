@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoRefreshOutline } from 'react-icons/io5';
 import { api, fmtDateShort, fmtTime, getPinBarangay, getCategoryConfig, KABANKALAN_BARANGAY_COORDS } from '../services/api';
+import { useToast } from '../components/ToastProvider';
 import s from '../styles/Admin.module.css';
 import r from '../styles/Reports.module.css';
 
@@ -26,6 +27,7 @@ const MONTH_OPTIONS = [
 
 export default function Reports() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [concerns, setConcerns] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -62,6 +64,7 @@ export default function Reports() {
       })
       .catch((err) => {
         console.error('Failed to load reports:', err);
+        toast.error('Failed to load report data: ' + (err.message || 'Connection error'));
       })
       .finally(() => setLoading(false));
   };

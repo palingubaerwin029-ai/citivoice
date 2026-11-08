@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api, fmtDateShort, maskEmail, resolveImageUrl, getCategoryConfig } from '../services/api';
+import { useToast } from '../components/ToastProvider';
 import s from '../styles/Admin.module.css';
 import u from '../styles/Users.module.css';
 import Pagination, { useFitPagination } from '../components/Pagination';
@@ -84,6 +85,7 @@ const STATUS = {
 };
 
 export default function Users() {
+  const toast = useToast();
   const [users, setUsers] = useState([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [userConcerns, setUserConcerns] = useState([]);
@@ -115,10 +117,11 @@ export default function Users() {
         setSelected(null);
       }
       setUserToDelete(null);
+      toast.success('User account deleted');
       loadUsers();
       loadStats();
     } catch (err) {
-      alert(err.message || 'Failed to delete user');
+      toast.error(err.message || 'Failed to delete user');
     } finally {
       setDeleting(false);
     }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, fmtDateShort } from '../services/api';
+import { useToast } from '../components/ToastProvider';
 import {
   IoBusinessOutline,
   IoPencilOutline,
@@ -14,6 +15,7 @@ const EMPTY = { name: '' };
 
 export default function Barangays() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [barangays, setBarangays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -27,7 +29,10 @@ export default function Barangays() {
     api
       .get('/barangays')
       .then(setBarangays)
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        toast.error('Failed to load barangays: ' + (err.message || 'Network error'));
+      })
       .finally(() => setLoading(false));
 
   useEffect(() => {
@@ -36,22 +41,24 @@ export default function Barangays() {
 
   const saveBarangay = async () => {
     if (!form.name.trim()) {
-      alert('Barangay name is required.');
+      toast.warning('Barangay name is required.');
       return;
     }
     setSaving(true);
     try {
       if (editItem) {
         await api.put(`/barangays/${editItem.id}`, { name: form.name.trim() });
+        toast.success('Barangay updated successfully');
       } else {
         await api.post('/barangays', { name: form.name.trim() });
+        toast.success('Barangay added successfully');
       }
       setShowForm(false);
       setEditItem(null);
       setForm(EMPTY);
       load();
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Failed to save barangay');
     }
     setSaving(false);
   };
@@ -59,10 +66,11 @@ export default function Barangays() {
   const handleDelete = async (id) => {
     try {
       await api.delete(`/barangays/${id}`);
+      toast.success('Barangay deleted');
       setDeleteConfirm(null);
       load();
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Failed to delete barangay');
     }
   };
 

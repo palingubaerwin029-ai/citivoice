@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api, fmtDateShort, maskEmail, resolveImageUrl } from '../services/api';
+import { useToast } from '../components/ToastProvider';
 import s from '../styles/Admin.module.css';
 import v from '../styles/Verification.module.css';
 import Pagination, { useFitPagination } from '../components/Pagination';
@@ -85,12 +86,12 @@ function UserAvatar({ user, className, style }) {
 }
 
 export default function Verification() {
+  const toast = useToast();
   const [users, setUsers] = useState([]);
   const [selected, setSelected] = useState(null);
   const [filter, setFilter] = useState('pending');
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
   const [lightboxImg, setLightboxImg] = useState(null);
   const [idImgError, setIdImgError] = useState(false);
   const [search, setSearch] = useState('');
@@ -137,14 +138,9 @@ export default function Verification() {
       await fn();
       await loadData();
     } catch (e) {
-      alert(e.message);
+      toast.error(e.message || 'Operation failed');
     }
     setSaving(false);
-  };
-
-  const showToast = (message, type) => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
   };
 
   const autoAdvanceOrClose = () => {
@@ -162,18 +158,18 @@ export default function Verification() {
   const handleApprove = () =>
     act(async () => {
       await api.patch(`/users/${selected.id}/verify`);
-      showToast(`✅ Verification Approved`, 'success');
+      toast.success('Verification Approved');
       autoAdvanceOrClose();
     });
 
   const handleReject = () => {
     if (!reason.trim()) {
-      alert('Please enter a rejection reason.');
+      toast.warning('Please enter a rejection reason.');
       return;
     }
     act(async () => {
       await api.patch(`/users/${selected.id}/reject`, { reason: reason.trim() });
-      showToast(`❌ Verification Rejected`, 'error');
+      toast.error('Verification Rejected');
       autoAdvanceOrClose();
     });
   };
@@ -182,6 +178,7 @@ export default function Verification() {
     if (!window.confirm(`Revoke verification for ${selected.name}?`)) return;
     act(async () => {
       await api.patch(`/users/${selected.id}/revoke`);
+      toast.info('Verification Revoked');
       setSelected(null);
     });
   };
@@ -191,7 +188,7 @@ export default function Verification() {
     if (!window.confirm(`Permanently delete citizen "${u.name}" (${u.email})? This action cannot be undone.`)) return;
     act(async () => {
       await api.delete(`/users/${u.id}`);
-      showToast(`🗑️ Citizen account deleted`, 'success');
+      toast.success('Citizen account deleted');
       if (selected?.id === u.id) setSelected(null);
     });
   };
@@ -768,18 +765,6 @@ export default function Verification() {
           </>
         )}
       </div>
-
-      {/* Toast Notification */}
-      {toast && (
-        <div className={s.toastContainer}>
-          <div
-            className={s.toast}
-            style={{ background: toast.type === 'success' ? '#10B981' : '#EF4444' }}
-          >
-            {toast.message}
-          </div>
-        </div>
-      )}
 
       {/* Lightbox */}
       {lightboxImg && (

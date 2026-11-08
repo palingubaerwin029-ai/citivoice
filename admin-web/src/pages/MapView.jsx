@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api, resolveImageUrl, getCategoryConfig } from '../services/api';
+import { useToast } from '../components/ToastProvider';
 import { socket } from '../services/socket';
 
 import L from 'leaflet';
@@ -242,6 +243,7 @@ function HeatmapLayer({ data, visible }) {
 export function MapView() {
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
   const searchParams = new URLSearchParams(location.search);
   const targetConcernId = searchParams.get('concernId');
   const targetLat = searchParams.get('lat');
@@ -300,7 +302,10 @@ export function MapView() {
           : [];
         setConcerns(list);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error(err);
+        toast.error('Failed to load map pins: ' + (err.message || 'Connection error'));
+      });
 
     const onNewConcern = (newConcern) => {
       setConcerns((prev) => [newConcern, ...(Array.isArray(prev) ? prev : [])]);

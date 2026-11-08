@@ -19,6 +19,7 @@ import Backup from './pages/Backup';
 import Account from './pages/Account';
 import ToastProvider from './components/ToastProvider';
 import { NotificationProvider } from './context/NotificationContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -137,9 +138,10 @@ export default function App() {
   const isAdminUser = user && user.role === 'admin';
 
   return (
-    <ToastProvider>
-      <NotificationProvider>
-        <BrowserRouter>
+    <ErrorBoundary>
+      <ToastProvider>
+        <NotificationProvider>
+          <BrowserRouter>
           <Routes>
             {/* Public Civic Landing Page & Mobile App Portal */}
             <Route
@@ -201,6 +203,7 @@ export default function App() {
         </BrowserRouter>
       </NotificationProvider>
     </ToastProvider>
+    </ErrorBoundary>
   );
 }
 
@@ -214,20 +217,22 @@ function AdminLayout({ user, onUserUpdate, onLogout, theme, onThemeToggle }) {
         onThemeToggle={onThemeToggle}
       />
       <main style={styles.main}>
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/concerns" element={<Concerns />} />
-          <Route path="/concerns/:id" element={<ConcernDetail />} />
-          <Route path="/map" element={<MapView />} />
-          <Route path="/verification" element={<Verification />} />
-          <Route path="/users" element={<Users />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/barangays" element={<Barangays />} />
-          <Route path="/backup" element={<Backup />} />
-          <Route path="/account" element={<Account user={user} onUserUpdate={onUserUpdate} />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/concerns" element={<Concerns />} />
+            <Route path="/concerns/:id" element={<ConcernDetail />} />
+            <Route path="/map" element={<MapView />} />
+            <Route path="/verification" element={<Verification />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/barangays" element={<Barangays />} />
+            <Route path="/backup" element={<Backup />} />
+            <Route path="/account" element={<Account user={user} onUserUpdate={onUserUpdate} />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </ErrorBoundary>
       </main>
     </div>
   );

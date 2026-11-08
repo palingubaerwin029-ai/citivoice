@@ -59,6 +59,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [concerns, setConcerns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [recentPage, setRecentPage] = useState(1);
   const RECENT_PER_PAGE = 20;
 
@@ -102,11 +103,17 @@ export default function Dashboard() {
 
     const fetchData = (isSilent = false) => {
       if (!isSilent) setLoading(true);
+      setLoadError(null);
       api.get('/concerns')
         .then((res) => {
           setConcerns(res.data || []);
         })
-        .catch(console.error)
+        .catch((err) => {
+          console.error(err);
+          if (!isSilent) {
+            setLoadError(err.message || 'Unable to connect to CitiVoice server. Please check connection.');
+          }
+        })
         .finally(() => {
           if (!isSilent) setLoading(false);
         });
@@ -268,6 +275,39 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {loadError && (
+        <div style={{
+          margin: '0 0 20px 0',
+          padding: '12px 18px',
+          backgroundColor: 'rgba(239, 68, 68, 0.12)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: 12,
+          color: '#EF4444',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: 13,
+          fontWeight: 500,
+        }}>
+          <span>⚠️ {loadError}</span>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              background: '#EF4444',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '6px 14px',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Retry Connection
+          </button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className={`${s.statsRow} stagger-1`}>

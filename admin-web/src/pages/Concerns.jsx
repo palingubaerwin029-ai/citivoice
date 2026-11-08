@@ -51,6 +51,7 @@ export default function Concerns() {
   const [concerns, setConcerns] = useState(() => (isDefaultFilter ? memCache.data || [] : []));
   const [totalConcerns, setTotalConcerns] = useState(() => (isDefaultFilter ? memCache.total || 0 : 0));
   const [loading, setLoading] = useState(() => (isDefaultFilter ? !memCache.data : true));
+  const [loadError, setLoadError] = useState(null);
 
   // Load barangays list for dropdown
   useEffect(() => {
@@ -101,6 +102,7 @@ export default function Concerns() {
 
   const loadData = (showSkeleton = false) => {
     if (showSkeleton) setLoading(true);
+    setLoadError(null);
 
     const params = {
       page: concernPage,
@@ -123,7 +125,10 @@ export default function Concerns() {
           total,
         };
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        setLoadError(err.message || 'Unable to load concerns. Please check connection.');
+      })
       .finally(() => setLoading(false));
   };
 
@@ -401,6 +406,38 @@ export default function Concerns() {
       </div>
 
       {/* Table */}
+      {loadError && (
+        <div style={{
+          margin: '0 0 16px 0',
+          padding: '12px 18px',
+          backgroundColor: 'rgba(239, 68, 68, 0.12)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: 12,
+          color: '#EF4444',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: 13,
+          fontWeight: 500,
+        }}>
+          <span>⚠️ {loadError}</span>
+          <button
+            onClick={() => loadData(true)}
+            style={{
+              background: '#EF4444',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '6px 14px',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Retry Connection
+          </button>
+        </div>
+      )}
       <div className={s.tableWrap}>
         <table className={s.table}>
               <thead className={s.thead}>

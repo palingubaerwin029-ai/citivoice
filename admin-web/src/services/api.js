@@ -31,8 +31,32 @@ const request = async (path, options = {}) => {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
-  const res = await fetch(`${getBaseUrl()}${path}`, { ...options, headers });
+
+  let res;
+  try {
+    res = await fetch(`${getBaseUrl()}${path}`, { ...options, headers });
+  } catch (netErr) {
+    const error = new Error('Unable to connect to the CitiVoice server. Please check your internet connection.');
+    error.status = 0;
+    error.isNetworkError = true;
+    error.originalError = netErr;
+    throw error;
+  }
+
   if (!res.ok) {
+    if (res.status === 401 && token) {
+      // Avoid redirect loops during initial login, 2FA, or boot auth check
+      const isAuthCheck = path.startsWith('/auth/');
+      if (!isAuthCheck && typeof window !== 'undefined' && window.location) {
+        const p = window.location.pathname;
+        if (p !== '/login' && p !== '/' && p !== '/welcome') {
+          localStorage.removeItem('cv_token');
+          localStorage.removeItem('cv_user');
+          window.location.href = '/login?expired=1';
+        }
+      }
+    }
+
     const err = await res.json().catch(() => ({ error: res.statusText }));
     const error = new Error(err.message || err.error || 'Request failed');
     error.code = err.error;
@@ -41,7 +65,14 @@ const request = async (path, options = {}) => {
     error.data = err;
     throw error;
   }
-  return res.json();
+
+  if (res.status === 204) return null;
+  const text = await res.text();
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch {
+    return text;
+  }
 };
 
 export const api = {

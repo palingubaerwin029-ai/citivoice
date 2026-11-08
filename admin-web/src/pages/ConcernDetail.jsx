@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { api, fmtDate, fmtDateShort, fmtTime, fmtDateTime, resolveImageUrl, getPinBarangay, getCategoryConfig } from '../services/api';
 import { socket } from '../services/socket';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useToast } from '../components/ToastProvider';
 import s from '../styles/Admin.module.css';
 import cd from '../styles/ConcernDetail.module.css';
 
@@ -82,6 +83,7 @@ const REJECTION_REASONS = [
 export default function ConcernDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [concern, setConcern] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selStatus, setSelStatus] = useState('');
@@ -234,7 +236,7 @@ export default function ConcernDetail() {
 
   const handleSave = async () => {
     if (selStatus === 'Rejected' && !note.trim()) {
-      alert('Please select or provide a valid reason for rejecting this concern.');
+      toast.warning('Please select or provide a valid reason for rejecting this concern.');
       return;
     }
     setSaving(true);
@@ -275,11 +277,12 @@ export default function ConcernDetail() {
       setResolvedPreview(null);
       setClearResolvedImage(false);
       setTimeout(() => setSaved(false), 3000);
+      toast.success('Concern updated successfully');
       // Refetch to sync
       const updated = await api.get(`/concerns/${id}`);
       setConcern(updated);
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Failed to update concern');
     }
     setSaving(false);
   };
@@ -321,7 +324,7 @@ export default function ConcernDetail() {
     } catch (err) {
       console.warn('AI generation notice:', err.message);
       if (!isAuto) {
-        alert('AI generation failed: ' + err.message);
+        toast.error('AI generation failed: ' + err.message);
       }
     }
     setAiGenerating(false);
@@ -355,10 +358,11 @@ export default function ConcernDetail() {
         comment: newComment.trim(),
       });
       setNewComment('');
+      toast.success('Reply sent');
       const updatedComments = await api.get(`/concerns/${id}/comments`);
       setComments(updatedComments || []);
     } catch (err) {
-      alert('Failed to send reply: ' + err.message);
+      toast.error('Failed to send reply: ' + (err.message || 'Error occurred'));
     }
     setAddingComment(false);
   };
