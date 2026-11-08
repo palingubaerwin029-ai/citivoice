@@ -956,7 +956,7 @@ export default function Account({ user, onUserUpdate }) {
               )}
 
               {isSuperAdmin && (
-                <form onSubmit={handleCreateAdmin}>
+                <form onSubmit={handleCreateAdmin} autoComplete="off">
                 <div className={a.formGrid}>
                   {/* New Admin Full Name */}
                   <div className={a.fieldGroup}>
@@ -979,6 +979,7 @@ export default function Account({ user, onUserUpdate }) {
                           }
                         }}
                         placeholder="e.g. Juan Dela Cruz"
+                        autoComplete="off"
                       />
                     </div>
                     {newAdminErrors.name ? (
@@ -1014,6 +1015,7 @@ export default function Account({ user, onUserUpdate }) {
                           }
                         }}
                         placeholder="official@gmail.com"
+                        autoComplete="off"
                       />
                     </div>
                     {newAdminErrors.email ? (
@@ -1051,6 +1053,7 @@ export default function Account({ user, onUserUpdate }) {
                           }
                         }}
                         placeholder="At least 8 characters"
+                        autoComplete="new-password"
                       />
                       <button
                         type="button"
@@ -1087,13 +1090,11 @@ export default function Account({ user, onUserUpdate }) {
                         onChange={(e) => {
                           setNewAdminConfirmPw(e.target.value);
                           if (newAdminErrors.confirmPassword) {
-                            setNewAdminErrors((prev) => ({
-                              ...prev,
-                              confirmPassword: null,
-                            }));
+                            setNewAdminErrors((prev) => ({ ...prev, confirmPassword: null }));
                           }
                         }}
                         placeholder="Re-enter password"
+                        autoComplete="new-password"
                       />
                       <button
                         type="button"
@@ -1290,13 +1291,30 @@ export default function Account({ user, onUserUpdate }) {
           <div
             className={s.modal}
             onClick={(e) => e.stopPropagation()}
-            style={{ width: 420, maxWidth: '92vw' }}
+            style={{ width: 440, maxWidth: '92vw' }}
           >
             <div
               className={s.modalTitle}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
             >
-              <span>Remove Administrator</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 'var(--r-md)',
+                    background: 'rgba(239, 68, 68, 0.14)',
+                    color: 'var(--red, #ef4444)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 16,
+                  }}
+                >
+                  <IoTrashOutline />
+                </span>
+                <span>Remove Administrator</span>
+              </div>
               <button
                 type="button"
                 onClick={() => setAdminToDelete(null)}
@@ -1305,19 +1323,38 @@ export default function Account({ user, onUserUpdate }) {
                   border: 'none',
                   color: 'var(--text-3)',
                   cursor: 'pointer',
-                  fontSize: 18,
+                  fontSize: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: 4,
                 }}
               >
                 <IoCloseOutline />
               </button>
             </div>
             <div className={s.modalBody}>
-              Are you sure you want to remove administrator access for{' '}
-              <strong style={{ color: 'var(--text-1)' }}>{adminToDelete.name}</strong> (
-              {adminToDelete.email})?
-              <p style={{ marginTop: 10, fontSize: 12, color: 'var(--text-3)' }}>
-                This account will no longer be able to sign in to the CitiVoice Admin Console.
+              <p style={{ margin: 0 }}>
+                Are you sure you want to remove administrator access for{' '}
+                <strong style={{ color: 'var(--text-1)' }}>{adminToDelete.name}</strong> (
+                {adminToDelete.email})?
               </p>
+              <div
+                style={{
+                  marginTop: 14,
+                  padding: '10px 14px',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  borderRadius: 'var(--r-md)',
+                  fontSize: 12.5,
+                  color: 'var(--text-2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <IoAlertCircleOutline style={{ color: 'var(--red, #ef4444)', flexShrink: 0 }} size={16} />
+                <span>This account will immediately lose access and can no longer sign in to the CitiVoice Admin Console.</span>
+              </div>
             </div>
             <div className={s.modalActions}>
               <button
