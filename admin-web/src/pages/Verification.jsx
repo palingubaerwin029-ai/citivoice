@@ -137,6 +137,7 @@ export default function Verification() {
     try {
       await fn();
       await loadData();
+      window.dispatchEvent(new CustomEvent('cv:verification_updated'));
     } catch (e) {
       toast.error(e.message || 'Operation failed');
     }

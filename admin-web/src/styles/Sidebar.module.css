@@ -176,6 +176,54 @@
   text-align: center;
 }
 
+.navIconWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.badgePill {
+  margin-left: auto;
+  background: rgba(245, 158, 11, 0.18);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  min-width: 20px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
+  letter-spacing: -0.2px;
+  transition: all var(--t);
+  flex-shrink: 0;
+}
+
+.navItem:hover .badgePill {
+  background: rgba(245, 158, 11, 0.28);
+  border-color: rgba(245, 158, 11, 0.6);
+  color: #fbbf24;
+}
+
+.badgeDot {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  background: #f59e0b;
+  border-radius: 50%;
+  border: 1.5px solid var(--surface);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+  pointer-events: none;
+}
+
 .navBadge {
   margin-left: auto;
   background: rgba(37, 99, 235, 0.25);

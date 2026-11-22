@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   IoGridOutline,
@@ -14,7 +14,8 @@ import {
   IoPersonCircleOutline,
 } from 'react-icons/io5';
 import s from '../styles/Sidebar.module.css';
-import { resolveImageUrl } from '../services/api';
+import { resolveImageUrl, api } from '../services/api';
+import { socket } from '../services/socket';
 
 const ADMIN_NAV = [
   { section: 'Overview' },
@@ -35,6 +36,50 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [avatarErr, setAvatarErr] = useState(false);
+  const [pendingVerifications, setPendingVerifications] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchPending = () => {
+      api
+        .get('/users/verification-stats')
+        .then((data) => {
+          if (mounted && data && typeof data.pending === 'number') {
+            setPendingVerifications(data.pending);
+          }
+        })
+        .catch((err) => {
+          // Silent fallback
+          console.debug('[Sidebar] verification-stats error:', err?.message);
+        });
+    };
+
+    fetchPending();
+
+    // Listen to real-time events for live badge updates
+    const handleUpdate = () => fetchPending();
+    socket.on('verification_stats_updated', handleUpdate);
+    socket.on('new_verification_request', handleUpdate);
+    socket.on('user:registered', handleUpdate);
+
+    // Custom local events & window focus
+    window.addEventListener('cv:verification_updated', handleUpdate);
+    window.addEventListener('focus', handleUpdate);
+
+    // 45s fallback interval
+    const interval = setInterval(fetchPending, 45000);
+
+    return () => {
+      mounted = false;
+      socket.off('verification_stats_updated', handleUpdate);
+      socket.off('new_verification_request', handleUpdate);
+      socket.off('user:registered', handleUpdate);
+      window.removeEventListener('cv:verification_updated', handleUpdate);
+      window.removeEventListener('focus', handleUpdate);
+      clearInterval(interval);
+    };
+  }, []);
 
   const initials =
     user?.name
@@ -107,6 +152,9 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
               </div>
             );
           }
+          const isVerification = item.path === '/verification';
+          const showPendingBadge = isVerification && pendingVerifications > 0;
+
           return (
             <div
               key={item.path}
@@ -118,9 +166,31 @@ export default function Sidebar({ user, onLogout, theme, onThemeToggle }) {
                 className={({ isActive }) =>
                   `${s.navItem} ${collapsed ? s.collapsed : ''} ${isActive ? s.navItemActive : ''}`
                 }
+                title={
+                  collapsed && showPendingBadge
+                    ? `${item.label} (${pendingVerifications} pending)`
+                    : item.label
+                }
               >
-                <span className={s.navIcon}>{item.icon}</span>
-                {!collapsed && <span>{item.label}</span>}
+                <div className={s.navIconWrapper}>
+                  <span className={s.navIcon}>{item.icon}</span>
+                  {collapsed && showPendingBadge && <span className={s.badgeDot} />}
+                </div>
+                {!collapsed && (
+                  <>
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.label}
+                    </span>
+                    {showPendingBadge && (
+                      <span
+                        className={s.badgePill}
+                        title={`${pendingVerifications} pending verification requests`}
+                      >
+                        {pendingVerifications > 99 ? '99+' : pendingVerifications}
+                      </span>
+                    )}
+                  </>
+                )}
               </NavLink>
             </div>
           );

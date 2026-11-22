@@ -393,6 +393,21 @@ const register = async (req, res) => {
     } catch (_) {}
 
     const token = sign({ id: newUser.id, role: newUser.role, name: newUser.name });
+
+    // Notify admins in real-time of new citizen registration / pending verification
+    try {
+      const io = req.app?.get('io');
+      if (io) {
+        io.emit('verification_stats_updated');
+        io.to('admin').emit('new_verification_request', {
+          id: newUser.id,
+          name: newUser.name,
+          barangay: newUser.barangay,
+          idType: newUser.id_type,
+        });
+      }
+    } catch (_) {}
+
     res.status(201).json({ token, user: safe(newUser) });
   } catch (err) {
     console.error('Register error:', err);

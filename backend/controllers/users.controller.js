@@ -96,6 +96,7 @@ const updateUser = async (req, res) => {
     if (submitted_at && updatedUser.verification_status !== 'verified') {
       await updateUserVerification(req.params.id, 'pending', 0, null, 'NULL');
       updatedUser = await selectById(req.params.id);
+      req.app?.get('io')?.emit('verification_stats_updated');
     }
 
     res.json(safe(updatedUser));
@@ -124,6 +125,8 @@ const verifyUser = async (req, res) => {
       );
     }
 
+    req.app?.get('io')?.emit('verification_stats_updated');
+
     res.json({ success: true });
   } catch (err) {
     console.error('User verify error:', err);
@@ -149,6 +152,8 @@ const rejectUser = async (req, res) => {
       );
     }
 
+    req.app?.get('io')?.emit('verification_stats_updated');
+
     res.json({ success: true });
   } catch (err) {
     console.error('User reject error:', err);
@@ -159,6 +164,7 @@ const rejectUser = async (req, res) => {
 const revokeUser = async (req, res) => {
   try {
     await updateUserVerification(req.params.id, 'unverified', 0, null, 'NULL');
+    req.app?.get('io')?.emit('verification_stats_updated');
     res.json({ success: true });
   } catch (err) {
     console.error('User revoke error:', err);
