@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useConcerns } from '../../context/ConcernContext';
 import { useLanguage } from '../../context/LanguageContext';
 import ConcernCard from '../../components/ConcernCard';
-import { EmptyState, StatCard } from '../../components/UI';
+import { EmptyState, StatCard, Skeleton } from '../../components/UI';
 import { RADIUS } from '../../utils/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { scale, verticalScale, rf, moderateScale } from '../../utils/responsive';
@@ -38,6 +38,33 @@ export default function MyConcernsScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [loadError, setLoadError] = useState(null);
+
+  const renderSkeletons = () => (
+    <View style={{ gap: verticalScale(16), paddingHorizontal: scale(16), marginTop: verticalScale(8) }}>
+      {[1, 2, 3].map((key) => (
+        <View
+          key={key}
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: RADIUS.lg,
+            padding: scale(16),
+            gap: verticalScale(12),
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <View style={{ flexDirection: 'row', gap: scale(12), alignItems: 'center' }}>
+            <Skeleton width={scale(40)} height={scale(40)} borderRadius={scale(20)} />
+            <View style={{ flex: 1, gap: verticalScale(4) }}>
+              <Skeleton width="60%" height={verticalScale(16)} />
+              <Skeleton width="40%" height={verticalScale(12)} />
+            </View>
+          </View>
+          <Skeleton width="100%" height={verticalScale(100)} borderRadius={RADIUS.md} />
+        </View>
+      ))}
+    </View>
+  );
 
   // Refresh exact concern stats whenever MyConcernsScreen comes into focus
   useFocusEffect(
@@ -222,7 +249,9 @@ export default function MyConcernsScreen({ navigation }) {
           </>
         )}
         ListEmptyComponent={
-          loadError && safeMyConcerns.length === 0 ? (
+          loading && safeMyConcerns.length === 0 ? (
+            renderSkeletons()
+          ) : loadError && safeMyConcerns.length === 0 ? (
             <EmptyState
               icon="⚠️"
               title={t('failedToLoad') || 'Unable to Load Concerns'}

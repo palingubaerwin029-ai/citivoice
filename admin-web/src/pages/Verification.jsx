@@ -4,6 +4,7 @@ import { useToast } from '../components/ToastProvider';
 import s from '../styles/Admin.module.css';
 import v from '../styles/Verification.module.css';
 import Pagination, { useFitPagination } from '../components/Pagination';
+import Skeleton from '../components/Skeleton';
 
 const STATUS = {
   unverified: {
@@ -88,6 +89,7 @@ function UserAvatar({ user, className, style }) {
 export default function Verification() {
   const toast = useToast();
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [filter, setFilter] = useState('pending');
   const [reason, setReason] = useState('');
@@ -100,7 +102,8 @@ export default function Verification() {
   const [itemsPerPage, setItemsPerPage] = useFitPagination(8, 54, counts?.pending > 0 ? 340 : 280, 5);
   const [totalUsers, setTotalUsers] = useState(0);
 
-  const loadData = () => {
+  const loadData = (showSkeleton = false) => {
+    if (showSkeleton) setLoading(true);
     // Load stats
     api.get('/users/verification-stats').then(setCounts).catch(console.error);
 
@@ -116,12 +119,13 @@ export default function Verification() {
         setUsers(res.data || []);
         setTotalUsers(res.total || 0);
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 30000); // Auto-refresh every 30 seconds
+    loadData(true);
+    const interval = setInterval(() => loadData(false), 30000); // Auto-refresh every 30 seconds
     return () => clearInterval(interval);
   }, [page, itemsPerPage, search, filter]);
 
@@ -293,7 +297,65 @@ export default function Verification() {
       <div className={selected ? s.mainLayoutWithSide : s.mainLayout}>
         {/* Table */}
         <div className={s.tableWrap}>
-          {users.length === 0 ? (
+          {loading ? (
+            <table className={s.table}>
+              <thead className={s.thead}>
+                <tr>
+                  {[
+                    { label: 'Citizen', key: 'Citizen' },
+                    { label: 'Contact', key: 'Contact', hideOnSide: true },
+                    { label: 'Barangay', key: 'Barangay' },
+                    { label: 'ID Type', key: 'ID Type' },
+                    { label: 'Status', key: 'Status' },
+                    { label: 'Submitted', key: 'Submitted', hideOnSide: true },
+                    { label: 'Actions', key: 'Actions', isAction: true },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      className={`${s.th} ${col.hideOnSide ? s.hideOnSideOpen : ''} ${
+                        col.isAction ? s.thActions : ''
+                      }`}
+                    >
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <tr key={i} className={s.tr}>
+                    <td className={s.td}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Skeleton width="34px" height="34px" borderRadius="10px" />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                          <Skeleton width="110px" height="14px" />
+                          <Skeleton width="140px" height="11px" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className={`${s.td} ${s.hideOnSideOpen}`}>
+                      <Skeleton width="90px" height="13px" />
+                    </td>
+                    <td className={s.td}>
+                      <Skeleton width="80px" height="13px" />
+                    </td>
+                    <td className={s.td}>
+                      <Skeleton width="65px" height="18px" borderRadius="4px" />
+                    </td>
+                    <td className={s.td}>
+                      <Skeleton width="70px" height="20px" borderRadius="99px" />
+                    </td>
+                    <td className={`${s.td} ${s.hideOnSideOpen}`}>
+                      <Skeleton width="75px" height="13px" />
+                    </td>
+                    <td className={s.td}>
+                      <Skeleton width="55px" height="26px" borderRadius="6px" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : users.length === 0 ? (
             <div className={s.empty}>
               <div className={s.emptyIcon}>✅</div>
               <p className={s.emptyTitle}>No {filter === 'all' ? '' : filter} submissions</p>

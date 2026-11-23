@@ -10,6 +10,7 @@ import {
 } from 'react-icons/io5';
 import styles from '../styles/Barangays.module.css';
 import s from '../styles/Admin.module.css';
+import Skeleton from '../components/Skeleton';
 
 const EMPTY = { name: '' };
 
@@ -133,8 +134,45 @@ export default function Barangays() {
         <div className={styles.listCol}>
           <div className={styles.tableContainer}>
             {loading ? (
-              <div className={s.loading} style={{ padding: '40px 20px' }}>
-                Loading barangays...
+              <div className={styles.tableScroll}>
+                <table className={s.table}>
+                  <thead className={`${s.thead} ${styles.stickyThead}`}>
+                    <tr>
+                      <th className={`${s.th} ${styles.indexCol}`}>#</th>
+                      <th className={s.th}>Barangay Name</th>
+                      <th className={s.th}>Total Concerns</th>
+                      <th className={s.th}>Added On</th>
+                      <th className={`${s.th} ${styles.actionCol}`}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <tr key={i} className={`${s.tr} ${styles.compactTr}`}>
+                        <td className={`${s.td} ${styles.indexCell}`}>
+                          <Skeleton width="18px" height="14px" />
+                        </td>
+                        <td className={`${s.td} ${s.tdPrimary}`}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Skeleton width="16px" height="16px" borderRadius="4px" />
+                            <Skeleton width="130px" height="16px" />
+                          </div>
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton width="70px" height="20px" borderRadius="99px" />
+                        </td>
+                        <td className={s.td}>
+                          <Skeleton width="90px" height="14px" />
+                        </td>
+                        <td className={`${s.td} ${styles.actionCol}`}>
+                          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                            <Skeleton width="28px" height="28px" borderRadius="6px" />
+                            <Skeleton width="28px" height="28px" borderRadius="6px" />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : filteredBarangays.length === 0 ? (
               <div className={s.empty} style={{ padding: '50px 20px' }}>

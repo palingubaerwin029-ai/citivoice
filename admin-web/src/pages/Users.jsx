@@ -4,6 +4,7 @@ import { useToast } from '../components/ToastProvider';
 import s from '../styles/Admin.module.css';
 import u from '../styles/Users.module.css';
 import Pagination, { useFitPagination } from '../components/Pagination';
+import Skeleton from '../components/Skeleton';
 
 const AVATARS = ['#3B82F6', '#10B981', '#F97316', '#F59E0B', '#EF4444', '#8B5CF6'];
 const AC = (id) => AVATARS[(id || 0) % AVATARS.length];
@@ -135,8 +136,8 @@ export default function Users() {
       .catch(console.error);
   };
 
-  const loadUsers = () => {
-    setLoading(true);
+  const loadUsers = (showSkeleton = false) => {
+    if (showSkeleton) setLoading(true);
     const params = {
       page,
       limit: itemsPerPage,
@@ -154,7 +155,7 @@ export default function Users() {
   };
 
   useEffect(() => {
-    loadUsers();
+    loadUsers(true);
   }, [page, itemsPerPage, search, brgyFilter, statusFilter]);
 
   useEffect(() => {
@@ -255,7 +256,72 @@ export default function Users() {
         {/* Table */}
         <div className={s.tableWrap}>
           {loading ? (
-            <div className={s.loading}>Loading…</div>
+            <table className={s.table}>
+              <thead className={s.thead}>
+                <tr>
+                  {[
+                    { label: 'Citizen', key: 'Citizen' },
+                    { label: 'Contact', key: 'Contact' },
+                    { label: 'Barangay', key: 'Barangay' },
+                    { label: 'Status', key: 'Status' },
+                    { label: 'Reports', key: 'Reports' },
+                    { label: 'Resolved', key: 'Resolved', hideOnSide: true },
+                    { label: 'Member Since', key: 'Member Since', hideOnSide: true },
+                    { label: 'Actions', key: 'Actions', isAction: true },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      className={`${s.th} ${col.hideOnSide ? s.hideOnSideOpen : ''} ${
+                        col.isAction ? s.thActions : ''
+                      }`}
+                    >
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <tr key={i} className={s.tr}>
+                    <td className={s.td}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Skeleton width="34px" height="34px" borderRadius="10px" />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                          <Skeleton width="120px" height="14px" />
+                          <Skeleton width="150px" height="11px" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className={s.td}>
+                      <Skeleton width="90px" height="13px" />
+                    </td>
+                    <td className={s.td}>
+                      <Skeleton width="80px" height="13px" />
+                    </td>
+                    <td className={s.td}>
+                      <Skeleton width="75px" height="20px" borderRadius="99px" />
+                    </td>
+                    <td className={s.td}>
+                      <Skeleton width="30px" height="16px" borderRadius="4px" />
+                    </td>
+                    <td className={`${s.td} ${s.hideOnSideOpen}`}>
+                      <Skeleton width="30px" height="16px" borderRadius="4px" />
+                    </td>
+                    <td className={`${s.td} ${s.hideOnSideOpen}`}>
+                      <Skeleton width="80px" height="13px" />
+                    </td>
+                    <td className={s.td}>
+                      <Skeleton width="55px" height="26px" borderRadius="6px" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : users.length === 0 ? (
+            <div className={s.empty}>
+              <div className={s.emptyIcon}>👤</div>
+              <p className={s.emptyTitle}>No citizens found</p>
+            </div>
           ) : (
             <table className={s.table}>
               <thead className={s.thead}>
@@ -367,12 +433,6 @@ export default function Users() {
                 })}
               </tbody>
             </table>
-          )}
-          {!loading && users.length === 0 && (
-            <div className={s.empty}>
-              <div className={s.emptyIcon}>👤</div>
-              <p className={s.emptyTitle}>No citizens found</p>
-            </div>
           )}
 
           <Pagination

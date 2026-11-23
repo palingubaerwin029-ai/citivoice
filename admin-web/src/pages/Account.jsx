@@ -23,6 +23,7 @@ import s from '../styles/Admin.module.css';
 import a from '../styles/Account.module.css';
 import { api, resolveImageUrl, getApiHost } from '../services/api';
 import { useToast } from '../components/ToastProvider';
+import Skeleton from '../components/Skeleton';
 
 export default function Account({ user, onUserUpdate }) {
   const { addToast } = useToast();
@@ -1209,8 +1210,19 @@ export default function Account({ user, onUserUpdate }) {
                 </div>
 
                 {loadingAdmins ? (
-                  <div style={{ fontSize: 12.5, color: 'var(--text-3)', padding: '8px 0' }}>
-                    Loading administrators...
+                  <div className={a.adminList}>
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className={a.adminRow} style={{ opacity: 0.85 }}>
+                        <div className={a.adminRowLeft}>
+                          <Skeleton width="34px" height="34px" borderRadius="10px" />
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                            <Skeleton width="130px" height="14px" />
+                            <Skeleton width="170px" height="11px" />
+                          </div>
+                        </div>
+                        <Skeleton width="90px" height="20px" borderRadius="99px" />
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className={a.adminList}>
