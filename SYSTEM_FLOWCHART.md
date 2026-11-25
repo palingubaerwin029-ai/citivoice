@@ -9,12 +9,14 @@ Unlike Data Flow Diagrams (which map data movements), these system flowcharts ma
 ## 📑 Table of Contents
 
 1. [Flowchart Symbol Conventions](#-1-flowchart-symbol-conventions)
-2. [Master End-to-End System Flowchart](#-2-master-end-to-end-system-flowchart)
-3. [Citizen Onboarding & Smart Camera-Only ID Verification Flowchart](#-3-citizen-onboarding--smart-camera-only-id-verification-flowchart)
-4. [Concern Intake, Dual-AI Visual Alignment & Duplicate Detection Flowchart](#-4-concern-intake-dual-ai-visual-alignment--duplicate-detection-flowchart)
-5. [Administrator 2FA Authentication & Incident Resolution Lifecycle Flowchart](#-5-administrator-2fa-authentication--incident-resolution-lifecycle-flowchart)
-6. [Citizen Concern Editing & Version History Flowchart](#-6-citizen-concern-editing--version-history-flowchart)
-7. [Automated Database Backup Routine Flowchart](#-7-automated-database-backup-routine-flowchart)
+2. [Architectural System Flowchart (Physical & Integration Flow)](#-2-architectural-system-flowchart-physical--integration-flow)
+3. [Master End-to-End Operational Lifecycle Flowchart](#-3-master-end-to-end-operational-lifecycle-flowchart)
+4. [Citizen Onboarding & Smart Camera-Only ID Verification Flowchart](#-4-citizen-onboarding--smart-camera-only-id-verification-flowchart)
+5. [Concern Intake, Dual-AI Visual Alignment & Duplicate Detection Flowchart](#-5-concern-intake-dual-ai-visual-alignment--duplicate-detection-flowchart)
+6. [Administrator 2FA Authentication & Incident Resolution Lifecycle Flowchart](#-6-administrator-2fa-authentication--incident-resolution-lifecycle-flowchart)
+7. [Citizen Concern Editing & Version History Flowchart](#-7-citizen-concern-editing--version-history-flowchart)
+8. [Automated Database Backup Routine Flowchart](#-8-automated-database-backup-routine-flowchart)
+9. [Summary Matrix of System Operations](#-9-summary-matrix-of-system-operations)
 
 ---
 
@@ -33,7 +35,83 @@ Standard ANSI/ISO flowchart notations used across all diagrams:
 
 ---
 
-## 🌐 2. Master End-to-End System Flowchart
+## 🏛️ 2. Architectural System Flowchart (Physical & Integration Flow)
+
+Illustrates the high-level physical interactions, communication protocols, hardware inputs, server controllers, cloud microservices, and persistent databases across the CitiVoice platform.
+
+```mermaid
+flowchart TD
+    %% ── USER & DEVICE LAYER ──
+    subgraph CLIENT_LAYER ["📱 Client & Device Layer"]
+        CitizenDevice["Citizen Smartphone<br/>(React Native / Expo)"]
+        AdminDevice["Administrator Workstation<br/>(React SPA / Chrome)"]
+        
+        HardwareSensors["Hardware Sensors:<br/>• GPS Receiver (Expo-Location)<br/>• Live Camera (Anti-Spoofing)"]
+        CitizenDevice --- HardwareSensors
+    end
+
+    %% ── NETWORK & API GATEWAY LAYER ──
+    subgraph NETWORK_LAYER ["🌐 Network & Communication Layer"]
+        HTTPS_REST["HTTPS REST API<br/>(Axios / Bearer JWT)"]
+        WSS_SOCKET["WebSocket Gateway<br/>(Socket.io / Bidirectional)"]
+    end
+
+    CitizenDevice -->|HTTP Requests| HTTPS_REST
+    CitizenDevice <-->|Real-Time Feed| WSS_SOCKET
+    AdminDevice -->|HTTP Requests| HTTPS_REST
+    AdminDevice <-->|Live Badges & Sound Chime| WSS_SOCKET
+
+    %% ── BACKEND APPLICATION LAYER ──
+    subgraph APP_SERVER ["⚙️ Backend Application Server (Node.js & Express)"]
+        AuthModule["Authentication & RBAC<br/>(bcrypt, JWT, 2FA OTP)"]
+        ConcernController["Concern Management<br/>(CRUD, Spatial Mapping)"]
+        VerificationController["User & ID Verification<br/>(Queue & Status Engine)"]
+        AnalyticsController["GIS & Reports Engine<br/>(Excel / PDF Export)"]
+    end
+
+    HTTPS_REST --> AuthModule
+    HTTPS_REST --> ConcernController
+    HTTPS_REST --> VerificationController
+    HTTPS_REST --> AnalyticsController
+
+    %% ── EXTERNAL CLOUD & AI INTEGRATIONS ──
+    subgraph EXTERNAL_SERVICES ["☁️ External Microservices & Cloud AI"]
+        DualAI["Dual-AI Vision Service:<br/>• Primary: Groq (Llama 3.3 70B)<br/>• Fallback: Google Gemini 1.5 Flash"]
+        FCM["Firebase Cloud Messaging (FCM)<br/>(Push Notifications)"]
+        SMTP["Nodemailer SMTP<br/>(Email OTP & Security Alerts)"]
+    end
+
+    ConcernController <-->|Visual & Concept Alignment| DualAI
+    VerificationController <-->|ID OCR Extraction| DualAI
+    AuthModule -->|Deliver 6-Digit Codes| SMTP
+    ConcernController -->|Trigger Mobile Alerts| FCM
+
+    %% ── PERSISTENCE & STORAGE LAYER ──
+    subgraph STORAGE_LAYER ["💾 Storage & Persistence Layer"]
+        MySQL_DB[("MySQL 8.0 Database<br/>• users<br/>• concerns<br/>• audit_log<br/>• concern_links")]
+        FileStorage[("File / Binary Storage<br/>• Incident Photos<br/>• Government IDs<br/>• Resolution Proofs")]
+        LocalCache[("Device AsyncStorage<br/>(Offline Queue & Cache)")]
+    end
+
+    CitizenDevice <-->|Offline Caching| LocalCache
+    ConcernController -->|SQL Transactions| MySQL_DB
+    VerificationController -->|SQL Queries| MySQL_DB
+    AuthModule -->|Verify Credentials| MySQL_DB
+    ConcernController -->|Save Media| FileStorage
+
+    %% ── SYSTEM OUTPUTS ──
+    subgraph OUTPUT_LAYER ["📄 System Outputs & Displays"]
+        CitizenOutput["Citizen Outputs:<br/>• Municipal Docket Numbers<br/>• Real-Time Status Timeline<br/>• In-App Action Alerts"]
+        AdminOutput["Administrator Outputs:<br/>• Real-Time GIS Incident Heatmap<br/>• Verification Counter Badge<br/>• Generated Resolution Proof Reports"]
+    end
+
+    CitizenDevice --> CitizenOutput
+    AdminDevice --> AdminOutput
+```
+
+---
+
+## 🌐 3. Master End-to-End Operational Lifecycle Flowchart
 
 The high-level lifecycle of a civic concern from citizen camera capture to administrative municipal resolution or standardized rejection.
 
@@ -41,11 +119,11 @@ The high-level lifecycle of a civic concern from citizen camera capture to admin
 flowchart TD
     Start(["Citizen Opens CitiVoice App"]) --> AuthCheck{"Is Citizen Authenticated & Verified?"}
     
-    AuthCheck -- "No" --> Onboarding[["3.0 Onboarding & ID Verification Flow"]]
+    AuthCheck -- "No" --> Onboarding[["4.0 Onboarding & ID Verification Flow"]]
     Onboarding --> AuthCheck
     
     AuthCheck -- "Yes" --> CaptureInput[/"Citizen Takes Live Camera Photo & Pins GPS Hazard Location"/]
-    CaptureInput --> IntakeFlow[["4.0 Concern Intake & Dual-AI Alignment"]]
+    CaptureInput --> IntakeFlow[["5.0 Concern Intake & Dual-AI Alignment"]]
     
     IntakeFlow --> AIValid{"AI Visual Alignment & Concept Check Passed?"}
     AIValid -- "No" --> ShowErr[/"Display Specific Alignment Rejection Reason to Citizen"/]
@@ -56,7 +134,7 @@ flowchart TD
     EmitSocket --> Docket[/"Issue Official Municipal Docket Number to Citizen"/]
     
     EmitSocket --> AdminNotice[/"Admin Real-Time Dashboard Notification"/]
-    AdminNotice --> AdminLogin[["5.0 Admin 2FA Email Login Flow"]]
+    AdminNotice --> AdminLogin[["6.0 Admin 2FA Email Login Flow"]]
     
     AdminLogin --> ReviewDashboard[/"Administrator Reviews Concern, GIS Map & AI Urgency"/]
     ReviewDashboard --> StatusChoice{"Select Municipal Action"}
@@ -86,7 +164,7 @@ flowchart TD
 
 ---
 
-## 🪪 3. Citizen Onboarding & Smart Camera-Only ID Verification Flowchart
+## 🪪 4. Citizen Onboarding & Smart Camera-Only ID Verification Flowchart
 
 Illustrates pre-registration email authentication, anti-spoofing live camera capture, and automated AI OCR name matching with manual administrator fallback.
 
@@ -157,7 +235,7 @@ flowchart TD
 
 ---
 
-## 📷 4. Concern Intake, Dual-AI Visual Alignment & Duplicate Detection Flowchart
+## 📷 5. Concern Intake, Dual-AI Visual Alignment & Duplicate Detection Flowchart
 
 Demonstrates live camera intake, offline local queue caching, dual-AI semantic alignment, 32-barangay spatial mapping, and similarity linking.
 
@@ -215,7 +293,7 @@ flowchart TD
 
 ---
 
-## 🛡️ 5. Administrator 2FA Authentication & Incident Resolution Lifecycle Flowchart
+## 🛡️ 6. Administrator 2FA Authentication & Incident Resolution Lifecycle Flowchart
 
 Illustrates two-factor email OTP administrator authentication, GIS dashboard triage, official AI response drafting, and the strict rejection workflow.
 
@@ -276,7 +354,7 @@ flowchart TD
 
 ---
 
-## ✏️ 6. Citizen Concern Editing & Version History Flowchart
+## ✏️ 7. Citizen Concern Editing & Version History Flowchart
 
 Details the operational constraints governing citizen modifications to active reports, visual re-alignment, and audit version snapshot creation.
 
@@ -315,7 +393,7 @@ flowchart TD
 
 ---
 
-## 💾 7. Automated Database Backup Routine Flowchart
+## 💾 8. Automated Database Backup Routine Flowchart
 
 Illustrates the background cron jobs and automated backup daemons maintaining disaster recovery, change detection, and file rotation.
 
@@ -338,7 +416,7 @@ flowchart TD
 
 ---
 
-## 📌 Summary Matrix of System Operations
+## 📌 9. Summary Matrix of System Operations
 
 | Subsystem / Routine | Trigger Actor / Event | Key Decision / Checkpoint | Primary Database Tables Affected | Real-Time Sync Channel |
 | :--- | :--- | :--- | :--- | :--- |
