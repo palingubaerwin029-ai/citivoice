@@ -1,430 +1,496 @@
-# 🧭 CitiVoice — System Flowcharts
-
-This document provides the complete, production-grade **System Flowcharts** for the **CitiVoice** municipal civic reporting platform (**City of Kabankalan, Negros Occidental**). 
-
-Unlike Data Flow Diagrams (which map data movements), these system flowcharts map the **step-by-step operational control flows, decision logic, automated background workers, AI validation checkpoints, and database transactions** across the citizen mobile app and administrative web console.
+# 🧭 CitiVoice — System and Program Flowcharts
+**Kabankalan City Citizen Engagement & Municipal Incident Management Platform**
 
 ---
 
-## 📑 Table of Contents
+## 📑 Document Structure & Navigation
 
-1. [Flowchart Symbol Conventions](#-1-flowchart-symbol-conventions)
-2. [Architectural System Flowchart (Physical & Integration Flow)](#-2-architectural-system-flowchart-physical--integration-flow)
-3. [Master End-to-End Operational Lifecycle Flowchart](#-3-master-end-to-end-operational-lifecycle-flowchart)
-4. [Citizen Onboarding & Smart Camera-Only ID Verification Flowchart](#-4-citizen-onboarding--smart-camera-only-id-verification-flowchart)
-5. [Concern Intake, Dual-AI Visual Alignment & Duplicate Detection Flowchart](#-5-concern-intake-dual-ai-visual-alignment--duplicate-detection-flowchart)
-6. [Administrator 2FA Authentication & Incident Resolution Lifecycle Flowchart](#-6-administrator-2fa-authentication--incident-resolution-lifecycle-flowchart)
-7. [Citizen Concern Editing & Version History Flowchart](#-7-citizen-concern-editing--version-history-flowchart)
-8. [Automated Database Backup Routine Flowchart](#-8-automated-database-backup-routine-flowchart)
-9. [Summary Matrix of System Operations](#-9-summary-matrix-of-system-operations)
+This document is divided into two distinct engineering specifications adhering to standard Systems Analysis & Design (SAD) conventions:
 
----
+1. [**PART I — SYSTEM FLOWCHARTS (High-Level Architecture & Physical Data Flow)**](#-part-i--system-flowcharts-architecture--physical-data-flow)
+   - *Scope:* Broad overview of hardware, software components, external AI services, database stores, communication media, human actors, and physical outputs.
+   - 1.1 [Master System Flowchart (End-to-End System Boundary)](#11-master-system-flowchart-end-to-end-system-boundary)
+   - 1.2 [Citizen Mobile Subsystem & Offline Caching Flowchart](#12-citizen-mobile-subsystem--offline-caching-flowchart)
+   - 1.3 [Admin Web Subsystem, 2FA & Notification Dispatch Flowchart](#13-admin-web-subsystem-2fa--notification-dispatch-flowchart)
 
-## 🔣 1. Flowchart Symbol Conventions
+2. [**PART II — PROGRAM FLOWCHARTS (Low-Level Algorithmic & Control Logic)**](#-part-ii--program-flowcharts-algorithmic--control-logic)
+   - *Scope:* Narrow focus on specific routines, branching decisions, mathematical calculations, and step-by-step code instructions.
+   - 2.1 [Standard ANSI/ISO Logic Symbol Guide](#21-standard-ansiiso-logic-symbol-guide)
+   - 2.2 [Program 1: Citizen Registration & AI OCR ID Verification Algorithm](#22-program-1-citizen-registration--ai-ocr-id-verification-algorithm)
+   - 2.3 [Program 2: Incident Intake & Dual-AI Visual Alignment Algorithm](#23-program-2-incident-intake--dual-ai-visual-alignment-algorithm)
+   - 2.4 [Program 3: Spatial Haversine & Duplicate Hazard Detection Algorithm](#24-program-3-spatial-haversine--duplicate-hazard-detection-algorithm)
+   - 2.5 [Program 4: Administrative Resolution & Standardized Rejection Algorithm](#25-program-4-administrative-resolution--standardized-rejection-algorithm)
+   - 2.6 [Program 5: Citizen Concern Editing & Audit Snapshot Algorithm](#26-program-5-citizen-concern-editing--audit-snapshot-algorithm)
 
-Standard ANSI/ISO flowchart notations used across all diagrams:
-
-| Symbol Shape | Mermaid Syntax | Description & Meaning |
-| :---: | :---: | :--- |
-| **Terminal** | `([Start / End])` | Entry point, exit point, or termination boundary of a subsystem. |
-| **Process** | `[System Action / Computation]` | Automated calculation, data transformation, or background execution. |
-| **Decision** | `{"Conditional Check?"}` | Branching point evaluating a Boolean condition (`Yes / True` or `No / False`). |
-| **Input / Output** | `[/User Input or Display/]` | Manual user input (forms, camera, taps) or interface display output. |
-| **Database Storage** | `[("Persistent Table")]` | Direct write, read, or update to the MySQL 8.0 relational database. |
-| **Subroutine / External API** | `[["External Service / AI Engine"]]` | Third-party microservice, cloud AI provider, or hardware subsystem. |
+3. [**PART III — TRACEABILITY MATRIX**](#-part-iii--traceability-matrix)
+   - Cross-references each physical system component to its specific algorithmic program flowchart.
 
 ---
 
-## 🏛️ 2. Architectural System Flowchart (Physical & Integration Flow)
+# 🏛️ PART I — SYSTEM FLOWCHARTS (Architecture & Physical Data Flow)
 
-Illustrates the high-level physical interactions, communication protocols, hardware inputs, server controllers, cloud microservices, and persistent databases across the CitiVoice platform.
+> **Definition (System Flowchart):**  
+> Depicts the **broad overview of the whole system** — tracking how data physically moves across **people (users), hardware devices, software modules, cloud microservices, communication protocols, persistent data stores, and generated outputs**.
+
+---
+
+### 1.1 Master System Flowchart (End-to-End System Boundary)
+
+Illustrates the end-to-end physical data flow connecting the citizen's handheld device, network protocols, server controllers, external AI services, persistent relational storage, and administrator workstations.
 
 ```mermaid
 flowchart TD
-    %% ── USER & DEVICE LAYER ──
-    subgraph CLIENT_LAYER ["📱 Client & Device Layer"]
-        CitizenDevice["Citizen Smartphone<br/>(React Native / Expo)"]
-        AdminDevice["Administrator Workstation<br/>(React SPA / Chrome)"]
+    %% Human Actors
+    subgraph ACTORS ["👥 System Stakeholders"]
+        CitizenUser["👤 Registered Citizen<br/>(Resident of Kabankalan)"]
+        AdminUser["🛡️ Municipal Administrator<br/>(LGU Public Safety / CSWDO)"]
+    end
+
+    %% Hardware & Client Devices
+    subgraph HARDWARE_LAYER ["📱 Hardware & Client Endpoints"]
+        MobilePhone["Citizen Smartphone<br/>(Android / iOS Device)"]
+        CameraHardware["Integrated Camera<br/>(Direct Hardware Access)"]
+        GPSHardware["GPS Hardware Sensor<br/>(Latitude/Longitude)"]
+        AdminWorkstation["City Hall Desktop Terminal<br/>(Web Browser / Chrome)"]
         
-        HardwareSensors["Hardware Sensors:<br/>• GPS Receiver (Expo-Location)<br/>• Live Camera (Anti-Spoofing)"]
-        CitizenDevice --- HardwareSensors
+        MobilePhone --- CameraHardware
+        MobilePhone --- GPSHardware
     end
 
-    %% ── NETWORK & API GATEWAY LAYER ──
-    subgraph NETWORK_LAYER ["🌐 Network & Communication Layer"]
-        HTTPS_REST["HTTPS REST API<br/>(Axios / Bearer JWT)"]
-        WSS_SOCKET["WebSocket Gateway<br/>(Socket.io / Bidirectional)"]
+    CitizenUser -->|Operates| MobilePhone
+    AdminUser -->|Operates| AdminWorkstation
+
+    %% Software Client Applications
+    subgraph CLIENT_APPS ["💻 Software Client Applications"]
+        MobileApp["CitiVoice Mobile Client<br/>(React Native 0.81 + Expo)"]
+        AdminWeb["CitiVoice Admin Console<br/>(React 18 SPA + Vite/CRA)"]
     end
 
-    CitizenDevice -->|HTTP Requests| HTTPS_REST
-    CitizenDevice <-->|Real-Time Feed| WSS_SOCKET
-    AdminDevice -->|HTTP Requests| HTTPS_REST
-    AdminDevice <-->|Live Badges & Sound Chime| WSS_SOCKET
+    MobilePhone -->|Runs| MobileApp
+    AdminWorkstation -->|Accesses| AdminWeb
 
-    %% ── BACKEND APPLICATION LAYER ──
-    subgraph APP_SERVER ["⚙️ Backend Application Server (Node.js & Express)"]
-        AuthModule["Authentication & RBAC<br/>(bcrypt, JWT, 2FA OTP)"]
-        ConcernController["Concern Management<br/>(CRUD, Spatial Mapping)"]
-        VerificationController["User & ID Verification<br/>(Queue & Status Engine)"]
-        AnalyticsController["GIS & Reports Engine<br/>(Excel / PDF Export)"]
+    %% Communication Channels & Protocols
+    subgraph PROTOCOLS ["🌐 Transmission & Gateway Layer"]
+        HTTPS_REST["Encrypted HTTPS REST API<br/>(JSON Payloads + JWT Tokens)"]
+        WSS_SOCKET["WebSocket Channel<br/>(WSS / Socket.io v4 Engine)"]
     end
 
-    HTTPS_REST --> AuthModule
-    HTTPS_REST --> ConcernController
-    HTTPS_REST --> VerificationController
-    HTTPS_REST --> AnalyticsController
+    MobileApp -->|HTTP Requests| HTTPS_REST
+    MobileApp <-->|Real-Time Streams| WSS_SOCKET
+    AdminWeb -->|Admin API Calls| HTTPS_REST
+    AdminWeb <-->|Live Updates & Chimes| WSS_SOCKET
 
-    %% ── EXTERNAL CLOUD & AI INTEGRATIONS ──
-    subgraph EXTERNAL_SERVICES ["☁️ External Microservices & Cloud AI"]
-        DualAI["Dual-AI Vision Service:<br/>• Primary: Groq (Llama 3.3 70B)<br/>• Fallback: Google Gemini 1.5 Flash"]
-        FCM["Firebase Cloud Messaging (FCM)<br/>(Push Notifications)"]
-        SMTP["Nodemailer SMTP<br/>(Email OTP & Security Alerts)"]
+    %% Application Server & Backend Micro-Modules
+    subgraph SERVER ["⚙️ CitiVoice Backend Application Server (Node.js & Express)"]
+        AuthGateway["Auth & RBAC Middleware<br/>(bcrypt, JWT, 2FA OTP)"]
+        ConcernModule["Concern Processing Engine<br/>(Validation, Centroid Matching)"]
+        VerificationModule["Citizen Verification Module<br/>(Badge & Queue Manager)"]
+        SocketServer["Real-Time Event Dispatcher<br/>(Socket.io Server)"]
     end
 
-    ConcernController <-->|Visual & Concept Alignment| DualAI
-    VerificationController <-->|ID OCR Extraction| DualAI
-    AuthModule -->|Deliver 6-Digit Codes| SMTP
-    ConcernController -->|Trigger Mobile Alerts| FCM
+    HTTPS_REST --> AuthGateway
+    HTTPS_REST --> ConcernModule
+    HTTPS_REST --> VerificationModule
+    WSS_SOCKET <--> SocketServer
 
-    %% ── PERSISTENCE & STORAGE LAYER ──
-    subgraph STORAGE_LAYER ["💾 Storage & Persistence Layer"]
-        MySQL_DB[("MySQL 8.0 Database<br/>• users<br/>• concerns<br/>• audit_log<br/>• concern_links")]
-        FileStorage[("File / Binary Storage<br/>• Incident Photos<br/>• Government IDs<br/>• Resolution Proofs")]
-        LocalCache[("Device AsyncStorage<br/>(Offline Queue & Cache)")]
+    %% External Microservices & Cloud AI
+    subgraph EXTERNAL_SERVICES ["☁️ External Cloud Microservices"]
+        DualAIEngine["Dual-AI Vision Client<br/>• Primary: Groq Llama 3.3 70B<br/>• Fallback: Google Gemini 1.5 Flash"]
+        SMTPService["SMTP Nodemailer Relay<br/>(Official City Gmail Gateway)"]
+        FCMService["Firebase Cloud Messaging (FCM)<br/>(Push Notification Daemon)"]
     end
 
-    CitizenDevice <-->|Offline Caching| LocalCache
-    ConcernController -->|SQL Transactions| MySQL_DB
-    VerificationController -->|SQL Queries| MySQL_DB
-    AuthModule -->|Verify Credentials| MySQL_DB
-    ConcernController -->|Save Media| FileStorage
+    ConcernModule <-->|Image Semantic Alignment| DualAIEngine
+    VerificationModule <-->|ID OCR & Name Extraction| DualAIEngine
+    AuthGateway -->|Send 2FA & OTP Codes| SMTPService
+    ConcernModule -->|Trigger Push Alerts| FCMService
 
-    %% ── SYSTEM OUTPUTS ──
-    subgraph OUTPUT_LAYER ["📄 System Outputs & Displays"]
-        CitizenOutput["Citizen Outputs:<br/>• Municipal Docket Numbers<br/>• Real-Time Status Timeline<br/>• In-App Action Alerts"]
-        AdminOutput["Administrator Outputs:<br/>• Real-Time GIS Incident Heatmap<br/>• Verification Counter Badge<br/>• Generated Resolution Proof Reports"]
+    %% Data Stores & Files
+    subgraph DATA_STORES ["💾 Persistent Storage Media"]
+        MySQL_DB[("MySQL 8.0 Relational DB<br/>• users, concerns, audit_log<br/>• concern_links, otp_codes")]
+        MediaStorage[("Server File Storage<br/>(Local Storage / uploads/)")]
+        DeviceStorage[("Device AsyncStorage<br/>(Offline Queue & Cache)")]
     end
 
-    CitizenDevice --> CitizenOutput
-    AdminDevice --> AdminOutput
+    MobileApp <-->|Offline Caching| DeviceStorage
+    ConcernModule -->|Read / Write| MySQL_DB
+    VerificationModule -->|Read / Write| MySQL_DB
+    AuthGateway -->|Read / Write| MySQL_DB
+    ConcernModule -->|Persist Images| MediaStorage
+    VerificationModule -->|Persist ID Photos| MediaStorage
+
+    %% Output Documents & Displays
+    subgraph OUTPUTS ["📄 Physical Outputs & UI Displays"]
+        DocketOutput[/"Citizen Official Docket Receipt<br/>(Tracking Number + Timeline)"/]
+        AdminHeatmap[/"GIS Incident Heatmap & Dashboard<br/>(Spatial Markers & KPI Cards)"/]
+        ResolutionReport[/"Exported Municipal Reports<br/>(Excel .XLSX / PDF Records)"/]
+    end
+
+    MobileApp --> DocketOutput
+    AdminWeb --> AdminHeatmap
+    AdminWeb --> ResolutionReport
 ```
 
 ---
 
-## 🌐 3. Master End-to-End Operational Lifecycle Flowchart
+### 1.2 Citizen Mobile Subsystem & Offline Caching Flowchart
 
-The high-level lifecycle of a civic concern from citizen camera capture to administrative municipal resolution or standardized rejection.
+Shows the flow of data from mobile sensors, through offline SQLite/AsyncStorage storage, over HTTPS/WSS, to server-side controllers.
 
 ```mermaid
-flowchart TD
-    Start(["Citizen Opens CitiVoice App"]) --> AuthCheck{"Is Citizen Authenticated & Verified?"}
+flowchart LR
+    subgraph SENSORS ["Hardware Input"]
+        Cam["Live Camera Sensor"]
+        GPS["GPS Location Sensor"]
+    end
+
+    subgraph CLIENT ["Mobile App (React Native)"]
+        UI_Form["Concern Report Form"]
+        NetDetector["NetInfo Connection Monitor"]
+        AsyncQueue[("Local Offline Queue<br/>AsyncStorage")]
+    end
+
+    subgraph NETWORK ["Network Transport"]
+        REST["REST API POST<br/>/api/concerns"]
+        SocketStream["Socket.io Listener"]
+    end
+
+    subgraph SERVER_STORAGE ["Backend & Database"]
+        Controller["concerns.controller.js"]
+        DB[("MySQL: concerns")]
+        UploadFolder[("Disk: /uploads/concerns/")]
+    end
+
+    Cam --> UI_Form
+    GPS --> UI_Form
+    UI_Form --> NetDetector
     
-    AuthCheck -- "No" --> Onboarding[["4.0 Onboarding & ID Verification Flow"]]
-    Onboarding --> AuthCheck
+    NetDetector -- "Device Offline" --> AsyncQueue
+    AsyncQueue -.->|"On Network Reconnected"| NetDetector
+    NetDetector -- "Device Online" --> REST
     
-    AuthCheck -- "Yes" --> CaptureInput[/"Citizen Takes Live Camera Photo & Pins GPS Hazard Location"/]
-    CaptureInput --> IntakeFlow[["5.0 Concern Intake & Dual-AI Alignment"]]
-    
-    IntakeFlow --> AIValid{"AI Visual Alignment & Concept Check Passed?"}
-    AIValid -- "No" --> ShowErr[/"Display Specific Alignment Rejection Reason to Citizen"/]
-    ShowErr --> CaptureInput
-    
-    AIValid -- "Yes" --> SaveReport[("concerns & file_storage")]
-    SaveReport --> EmitSocket[["Socket.io Broadcast: new_concern"]]
-    EmitSocket --> Docket[/"Issue Official Municipal Docket Number to Citizen"/]
-    
-    EmitSocket --> AdminNotice[/"Admin Real-Time Dashboard Notification"/]
-    AdminNotice --> AdminLogin[["6.0 Admin 2FA Email Login Flow"]]
-    
-    AdminLogin --> ReviewDashboard[/"Administrator Reviews Concern, GIS Map & AI Urgency"/]
-    ReviewDashboard --> StatusChoice{"Select Municipal Action"}
-    
-    %% Branch 1: In Progress
-    StatusChoice -- "Set In Progress" --> Dispatch["Field Department Dispatched"]
-    Dispatch --> AIDraft1[["Generate AI Status Update Note"]]
-    AIDraft1 --> UpdateDB1[("concerns: status = 'In Progress'")]
-    UpdateDB1 --> NotifyCitizen1[["Send Push & In-App Notification"]]
-    
-    %% Branch 2: Resolved
-    StatusChoice -- "Set Resolved" --> AttachProof[/"Admin Attaches Resolution Proof Photo"/]
-    AttachProof --> AIDraft2[["Generate Official Resolution Response (AI Draft)"]]
-    AIDraft2 --> UpdateDB2[("concerns: status = 'Resolved', resolved_image_url")]
-    UpdateDB2 --> NotifyCitizen2[["Send Push & In-App Notification"]]
-    
-    %% Branch 3: Rejected
-    StatusChoice -- "Set Rejected" --> StripPhoto["Auto-Strip & Clear Any Staged Resolution Photo"]
-    StripPhoto --> PickReason[/"Select 1 of 7 Standard Municipal Rejection Reasons"/]
-    PickReason --> UpdateDB3[("concerns: status = 'Rejected', resolved_image_url = NULL")]
-    UpdateDB3 --> NotifyCitizen3[["Send High-Visibility Rejection Alert"]]
-    
-    NotifyCitizen1 --> End(["Concern Lifecycle Updated / Completed"])
-    NotifyCitizen2 --> End
-    NotifyCitizen3 --> End
+    REST --> Controller
+    Controller --> DB
+    Controller --> UploadFolder
+    Controller --> SocketStream
 ```
 
 ---
 
-## 🪪 4. Citizen Onboarding & Smart Camera-Only ID Verification Flowchart
+### 1.3 Admin Web Subsystem, 2FA & Notification Dispatch Flowchart
 
-Illustrates pre-registration email authentication, anti-spoofing live camera capture, and automated AI OCR name matching with manual administrator fallback.
+Shows the data flow during administrative oversight, real-time sidebar badge synchronization, dual-factor authentication, and citizen notification fan-out.
 
 ```mermaid
-flowchart TD
-    Start(["Citizen Begins Registration"]) --> AuthMethod{"Choose Verification Method"}
-    
-    %% Google OAuth Flow
-    AuthMethod -- "Google Sign-In" --> GoogleOAuth[["Google OAuth 2.0 (expo-auth-session)"]]
-    GoogleOAuth --> TokenVerify{"Google ID Token Valid?"}
-    TokenVerify -- "No" --> GoogleFail[/"Display OAuth Error Notice"/]
-    GoogleFail --> Start
-    TokenVerify -- "Yes" --> IssueToken1["Issue Pre-Registration verificationToken"]
-    
-    %% Email OTP Flow
-    AuthMethod -- "Gmail OTP" --> EnterEmail[/"Enter @gmail.com Address"/]
-    EnterEmail --> SendOTP[["Nodemailer: Send 6-Digit Verification Code"]]
-    SendOTP --> SaveOTP[("email_verifications")]
-    SaveOTP --> PromptOTP[/"Input 6-Digit Code in App"/]
-    PromptOTP --> CheckOTP{"OTP Matches & Not Expired?"}
-    CheckOTP -- "No (or Expired)" --> PromptRetry[/"Display Invalid Code Alert (Cooldown 45s)"/]
-    PromptRetry --> PromptOTP
-    CheckOTP -- "Yes" --> IssueToken2["Issue Pre-Registration verificationToken"]
-    
-    IssueToken1 --> ProfileForm[/"Complete Profile: Name, Password, Phone, Barangay, Address"/]
-    IssueToken2 --> ProfileForm
-    
-    ProfileForm --> CreateUser[("Insert users: role='citizen', verification_status='unverified'")]
-    CreateUser --> PromptID[/"Open Smart ID Verification Modal"/]
-    
-    PromptID --> SelectIDType[/"Select 1 of 10 Valid Philippine Government ID Types"/]
-    SelectIDType --> FormatCheck{"Matches ID Format Pattern?"}
-    FormatCheck -- "No" --> FormatErr[/"Display Input Mask Requirement Alert"/]
-    FormatErr --> SelectIDType
-    
-    FormatCheck -- "Yes" --> LiveCamera[["Hardware Camera: launchCamera (Gallery Blocked)"]]
-    LiveCamera --> SnapID[/"Citizen Captures Clear ID Photo"/]
-    SnapID --> PersistID[("file_storage: id_image_url")]
-    
-    PersistID --> TriggerOCR[["AI OCR Name Matching (Groq Llama 3.3 Vision)"]]
-    TriggerOCR --> OCRStatus{"Groq OCR Successful?"}
-    OCRStatus -- "Fail / Outage" --> GeminiOCR[["Fallback: Google Gemini Flash Vision"]]
-    OCRStatus -- "Success" --> EvaluateMatch
-    GeminiOCR --> EvaluateMatch{"Extracted Name Matches Registered Legal Name?"}
-    
-    EvaluateMatch -- ">= 80% Match Score" --> AutoVerify["Set verification_status = 'verified'"]
-    AutoVerify --> UpdateVerified[("users: is_verified = 1")]
-    UpdateVerified --> NotifVerified[/"Notify Citizen: ID Instantly Approved"/]
-    NotifVerified --> FinishVerified(["Citizen Ready to Report Concerns"])
-    
-    EvaluateMatch -- "< 80% Match Score" --> FlagPending["Set verification_status = 'pending'"]
-    FlagPending --> UpdatePending[("users: is_verified = 0")]
-    UpdatePending --> QueueAdmin[/"Place in Administrator Verification Queue"/]
-    
-    QueueAdmin --> AdminInspect[/"Administrator Compares ID Photo vs Registered Name"/]
-    AdminInspect --> AdminDecision{"Admin Verification Decision"}
-    
-    AdminDecision -- "Approve" --> SetApproved[("users: verification_status = 'verified'")]
-    SetApproved --> Audit1[("audit_log")]
-    Audit1 --> FinishVerified
-    
-    AdminDecision -- "Reject" --> EnterRejectionReason[/"Select or Type Rejection Reason"/]
-    EnterRejectionReason --> SetRejected[("users: verification_status = 'rejected'")]
-    SetRejected --> Audit2[("audit_log")]
-    Audit2 --> NotifyRejection[/"Citizen Notified to Re-submit Valid ID Photo"/]
-    NotifyRejection --> FinishRejected(["ID Rejected: Re-attempt Available"])
+flowchart LR
+    subgraph ADMIN_CLIENT ["Admin Web Console (React SPA)"]
+        BrowserUI["Web Browser (Chrome/Edge)"]
+        SidebarBadge["Real-Time Sidebar Badge<br/>Pending Verification Counter"]
+        DetailDrawer["Incident Resolution Panel"]
+    end
+
+    subgraph TRANSPORT ["Network"]
+        AdminREST["HTTPS REST API<br/>Bearer Admin JWT"]
+        AdminWSS["WebSocket Channels:<br/>• new_concern<br/>• verification_stats_updated"]
+    end
+
+    subgraph BACKEND_ENGINES ["Express Application Layer"]
+        AuthEngine["2FA Mailer Service<br/>(Nodemailer)"]
+        UsersCtrl["users.controller.js"]
+        ConcernsCtrl["concerns.controller.js"]
+        PushEngine["FCM Push Service"]
+    end
+
+    subgraph STORAGE_AUDIT ["Storage Layer"]
+        MySQL_Main[("MySQL: users, concerns")]
+        AuditLog[("MySQL: audit_log")]
+    end
+
+    BrowserUI -->|Login Request| AdminREST
+    AdminREST --> AuthEngine
+    AuthEngine -->|Deliver 6-Digit OTP| BrowserUI
+
+    AdminWSS -->|Live Increment / Decrement| SidebarBadge
+    BrowserUI -->|Approve/Reject User| AdminREST
+    BrowserUI -->|Resolve/Reject Hazard| AdminREST
+
+    AdminREST --> UsersCtrl
+    AdminREST --> ConcernsCtrl
+
+    UsersCtrl --> MySQL_Main
+    UsersCtrl --> AuditLog
+    ConcernsCtrl --> MySQL_Main
+    ConcernsCtrl --> AuditLog
+
+    UsersCtrl -->|Emit Event| AdminWSS
+    ConcernsCtrl -->|Emit Event| AdminWSS
+    ConcernsCtrl --> PushEngine
 ```
 
 ---
 
-## 📷 5. Concern Intake, Dual-AI Visual Alignment & Duplicate Detection Flowchart
+# ⚙️ PART II — PROGRAM FLOWCHARTS (Algorithmic & Control Logic)
 
-Demonstrates live camera intake, offline local queue caching, dual-AI semantic alignment, 32-barangay spatial mapping, and similarity linking.
+> **Definition (Program Flowchart):**  
+> Depicts the **narrow focus on a single program, script, or algorithm** — mapping out control flow, decision branches (`if/else`), arithmetic calculations, error handling loops, and sequential instructions using strict ANSI/ISO symbols.
+
+---
+
+### 2.1 Standard ANSI/ISO Logic Symbol Guide
+
+| Symbol | Syntax | Standard Function |
+| :---: | :---: | :--- |
+| **Terminal** | `([Start / End])` | Indicates the start, end, or exit point of the program. |
+| **Input / Output** | `[/Input or Output/]` | Data entered by the user (camera, keyboard) or output displayed to the screen. |
+| **Process** | `[Instruction / Computation]` | Single code statement, assignment, database query, or computation. |
+| **Decision** | `{"Conditional Check?"}` | Evaluates a Boolean condition with explicit `True / Yes` and `False / No` paths. |
+| **Subroutine** | `[["Subroutine / Function Call"]]` | Reference to a separate named function or external client module. |
+| **Database Transaction** | `[("SQL Transaction")]` | Read, insert, update, or delete transaction on a persistent table. |
+
+---
+
+### 2.2 Program 1: Citizen Registration & AI OCR ID Verification Algorithm
+
+**Source Controller:** `backend/controllers/auth.controller.js` & `backend/controllers/users.controller.js`  
+**Purpose:** Handles pre-registration validation, password hashing, anti-spoofing camera capture, and automated AI OCR name matching with manual admin fallback.
 
 ```mermaid
 flowchart TD
-    Start(["Citizen Initiates Concern Submission"]) --> LaunchCam[["Launch Camera: launchCamera (Anti-Spoofing, Gallery Disabled)"]]
-    LaunchCam --> CapturePhoto[/"Citizen Captures Real-Time Hazard Photo"/]
-    CapturePhoto --> FillDetails[/"Input Report Title & Description"/]
+    P1_Start(["Start: Citizen Registration"]) --> P1_InCreds[/"Input: Email, Password, Name, Phone, Barangay, Address"/]
     
-    FillDetails --> FetchGPS[["Fetch Hardware GPS Coordinates (Expo Location)"]]
-    FetchGPS --> MapPin[/"Citizen Confirms Pinned Location on Interactive Map"/]
+    P1_InCreds --> P1_ValPass{"Password >= 8 chars with Upper, Lower, Digit, Special?"}
+    P1_ValPass -- "No" --> P1_ErrPass[/"Display: Password Complexity Error"/]
+    P1_ErrPass --> P1_InCreds
     
-    MapPin --> CheckNetwork{"Is Mobile Device Online?"}
+    P1_ValPass -- "Yes" --> P1_CheckDup{"Email, Phone, or Name Already in users Table?"}
+    P1_CheckDup -- "Yes" --> P1_ErrDup[/"Display: Account Already Registered Error"/]
+    P1_ErrDup --> P1_InCreds
+    
+    P1_CheckDup -- "No" --> P1_Hash["bcrypt.hash(password, 10)"]
+    P1_Hash --> P1_SelectID[/"Input: Select ID Type & Input ID Number"/]
+    
+    P1_SelectID --> P1_LaunchCam[["Hardware Call: launchCamera (Gallery Blocked)"]]
+    P1_LaunchCam --> P1_Snap[/"Input: Citizen Captures Real-Time Photo of ID"/]
+    
+    P1_Snap --> P1_TriggerOCR[["Call: aiClient.extractIdName(idImageBuffer)"]]
+    P1_TriggerOCR --> P1_GroqLive{"Groq Vision API Healthy?"}
+    P1_GroqLive -- "Yes" --> P1_RunGroq["Primary: Groq Llama 3.3 Vision OCR"]
+    P1_GroqLive -- "No (Timeout/5xx)" --> P1_RunGemini["Failover: Google Gemini Flash Vision OCR"]
+    
+    P1_RunGroq --> P1_ComputeSimilarity["Compute Levenshtein Similarity(ExtractedName, RegisteredName)"]
+    P1_RunGemini --> P1_ComputeSimilarity
+    
+    P1_ComputeSimilarity --> P1_EvalScore{"Match Score >= 80%?"}
+    
+    %% Automated Approval Branch
+    P1_EvalScore -- "Yes (High Confidence)" --> P1_SetVerified["Set verification_status = 'verified', is_verified = 1"]
+    P1_SetVerified --> P1_InsertUser1[("INSERT INTO users VALUES (...)")]
+    P1_InsertUser1 --> P1_GenJWT1["Generate Session JWT Token"]
+    P1_GenJWT1 --> P1_EmitStats1[["Socket.io: emit 'verification_stats_updated'"]]
+    P1_EmitStats1 --> P1_NotifyUser1[/"Display: 'Account Instantly Verified!' & Redirect to Home"/]
+    P1_NotifyUser1 --> P1_EndSuccess(["End: Registration Complete"])
+    
+    %% Manual Queue Fallback Branch
+    P1_EvalScore -- "No (< 80% or Unclear)" --> P1_SetPending["Set verification_status = 'pending', is_verified = 0"]
+    P1_SetPending --> P1_InsertUser2[("INSERT INTO users VALUES (...)")]
+    P1_InsertUser2 --> P1_GenJWT2["Generate Session JWT Token"]
+    P1_GenJWT2 --> P1_EmitStats2[["Socket.io: emit 'verification_stats_updated'"]]
+    P1_EmitStats2 --> P1_NotifyUser2[/"Display: 'ID Submitted for Manual Review' Notice"/]
+    P1_NotifyUser2 --> P1_AdminReview[/"Admin Console: Admin Compares ID Photo vs Registered Name"/]
+    
+    P1_AdminReview --> P1_AdminChoice{"Admin Decision?"}
+    P1_AdminChoice -- "Approved" --> P1_ApproveUser[("UPDATE users SET verification_status='verified', is_verified=1")]
+    P1_ApproveUser --> P1_EmitStats1
+    
+    P1_AdminChoice -- "Rejected" --> P1_PromptReason[/"Input: Admin Selects Rejection Reason"/]
+    P1_PromptReason --> P1_RejectUser[("UPDATE users SET verification_status='rejected', rejection_reason=reason")]
+    P1_RejectUser --> P1_EmitStats3[["Socket.io: emit 'verification_stats_updated'"]]
+    P1_EmitStats3 --> P1_AlertRejection[/"Send Push Alert to Citizen: 'ID Verification Rejected'"/]
+    P1_AlertRejection --> P1_EndRejected(["End: Awaiting New ID Submission"])
+```
+
+---
+
+### 2.3 Program 2: Incident Intake & Dual-AI Visual Alignment Algorithm
+
+**Source Controller:** `backend/controllers/concerns.controller.js` & `backend/services/aiClient.js`  
+**Purpose:** Validates citizen photo evidence, checks semantic alignment against report description, calculates urgency score, and saves incident.
+
+```mermaid
+flowchart TD
+    P2_Start(["Start: Concern Submission Routine"]) --> P2_CheckVerif{"User verification_status == 'verified'?"}
+    
+    P2_CheckVerif -- "No" --> P2_BlockSubmission[/"Display: 'Identity Verification Required to File Reports'"/]
+    P2_BlockSubmission --> P2_EndBlocked(["End: Action Blocked"])
+    
+    P2_CheckVerif -- "Yes" --> P2_OpenCam[["Hardware: launchCamera (Anti-Spoofing Check)"]]
+    P2_OpenCam --> P2_Capture[/"Input: Real-Time Incident Photo"/]
+    P2_Capture --> P2_InText[/"Input: Report Title, Description & User Category"/]
+    
+    P2_InText --> P2_GetGPS[["Call: Expo Location API (Fetch GPS Coords)"]]
+    P2_GetGPS --> P2_CheckNet{"NetInfo: Device Online?"}
     
     %% Offline Branch
-    CheckNetwork -- "No (Offline)" --> StoreLocal[("AsyncStorage: offline_concerns_queue")]
-    StoreLocal --> AlertQueued[/"Display 'Saved to Offline Queue' Notice"/]
-    AlertQueued --> NetworkListener[["NetInfo: Listen for Network Reconnection"]]
-    NetworkListener --> WhenOnline{"Connection Restored?"}
-    WhenOnline -- "Yes" --> FlushQueue["Automatically Dequeue & Submit"]
-    FlushQueue --> CheckNetwork
+    P2_CheckNet -- "No" --> P2_SaveQueue[("AsyncStorage: Append to offline_concerns_queue")]
+    P2_SaveQueue --> P2_AlertQueue[/"Display: 'Saved to Local Queue. Will Upload When Online.'"/]
+    P2_AlertQueue --> P2_EndQueue(["End: Queued Locally"])
     
     %% Online Branch
-    CheckNetwork -- "Yes" --> DualAI[["Dual-AI Vision Client (aiClient.js)"]]
-    DualAI --> GroqAttempt[["Primary: Groq Llama 3.3 Vision Inspection"]]
-    GroqAttempt --> GroqCheck{"Groq API Healthy & Responding?"}
+    P2_CheckNet -- "Yes" --> P2_CallVision[["Call: aiClient.alignImageWithConcept(photoBuffer, title, desc)"]]
+    P2_CallVision --> P2_HealthGroq{"Groq API Available?"}
+    P2_HealthGroq -- "Yes" --> P2_GroqEval["Evaluate: Groq Llama 3.3 Vision"]
+    P2_HealthGroq -- "No" --> P2_GeminiEval["Failover: Google Gemini 1.5 Flash Vision"]
     
-    GroqCheck -- "No (5xx / Timeout / Rate Limit)" --> GeminiFailover[["Failover: Google Gemini Flash Vision"]]
-    GroqCheck -- "Yes" --> EvaluateVision
-    GeminiFailover --> EvaluateVision{"Does Image Semantically Match Written Concern?"}
+    P2_GroqEval --> P2_ResultParse["Parse JSON: { isAligned, confidence, category, urgency, reason }"]
+    P2_GeminiEval --> P2_ResultParse
     
-    EvaluateVision -- "No (Mismatched / Selfie / Inappropriate)" --> RejectSubmission[/"Reject Submission & Show Specific Mismatch Explanation"/]
-    RejectSubmission --> CapturePhoto
+    P2_ResultParse --> P2_CheckAligned{"isAligned == true AND confidence >= 0.70?"}
     
-    EvaluateVision -- "Yes (Concept Aligned)" --> CalcCategory["Extract Valid Category & Urgency Score"]
-    CalcCategory --> CentroidCalc[["Haversine Distance vs 32 Kabankalan Barangay Centroids"]]
-    CentroidCalc --> SetIncidentBarangay["Assign Exact Nearest incident_barangay"]
+    P2_CheckAligned -- "No (Mismatched/Selfie/Irrelevant)" --> P2_ShowMismatch[/"Display: 'Image Mismatch — Photo does not show reported civic hazard.'"/]
+    P2_ShowMismatch --> P2_Capture
     
-    SetIncidentBarangay --> SimilarityEngine[["Similarity Check: Query Open & Resolved Concerns"]]
-    SimilarityEngine --> CheckMatch{"Matching Hazard Found in Same Barangay & Category?"}
+    P2_CheckAligned -- "Yes (Concept Aligned)" --> P2_CalcCentroid[["Call: HaversineCentroid(lat, lng) vs 32 Barangays"]]
+    P2_CalcCentroid --> P2_AssignBarangay["Set incident_barangay = Nearest Barangay"]
     
-    CheckMatch -- "Active Match (Pending / In Progress)" --> LinkDup[("concern_links: link_type = 'duplicate'")]
-    LinkDup --> SaveConcern[("concerns: status = 'Pending' / sync In-Progress")]
+    P2_AssignBarangay --> P2_DupCheckRoutine[["Call: DuplicateDetection(incident_barangay, category, lat, lng)"]]
+    P2_DupCheckRoutine --> P2_SaveDB[("INSERT INTO concerns: title, desc, category, urgency, status='Pending'")]
+    P2_SaveDB --> P2_SaveFile[("Write File: /uploads/concerns/photo_*.jpg")]
     
-    CheckMatch -- "Historical Match (Resolved)" --> LinkRel[("concern_links: link_type = 'related'")]
-    LinkRel --> SaveConcern
-    
-    CheckMatch -- "No Match Found" --> SaveConcern
-    
-    SaveConcern --> PersistBinary[("file_storage: incident photo LONGBLOB")]
-    PersistBinary --> EmitEvent[["Socket.io: emit 'new_concern'"]]
-    EmitEvent --> OutputDocket[/"Display Official Municipal Docket Receipt & Timeline"/]
-    OutputDocket --> End(["Submission Successfully Recorded"])
+    P2_SaveFile --> P2_SocketEmit[["Socket.io: emit 'new_concern' & 'concern_stats_updated'"]]
+    P2_SocketEmit --> P2_DocketOut[/"Output: Generate Official Municipal Docket Receipt"/]
+    P2_DocketOut --> P2_EndSuccess(["End: Report Active"])
 ```
 
 ---
 
-## 🛡️ 6. Administrator 2FA Authentication & Incident Resolution Lifecycle Flowchart
+### 2.4 Program 3: Spatial Haversine & Duplicate Hazard Detection Algorithm
 
-Illustrates two-factor email OTP administrator authentication, GIS dashboard triage, official AI response drafting, and the strict rejection workflow.
+**Source Controller:** `backend/controllers/concerns.controller.js` (Spatial Subroutine)  
+**Purpose:** Calculates nearest barangay centroid and identifies duplicate open reports in the same geographic zone.
 
 ```mermaid
 flowchart TD
-    Start(["Administrator Navigates to /login"]) --> EnterCredentials[/"Enter Email & Password"/]
-    EnterCredentials --> CheckCreds{"Password Hash Matches (bcrypt) & Role = 'admin'?"}
+    P3_Start(["Start: Spatial & Duplicate Detection Subroutine"]) --> P3_InCoords[/"Input: Latitude (lat1), Longitude (lng1), Category, Title"/]
     
-    CheckCreds -- "No" --> CredsError[/"Display 'Invalid Credentials' Error"/]
-    CredsError --> EnterCredentials
+    %% Haversine Centroid Calculation
+    P3_InCoords --> P3_LoadCentroids["Load Coordinates for 32 Kabankalan Barangays"]
+    P3_LoadCentroids --> P3_HaversineLoop["For each Barangay B in Centroids:<br/>dLat = toRad(lat2 - lat1)<br/>dLng = toRad(lng2 - lng1)<br/>a = sin²(dLat/2) + cos(lat1)*cos(lat2)*sin²(dLng/2)<br/>distance = 2 * R * atan2(√a, √(1-a))"]
+    P3_HaversineLoop --> P3_MinDistance["Find min(distance)"]
+    P3_MinDistance --> P3_SetBrgy["Assign assigned_barangay = B.name"]
     
-    CheckCreds -- "Yes" --> GenOTP["Generate Secure 6-Digit OTP"]
-    GenOTP --> Save2FA[("admin_2fa_codes: otp_hash, expires_at = NOW + 10m")]
-    Save2FA --> SendAdminEmail[["Nodemailer: Deliver 2FA Code to Admin Official Email"]]
-    SendAdminEmail --> IssueMFAToken["Issue Ephemeral mfaToken"]
+    %% Duplicate Check
+    P3_SetBrgy --> P3_QueryActive[("SELECT * FROM concerns WHERE barangay = assigned_barangay AND status IN ('Pending', 'In Progress')")]
+    P3_QueryActive --> P3_ActiveRows{"Active Concerns Exist in Barangay?"}
     
-    IssueMFAToken --> Prompt2FA[/"Enter 6-Digit 2FA Code (45s Resend Cooldown)"/]
-    Prompt2FA --> Verify2FA{"OTP Valid & Not Expired?"}
+    P3_ActiveRows -- "No" --> P3_NoDup["isDuplicate = false, linkType = NULL"]
+    P3_NoDup --> P3_End(["Return: { assigned_barangay, isDuplicate, linkedId }"])
     
-    Verify2FA -- "No" --> OTPError[/"Display 'Invalid Code' Notice"/]
-    OTPError --> Prompt2FA
+    P3_ActiveRows -- "Yes" --> P3_CompareLoop["For each Open Concern C:<br/>1. Distance = Haversine(IncidentGPS, C.GPS)<br/>2. TextSim = CosineSimilarity(NewTitle, C.Title)<br/>3. CategoryMatch = (NewCategory == C.Category)"]
     
-    Verify2FA -- "Yes" --> Delete2FA[("Delete admin_2fa_codes Entry")]
-    Delete2FA --> IssueAdminJWT["Issue Full Admin JWT Session Cookie"]
+    P3_CompareLoop --> P3_CheckThreshold{"Distance <= 150m AND (CategoryMatch OR TextSim >= 0.75)?"}
     
-    IssueAdminJWT --> AdminDashboard[/"Admin Dashboard: GIS Heatmap, Status Lists, KPI Cards"/]
-    AdminDashboard --> SelectTicket[/"Open Specific Concern Detail Drawer"/]
-    
-    SelectTicket --> DecideStatus{"Target Status Selection"}
-    
-    %% Branch: In Progress
-    DecideStatus -- "In Progress" --> DraftProgressNote[/"Optional Admin Dispatch Note"/]
-    DraftProgressNote --> SaveProgress[("Update concerns: status = 'In Progress'")]
-    SaveProgress --> LogAudit1[("audit_log: action = 'status_change'")]
-    LogAudit1 --> NotifyProgress[["Push Alert & In-App Notification: Crew Dispatched"]]
-    
-    %% Branch: Resolved
-    DecideStatus -- "Resolved" --> AttachResolvedPhoto[/"Attach Resolution Proof Photo (Required/Optional)"/]
-    AttachResolvedPhoto --> ClickAIDraft[/"Click '✨ AI Draft' or Write Official Response"/]
-    ClickAIDraft --> GenResolvedAI[["AI Engine: Draft Formal Municipal Resolution Notice"]]
-    GenResolvedAI --> SaveResolved[("Update concerns: status = 'Resolved', resolved_image_url")]
-    SaveResolved --> LogAudit2[("audit_log: action = 'status_change'")]
-    LogAudit2 --> NotifyResolved[["Push Alert: Hazard Resolved with Proof"]]
-    
-    %% Branch: Rejected
-    DecideStatus -- "Rejected" --> ClearPhoto["Strip & Clear Resolution Photo: resolved_image_url = NULL"]
-    ClearPhoto --> DisableAIDraft["Disable Auto-Generated AI Text Response"]
-    DisableAIDraft --> SelectReason[/"Select 1 of 7 Standardized Municipal Grounds:<br/>1. Duplicate Report<br/>2. Private Property (Outside Jurisdiction)<br/>3. Utility / National Scope (DPWH / CENECO)<br/>4. Insufficient Details (Lacks Landmark)<br/>5. Not a Public Safety Hazard<br/>6. Already Cleared Upon Inspection<br/>7. Invalid / Non-Civic Submission"/]
-    SelectReason --> SaveRejected[("Update concerns: status = 'Rejected', admin_note = Reason")]
-    SaveRejected --> LogAudit3[("audit_log: action = 'status_change'")]
-    LogAudit3 --> NotifyRejected[["Push Alert: High-Visibility Rejection Card Displayed"]]
-    
-    NotifyProgress --> RealtimeSync[["Socket.io: emit 'status_updated'"]]
-    NotifyResolved --> RealtimeSync
-    NotifyRejected --> RealtimeSync
-    RealtimeSync --> End(["Concern Lifecycle Updated"])
+    P3_CheckThreshold -- "No Matches" --> P3_NoDup
+    P3_CheckThreshold -- "Match Found" --> P3_SetDup["isDuplicate = true<br/>linkedId = C.id<br/>linkType = 'duplicate'"]
+    P3_SetDup --> P3_RecordLink[("INSERT INTO concern_links: source_id, target_id, link_type='duplicate'")]
+    P3_RecordLink --> P3_End
 ```
 
 ---
 
-## ✏️ 7. Citizen Concern Editing & Version History Flowchart
+### 2.5 Program 4: Administrative Resolution & Standardized Rejection Algorithm
 
-Details the operational constraints governing citizen modifications to active reports, visual re-alignment, and audit version snapshot creation.
+**Source Controller:** `backend/controllers/concerns.controller.js`  
+**Purpose:** Enforces strict municipal accountability rules: status dispatch, proof photo attachment, AI response drafting, and standardized rejection classification.
 
 ```mermaid
 flowchart TD
-    Start(["Citizen Opens Submitted Concern in App"]) --> EditBtnClicked[/"Tap 'Edit Concern' Button"/]
-    EditBtnClicked --> CheckStatus{"Is Status 'Pending' or 'In Progress'?"}
+    P4_Start(["Start: Admin Concern Lifecycle Update"]) --> P4_InAction[/"Input: Target Status ('In Progress', 'Resolved', 'Rejected')"/]
     
-    CheckStatus -- "No (Resolved or Rejected)" --> BlockEdit[/"Display Notice: Locked — Completed/Closed Reports Cannot Be Modified"/]
-    BlockEdit --> End(["Edit Aborted"])
+    P4_InAction --> P4_BranchStatus{"Evaluate Target Status"}
     
-    CheckStatus -- "Yes" --> PresentForm[/"Display Edit Modal: Title & Description Editable<br/>(Category, Pinned Location & Live Photo are Permanently Locked)"/]
+    %% Branch A: In Progress
+    P4_BranchStatus -- "In Progress" --> P4_InNote[/"Input: Optional Dispatch Note"/]
+    P4_InNote --> P4_UpdProgress[("UPDATE concerns SET status='In Progress', updated_at=NOW()")]
+    P4_UpdProgress --> P4_Audit1[("INSERT INTO audit_log: action='status_change', new_status='In Progress'")]
+    P4_Audit1 --> P4_Emit1[["Socket.io: emit 'concern_updated'"]]
+    P4_Emit1 --> P4_Push1[["Call FCM: Send Push 'Field Crew Dispatched' to Citizen"]]
+    P4_Push1 --> P4_EndComplete(["End: Status Updated"])
     
-    PresentForm --> SubmitChanges[/"Submit Updated Title & Description"/]
-    SubmitChanges --> HasImage{"Does Concern Have an Attached Incident Photo?"}
+    %% Branch B: Resolved
+    P4_BranchStatus -- "Resolved" --> P4_CheckProof{"Has Resolution Proof Photo Been Attached?"}
+    P4_CheckProof -- "No" --> P4_WarnProof[/"Display: 'Proof of Resolution Photo Required'"/]
+    P4_WarnProof --> P4_InAction
     
-    HasImage -- "Yes" --> ReVerifyAI[["Dual-AI Vision: Verify New Title & Description Against Photo"]]
-    ReVerifyAI --> CheckAlignment{"Does Updated Text Still Align with Photo?"}
+    P4_CheckProof -- "Yes" --> P4_AIDraftPrompt[/"Input: Click '✨ AI Draft' or Write Official Resolution Text"/]
+    P4_AIDraftPrompt --> P4_UpdResolved[("UPDATE concerns SET status='Resolved', resolved_image_url=photoUrl, admin_note=note")]
+    P4_UpdResolved --> P4_Audit2[("INSERT INTO audit_log: action='status_change', new_status='Resolved'")]
+    P4_Audit2 --> P4_Emit2[["Socket.io: emit 'concern_updated'"]]
+    P4_Emit2 --> P4_Push2[["Call FCM: Send Push 'Concern Resolved with Photo Proof' to Citizen"]]
+    P4_Push2 --> P4_EndComplete
     
-    CheckAlignment -- "No" --> ShowMismatch[/"Reject Edit: Updated text contradicts original photo evidence"/]
-    ShowMismatch --> PresentForm
+    %% Branch C: Rejected
+    P4_BranchStatus -- "Rejected" --> P4_StripPhoto["Execute: Set resolved_image_url = NULL (Strip Staged Proof)"]
+    P4_StripPhoto --> P4_SelectReason[/"Input: Select 1 of 7 Standard Grounds:<br/>1. Duplicate Report<br/>2. Private Property<br/>3. Utility/National Scope (DPWH/CENECO)<br/>4. Insufficient Details<br/>5. Not a Safety Hazard<br/>6. Cleared Upon Inspection<br/>7. Invalid/Non-Civic"/]
     
-    CheckAlignment -- "Yes" --> PrepareSnapshot
-    HasImage -- "No" --> PrepareSnapshot
-    
-    PrepareSnapshot["Assemble Old Values vs New Values"]
-    PrepareSnapshot --> InsertHistory[("Insert concern_edit_history:<br/>old_title, new_title,<br/>old_description, new_description,<br/>change_summary, edited_by, edited_at")]
-    
-    InsertHistory --> UpdateConcern[("Update concerns:<br/>title = new_title,<br/>description = new_description,<br/>edit_count = edit_count + 1,<br/>last_edited_at = NOW()")]
-    
-    UpdateConcern --> RecordAudit[("Insert audit_log: action = 'citizen_edit'")]
-    RecordAudit --> EmitEdit[["Socket.io: emit 'concern_updated'"]]
-    EmitEdit --> UpdateUI[/"Instant Refresh on Mobile App & Admin Web Drawer"/]
-    UpdateUI --> EndSuccess(["Edit Recorded & Audit History Appended"])
+    P4_SelectReason --> P4_UpdRejected[("UPDATE concerns SET status='Rejected', admin_note=selectedReason, resolved_image_url=NULL")]
+    P4_UpdRejected --> P4_Audit3[("INSERT INTO audit_log: action='status_change', new_status='Rejected'")]
+    P4_Audit3 --> P4_Emit3[["Socket.io: emit 'concern_updated'"]]
+    P4_Emit3 --> P4_Push3[["Call FCM: Send High-Visibility Rejection Alert to Citizen"]]
+    P4_Push3 --> P4_EndComplete
 ```
 
 ---
 
-## 💾 8. Automated Database Backup Routine Flowchart
+### 2.6 Program 5: Citizen Concern Editing & Audit Snapshot Algorithm
 
-Illustrates the background cron jobs and automated backup daemons maintaining disaster recovery, change detection, and file rotation.
+**Source Controller:** `backend/controllers/concerns.controller.js`  
+**Purpose:** Restricts editing to open tickets, re-evaluates visual alignment against existing photos, and preserves historical version snapshots.
 
 ```mermaid
 flowchart TD
-    StartBackup(["Daily / On-Demand Backup Triggered"]) --> CheckDataChange{"Has Database Changed Since Last Snapshot?"}
-    CheckDataChange -- "No" --> SkipBackup["Log: No Changes Detected — Snapshot Skipped"]
-    SkipBackup --> EndBackup(["Backup Routine Complete"])
+    P5_Start(["Start: Edit Concern Request"]) --> P5_FetchCurrent[("SELECT * FROM concerns WHERE id = param.id")]
     
-    CheckDataChange -- "Yes" --> DumpEngine[["Run mysqldump or Portable JSON Exporter"]]
-    DumpEngine --> WriteFile[("Write to /backups/citivoice_dump_*.sql")]
-    WriteFile --> RotateBackups{"Backup Count > BACKUP_MAX_FILES?"}
+    P5_FetchCurrent --> P5_CheckOwner{"req.user.id == concern.user_id?"}
+    P5_CheckOwner -- "No" --> P5_Err403[/"HTTP 403: Forbidden Action"/]
+    P5_Err403 --> P5_EndAbort(["End: Edit Aborted"])
     
-    RotateBackups -- "Yes" --> PurgeOld["Purge Oldest Archive File"]
-    PurgeOld --> MirrorCloud[["Off-PC Mirroring to OneDrive / Secondary Storage"]]
+    P5_CheckOwner -- "Yes" --> P5_CheckLock{"concern.status IN ('Pending', 'In Progress')?"}
+    P5_CheckLock -- "No (Resolved or Rejected)" --> P5_ErrLock[/"Display: 'Resolved or Rejected concerns are permanently locked.'"/]
+    P5_ErrLock --> P5_EndAbort
     
-    RotateBackups -- "No" --> MirrorCloud
-    MirrorCloud --> EndBackup
+    P5_CheckLock -- "Yes" --> P5_InputEdits[/"Input: New Title & New Description (Photo, Location & Category Locked)"/]
+    
+    P5_InputEdits --> P5_HasPhoto{"concern.image_url != NULL?"}
+    P5_HasPhoto -- "Yes" --> P5_RevalidateAI[["Call: aiClient.alignImageWithConcept(existingPhoto, newTitle, newDesc)"]]
+    P5_RevalidateAI --> P5_AIValid{"New Text Aligned with Existing Photo?"}
+    P5_AIValid -- "No" --> P5_ErrAlign[/"Display: 'New description contradicts original photo evidence.'"/]
+    P5_ErrAlign --> P5_InputEdits
+    
+    P5_AIValid -- "Yes" --> P5_AssembleHistory
+    P5_HasPhoto -- "No" --> P5_AssembleHistory
+    
+    P5_AssembleHistory["Assemble Snapshot: old_title, new_title, old_desc, new_desc, edited_at"]
+    P5_AssembleHistory --> P5_InsertHistory[("INSERT INTO concern_edit_history VALUES (...)")]
+    P5_InsertHistory --> P5_UpdateConcern[("UPDATE concerns SET title=newTitle, description=newDesc, edit_count=edit_count+1, updated_at=NOW()")]
+    P5_UpdateConcern --> P5_Audit[("INSERT INTO audit_log: action='citizen_edit'")]
+    P5_Audit --> P5_Emit[["Socket.io: emit 'concern_updated'"]]
+    P5_Emit --> P5_SuccessMsg[/"Display: 'Concern successfully updated. Version history recorded.'"/]
+    P5_SuccessMsg --> P5_EndSuccess(["End: Edit Persisted"])
 ```
 
 ---
 
-## 📌 9. Summary Matrix of System Operations
+# 📌 PART III — TRACEABILITY MATRIX
 
-| Subsystem / Routine | Trigger Actor / Event | Key Decision / Checkpoint | Primary Database Tables Affected | Real-Time Sync Channel |
-| :--- | :--- | :--- | :--- | :--- |
-| **Citizen Registration** | Citizen (`/register`) | Email OTP / Google OAuth token validation | `users`, `email_verifications` | REST API |
-| **ID Verification** | Citizen (Mobile Modal) | AI OCR Name match score (`>= 80%`) | `users`, `file_storage`, `audit_log` | Socket.io / Push |
-| **Concern Intake** | Citizen (`/concerns`) | Dual-AI photo-to-concept visual alignment | `concerns`, `file_storage`, `concern_links` | Socket.io (`new_concern`) |
-| **Admin Login (2FA)** | Admin (`/login`) | 6-digit email OTP expiry & hash match | `admin_2fa_codes`, `users` | REST API |
-| **Resolution Lifecycle** | Admin (`/concerns/:id`) | Target status (`In Progress`, `Resolved`, `Rejected`) | `concerns`, `audit_log`, `notifications` | Socket.io (`status_updated`) |
-| **Concern Editing** | Citizen (`/edit`) | Status is editable (`Pending` / `In Progress`) | `concerns`, `concern_edit_history`, `audit_log` | Socket.io (`concern_updated`) |
-| **Database Backup** | Scheduled Cron / Admin | Change detection since last snapshot | `/backups/*.sql`, `/backups/*.json` | Admin Console |
+This table cross-references each physical system element from the **System Flowcharts (Part I)** with its implementing algorithmic logic in the **Program Flowcharts (Part II)**:
 
+| System Flowchart Component | Operational Role | Corresponding Program Flowchart | Source File / Implementation |
+| :--- | :--- | :--- | :--- |
+| **Citizen Smartphone (Camera & GPS)** | Captures anti-spoofing live photos & coordinates | **Program 2** *(Incident Intake Algorithm)* | `mobile/src/screens/citizen/SubmitConcernScreen.jsx` |
+| **Dual-AI Vision Client** | Llama 3.3 / Gemini Flash failover alignment | **Program 2** & **Program 5** *(Vision Subroutine)* | `backend/services/aiClient.js` |
+| **Centroid & Duplicate Engine** | Haversine distance & spatial similarity | **Program 3** *(Spatial Duplicate Detection)* | `backend/controllers/concerns.controller.js` |
+| **OCR Verification Subsystem** | Government ID name extraction & matching | **Program 1** *(ID Verification Algorithm)* | `backend/controllers/users.controller.js` |
+| **Sidebar Real-Time Badge** | Live indicator for pending citizen queue | **Program 1** & **Program 4** *(Socket Sync)* | `admin-web/src/components/Sidebar.jsx` |
+| **Admin Incident Resolution Panel** | Enforces proof photo & standardized rejection | **Program 4** *(Resolution & Rejection Algorithm)* | `admin-web/src/pages/Concerns.jsx` |
+| **Version History Snapshot Engine** | Immutable audit trail for edited concerns | **Program 5** *(Concern Editing Algorithm)* | `backend/models/concern.model.js` |
+| **Database & File Media Store** | Relational integrity & image persistence | **All Programs (1 to 5)** | `backend/db.js` & `backend/uploads/` |
