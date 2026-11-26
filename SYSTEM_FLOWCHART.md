@@ -10,7 +10,7 @@ This document is divided into two distinct engineering specifications adhering t
 1. [**PART I — SYSTEM FLOWCHARTS (High-Level Architecture & Physical Data Flow)**](#-part-i--system-flowcharts-architecture--physical-data-flow)
    - *Scope:* Broad overview of hardware, software components, external AI services, database stores, communication media, human actors, and physical outputs.
    - 1.1 [Master Compact System Flowchart (Executive 4-Tier Architecture)](#11-master-compact-system-flowchart-executive-4-tier-architecture)
-   - 1.2 [Detailed System Flowchart (End-to-End System Boundary)](#12-detailed-system-flowchart-end-to-end-system-boundary)
+   - 1.2 [Physical System Flowchart (5-Stage Media & Hardware Flow)](#12-physical-system-flowchart-5-stage-media--hardware-flow)
    - 1.3 [Citizen Mobile Subsystem & Offline Caching Flowchart](#13-citizen-mobile-subsystem--offline-caching-flowchart)
    - 1.4 [Admin Web Subsystem, 2FA & Notification Dispatch Flowchart](#14-admin-web-subsystem-2fa--notification-dispatch-flowchart)
 
@@ -93,101 +93,64 @@ flowchart LR
 
 ---
 
-### 1.2 Detailed System Flowchart (End-to-End System Boundary)
+### 1.2 Physical System Flowchart (5-Stage Media & Hardware Flow)
 
-Illustrates the comprehensive physical data flow connecting the citizen's handheld device, network protocols, server controllers, external AI services, persistent relational storage, and administrator workstations.
+Illustrates the physical journey of data across **Input Media & Sensors**, **Client Processing**, **Central Processing Engines**, **Persistent Storage Media**, and **Physical Output Displays**.
 
 ```mermaid
 flowchart TD
-    %% Human Actors
-    subgraph ACTORS ["👥 System Stakeholders"]
-        CitizenUser["👤 Registered Citizen<br/>(Resident of Kabankalan)"]
-        AdminUser["🛡️ Municipal Administrator<br/>(LGU Public Safety / CSWDO)"]
+    %% ── 1. INPUT MEDIA & HARDWARE ──
+    subgraph INPUT_STAGE ["1. Input Media & Hardware Devices"]
+        CamSensor[/"📷 Hardware Camera Sensor<br/>(Anti-Spoofing Live Photo)"/]
+        GPSSensor[/"📍 GPS Hardware Receiver<br/>(Latitude / Longitude)"/]
+        TouchInput[/"⌨️ Citizen Touchscreen<br/>(Title, Description, Category)"/]
     end
 
-    %% Hardware & Client Devices
-    subgraph HARDWARE_LAYER ["📱 Hardware & Client Endpoints"]
-        MobilePhone["Citizen Smartphone<br/>(Android / iOS Device)"]
-        CameraHardware["Integrated Camera<br/>(Direct Hardware Access)"]
-        GPSHardware["GPS Hardware Sensor<br/>(Latitude/Longitude)"]
-        AdminWorkstation["City Hall Desktop Terminal<br/>(Web Browser / Chrome)"]
-        
-        MobilePhone --- CameraHardware
-        MobilePhone --- GPSHardware
+    %% ── 2. CLIENT PROCESSING & TRANSMISSION ──
+    subgraph CLIENT_TRANSPORT ["2. Client Processing & Transport Network"]
+        MobileClient["📱 React Native Mobile App<br/>(Expo Handheld Client)"]
+        AsyncCache[("💽 Local SQLite / AsyncStorage<br/>(Offline Queue Storage)")]
+        HTTP_Pipe["🌐 HTTPS Encrypted Protocol<br/>(REST API / JSON Payload)"]
     end
 
-    CitizenUser -->|Operates| MobilePhone
-    AdminUser -->|Operates| AdminWorkstation
+    CamSensor --> MobileClient
+    GPSSensor --> MobileClient
+    TouchInput --> MobileClient
+    MobileClient <-->|Offline Cache| AsyncCache
+    MobileClient -->|Transmit Over Internet| HTTP_Pipe
 
-    %% Software Client Applications
-    subgraph CLIENT_APPS ["💻 Software Client Applications"]
-        MobileApp["CitiVoice Mobile Client<br/>(React Native 0.81 + Expo)"]
-        AdminWeb["CitiVoice Admin Console<br/>(React 18 SPA + Vite/CRA)"]
+    %% ── 3. CENTRAL SERVER & AI PROCESSING ──
+    subgraph SERVER_PROCESSING ["3. Central Processing Engines"]
+        NodeServer["⚙️ Central Application Server<br/>(Node.js + Express Gateway)"]
+        AIEngine["☁️ Cloud AI Vision Service<br/>(Groq Llama 3.3 + Gemini Flash)"]
+        SocketEngine["⚡ Socket.io Real-Time Server<br/>(WebSocket Event Dispatcher)"]
     end
 
-    MobilePhone -->|Runs| MobileApp
-    AdminWorkstation -->|Accesses| AdminWeb
+    HTTP_Pipe --> NodeServer
+    NodeServer <-->|API Inspection Call| AIEngine
+    NodeServer <--> SocketEngine
 
-    %% Communication Channels & Protocols
-    subgraph PROTOCOLS ["🌐 Transmission & Gateway Layer"]
-        HTTPS_REST["Encrypted HTTPS REST API<br/>(JSON Payloads + JWT Tokens)"]
-        WSS_SOCKET["WebSocket Channel<br/>(WSS / Socket.io v4 Engine)"]
+    %% ── 4. STORAGE MEDIA ──
+    subgraph STORAGE_MEDIA ["4. Persistent Storage Media"]
+        MySQL_DB[("🗄️ MySQL 8.0 Database<br/>• users table<br/>• concerns table<br/>• audit_log table")]
+        DiskStorage[("📁 Server Disk Storage<br/>(/uploads/ Incident & ID Photos)")]
     end
 
-    MobileApp -->|HTTP Requests| HTTPS_REST
-    MobileApp <-->|Real-Time Streams| WSS_SOCKET
-    AdminWeb -->|Admin API Calls| HTTPS_REST
-    AdminWeb <-->|Live Updates & Chimes| WSS_SOCKET
+    NodeServer -->|SQL Transactions| MySQL_DB
+    NodeServer -->|Write Binary Images| DiskStorage
 
-    %% Application Server & Backend Micro-Modules
-    subgraph SERVER ["⚙️ CitiVoice Backend Application Server (Node.js & Express)"]
-        AuthGateway["Auth & RBAC Middleware<br/>(bcrypt, JWT, 2FA OTP)"]
-        ConcernModule["Concern Processing Engine<br/>(Validation, Centroid Matching)"]
-        VerificationModule["Citizen Verification Module<br/>(Badge & Queue Manager)"]
-        SocketServer["Real-Time Event Dispatcher<br/>(Socket.io Server)"]
+    %% ── 5. OUTPUTS & DISPLAYS ──
+    subgraph SYSTEM_OUTPUTS ["5. Output Media & Physical Displays"]
+        AdminTerminal[/"🖥️ Admin Web Dashboard<br/>(Interactive GIS Heatmap & Badges)"/]
+        CitizenScreen[/"📱 Citizen Mobile Screen<br/>(Official Municipal Docket Receipt)"/]
+        ReportExport[/"📄 Exported PDF / Excel Documents<br/>(City Council Monthly Reports)"/]
+        PushNotification[/"🔔 Mobile Push Notifications<br/>(FCM Alert: 'Crew Dispatched')"/]
     end
 
-    HTTPS_REST --> AuthGateway
-    HTTPS_REST --> ConcernModule
-    HTTPS_REST --> VerificationModule
-    WSS_SOCKET <--> SocketServer
-
-    %% External Microservices & Cloud AI
-    subgraph EXTERNAL_SERVICES ["☁️ External Cloud Microservices"]
-        DualAIEngine["Dual-AI Vision Client<br/>• Primary: Groq Llama 3.3 70B<br/>• Fallback: Google Gemini 1.5 Flash"]
-        SMTPService["SMTP Nodemailer Relay<br/>(Official City Gmail Gateway)"]
-        FCMService["Firebase Cloud Messaging (FCM)<br/>(Push Notification Daemon)"]
-    end
-
-    ConcernModule <-->|Image Semantic Alignment| DualAIEngine
-    VerificationModule <-->|ID OCR & Name Extraction| DualAIEngine
-    AuthGateway -->|Send 2FA & OTP Codes| SMTPService
-    ConcernModule -->|Trigger Push Alerts| FCMService
-
-    %% Data Stores & Files
-    subgraph DATA_STORES ["💾 Persistent Storage Media"]
-        MySQL_DB[("MySQL 8.0 Relational DB<br/>• users, concerns, audit_log<br/>• concern_links, otp_codes")]
-        MediaStorage[("Server File Storage<br/>(Local Storage / uploads/)")]
-        DeviceStorage[("Device AsyncStorage<br/>(Offline Queue & Cache)")]
-    end
-
-    MobileApp <-->|Offline Caching| DeviceStorage
-    ConcernModule -->|Read / Write| MySQL_DB
-    VerificationModule -->|Read / Write| MySQL_DB
-    AuthGateway -->|Read / Write| MySQL_DB
-    ConcernModule -->|Persist Images| MediaStorage
-    VerificationModule -->|Persist ID Photos| MediaStorage
-
-    %% Output Documents & Displays
-    subgraph OUTPUTS ["📄 Physical Outputs & UI Displays"]
-        DocketOutput[/"Citizen Official Docket Receipt<br/>(Tracking Number + Timeline)"/]
-        AdminHeatmap[/"GIS Incident Heatmap & Dashboard<br/>(Spatial Markers & KPI Cards)"/]
-        ResolutionReport[/"Exported Municipal Reports<br/>(Excel .XLSX / PDF Records)"/]
-    end
-
-    MobileApp --> DocketOutput
-    AdminWeb --> AdminHeatmap
-    AdminWeb --> ResolutionReport
+    SocketEngine -->|Live Update| AdminTerminal
+    SocketEngine -->|Push Event| PushNotification
+    MySQL_DB --> CitizenScreen
+    MySQL_DB --> ReportExport
 ```
 
 ---
