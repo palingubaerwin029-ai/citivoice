@@ -9,9 +9,10 @@ This document is divided into two distinct engineering specifications adhering t
 
 1. [**PART I — SYSTEM FLOWCHARTS (High-Level Architecture & Physical Data Flow)**](#-part-i--system-flowcharts-architecture--physical-data-flow)
    - *Scope:* Broad overview of hardware, software components, external AI services, database stores, communication media, human actors, and physical outputs.
-   - 1.1 [Master System Flowchart (End-to-End System Boundary)](#11-master-system-flowchart-end-to-end-system-boundary)
-   - 1.2 [Citizen Mobile Subsystem & Offline Caching Flowchart](#12-citizen-mobile-subsystem--offline-caching-flowchart)
-   - 1.3 [Admin Web Subsystem, 2FA & Notification Dispatch Flowchart](#13-admin-web-subsystem-2fa--notification-dispatch-flowchart)
+   - 1.1 [Master Compact System Flowchart (Executive 4-Tier Architecture)](#11-master-compact-system-flowchart-executive-4-tier-architecture)
+   - 1.2 [Detailed System Flowchart (End-to-End System Boundary)](#12-detailed-system-flowchart-end-to-end-system-boundary)
+   - 1.3 [Citizen Mobile Subsystem & Offline Caching Flowchart](#13-citizen-mobile-subsystem--offline-caching-flowchart)
+   - 1.4 [Admin Web Subsystem, 2FA & Notification Dispatch Flowchart](#14-admin-web-subsystem-2fa--notification-dispatch-flowchart)
 
 2. [**PART II — PROGRAM FLOWCHARTS (Low-Level Algorithmic & Control Logic)**](#-part-ii--program-flowcharts-algorithmic--control-logic)
    - *Scope:* Narrow focus on specific routines, branching decisions, mathematical calculations, and step-by-step code instructions.
@@ -35,9 +36,66 @@ This document is divided into two distinct engineering specifications adhering t
 
 ---
 
-### 1.1 Master System Flowchart (End-to-End System Boundary)
+### 1.1 Master Compact System Flowchart (Executive 4-Tier Architecture)
 
-Illustrates the end-to-end physical data flow connecting the citizen's handheld device, network protocols, server controllers, external AI services, persistent relational storage, and administrator workstations.
+**Purpose:** Consolidates the entire physical ecosystem into a **horizontal 4-tier pipeline** (Clients $\rightarrow$ Protocols $\rightarrow$ Backend/AI $\rightarrow$ Storage/Outputs) formatted in widescreen (16:9) for presentation slides and capstone document figures.
+
+```mermaid
+flowchart LR
+    %% ── TIER 1: CLIENTS & INPUT DEVICES ──
+    subgraph TIER1 ["📱 1. Client & Hardware Layer"]
+        direction TB
+        CitizenClient["Citizen Smartphone<br/>(React Native / Expo)<br/>• Integrated Camera (Live Only)<br/>• GPS Hardware (Lat/Lng)<br/>• Local Queue (AsyncStorage)"]
+        AdminClient["Admin Workstation<br/>(React 18 SPA / Chrome)<br/>• Real-Time Sidebar Badge<br/>• Sound Chime & KPI Cards"]
+    end
+
+    %% ── TIER 2: NETWORK & GATEWAY ──
+    subgraph TIER2 ["🌐 2. Network Gateway"]
+        direction TB
+        HTTPS["HTTPS REST API<br/>(Axios / Bearer JWT)"]
+        WSS["WebSocket Channel<br/>(Socket.io / Bidirectional)"]
+    end
+
+    CitizenClient -->|Transactions| HTTPS
+    CitizenClient <-->|Live Stream| WSS
+    AdminClient -->|Admin Requests| HTTPS
+    AdminClient <-->|Live Badges| WSS
+
+    %% ── TIER 3: SERVER & CLOUD SERVICES ──
+    subgraph TIER3 ["⚙️ 3. Application & Cloud Services"]
+        direction TB
+        BackendServer["Node.js & Express Server<br/>• Auth & RBAC (bcrypt, 2FA)<br/>• Spatial Centroid (Haversine)<br/>• Duplicate Detection Engine<br/>• Verification Queue Engine"]
+        
+        CloudAI["Dual-AI Vision Service<br/>• Primary: Groq Llama 3.3 70B<br/>• Failover: Gemini 1.5 Flash<br/>• OCR & Semantic Matching"]
+        
+        NotifDaemons["Notification Daemons<br/>• FCM (Mobile Push Alerts)<br/>• SMTP (Official Gmail OTP)"]
+    end
+
+    HTTPS --> BackendServer
+    WSS <--> BackendServer
+    BackendServer <-->|Vision Validation| CloudAI
+    BackendServer -->|Push & Email| NotifDaemons
+
+    %% ── TIER 4: STORAGE & OUTPUTS ──
+    subgraph TIER4 ["💾 4. Persistence & Outputs"]
+        direction TB
+        Database[("MySQL 8.0 Database<br/>users • concerns<br/>audit_log • links")]
+        FileDisk[("Disk File Storage<br/>/uploads/ (IDs, Proofs, Photos)")]
+        
+        Outputs[/"Physical & UI Outputs<br/>• Official Municipal Docket<br/>• Real-Time GIS Heatmap<br/>• Exported Reports (Excel/PDF)"/]
+    end
+
+    BackendServer -->|SQL Queries| Database
+    BackendServer -->|Save Media| FileDisk
+    Database --> Outputs
+    FileDisk --> Outputs
+```
+
+---
+
+### 1.2 Detailed System Flowchart (End-to-End System Boundary)
+
+Illustrates the comprehensive physical data flow connecting the citizen's handheld device, network protocols, server controllers, external AI services, persistent relational storage, and administrator workstations.
 
 ```mermaid
 flowchart TD
@@ -134,7 +192,7 @@ flowchart TD
 
 ---
 
-### 1.2 Citizen Mobile Subsystem & Offline Caching Flowchart
+### 1.3 Citizen Mobile Subsystem & Offline Caching Flowchart
 
 Shows the flow of data from mobile sensors, through offline SQLite/AsyncStorage storage, over HTTPS/WSS, to server-side controllers.
 
@@ -178,7 +236,7 @@ flowchart LR
 
 ---
 
-### 1.3 Admin Web Subsystem, 2FA & Notification Dispatch Flowchart
+### 1.4 Admin Web Subsystem, 2FA & Notification Dispatch Flowchart
 
 Shows the data flow during administrative oversight, real-time sidebar badge synchronization, dual-factor authentication, and citizen notification fan-out.
 
