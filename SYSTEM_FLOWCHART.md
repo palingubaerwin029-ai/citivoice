@@ -16,11 +16,12 @@ This document is divided into two distinct engineering specifications adhering t
 2. [**PART II — PROGRAM FLOWCHARTS (Low-Level Algorithmic & Control Logic)**](#-part-ii--program-flowcharts-algorithmic--control-logic)
    - *Scope:* Narrow focus on specific routines, branching decisions, mathematical calculations, and step-by-step code instructions.
    - 2.1 [Standard ANSI/ISO Logic Symbol Guide](#21-standard-ansiiso-logic-symbol-guide)
-   - 2.2 [Program 1: Citizen Registration & AI OCR ID Verification Algorithm](#22-program-1-citizen-registration--ai-ocr-id-verification-algorithm)
-   - 2.3 [Program 2: Incident Intake & Dual-AI Visual Alignment Algorithm](#23-program-2-incident-intake--dual-ai-visual-alignment-algorithm)
-   - 2.4 [Program 3: Spatial Haversine & Duplicate Hazard Detection Algorithm](#24-program-3-spatial-haversine--duplicate-hazard-detection-algorithm)
-   - 2.5 [Program 4: Administrative Resolution & Standardized Rejection Algorithm](#25-program-4-administrative-resolution--standardized-rejection-algorithm)
-   - 2.6 [Program 5: Citizen Concern Editing & Audit Snapshot Algorithm](#26-program-5-citizen-concern-editing--audit-snapshot-algorithm)
+   - 2.2 [Master Compact Program Flowchart (Executive 4-Stage Lifecycle)](#22-master-compact-program-flowchart-executive-4-stage-lifecycle)
+   - 2.3 [Program 1: Citizen Registration & AI OCR ID Verification Algorithm](#23-program-1-citizen-registration--ai-ocr-id-verification-algorithm)
+   - 2.4 [Program 2: Incident Intake & Dual-AI Visual Alignment Algorithm](#24-program-2-incident-intake--dual-ai-visual-alignment-algorithm)
+   - 2.5 [Program 3: Spatial Haversine & Duplicate Hazard Detection Algorithm](#25-program-3-spatial-haversine--duplicate-hazard-detection-algorithm)
+   - 2.6 [Program 4: Administrative Resolution & Standardized Rejection Algorithm](#26-program-4-administrative-resolution--standardized-rejection-algorithm)
+   - 2.7 [Program 5: Citizen Concern Editing & Audit Snapshot Algorithm](#27-program-5-citizen-concern-editing--audit-snapshot-algorithm)
 
 3. [**PART III — TRACEABILITY MATRIX**](#-part-iii--traceability-matrix)
    - Cross-references each physical system component to its specific algorithmic program flowchart.
@@ -249,7 +250,76 @@ flowchart LR
 
 ---
 
-### 2.2 Program 1: Citizen Registration & AI OCR ID Verification Algorithm
+### 2.2 Master Compact Program Flowchart (Executive 4-Stage Lifecycle)
+
+**Purpose:** Consolidates the complete algorithmic lifecycle into **4 synchronized lifecycle stages** using macro-processing blocks and symmetrical multi-branch decisions. Designed to fit cleanly on a single presentation slide or printed manuscript page.
+
+```mermaid
+flowchart TD
+    %% ── STAGE 1: INTAKE & IDENTITY ──
+    subgraph STAGE1 ["1. Citizen Intake & Identity Verification"]
+        Start(["Start: Citizen Action"]) --> AuthCheck{"Citizen Verified?"}
+        AuthCheck -- "No" --> InID[/"Live Camera ID Photo + Name"/]
+        InID --> AI_OCR[["AI OCR Name Match >= 80%?"]]
+        AI_OCR -- "Yes" --> MarkVerified["Set Status: 'verified'"]
+        AI_OCR -- "No" --> MarkPending["Queue for Manual Admin Review"]
+        MarkVerified --> AuthCheck
+        
+        AuthCheck -- "Yes" --> CaptureConcern[/"Capture Incident Photo (Camera) + GPS"/]
+    end
+
+    %% ── STAGE 2: AI VALIDATION & SPATIAL ENGINE ──
+    subgraph STAGE2 ["2. AI Vision Alignment & Spatial Routing"]
+        CaptureConcern --> CheckNet{"Device Online?"}
+        CheckNet -- "Offline" --> LocalQueue[("Store in Local Offline Queue")]
+        LocalQueue -.->|"On Reconnect"| CheckNet
+
+        CheckNet -- "Online" --> DualAI[["Dual-AI Vision (Groq / Gemini)"]]
+        DualAI --> AIValid{"Image Matches Text?"}
+        AIValid -- "No" --> MismatchErr[/"Reject: Image Mismatch Alert"/]
+        MismatchErr --> CaptureConcern
+
+        AIValid -- "Yes" --> SpatialCentroid["Haversine Centroid: Map Nearest Barangay"]
+        SpatialCentroid --> DupCheck{"Duplicate Hazard in 150m?"}
+        DupCheck -- "Yes" --> LinkDup[("Link to Existing Report ID")]
+        DupCheck -- "No" --> InsertConcern[("INSERT concerns: Status = 'Pending'")]
+        LinkDup --> InsertConcern
+    end
+
+    %% ── STAGE 3: ADMIN TRIAGE & DISPATCH ──
+    subgraph STAGE3 ["3. Administrative Review & Triage"]
+        InsertConcern --> Broadcast[["Socket.io: Push Real-Time Sidebar Badge & Chime"]]
+        Broadcast --> AdminDecision{"Admin Triage Decision"}
+        
+        AdminDecision -- "Dispatch" --> SetProgress["Set Status: 'In Progress'"]
+        AdminDecision -- "Resolve" --> CheckProof{"Proof Photo Attached?"}
+        AdminDecision -- "Reject" --> StripProof["Strip Photo & Select 1 of 7 Standard Grounds"]
+        
+        CheckProof -- "No" --> ReqProof[/"Alert: Resolution Photo Required"/]
+        ReqProof --> AdminDecision
+        CheckProof -- "Yes" --> SetResolved["Attach Proof Photo + AI Resolution Note"]
+    end
+
+    %% ── STAGE 4: PERSISTENCE & OUTPUT ──
+    subgraph STAGE4 ["4. Persistence, Audit & Citizen Notification"]
+        SetProgress --> CommitDB[("UPDATE concerns & INSERT audit_log")]
+        SetResolved --> CommitDB
+        StripProof --> CommitDB
+        
+        CommitDB --> Notify[["Dispatch Push Notification (FCM) & WebSocket Update"]]
+        Notify --> EndDoc[/"Output: Official Docket Receipt & Updated Timeline"/]
+        EndDoc --> Complete(["End: Incident State Finalized"])
+    end
+
+    %% Inter-Stage Connections
+    STAGE1 --> STAGE2
+    STAGE2 --> STAGE3
+    STAGE3 --> STAGE4
+```
+
+---
+
+### 2.3 Program 1: Citizen Registration & AI OCR ID Verification Algorithm
 
 **Source Controller:** `backend/controllers/auth.controller.js` & `backend/controllers/users.controller.js`  
 **Purpose:** Handles pre-registration validation, password hashing, anti-spoofing camera capture, and automated AI OCR name matching with manual admin fallback.
@@ -311,7 +381,7 @@ flowchart TD
 
 ---
 
-### 2.3 Program 2: Incident Intake & Dual-AI Visual Alignment Algorithm
+### 2.4 Program 2: Incident Intake & Dual-AI Visual Alignment Algorithm
 
 **Source Controller:** `backend/controllers/concerns.controller.js` & `backend/services/aiClient.js`  
 **Purpose:** Validates citizen photo evidence, checks semantic alignment against report description, calculates urgency score, and saves incident.
@@ -363,7 +433,7 @@ flowchart TD
 
 ---
 
-### 2.4 Program 3: Spatial Haversine & Duplicate Hazard Detection Algorithm
+### 2.5 Program 3: Spatial Haversine & Duplicate Hazard Detection Algorithm
 
 **Source Controller:** `backend/controllers/concerns.controller.js` (Spatial Subroutine)  
 **Purpose:** Calculates nearest barangay centroid and identifies duplicate open reports in the same geographic zone.
@@ -397,7 +467,7 @@ flowchart TD
 
 ---
 
-### 2.5 Program 4: Administrative Resolution & Standardized Rejection Algorithm
+### 2.6 Program 4: Administrative Resolution & Standardized Rejection Algorithm
 
 **Source Controller:** `backend/controllers/concerns.controller.js`  
 **Purpose:** Enforces strict municipal accountability rules: status dispatch, proof photo attachment, AI response drafting, and standardized rejection classification.
@@ -441,7 +511,7 @@ flowchart TD
 
 ---
 
-### 2.6 Program 5: Citizen Concern Editing & Audit Snapshot Algorithm
+### 2.7 Program 5: Citizen Concern Editing & Audit Snapshot Algorithm
 
 **Source Controller:** `backend/controllers/concerns.controller.js`  
 **Purpose:** Restricts editing to open tickets, re-evaluates visual alignment against existing photos, and preserves historical version snapshots.
